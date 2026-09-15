@@ -10992,10 +10992,21 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
             // Convert SAT text to SAB binary via SatDocument.
             // Strip non-geometry entities (attributes, refinement, etc.)
             // which cause ACIS "NOT THAT KIND OF CLASS" errors in SAB.
+            // The ACDSDATA section (AC1027+) requires ASM (ShapeManager) SAB;
+            // classic ACIS 7.0 SAB is rejected by AutoCAD/BricsCAD.
             if let Ok(mut sat_doc) = crate::entities::acis::SatDocument::parse(&acis.sat_data) {
-                sat_doc.strip_for_sab();
-                let sab = crate::entities::acis::SabWriter::write(&sat_doc);
-                self.sab_entries.push((entity_handle, sab));
+                match sat_doc.to_sab_asm_checked() {
+                    Ok(sab) => self.sab_entries.push((entity_handle, sab)),
+                    Err(errors) => {
+                        // Never embed a corrupt blob: a missing ACDSDATA record
+                        // reads back as an empty solid, whereas a malformed
+                        // SAB can fail the whole file in the ACIS kernel.
+                        eprintln!(
+                            "[dxf-writer] skipping SAB blob for handle {:?}: SAT validation failed: {:?}",
+                            entity_handle, errors
+                        );
+                    }
+                }
             }
         }
     }

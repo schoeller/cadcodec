@@ -2898,6 +2898,163 @@ impl SatDocument {
         self.header.spatial_resolution = 1.0;
     }
 
+    /// Strip non-geometry records, validate the remaining topology, and
+    /// serialize to SAB binary in one step.
+    ///
+    /// This is the path DWG/DXF writers take when converting SAT text into the
+    /// SAB blobs embedded in a file. [`strip_for_sab`](Self::strip_for_sab)
+    /// remaps every pointer through an old→new index map, so a document that
+    /// was valid as SAT can come out of the strip with dangling or
+    /// out-of-range pointers; serializing that to SAB produces geometry the
+    /// ACIS kernel cannot load. Validating between the strip and the write
+    /// lets the caller skip the blob instead of embedding a corrupt one.
+    ///
+    /// Returns `Err` with the validation errors when the stripped document is
+    /// invalid (the document is left stripped in that case).
+    pub fn to_sab_checked(&mut self) -> Result<Vec<u8>, Vec<SatValidationError>> {
+        self.strip_for_sab();
+        let errors = self.validate();
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        Ok(crate::entities::acis::SabWriter::write(self))
+    }
+
+    /// The ASM (Autodesk ShapeManager) SAB version AutoCAD/BricsCAD write for
+    /// DWG R2018 (AC1032): release 223.0.1.1930 → version number 22300.
+    pub const ASM_SAB_VERSION_R2018: u32 = 22300;
+
+    /// Restructure this classic-ACIS document into the ASM (ShapeManager) layout
+    /// that DWG R2013+ `AcDsPrototype_1b` SAB blobs use, and return it.
+    ///
+    /// Classic ACIS 7.0 SAB (what `SabWriter::write` emits) is rejected by the
+    /// ASM loader in AutoCAD/BricsCAD: the magic, the version, and the required
+    /// leading `asmheader` record all differ. This converts in place:
+    ///
+    /// 1. prepends an `asmheader` record (the ASM schema stamp), shifting every
+    ///    existing record index by one and remapping all `$N` pointers;
+    /// 2. appends an identity `transform` record and links the `body`'s
+    ///    transform pointer to it (ASM bodies carry a transform);
+    /// 3. sets the header to ASM version 22300 with `spatial_resolution = 1.0`.
+    ///
+    /// The record list keeps its existing relative order — ACIS is pointer
+    /// based, so order is not semantically significant; only the `asmheader`
+    /// conventionally leads.
+    /// 1. prepends an `asmheader` record (the ASM schema stamp);
+    /// 2. reverses the body records into the canonical ACIS/ASM **topology-first**
+    ///    order (the kernel appends geometry-first / body-last; ASM restores
+    ///    body-first) and remaps every `$N` pointer accordingly;
+    /// 3. appends an identity `transform` record and links the `body`'s transform
+    ///    pointer to it (ASM bodies carry a transform);
+    /// 4. sets the header to ASM version 22300 with `spatial_resolution = 1.0`.
+    pub fn to_asm_structure(&mut self) {
+        let old = std::mem::take(&mut self.records);
+        let n = old.len();
+
+        // New order: asmheader (index 0), then the existing records reversed so the
+        // body leads (canonical ASM save order). Build old-index → new-index map.
+        // asmheader occupies 0; old record i lands at index (n - i).
+        let mut index_map = vec![0i32; n];
+        for old_idx in 0..n {
+            index_map[old_idx] = (n - old_idx) as i32;
+        }
+        let remap = |p: i32| -> i32 {
+            if p < 0 || (p as usize) >= n {
+                -1
+            } else {
+                index_map[p as usize]
+            }
+        };
+
+        let asm_version_string = "208.0.4.7009";
+        let mut asm_data = Vec::with_capacity(1 + asm_version_string.len());
+        asm_data.push(asm_version_string.len() as u8);
+        asm_data.extend_from_slice(asm_version_string.as_bytes());
+        let asmheader = SatRecord {
+            index: 0,
+            entity_type: "asmheader".to_string(),
+            sub_type: None,
+            attribute: SatPointer::NULL,
+            subtype_id: -1,
+            tokens: vec![SatToken::Sab {
+                tag: 0x07, // STRING
+                data: asm_data,
+            }],
+            raw_text: None,
+        };
+
+        let mut records = Vec::with_capacity(n + 2);
+        records.push(asmheader);
+        // Reverse, remapping attribute + token pointers into the new indexing.
+        for (rev_pos, mut rec) in old.into_iter().rev().enumerate() {
+            let old_idx = n - 1 - rev_pos;
+            rec.index = index_map[old_idx];
+            if !rec.attribute.is_null() {
+                rec.attribute = SatPointer::new(remap(rec.attribute.0));
+            }
+            for token in &mut rec.tokens {
+                if let SatToken::Pointer(p) = token {
+                    if !p.is_null() {
+                        p.0 = remap(p.0);
+                    }
+                }
+            }
+            records.push(rec);
+        }
+        self.records = records;
+
+        // 3. Append an identity transform and link the body's transform pointer.
+        let transform_index = self.records.len() as i32;
+        let transform_text = "1 0 0 0 1 0 0 0 1 0 0 1 1 no_rotate no_reflect no_shear ";
+        let mut t_data = Vec::with_capacity(4 + transform_text.len());
+        t_data.extend_from_slice(&(transform_text.len() as u32).to_le_bytes());
+        t_data.extend_from_slice(transform_text.as_bytes());
+        let transform = SatRecord {
+            index: transform_index,
+            entity_type: "transform".to_string(),
+            sub_type: None,
+            attribute: SatPointer::NULL,
+            subtype_id: -1,
+            tokens: vec![SatToken::Sab {
+                tag: 0x12, // ASM_LONG_STRING
+                data: t_data,
+            }],
+            raw_text: None,
+        };
+        self.records.push(transform);
+
+        // Link the body's transform pointer (4th pointer token) to it.
+        for rec in &mut self.records {
+            if rec.entity_type == "body" {
+                // body tokens: [next_body, lump, wire, transform]
+                if let Some(SatToken::Pointer(p)) = rec.tokens.get_mut(3) {
+                    *p = SatPointer::new(transform_index);
+                }
+            }
+        }
+
+        // 4. Header: ASM version, one body per solid, spatial_resolution 1.0.
+        self.header.version = SatVersion::from_sat_number(Self::ASM_SAB_VERSION_R2018);
+        self.header.num_bodies = 1;
+        self.header.spatial_resolution = 1.0;
+        self.header.num_records = self.records.len();
+    }
+
+    /// Strip non-geometry records, restructure to ASM layout, validate, and
+    /// serialize to ASM SAB binary (for DWG R2013+ / AcDs) in one step.
+    ///
+    /// Returns `Err` with the validation errors when the resulting document is
+    /// invalid.
+    pub fn to_sab_asm_checked(&mut self) -> Result<Vec<u8>, Vec<SatValidationError>> {
+        self.strip_for_sab();
+        self.to_asm_structure();
+        let errors = self.validate();
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        Ok(crate::entities::acis::SabWriter::write_asm(self))
+    }
+
     /// Check if an entity type is a core ACIS geometry type that should
     /// be preserved in SAB output.
     fn is_core_geometry_type(entity_type: &str) -> bool {

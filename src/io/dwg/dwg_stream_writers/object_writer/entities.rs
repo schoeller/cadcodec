@@ -5423,9 +5423,25 @@ impl<'a> DwgObjectWriter<'a> {
         } else if !acis.sat_data.is_empty() {
             // Convert SAT text → SAB binary via SatDocument
             if let Ok(mut sat_doc) = crate::entities::acis::SatDocument::parse(&acis.sat_data) {
-                sat_doc.strip_for_sab();
-                let sab = crate::entities::acis::SabWriter::write(&sat_doc);
-                self.sab_entries.push((entity_handle, sab));
+                // R2013+ AcDs data store requires ASM (ShapeManager) SAB;
+                // classic ACIS 7.0 SAB is rejected by AutoCAD/BricsCAD.
+                let result = if self.needs_acds_section() {
+                    sat_doc.to_sab_asm_checked()
+                } else {
+                    sat_doc.to_sab_checked()
+                };
+                match result {
+                    Ok(sab) => self.sab_entries.push((entity_handle, sab)),
+                    Err(errors) => {
+                        // Never embed a corrupt blob: a missing AcDs record
+                        // reads back as an empty solid, whereas a malformed
+                        // SAB can fail the whole file in the ACIS kernel.
+                        eprintln!(
+                            "[dwg-writer] skipping SAB blob for handle {:?}: SAT validation failed: {:?}",
+                            entity_handle, errors
+                        );
+                    }
+                }
             }
         }
     }
@@ -5582,21 +5598,15 @@ impl<'a> DwgObjectWriter<'a> {
         self.writer.write_bit(wireframe_present);
 
         if wireframe_present {
-            // Wireframe anchor: the entity's stored reference point (bbox
-            // centre in AutoCAD-authored files), falling back to the first
-            // wire vertex.
-            let anchor = if acis.wireframe_point_present || point != Vector3::ZERO {
-                point
-            } else {
-                wires
-                    .first()
-                    .and_then(|w| w.points.first().copied())
-                    .unwrap_or(Vector3::ZERO)
-            };
-            let point_present = acis.wireframe_point_present || point != Vector3::ZERO;
+            // Wireframe anchor: present only when the source carried one
+            // (`wireframe_point_present`). The entity's `point_of_reference`
+            // (bbox centre) is a separate field and must NOT force this gate —
+            // writing a 3BD point the reader did not store shifts every
+            // subsequent bit and ODA/BricsCAD rejects the object.
+            let point_present = acis.wireframe_point_present;
             self.writer.write_bit(point_present);
             if point_present {
-                self.writer.write_3bit_double(anchor);
+                self.writer.write_3bit_double(point);
             }
             self.writer.write_bit_long(acis.wireframe_isolines);
             let isoline_present = acis.wireframe_isoline_present || !wires.is_empty();

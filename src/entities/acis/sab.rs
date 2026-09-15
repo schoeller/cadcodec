@@ -82,6 +82,10 @@ pub mod tags {
 
 /// SAB header magic string.
 const SAB_MAGIC: &[u8] = b"ACIS BinaryFile";
+/// ASM (Autodesk ShapeManager) header magic — DWG R2013+ AcDs data store.
+/// Note the ASM magic is 14 bytes; a single trailing byte follows before the
+/// version u32 (so the header ints also begin 15 bytes in, like classic ACIS).
+const SAB_MAGIC_ASM: &[u8] = b"ASM BinaryFile";
 
 // ============================================================================
 // SAT → SAB Writer
@@ -91,34 +95,65 @@ const SAB_MAGIC: &[u8] = b"ACIS BinaryFile";
 pub struct SabWriter;
 
 impl SabWriter {
-    /// Convert a SAT document to SAB binary data.
+    /// Convert a SAT document to classic ACIS SAB binary data.
     pub fn write(doc: &SatDocument) -> Vec<u8> {
+        Self::write_impl(doc, false)
+    }
+
+    /// Convert a SAT document to ASM (ShapeManager) SAB binary data, the form
+    /// DWG R2013+ stores in the `AcDsPrototype_1b` section. Differs from classic
+    /// ACIS SAB only in the magic, the trailing byte after it, the real
+    /// record count, and the `End-of-ASM-data` terminator.
+    pub fn write_asm(doc: &SatDocument) -> Vec<u8> {
+        Self::write_impl(doc, true)
+    }
+
+    fn write_impl(doc: &SatDocument, asm: bool) -> Vec<u8> {
         let mut buf = Vec::with_capacity(8192);
 
         // Header
-        Self::write_header(&mut buf, &doc.header);
+        Self::write_header(&mut buf, &doc.header, asm);
 
         // Entity records
         for record in &doc.records {
             Self::write_record(&mut buf, record);
         }
 
-        // End marker: entity type "End-of-ACIS-data" with no end-of-record tag
-        Self::write_entity_type(&mut buf, "End-of-ACIS-data");
+        // End marker.
+        // Classic ACIS uses the bare "End-of-ACIS-data" entity-type string.
+        // ASM (ShapeManager) uses the tagged-token terminator:
+        //   0E"End" 0E"of" 0E"ASM" 0D"data"
+        if asm {
+            Self::write_subtype(&mut buf, "End");
+            Self::write_subtype(&mut buf, "of");
+            Self::write_subtype(&mut buf, "ASM");
+            Self::write_entity_type(&mut buf, "data");
+        } else {
+            Self::write_entity_type(&mut buf, "End-of-ACIS-data");
+        }
 
         buf
     }
 
-    fn write_header(buf: &mut Vec<u8>, header: &SatHeader) {
+    fn write_header(buf: &mut Vec<u8>, header: &SatHeader, asm: bool) {
         // Magic
-        buf.extend_from_slice(SAB_MAGIC);
+        if asm {
+            buf.extend_from_slice(SAB_MAGIC_ASM);
+            // ASM magic is 14 bytes; one trailing byte precedes the version u32.
+            buf.push(0x34);
+        } else {
+            buf.extend_from_slice(SAB_MAGIC);
+        }
 
         // Version number (4 bytes LE)
         let ver = header.version.sat_version_number();
         buf.extend_from_slice(&ver.to_le_bytes());
 
-        // num_records field (4 bytes LE) — always 0 for ACIS 7.0+
-        let num_records: u32 = if header.version.has_explicit_indices() {
+        // num_records field (4 bytes LE). Classic ACIS 7.0+ writes 0; the ASM
+        // ShapeManager writer records the actual record count.
+        let num_records: u32 = if asm {
+            header.num_records as u32
+        } else if header.version.has_explicit_indices() {
             0
         } else {
             header.num_records as u32
@@ -1431,6 +1466,54 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_to_sab_checked_accepts_valid_document() {
+        let sat_text = "700 0 1 0\n\
+            @8 acadrust @8 ACIS 7.0 @24 Thu Jan 01 00:00:00 2023\n\
+            10 9.9999999999999995e-007 1e-010\n\
+            body $-1 -1 $-1 $1 $-1 $-1 #\n\
+            lump $-1 -1 $-1 $-1 $2 $0 #\n\
+            shell $-1 -1 $-1 $-1 $-1 $3 $-1 $1 #\n\
+            face $-1 -1 $-1 $-1 $-1 $2 $-1 $4 forward single #\n\
+            plane-surface $-1 -1 $-1 0 0 5 0 0 1 1 0 0 forward_v I I I I #\n\
+            End-of-ACIS-data\n";
+
+        let mut doc = SatDocument::parse(sat_text).unwrap();
+        let sab = doc
+            .to_sab_checked()
+            .expect("a structurally valid document should convert to SAB");
+        assert!(!sab.is_empty());
+
+        // The emitted SAB must read back into an equally valid document.
+        let roundtrip = SabReader::read(&sab).unwrap();
+        assert!(roundtrip.validate().is_empty());
+    }
+
+    #[test]
+    fn test_to_sab_checked_rejects_dangling_pointer() {
+        // A body whose $-pointer references record 99, which does not exist.
+        // Mirrors the malformed topology `validate()` is meant to catch.
+        let sat_text = "700 0 1 0\n\
+            @8 acadrust @8 ACIS 7.0 @24 Thu Jan 01 00:00:00 2023\n\
+            1e-06 9.9999999999999995e-07\n\
+            -0 body $-1 $99 $-1 $-1 #\n\
+            End-of-ACIS-data\n";
+
+        let mut doc = SatDocument::parse(sat_text).unwrap();
+        let result = doc.to_sab_checked();
+        assert!(
+            result.is_err(),
+            "a document with a dangling pointer must be rejected"
+        );
+        let errors = result.unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, crate::entities::acis::SatValidationError::InvalidPointer { .. })),
+            "expected an InvalidPointer error, got {errors:?}"
+        );
+    }
+
+    #[test]
     fn test_sat_to_sab_header() {
         let mut doc = SatDocument::new();
         doc.header.product_id = "TestApp".to_string();
@@ -1799,7 +1882,19 @@ mod tests {
                 let crate::EntityType::Solid3D(solid) = read.entities().next().unwrap() else {
                     panic!("missing solid");
                 };
-                assert_eq!(solid.acis_data.sab_data, expected, "DWG {version:?}");
+                // R2013+ (AC1027+) stores ASM (ShapeManager) SAB in the AcDs data
+                // store; earlier versions embed classic ACIS SAB inline. Compute
+                // the expected blob through the matching conversion.
+                let mut expected_doc = SatDocument::parse(&doc.to_sat_string()).unwrap();
+                let expected_for_version = if version >= crate::DxfVersion::AC1027 {
+                    expected_doc.to_sab_asm_checked().unwrap()
+                } else {
+                    expected_doc.to_sab_checked().unwrap()
+                };
+                assert_eq!(
+                    solid.acis_data.sab_data, expected_for_version,
+                    "DWG {version:?}"
+                );
             }
         }
     }
