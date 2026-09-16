@@ -101,8 +101,28 @@ impl DwgWriter {
                         owned.classes.get_by_name(name).cloned()
                     })
                     .collect();
+                // Native class-registered objects (e.g. ACDBSECTIONVIEWSTYLE,
+                // ACDBDETAILVIEWSTYLE) are not part of the legacy class table,
+                // but if they have live instances they must remain so the writer
+                // can emit the correct type code instead of falling back to 500.
+                let required_object_classes: Vec<_> = owned
+                    .objects
+                    .values()
+                    .filter_map(|obj| {
+                        if let crate::objects::ObjectType::ClassObject(co) = obj {
+                            let name = co.dxf_name();
+                            if !name.is_empty() {
+                                return owned.classes.get_by_name(name).cloned();
+                            }
+                        }
+                        None
+                    })
+                    .collect();
                 owned.classes.retain_legacy_dwg_classes();
-                for mut class in required {
+                for mut class in required
+                    .into_iter()
+                    .chain(required_object_classes.into_iter())
+                {
                     if !owned.classes.contains(&class.dxf_name) {
                         class.class_number = 0;
                         owned.classes.add_or_update(class);

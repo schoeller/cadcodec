@@ -1,3 +1,6 @@
+> **OUTDATED**: This file is superseded by `tests/gold_harness/IMPLEMENTATION.md`. Do not use it as a source of truth.
+>
+
 # Gold-vs-Silver Harness Refinement Report
 
 Date: 2026-09-16
