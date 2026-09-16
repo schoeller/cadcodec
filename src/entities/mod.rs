@@ -285,6 +285,9 @@ pub struct EntityCommon {
     pub linetype_handle: Option<Handle>,
     /// Linetype scale factor (default 1.0)
     pub linetype_scale: f64,
+    /// Linetype flags (00=bylayer, 01=byblock, 10=continuous, 11=handle) — R2000+
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub linetype_flags: u8,
     /// Transparency
     #[cfg_attr(feature = "serde", serde(default))]
     pub transparency: Transparency,
@@ -342,6 +345,19 @@ pub struct EntityCommon {
     /// model, so skipped for serde.
     #[cfg_attr(feature = "serde", serde(skip))]
     pub has_ds_data: bool,
+
+    /// Previous entity handle in the pre-R2004 block entity linked list.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub prev_entity_handle: Option<Handle>,
+    /// Next entity handle in the pre-R2004 block entity linked list.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub next_entity_handle: Option<Handle>,
+    /// Pre-R2004 block entity chain NOLINKS bit.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub nolinks: Option<bool>,
+    /// R2000+ LINE z-are-zero optimization bit stored for round-trip.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub z_are_zero: Option<bool>,
 }
 
 impl EntityCommon {
@@ -370,6 +386,7 @@ impl EntityCommon {
             linetype: String::new(),
             linetype_handle: None,
             linetype_scale: 1.0,
+            linetype_flags: 0,
             transparency: Transparency::BY_LAYER,
             color_name: None,
             invisible: false,
@@ -389,6 +406,10 @@ impl EntityCommon {
             plotstyle_handle: None,
             entity_mode: None,
             has_ds_data: false,
+            prev_entity_handle: None,
+            next_entity_handle: None,
+            nolinks: None,
+            z_are_zero: None,
         }
     }
 

@@ -16,6 +16,7 @@ categories = ["parser-implementations", "encoding"]
 default = []
 serde = ["dep:serde", "bitflags/serde", "indexmap/serde"]
 import = ["dep:quick-xml"]
+gold-harness = ["serde"]
 
 [dependencies]
 # Error handling
@@ -67,3 +68,12 @@ codegen-units = 1
 
 [profile.bench]
 inherits = "release"
+
+[[example]]
+name = "dwg2json"
+path = "examples/dwg2json.rs"
+required-features = ["serde"]
+
+[[example]]
+name = "dwgrewrite"
+path = "examples/dwgrewrite.rs"

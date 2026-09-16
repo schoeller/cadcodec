@@ -3107,6 +3107,7 @@ impl DwgDocumentBuilder {
                     e.end = data.end;
                     e.thickness = data.thickness;
                     e.normal = data.normal;
+                    e.common.z_are_zero = data.z_are_zero;
                     let _ = document.add_entity(EntityType::Line(e));
                 }
                 OBJ_POINT => {
@@ -7219,6 +7220,7 @@ fn map_entity_common(
     };
     common.linetype_handle =
         (data.linetype_handle != 0).then(|| Handle::from(data.linetype_handle));
+    common.linetype_flags = data.linetype_flags;
     // EED raw bytes for DWG round-trip
     common.extended_data.raw_dwg_eed = data.common.eed_raw.clone();
     // Graphic data for DWG round-trip
@@ -7233,6 +7235,10 @@ fn map_entity_common(
     // R2013+: geometry-in-AcDs flag, needed to pair AcDs SAB blobs with the
     // right modeler entity in object-stream order.
     common.has_ds_data = data.has_ds_data;
+    // Pre-R2004 entity chain handles and NOLINKS bit for round-trip.
+    common.prev_entity_handle = data.prev_entity_handle.map(Handle::from);
+    common.next_entity_handle = data.next_entity_handle.map(Handle::from);
+    common.nolinks = data.nolinks;
     common
 }
 

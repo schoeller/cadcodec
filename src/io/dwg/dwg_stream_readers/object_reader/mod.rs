@@ -113,6 +113,8 @@ pub struct EntityCommonData {
     pub face_visual_style_handle: Option<u64>,
     /// Edge visual-style override handle — R2010+
     pub edge_visual_style_handle: Option<u64>,
+    /// Pre-R2004 NOLINKS bit value (None for R2004+ where the bit is absent).
+    pub nolinks: Option<bool>,
     /// R2013+ `has_ds_data` bit: the entity's geometry lives in the AcDs
     /// (Autodesk Data Store) section. For a 3DSOLID/REGION/BODY/SURFACE this
     /// signals that a SAB blob in `AcDb:AcDsPrototype_1b` belongs to it; the
@@ -527,10 +529,12 @@ impl DwgObjectReader {
         }
 
         // Pre-R2004: Nolinks + prev/next (R13/R14 and R2000-R2002)
+        let mut nolinks_value = None;
         let mut prev_entity_handle = None;
         let mut next_entity_handle = None;
         if !self.version.r2004_plus() {
             let nolinks = reader.read_bit();
+            nolinks_value = Some(nolinks);
             if !nolinks {
                 prev_entity_handle = Some(reader.read_handle());
                 next_entity_handle = Some(reader.read_handle());
@@ -586,6 +590,7 @@ impl DwgObjectReader {
                 full_visual_style_handle: None,
                 face_visual_style_handle: None,
                 edge_visual_style_handle: None,
+                nolinks: nolinks_value,
                 has_ds_data,
             };
         }
@@ -680,6 +685,7 @@ impl DwgObjectReader {
             full_visual_style_handle,
             face_visual_style_handle,
             edge_visual_style_handle,
+            nolinks: nolinks_value,
             has_ds_data,
         }
     }

@@ -44,6 +44,8 @@ pub struct LineData {
     pub end: Vector3,
     pub thickness: f64,
     pub normal: Vector3,
+    /// R2000+: z-are-zero optimization flag (1 = both Z coordinates are zero).
+    pub z_are_zero: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -929,17 +931,18 @@ pub fn read_proxy_entity(
 }
 
 pub fn read_line(reader: &mut DwgMergedReader, version: DwgVersion) -> LineData {
-    let (start, end);
+    let (start, end, z_are_zero);
     if version.r13_14_only() {
         start = reader.read_3bit_double();
         end = reader.read_3bit_double();
+        z_are_zero = None;
     } else {
-        let z_are_zero = reader.read_bit();
+        let bit = reader.read_bit();
         let sx = reader.read_raw_double();
         let ex = reader.read_bit_double_with_default(sx);
         let sy = reader.read_raw_double();
         let ey = reader.read_bit_double_with_default(sy);
-        let (sz, ez) = if !z_are_zero {
+        let (sz, ez) = if !bit {
             let sz = reader.read_raw_double();
             let ez = reader.read_bit_double_with_default(sz);
             (sz, ez)
@@ -948,6 +951,7 @@ pub fn read_line(reader: &mut DwgMergedReader, version: DwgVersion) -> LineData 
         };
         start = Vector3::new(sx, sy, sz);
         end = Vector3::new(ex, ey, ez);
+        z_are_zero = Some(bit);
     }
     let thickness = reader.read_bit_thickness();
     let normal = reader.read_bit_extrusion();
@@ -956,6 +960,7 @@ pub fn read_line(reader: &mut DwgMergedReader, version: DwgVersion) -> LineData 
         end,
         thickness,
         normal,
+        z_are_zero,
     }
 }
 

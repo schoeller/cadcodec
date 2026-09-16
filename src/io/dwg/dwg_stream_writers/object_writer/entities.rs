@@ -151,6 +151,10 @@ impl<'a> DwgObjectWriter<'a> {
             &c.full_visual_style_handle,
             &c.face_visual_style_handle,
             &c.edge_visual_style_handle,
+            &c.prev_entity_handle,
+            &c.next_entity_handle,
+            c.nolinks,
+            c.z_are_zero,
         );
     }
 
@@ -603,8 +607,9 @@ impl<'a> DwgObjectWriter<'a> {
             self.writer.write_3bit_double(e.start);
             self.writer.write_3bit_double(e.end);
         } else {
-            // R2000+: z-are-zero optimization
-            let z_are_zero = e.start.z == 0.0 && e.end.z == 0.0;
+            // R2000+: z-are-zero optimization. Prefer the value preserved
+            // from a DWG read; fall back to computing it from geometry.
+            let z_are_zero = e.common.z_are_zero.unwrap_or(e.start.z == 0.0 && e.end.z == 0.0);
             self.writer.write_bit(z_are_zero);
             self.writer.write_raw_double(e.start.x);
             self.writer
@@ -1220,6 +1225,10 @@ impl<'a> DwgObjectWriter<'a> {
                 &None,
                 &None,
                 &None,
+                &None,
+                &None,
+                None,
+                None,
             );
             self.register_object(seqend_handle);
 
@@ -1261,6 +1270,10 @@ impl<'a> DwgObjectWriter<'a> {
             &att.common.full_visual_style_handle,
             &att.common.face_visual_style_handle,
             &att.common.edge_visual_style_handle,
+            &att.common.prev_entity_handle,
+            &att.common.next_entity_handle,
+            att.common.nolinks,
+            att.common.z_are_zero,
         );
         self.write_text_entity_data(
             att.insertion_point,
@@ -2509,9 +2522,13 @@ impl<'a> DwgObjectWriter<'a> {
             &None,
             &None,
             &None,
-            &None,
-            &None,
-        );
+                &None,
+                &None,
+                &None,
+                &None,
+                None,
+                None,
+            );
         self.register_object(seqend_handle);
 
         // Restore block-level entity chain
@@ -2551,9 +2568,13 @@ impl<'a> DwgObjectWriter<'a> {
             &None,
             &None,
             &None,
-            &None,
-            &None,
-        );
+                &None,
+                &None,
+                &None,
+                &None,
+                None,
+                None,
+            );
 
         // Flags EC 70 NOT bit-pair-coded
         self.writer.write_byte(v.flags.bits() as u8);
@@ -2678,9 +2699,13 @@ impl<'a> DwgObjectWriter<'a> {
             &None,
             &None,
             &None,
-            &None,
-            &None,
-        );
+                &None,
+                &None,
+                &None,
+                &None,
+                None,
+                None,
+            );
         self.register_object(seqend_handle);
 
         // Restore block-level entity chain
@@ -2720,9 +2745,13 @@ impl<'a> DwgObjectWriter<'a> {
             &None,
             &None,
             &None,
-            &None,
-            &None,
-        );
+                &None,
+                &None,
+                &None,
+                &None,
+                None,
+                None,
+            );
 
         self.writer.write_byte(v.flags as u8); // Flags EC 70
         self.writer.write_3bit_double(v.position);
@@ -2888,9 +2917,13 @@ impl<'a> DwgObjectWriter<'a> {
             &None,
             &None,
             &None,
-            &None,
-            &None,
-        );
+                &None,
+                &None,
+                &None,
+                &None,
+                None,
+                None,
+            );
         self.register_object(seqend_handle);
 
         // Restore block-level entity chain
@@ -2985,6 +3018,10 @@ impl<'a> DwgObjectWriter<'a> {
                 &None,
                 &None,
                 &None,
+                &None,
+                &None,
+                None,
+                None,
             );
             self.writer.write_byte(v.flags as u8);
             self.writer.write_3bit_double(v.location);
@@ -3018,9 +3055,13 @@ impl<'a> DwgObjectWriter<'a> {
             &None,
             &None,
             &None,
-            &None,
-            &None,
-        );
+                &None,
+                &None,
+                &None,
+                &None,
+                None,
+                None,
+            );
         self.register_object(seqend_handle);
 
         // Restore block-level entity chain

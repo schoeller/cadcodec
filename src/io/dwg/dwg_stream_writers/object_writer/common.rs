@@ -363,6 +363,12 @@ impl<'a> DwgObjectWriter<'a> {
         full_visual_style_handle: &Option<Handle>,
         face_visual_style_handle: &Option<Handle>,
         edge_visual_style_handle: &Option<Handle>,
+        // Pre-R2004 entity chain round-trip fields.
+        entity_prev_entity_handle: &Option<Handle>,
+        entity_next_entity_handle: &Option<Handle>,
+        entity_nolinks: Option<bool>,
+        // LINE z-are-zero round-trip field (None = compute from geometry).
+        _entity_z_are_zero: Option<bool>,
     ) {
         // ── MAIN + HANDLE: shared preamble (type + handle + xdata) ──
         self.write_common_data(type_code, handle, xdata);
@@ -479,18 +485,29 @@ impl<'a> DwgObjectWriter<'a> {
         // prev = handle-1, next = handle+1) and prev/next handles are omitted.
         // NOLINKS bit = 0 means prev/next handles are written explicitly.
         if !self.version.r2004_plus() {
-            let prev_h = self.prev_handle.unwrap_or(Handle::NULL);
-            let next_h = self.next_handle.unwrap_or(Handle::NULL);
-            let has_links = !prev_h.is_null()
-                && prev_h.value() == handle.value().wrapping_sub(1)
-                && !next_h.is_null()
-                && next_h.value() == handle.value().wrapping_add(1);
+            // Only use the chain state preserved from a DWG read. In-memory
+            // entities keep `nolinks: None`, so we fall back to the sequential
+            // heuristic to avoid changing the bitstream for documents created
+            // programmatically.
+            let (nolinks, prev_h, next_h) = if let Some(stored_nolinks) = entity_nolinks {
+                let prev = entity_prev_entity_handle.unwrap_or(Handle::NULL);
+                let next = entity_next_entity_handle.unwrap_or(Handle::NULL);
+                (stored_nolinks, prev, next)
+            } else {
+                let prev_h = self.prev_handle.unwrap_or(Handle::NULL);
+                let next_h = self.next_handle.unwrap_or(Handle::NULL);
+                let has_links = !prev_h.is_null()
+                    && prev_h.value() == handle.value().wrapping_sub(1)
+                    && !next_h.is_null()
+                    && next_h.value() == handle.value().wrapping_add(1);
+                (has_links, prev_h, next_h)
+            };
 
             // MAIN: Nolinks bit (true = sequential, reader infers prev/next)
-            self.writer.write_bit(has_links);
+            self.writer.write_bit(nolinks);
 
             // HANDLE: prev + next entity handles only when NOT sequential
-            if !has_links {
+            if !nolinks {
                 self.writer
                     .write_handle(DwgReferenceType::SoftPointer, prev_h.value());
                 self.writer

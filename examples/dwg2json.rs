@@ -1,0 +1,122 @@
+//! DWG -> JSON silver dump for round-trip comparison.
+//!
+//! Usage:
+//!   cargo run --example dwg2json --features serde -- INPUT_DWG [OUTPUT_JSON]
+//!
+//! This binary writes a JSON representation of a `CadDocument` *and* a
+//! companion map `_common_dwg` keyed by entity handle. The map exposes the
+//! `EntityCommon` fields that are intentionally skipped by the crate's serde
+//! implementation because they are DWG storage / round-trip only. Including
+//! them lets the gold-vs-silver diff see them without polluting the public
+//! entity schema.
+
+use std::collections::BTreeMap;
+use std::path::PathBuf;
+
+use acadrust::entities::EntityCommon;
+use acadrust::types::Handle;
+use acadrust::CadDocument;
+use acadrust::DwgReader;
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct SilverDump {
+    #[serde(flatten)]
+    document: CadDocument,
+    /// Storage-only entity common fields keyed by handle (hex string).
+    #[serde(rename = "_common_dwg", skip_serializing_if = "BTreeMap::is_empty")]
+    common_dwg: BTreeMap<String, SilverEntityCommon>,
+}
+
+/// Mirror of `EntityCommon` with the fields that the crate skips for serde.
+#[derive(Serialize)]
+struct SilverEntityCommon {
+    handle: Handle,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    linetype_handle: Option<Handle>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    graphic_data: Option<Vec<u8>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    color_book_handle: Option<Handle>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    face_visual_style_handle: Option<Handle>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    edge_visual_style_handle: Option<Handle>,
+    material_flags: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    material_handle: Option<Handle>,
+    shadow_flags: u8,
+    plotstyle_flags: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    plotstyle_handle: Option<Handle>,
+    linetype_flags: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    entity_mode: Option<u8>,
+    has_ds_data: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    prev_entity_handle: Option<Handle>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    next_entity_handle: Option<Handle>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    nolinks: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    z_are_zero: Option<bool>,
+}
+
+impl SilverEntityCommon {
+    fn from_common(common: &EntityCommon) -> Self {
+        Self {
+            handle: common.handle,
+            linetype_handle: common.linetype_handle,
+            graphic_data: common.graphic_data.clone(),
+            color_book_handle: common.color_book_handle,
+            face_visual_style_handle: common.face_visual_style_handle,
+            edge_visual_style_handle: common.edge_visual_style_handle,
+            material_flags: common.material_flags,
+            material_handle: common.material_handle,
+            shadow_flags: common.shadow_flags,
+            plotstyle_flags: common.plotstyle_flags,
+            plotstyle_handle: common.plotstyle_handle,
+            linetype_flags: common.linetype_flags,
+            entity_mode: common.entity_mode,
+            has_ds_data: common.has_ds_data,
+            prev_entity_handle: common.prev_entity_handle,
+            next_entity_handle: common.next_entity_handle,
+            nolinks: common.nolinks,
+            z_are_zero: common.z_are_zero,
+        }
+    }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Usage: dwg2json INPUT_DWG [OUTPUT_JSON]");
+        std::process::exit(1);
+    }
+    let input = PathBuf::from(&args[1]);
+    let output = args
+        .get(2)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| input.with_extension("json"));
+
+    let mut reader = DwgReader::from_file(&input)?;
+    let doc: CadDocument = reader.read()?;
+
+    let mut common_dwg: BTreeMap<String, SilverEntityCommon> = BTreeMap::new();
+    for entity in doc.entities() {
+        let silver = SilverEntityCommon::from_common(entity.common());
+        common_dwg.insert(format!("{}", silver.handle), silver);
+    }
+
+    let dump = SilverDump {
+        document: doc,
+        common_dwg,
+    };
+
+    let file = std::fs::File::create(&output)?;
+    let writer = std::io::BufWriter::new(file);
+    serde_json::to_writer_pretty(writer, &dump)?;
+    println!("Wrote {}", output.display());
+    Ok(())
+}

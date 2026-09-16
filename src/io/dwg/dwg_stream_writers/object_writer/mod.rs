@@ -2239,6 +2239,10 @@ impl<'a> DwgObjectWriter<'a> {
             &common.full_visual_style_handle,
             &common.face_visual_style_handle,
             &common.edge_visual_style_handle,
+            &common.prev_entity_handle,
+            &common.next_entity_handle,
+            common.nolinks,
+            common.z_are_zero,
         );
 
         // Use the original name as-is when we have the Block entity from binary;
@@ -2304,6 +2308,10 @@ impl<'a> DwgObjectWriter<'a> {
             &common.full_visual_style_handle,
             &common.face_visual_style_handle,
             &common.edge_visual_style_handle,
+            &common.prev_entity_handle,
+            &common.next_entity_handle,
+            common.nolinks,
+            common.z_are_zero,
         );
 
         self.register_object(common.handle);

@@ -622,6 +622,14 @@ fn normalize_entity_common(common: &mut acadrust::entities::EntityCommon) {
     // entity_mode is DWG-internal and not set for programmatic documents;
     // normalize to None to avoid false differences in DWG roundtrip tests.
     common.entity_mode = None;
+    // nolinks / prev / next are DWG-internal chain state. Normalizing to None
+    // keeps in-memory-created documents comparable after a DWG roundtrip.
+    common.nolinks = None;
+    common.prev_entity_handle = None;
+    common.next_entity_handle = None;
+    // z_are_zero is DWG-internal and depends on geometry; normalize so
+    // in-memory-created entities (None) compare equal to computed ones.
+    common.z_are_zero = None;
 }
 
 /// Comprehensive normalization for roundtrip comparison.
