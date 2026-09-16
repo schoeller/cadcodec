@@ -95,14 +95,11 @@ impl SilverEntityCommon {
 /// storage-only `EntityCommon` fields on every entity, including the
 /// delimiters, so we collect them directly via `get_entity`.
 fn block_entity_iter(doc: &CadDocument) -> impl Iterator<Item = &acadrust::entities::EntityType> {
-    doc.block_records
-        .iter()
-        .filter_map(move |br| doc.get_entity(br.block_entity_handle))
-        .chain(
-            doc.block_records
-                .iter()
-                .filter_map(move |br| doc.get_entity(br.block_end_handle)),
-        )
+    doc.block_records.iter().flat_map(|br| {
+        [br.block_entity_handle, br.block_end_handle]
+            .into_iter()
+            .filter_map(|handle| doc.get_entity(handle))
+    })
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

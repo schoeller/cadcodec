@@ -8,8 +8,8 @@
 //! that the harness runs without crashing. With GOLD_HARNESS_STRICT=1 it
 //! asserts zero `missing_in_silver` diffs for the representative subset and
 //! asserts that the storage-only `EntityCommon` fields (`z_is_zero`,
-//! `ltype_flags`, `prev_entity`, `next_entity`, `nolinks`) never appear in a
-//! read-fidelity diff.
+//! `ltype_flags`, `prev_entity`, `next_entity`, `nolinks`) never appear in the
+//! read-fidelity or rewrite-fidelity diffs.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -73,37 +73,50 @@ fn gold_harness_runs_on_representative_files() {
             stderr
         );
 
-        let diff_path = workdir.join(file.file_stem().unwrap()).join(format!(
-            "{}_diff_orig.json",
-            file.file_stem().unwrap().to_string_lossy()
-        ));
-        assert!(
-            diff_path.exists(),
-            "diff file missing for {}: {}",
-            file.display(),
-            diff_path.display()
-        );
-        let diff: serde_json::Value =
-            serde_json::from_reader(std::fs::File::open(&diff_path).unwrap()).unwrap();
-        let diffs = diff.get("diffs").and_then(|v| v.as_array()).unwrap();
+        let diff_paths = [
+            workdir.join(file.file_stem().unwrap()).join(format!(
+                "{}_diff_orig.json",
+                file.file_stem().unwrap().to_string_lossy()
+            )),
+            workdir.join(file.file_stem().unwrap()).join(format!(
+                "{}_diff_rt.json",
+                file.file_stem().unwrap().to_string_lossy()
+            )),
+        ];
 
-        let prohibited: Vec<&serde_json::Value> = diffs
-            .iter()
-            .filter(|d| {
-                d.get("field")
-                    .and_then(|f| f.as_str())
-                    .map(|f| PROHIBITED_COMMON_FIELDS.contains(&f))
-                    .unwrap_or(false)
-            })
-            .collect();
-        assert!(
-            prohibited.is_empty(),
-            "read-fidelity diff contains prohibited EntityCommon fields for {}: {:?}",
-            file.display(),
-            prohibited
-        );
+        for diff_path in &diff_paths {
+            assert!(
+                diff_path.exists(),
+                "diff file missing for {}: {}",
+                file.display(),
+                diff_path.display()
+            );
+            let diff: serde_json::Value =
+                serde_json::from_reader(std::fs::File::open(diff_path).unwrap()).unwrap();
+            let diffs = diff.get("diffs").and_then(|v| v.as_array()).unwrap();
+
+            let prohibited: Vec<&serde_json::Value> = diffs
+                .iter()
+                .filter(|d| {
+                    d.get("field")
+                        .and_then(|f| f.as_str())
+                        .map(|f| PROHIBITED_COMMON_FIELDS.contains(&f))
+                        .unwrap_or(false)
+                })
+                .collect();
+            assert!(
+                prohibited.is_empty(),
+                "{} contains prohibited EntityCommon fields for {}: {:?}",
+                diff_path.file_stem().unwrap().to_string_lossy(),
+                file.display(),
+                prohibited
+            );
+        }
 
         if std::env::var_os("GOLD_HARNESS_STRICT").is_some() {
+            let diff: serde_json::Value =
+                serde_json::from_reader(std::fs::File::open(&diff_paths[0]).unwrap()).unwrap();
+            let diffs = diff.get("diffs").and_then(|v| v.as_array()).unwrap();
             let missing: Vec<&serde_json::Value> = diffs
                 .iter()
                 .filter(|d| d.get("kind").and_then(|k| k.as_str()) == Some("missing_in_silver"))
