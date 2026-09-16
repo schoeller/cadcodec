@@ -367,8 +367,6 @@ impl<'a> DwgObjectWriter<'a> {
         entity_prev_entity_handle: &Option<Handle>,
         entity_next_entity_handle: &Option<Handle>,
         entity_nolinks: Option<bool>,
-        // LINE z-are-zero round-trip field (None = compute from geometry).
-        _entity_z_are_zero: Option<bool>,
     ) {
         // ── MAIN + HANDLE: shared preamble (type + handle + xdata) ──
         self.write_common_data(type_code, handle, xdata);
@@ -496,11 +494,13 @@ impl<'a> DwgObjectWriter<'a> {
             } else {
                 let prev_h = self.prev_handle.unwrap_or(Handle::NULL);
                 let next_h = self.next_handle.unwrap_or(Handle::NULL);
-                let has_links = !prev_h.is_null()
+                // True when surrounding handles form the sequential pattern that
+                // allows the reader to infer prev/next without explicit handles.
+                let computed_nolinks = !prev_h.is_null()
                     && prev_h.value() == handle.value().wrapping_sub(1)
                     && !next_h.is_null()
                     && next_h.value() == handle.value().wrapping_add(1);
-                (has_links, prev_h, next_h)
+                (computed_nolinks, prev_h, next_h)
             };
 
             // MAIN: Nolinks bit (true = sequential, reader infers prev/next)

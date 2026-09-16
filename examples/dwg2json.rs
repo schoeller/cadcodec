@@ -88,6 +88,23 @@ impl SilverEntityCommon {
     }
 }
 
+/// Return `Block` and `BlockEnd` entities for every block record.
+///
+/// `CadDocument::entities()` deliberately excludes these delimiter entities so
+/// callers see only drawable geometry. For the silver dump we need the
+/// storage-only `EntityCommon` fields on every entity, including the
+/// delimiters, so we collect them directly via `get_entity`.
+fn block_entity_iter(doc: &CadDocument) -> impl Iterator<Item = &acadrust::entities::EntityType> {
+    doc.block_records
+        .iter()
+        .filter_map(move |br| doc.get_entity(br.block_entity_handle))
+        .chain(
+            doc.block_records
+                .iter()
+                .filter_map(move |br| doc.get_entity(br.block_end_handle)),
+        )
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
@@ -104,7 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let doc: CadDocument = reader.read()?;
 
     let mut common_dwg: BTreeMap<String, SilverEntityCommon> = BTreeMap::new();
-    for entity in doc.entities() {
+    for entity in doc.entities().chain(block_entity_iter(&doc)) {
         let silver = SilverEntityCommon::from_common(entity.common());
         common_dwg.insert(format!("{}", silver.handle), silver);
     }
