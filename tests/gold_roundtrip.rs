@@ -53,7 +53,10 @@ fn gold_harness_runs_on_representative_files() {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(std::env!("CARGO_MANIFEST_DIR")));
 
-    let representative = [testdata.join("2000/Line.dwg")];
+    let representative = [
+        testdata.join("2000/Line.dwg"),
+        testdata.join("2000/circle.dwg"),
+    ];
     let workdir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_else(|| "/tmp".into()))
         .join("gold_harness_test");
 
