@@ -880,7 +880,12 @@ impl<R: Read + Seek> DwgReader<R> {
         &mut self,
     ) -> std::result::Result<crate::io::read::ReadOutcome, DxfError> {
         self.read_with_optional_visitor(
-            None::<&mut dyn FnMut(&crate::document::CadDocument, crate::entities::EntityType) -> Option<crate::entities::EntityType>>,
+            None::<
+                &mut dyn FnMut(
+                    &crate::document::CadDocument,
+                    crate::entities::EntityType,
+                ) -> Option<crate::entities::EntityType>,
+            >,
         )
     }
 

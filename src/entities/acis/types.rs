@@ -1879,7 +1879,10 @@ impl<'a> SatSplineSurface<'a> {
     /// Decode the final `nubs`/`nurbs` block into a complete control net.
     pub fn bspline(&self, document: &SatDocument) -> Option<SatBSplineSurface> {
         let tokens = self.definition_tokens(document)?;
-        if tokens.iter().any(|token| token.as_ident() == Some("sum_spl_sur")) {
+        if tokens
+            .iter()
+            .any(|token| token.as_ident() == Some("sum_spl_sur"))
+        {
             return decode_linear_sum_surface(tokens);
         }
         decode_bspline_surface(tokens)
@@ -1889,12 +1892,19 @@ impl<'a> SatSplineSurface<'a> {
 /// A spline plus a straight curve is an exact tensor-product ruled surface.
 /// ACIS defines S(u,v) = C(u) + line(v) - origin; no fitting is required.
 fn decode_linear_sum_surface(source: &[SatToken]) -> Option<SatBSplineSurface> {
-    let tokens: Vec<SatToken> = source.iter().flat_map(|token| {
-        if let Some((values, len)) = token.coordinate_components() {
-            values[..len].iter().copied().map(SatToken::Float).collect()
-        } else { vec![token.clone()] }
-    }).collect();
-    let sum = tokens.iter().position(|t| t.as_ident() == Some("sum_spl_sur"))?;
+    let tokens: Vec<SatToken> = source
+        .iter()
+        .flat_map(|token| {
+            if let Some((values, len)) = token.coordinate_components() {
+                values[..len].iter().copied().map(SatToken::Float).collect()
+            } else {
+                vec![token.clone()]
+            }
+        })
+        .collect();
+    let sum = tokens
+        .iter()
+        .position(|t| t.as_ident() == Some("sum_spl_sur"))?;
     let start = (sum + 1..tokens.len()).find(|&i| tokens[i].as_ident() == Some("intcurve"))?;
     let open = (start + 1..tokens.len()).find(|&i| tokens[i].as_ident() == Some("{"))?;
     let mut depth = 1usize;
@@ -1902,42 +1912,87 @@ fn decode_linear_sum_surface(source: &[SatToken]) -> Option<SatBSplineSurface> {
     while close < tokens.len() {
         match tokens[close].as_ident() {
             Some("{") => depth += 1,
-            Some("}") => { depth -= 1; if depth == 0 { break; } }
+            Some("}") => {
+                depth -= 1;
+                if depth == 0 {
+                    break;
+                }
+            }
             _ => {}
         }
         close += 1;
     }
-    if depth != 0 { return None; }
+    if depth != 0 {
+        return None;
+    }
     let (degree_u, u_knots, controls) = decode_bspline_curve(&tokens[open + 1..close])?;
     let straight = (close + 1..tokens.len()).find(|&i| tokens[i].as_ident() == Some("straight"))?;
-    let read3 = |i: usize| -> Option<[f64; 3]> { Some([tokens.get(i)?.as_float()?,tokens.get(i+1)?.as_float()?,tokens.get(i+2)?.as_float()?]) };
+    let read3 = |i: usize| -> Option<[f64; 3]> {
+        Some([
+            tokens.get(i)?.as_float()?,
+            tokens.get(i + 1)?.as_float()?,
+            tokens.get(i + 2)?.as_float()?,
+        ])
+    };
     let root = read3(straight + 1)?;
     let direction = read3(straight + 4)?;
     // Two unbounded line-interval markers precede the sum's reference origin.
-    if tokens.get(straight + 7)?.as_float().is_some() || tokens.get(straight + 8)?.as_float().is_some() { return None; }
+    if tokens.get(straight + 7)?.as_float().is_some()
+        || tokens.get(straight + 8)?.as_float().is_some()
+    {
+        return None;
+    }
     let origin = read3(straight + 9)?;
     let range = straight + 12;
-    if tokens.get(range)?.as_integer()? != 2 { return None; }
+    if tokens.get(range)?.as_integer()? != 2 {
+        return None;
+    }
     let mut bounds = [0.; 4];
     for (index, bound) in bounds.iter_mut().enumerate() {
         let flag = tokens.get(range + 1 + index * 2)?;
-        if flag.as_float().is_some() { return None; }
+        if flag.as_float().is_some() {
+            return None;
+        }
         *bound = tokens.get(range + 2 + index * 2)?.as_float()?;
     }
-    if !bounds.iter().chain(root.iter()).chain(direction.iter()).chain(origin.iter()).all(|v|v.is_finite())
-        || bounds[0] >= bounds[1] || bounds[2] >= bounds[3] { return None; }
+    if !bounds
+        .iter()
+        .chain(root.iter())
+        .chain(direction.iter())
+        .chain(origin.iter())
+        .all(|v| v.is_finite())
+        || bounds[0] >= bounds[1]
+        || bounds[2] >= bounds[3]
+    {
+        return None;
+    }
     let control_count_u = controls.len();
     let mut control_points = Vec::with_capacity(control_count_u * 2);
     for v in [bounds[2], bounds[3]] {
         for p in &controls {
-            control_points.push([p[0] + p[3] * (root[0] + direction[0] * v - origin[0]),
+            control_points.push([
+                p[0] + p[3] * (root[0] + direction[0] * v - origin[0]),
                 p[1] + p[3] * (root[1] + direction[1] * v - origin[1]),
-                p[2] + p[3] * (root[2] + direction[2] * v - origin[2]), p[3]]);
+                p[2] + p[3] * (root[2] + direction[2] * v - origin[2]),
+                p[3],
+            ]);
         }
     }
-    Some(SatBSplineSurface { rational:controls.iter().any(|p|p[3] != 1.), degree_u,degree_v:1,
-        u_closure:Some("open".into()),v_closure:Some("open".into()),u_singularity:None,v_singularity:None,
-        u_knots,v_knots:vec![bounds[2],bounds[2],bounds[3],bounds[3]],control_count_u,control_count_v:2,control_points,fit_tolerance:Some(0.) })
+    Some(SatBSplineSurface {
+        rational: controls.iter().any(|p| p[3] != 1.),
+        degree_u,
+        degree_v: 1,
+        u_closure: Some("open".into()),
+        v_closure: Some("open".into()),
+        u_singularity: None,
+        v_singularity: None,
+        u_knots,
+        v_knots: vec![bounds[2], bounds[2], bounds[3], bounds[3]],
+        control_count_u,
+        control_count_v: 2,
+        control_points,
+        fit_tolerance: Some(0.),
+    })
 }
 
 fn decode_bspline_surface(tokens: &[SatToken]) -> Option<SatBSplineSurface> {
