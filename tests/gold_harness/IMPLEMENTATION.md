@@ -286,7 +286,7 @@ core codec; the gaps were in the dump/normalizer projection:
 | EntityCommon storage-only field gaps | **Fixed** (2026-09-17) | See table above. LINE/CIRCLE entity diffs now zero on all versions. |
 | Uniform table-record storage fields (`ownerhandle`, `is_xref_ref`, `is_xref_resolved`, `is_xref_dep`, `xref`, `unknown`, `is_xdic_missing` R2004+, `has_ds_data` R2013+) | **Fixed** (2026-09-17) | These are uniform across ordinary table records and derived in `normalize_silver.py` from silver state: `ownerhandle` = the table's control-object handle, xref bits = `1/0/0`, `xref` = null handle, `unknown` = 0 (APPID only), `is_xdic_missing` = `xdictionary_handle.is_none()` (R2004+, all objects), `has_ds_data` = 0 (R2013+, objects). No codec changes needed. APPID/TEXTSTYLE/VIEW/UCS table records are now diff-free. |
 | Table-record payload fields | **Open** | Per-record semantic data, not uniform: DIMSTYLE ~70 `DIM*` vars (largest), LTYPE dash patterns (`dashes`, `numdashes`, `pattern_len`), VPORT view params (`VIEWCTR`, `VIEWDIR`, `BACKZ`, `FRONTZ`, `GRID*`, `SNAP*`, `UCS*`, …), BLOCK_HEADER topology (`xdicobjhandle`, `base_pt`, `xref_pname`, `block_entity`, `entities`, `endblk_entity`, …), LAYER `plotstyle`/`linewt`. These require reader storage and/or per-type normalizer mapping — one packet per table type. |
-| Object representation gaps | **In progress** | VISUALSTYLE and MATERIAL are substantially mapped in `normalize_silver.py` (positional property-bag → named fields for pre-R2010, R2010+ core, and R2013+ extended VisualStyle; Material map/color flattening with R2007+ gating) plus handle-order object sorting. VISUALSTYLE diffs on `Line.dwg` dropped from ~576 to ~44 (R2000–R2010) and ~1470 to ~54 (R2018); MATERIAL to ~6. Residual per-type quirks: differ-side `ownerhandle` resolution (gold `0` vs silver `DICTIONARY`) and absent-color encoding (gold `257`/`{index:256,rgb:…}` vs silver `Color::None`). DIMSTYLE, LAYOUT, SCALE, MLEADERSTYLE, DICTIONARYVAR not yet started. See §8.1.6. |
+| Object representation gaps | **In progress** | VISUALSTYLE and MATERIAL are substantially mapped in `normalize_silver.py` (positional property-bag → named fields for pre-R2010, R2010+ core, and R2013+ extended VisualStyle; Material map/color flattening with R2007+ gating) plus handle-order object sorting and table control-object emission. VISUALSTYLE diffs on `Line.dwg` dropped from ~576 to ~44 (R2000–R2010) and ~1470 to ~54 (R2018); MATERIAL to ~6; DIMSTYLE to ~8 (R2000: 0). Corpus totals on `Line.dwg` dropped from ~2500 to ~1100. Residual: differ-side `ownerhandle` handle-code semantics (gold codes 0/8/12 vs silver resolved types), and the cross-cutting CMC absent-color encoding (`c1000000` RGB-black vs index 0; `{index:256,rgb:…}` vs `Color::None`). LAYOUT, SCALE, MLEADERSTYLE, DICTIONARYVAR not yet started. See §8.1.6. |
 
 ---
 
@@ -546,19 +546,21 @@ Given a diff `(type, field, kind)`:
    many will be renames, not codec changes.
 
    **Started (2026-09-17):** VISUALSTYLE (positional property-bag → named
-   fields for pre-R2010, R2010+ core, and R2013+ extended) and MATERIAL
-   (map/color flattening + R2007+ gating) are substantially done in
-   `normalize_silver.py`. Objects are now sorted by handle before diffing
-   (silver stores them in a HashMap; gold's OBJECTS array is handle-ordered).
+   fields for pre-R2010, R2010+ core, and R2013+ extended), MATERIAL
+   (map/color flattening + R2007+ gating), and DIMSTYLE (dim* → DIM* name
+   mapping + version gating + `DIMTXSTY`/`DIMLTYPE`/`DIMLTEX1`/`DIMLTEX2`
+   handle emission) are substantially done in `normalize_silver.py`. Objects
+   are now sorted by handle before diffing (silver stores them in a HashMap;
+   gold's OBJECTS array is handle-ordered), and table control objects are
+   emitted so the differ can resolve table-record `ownerhandle`.
    Known residual per-type gaps to continue with:
-   - `ownerhandle`: gold resolves the owner to a control object (`0`), silver
-     to the DICTIONARY — differ handle-map resolution, not data.
-   - Absent colors: gold R2000 emits `257`, silver stores `Color::None`;
-     R2007+ gold emits `{index:256, rgb:"c30000NN"}` (real index in low byte,
-     already extracted gold-side). Needs a unified "no-color" canonicalization
-     on both sides.
-   - Next types to start: DIMSTYLE (~70 `DIM*` vars, largest), LAYOUT, SCALE,
-     MLEADERSTYLE, DICTIONARYVAR.
+   - `ownerhandle`: gold emits handle *codes* (0/8/12 with ownership meaning);
+     silver resolves to the target type. Differ-semantics, not data.
+   - CMC absent/true colors: gold `c1000000` RGB-black vs silver index 0;
+     gold `{index:256, rgb:…}` vs silver `Color::None`. Cross-cutting; one
+     fix in `normalize_gold.py`/`normalize_color` clears it everywhere.
+   - Next types to start: LAYOUT, SCALE, MLEADERSTYLE, DICTIONARYVAR,
+     BLOCK_HEADER topology, LTYPE dash patterns, VPORT view params.
 3. Re-run `run_corpus.py` after each landed packet to re-rank the queue.
 
 Concrete entity-level mappings exposed by `2000/entities-2d.dwg` (good early

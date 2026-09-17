@@ -715,7 +715,7 @@ def normalize_silver(
     TABLE_SPECS: List[Tuple[str, str, str]] = [
         ("layers", "LAYER", "LAYER"),
         ("line_types", "LTYPE", "LTYPE"),
-        ("text_styles", "STYLE", "TEXTSTYLE"),
+        ("text_styles", "STYLE", "STYLE"),
         ("block_records", "BLOCK_RECORD", "BLOCK_HEADER"),
         ("dim_styles", "DIMSTYLE", "DIMSTYLE"),
         ("app_ids", "APPID", "APPID"),
@@ -733,11 +733,29 @@ def normalize_silver(
     #   is_xref_dep       = 0
     #   xref              = null handle
     #   unknown           = 0   (APPID only, SINCE R_13b1)
+    # Gold emits a CONTROL object per table (e.g. APPID_CONTROL) that silver
+    # does not surface as a standalone object (the table's handle IS the
+    # control). Emit a minimal control record so the differ's handle->type map
+    # can resolve table-record ownerhandle to <TYPE>_CONTROL instead of a raw
+    # int. The control's own fields are gold-version-gated and not compared
+    # beyond handle/type, so keep it minimal.
+    CONTROL_GOLD_TYPE = {
+        "layers": "LAYER_CONTROL", "line_types": "LTYPE_CONTROL",
+        "text_styles": "STYLE_CONTROL", "block_records": "BLOCK_CONTROL",
+        "dim_styles": "DIMSTYLE_CONTROL", "app_ids": "APPID_CONTROL",
+        "views": "VIEW_CONTROL", "vports": "VPORT_CONTROL",
+        "ucss": "UCS_CONTROL",
+    }
     for table_key, _entry_gold_type, record_gold_type in TABLE_SPECS:
         table = data.get(table_key, {})
         if not isinstance(table, dict):
             continue
         table_handle = normalize_handle_value(table.get("handle"))
+        control_type = CONTROL_GOLD_TYPE.get(table_key)
+        if control_type and table_handle is not None:
+            out.append({"type": control_type,
+                        "fields": {"handle": table_handle,
+                                   "ownerhandle": normalize_handle_value(0)}})
         entries = table.get("entries", {})
         for _key, rec in entries.items():
             if not isinstance(rec, dict):
@@ -745,9 +763,14 @@ def normalize_silver(
             fields = _object_common_fields(rec)
             if table_handle is not None:
                 fields["ownerhandle"] = table_handle
-            fields["is_xref_ref"] = 1
+            # is_xref_* bits: gold reads them from the stream only up to
+            # R2004; on R2007+ they are derived (is_xref_ref=1, is_xref_dep
+            # from is_xref_resolved) but the JSON omits the always-constant
+            # ones. Emit only where gold serializes them.
+            if not r2007_plus:
+                fields["is_xref_ref"] = 1
+                fields["is_xref_dep"] = 0
             fields["is_xref_resolved"] = 0
-            fields["is_xref_dep"] = 0
             fields["xref"] = normalize_handle_value(0)
             if record_gold_type == "APPID":
                 fields["unknown"] = 0
@@ -765,8 +788,55 @@ def normalize_silver(
                 fields["is_xdic_missing"] = 1 if rec.get("xdictionary_handle") is None else 0
             if r2013_plus:
                 fields["has_ds_data"] = 0
+            if record_gold_type == "DIMSTYLE":
+                # flag0 is a derived gold field (bit 0 of the 70 flag); the
+                # silver struct doesn't store it. Gold always has it as 0 for
+                # ordinary styles.
+                fields.setdefault("flag0", 0)
             for k, v in rec.items():
                 if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
+                    continue
+                # DIMSTYLE: silver stores lowercase dim* names; gold uses
+                # uppercase DIM*. Uppercase the dim prefix and drop
+                # silver-only derived fields (true_color, name, handle forms)
+                # and version-gated fields gold doesn't have in this version.
+                if record_gold_type == "DIMSTYLE" and k.startswith("dim"):
+                    # DIMTXSTY: gold stores the text-style HANDLE; silver
+                    # stores the resolved name in `dimtxsty`. Emit the handle.
+                    if k == "dimtxsty":
+                        h = rec.get("dimtxsty_handle")
+                        if h is not None:
+                            fields["DIMTXSTY"] = normalize_handle_value(h)
+                        continue
+                    # DIMLTYPE/DIMLTEX1/DIMLTEX2: gold emits these handles
+                    # SINCE R_2007a; silver stores them as *_handle.
+                    if k in ("dimltex_handle", "dimltex1_handle", "dimltex2_handle"):
+                        if r2007_plus:
+                            gk = {"dimltex_handle": "DIMLTYPE",
+                                  "dimltex1_handle": "DIMLTEX1",
+                                  "dimltex2_handle": "DIMLTEX2"}[k]
+                            fields[gk] = normalize_handle_value(v)
+                        continue
+                    if k.endswith(("_true_color", "_name", "_handle")):
+                        continue
+                    ku = k.upper()
+                    # Version gates from gold dwg.spec.
+                    if ku in ("DIMFXL", "DIMJOGANG", "DIMTFILL", "DIMTFILLCLR", "DIMARCSYM", "DIMFXLON") and not r2007_plus:
+                        continue
+                    if ku in ("DIMTXTDIRECTION", "DIMALTMZF", "DIMALTMZS", "DIMMZF", "DIMMZS") and not r2010_plus:
+                        continue
+                    # DIMFIT/DIMUNIT are R13-R14 only. DIMCLRD/E/RT: silver
+                    # stores index 0 where gold emits a CMC true-color hash
+                    # (R2004+) or index 0 (R2000); skip index 0 on R2004+.
+                    if ku in ("DIMFIT", "DIMUNIT"):
+                        continue
+                    if ku in ("DIMCLRD", "DIMCLRE", "DIMCLRT") and v == 0 and r2004_plus:
+                        continue
+                    fields[ku] = normalize_value(v)
+                    continue
+                # Drop silver's xref bookkeeping duplicates (already emitted
+                # as is_xref_* above) and the text-style name duplicate.
+                if record_gold_type == "DIMSTYLE" and k in ("xref_reference", "xref_resolved", "xref_dependent", "xref_handle", "annotative"):
                     continue
                 if is_ignored(k, ignore_set, ignore_patterns):
                     continue
