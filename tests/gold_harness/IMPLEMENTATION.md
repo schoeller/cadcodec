@@ -674,38 +674,24 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** BLOCK/BLOCK_HEADER topology — the new top
-   read-fidelity cluster. **Full diagnosis done (2026-09-17), 100% spec-covered.**
-   Every field is a silver-normalizer projection; no codec change except the
-   noted reader gap.
+   **Next task (ready to start):** VPORT/VIEWPORT view-params cluster — the top
+   normalizer-only naming/shape packet after BLOCK_HEADER (done). Gold
+   `DWG_TABLE(VPORT)` (dwg.spec 3934) / `DWG_ENTITY(VIEWPORT)` (2412) use
+   `VIEWCTR VIEWDIR FRONTZ BACKZ GRID* SNAP* UCS*`; silver uses `view_center`/
+   `view_direction`/…. Read-fidelity ~8 816 (VPORT) + ~1 798 (VIEWPORT).
 
-   *BLOCK entity (`extra_in_silver` ×3):* gold `dwgread` BLOCK emits only
-   `name` + common handle data — `base_pt`/`description`/`xref_path` are
-   `#ifdef IS_DXF`-only (dwg.spec 610–712). Silver wrongly projects
-   BLOCK_HEADER fields onto the BLOCK entity. **Fix: drop those three from the
-   BLOCK entity in normalize_silver.**
-
-   *BLOCK_HEADER (table record), silver→gold map (verified vs dwg.spec 3146–3278
-   + per-version gold key sets + value distributions):*
-
-   | Silver key | Gold key | Action |
-   |---|---|---|
-   | `base_point` | `base_pt` | rename |
-   | `block_entity_handle` (int) | `block_entity` (handle dict) | rename + handle-wrap |
-   | `block_end_handle` (int) | `endblk_entity` (handle dict) | rename + handle-wrap |
-   | `entity_handles` | `entities` | rename; **emit only when non-empty AND R2004+** (gold gates `SINCE R_2004a` AND `if num_owned < 0xf00000`; verified present AC1018+, absent pre-2004). |
-   | `units` | `insert_units` | rename; **emit only R2007+** (gold gates `SINCE R_2007a`; pre-2007 silver `units` defaults 0 but gold omits → extra). Values verified 1:1 (0/1/4/6). |
-   | `scale_uniformly` (bool) | `block_scaling` (RC int) | rename + bool→int; **emit only R2007+**. Values verified (0→false,1→true only). |
-   | `flags` (composite) | split bools already present | drop `flags` (gold already carries anonymous/hasattrs/blkisxref/xrefoverlaid as separate bits — verified all present corpus-wide; `xref_loaded` is separately R2000b-gated). |
-   | `preview_data`, `insert_count_bytes`, `insert_handles`, `xref_path` | *(gold omits in binary DWG JSON)* | drop. Gold's `preview`/`inserts`/`num_inserts`/`num_owned` are `#ifndef IS_JSON` or DXF-gated or zero/out-of-bounds-gated — never in corpus gold JSON (verified: `num_inserts`/`num_owned` empty across all files). |
-   | — | `first_entity`/`last_entity` | **reader gap**: silver reader reads then DISCARDS them (`let _first/_last`, tables.rs 1453–1454). R13–R2000 only (`VERSIONS R_13b1,R_2000`). To fix: store on BlockRecord + emit R13–R2000. |
-   | — | `xref_pname` | emit `""` always (gold always emits, silver never). |
-
-   Skip (silver reader gaps, not normalizer): **APPID.name** (silver fabricates
-   `AcCmTransparency`/`AcAecLayerStandard` APPIDs gold lacks → ordinal shift;
-   removing them would change write behavior) and **UNKNOWN._missing**
-   (unmodeled-object coverage). Do NOT canonicalize UNKNOWN_ENT/UNKNOWN_OBJ →
-   UNKNOWN — reverted 2026-09-17 (ordinal misalignment, +1 127 rows).
+   ~~BLOCK/BLOCK_HEADER topology~~ — **DONE (2026-09-17)**: silver normalizer
+   renames + handle-wraps + version gates per the mapping table above (BLOCK
+   entity drops DXF-only base_pt/description/xref_path; BLOCK_HEADER renames
+   base_point→base_pt, block_entity_handle→block_entity, block_end_handle→
+   endblk_entity, entity_handles→entities, units→insert_units, scale_uniformly→
+   block_scaling; R2004+/R2007+ gates; drops flags/preview_data/insert_count_bytes/
+   insert_handles/xref_path; emits xref_pname). Corpus: read 124 128 → 112 493,
+   write 113 631 → 102 857. Residuals (separate gaps): `first_entity`/`last_entity`
+   reader gap (silver reads then discards, tables.rs `let _first/_last`; R13–R2000
+   only — needs BlockRecord storage + writer), `BLOCK_HEADER.name` (*Paper_Space
+   ordinal), `xdicobjhandle`/`is_xdic_missing`, `BLOCK_CONTROL.model_space`/
+   `paper_space`, and BLOCKVISIBILITY*/`._missing` reader coverage.
 3. Re-run `run_corpus.py` after each landed packet to re-rank the queue.
 
 Concrete entity-level mappings exposed by `2000/entities-2d.dwg` (good early
