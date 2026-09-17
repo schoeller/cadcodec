@@ -556,20 +556,32 @@ Given a diff `(type, field, kind)`:
    handle before diffing (silver stores them in a HashMap; gold's OBJECTS
    array is handle-ordered), and table control objects are emitted so the
    differ can resolve table-record `ownerhandle`.
-   Known residual per-type gaps to continue with:
-   - `ownerhandle`: gold emits handle *codes* (0/8/12 with ownership meaning);
-     silver resolves to the target type. Differ-semantics, not data.
-   - CMC absent/true colors: gold `c1000000` RGB-black vs silver index 0;
-     gold `{index:256, rgb:…}` vs silver `Color::None`. Cross-cutting; one
-     fix in `normalize_gold.py`/`normalize_color` clears it everywhere.
+    Known residual per-type gaps to continue with:
+    - ~~`ownerhandle`~~ — **DONE (2026-09-17)**: the differ now resolves
+      handle identity by `absref` (gold's `value` slot is a relative counter
+      for coded references, only `absref` is the absolute handle silver
+      stores) and compares handles as `(code, resolved_target)` tokens;
+      silver emits `code=None` (unknown — it stores no handle codes), so the
+      code is checked only when both sides carry one. Silver normalizer wraps
+      the remaining raw-int handle projections (`DIMLDRBLK`/`DIMBLK*`,
+      LAYOUT `base_ucs`/`named_ucs`, `BLOCK_HEADER.layout`, `LAYER.material`,
+      GEODATA `host_block`). Corpus read-fidelity `ownerhandle` collapsed from
+      ~46k to 504 (the residual rows are real silver gaps: owners of type
+      UNKNOWN_OBJ/SECTIONVIEWSTYLE/EVALUATION_GRAPH that silver does not
+      model). Corpus totals: read 196 252 → 137 823, write 127 737 → 127 172.
+    - CMC absent/true colors: gold `c1000000` RGB-black vs silver index 0;
+      gold `{index:256, rgb:…}` vs silver `Color::None`. Cross-cutting; one
+      fix in `normalize_gold.py`/`normalize_color` clears it everywhere.
    - `reactors`: gold emits them; silver doesn't store them (storage gap).
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** `ownerhandle` handle-code semantics in the
-   differ — see [`NEXT_OWNERHANDLE.md`](./NEXT_OWNERHANDLE.md) for the
-   cold-start brief. It is the single largest remaining divergence
-   (~43 778 corpus diffs, ~22% of read-fidelity).
+   **Next task (ready to start):** SCALE/XRECORD/DICTIONARYVAR `reactors`
+   storage (silver does not store reactor handle lists; gold emits them for
+   every object) — the new top read-fidelity divergences after the
+   `ownerhandle` packet are `SCALE.reactors` (3 833) and
+   `DICTIONARY.reactors` (1 824). `ownerhandle` handle-code semantics is
+   **done** — see the residual-gaps bullet above.
 3. Re-run `run_corpus.py` after each landed packet to re-rank the queue.
 
 Concrete entity-level mappings exposed by `2000/entities-2d.dwg` (good early

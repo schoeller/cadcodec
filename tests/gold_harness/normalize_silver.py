@@ -232,13 +232,21 @@ def normalize_value(value: Any) -> Any:
 
 
 def normalize_handle_value(value: Any) -> Any:
-    """Turn a silver handle int/None into a gold-style handle dict."""
+    """Turn a silver handle int/None into a gold-style handle dict.
+
+    Silver stores only the resolved absolute handle; the DWG handle code
+    (0 absolute/none, 4 soft owner, 8 hard owner, 12 hard pointer) is not
+    represented in the object model. Emit ``code=None`` ("unknown") so the
+    differ compares the resolved target and only checks the code when both
+    sides carry one. A fabricated code (e.g. 0) would falsely mismatch every
+    gold ownerhandle code (4/8/12).
+    """
     if value is None:
         return None
     if isinstance(value, bool):
         return value
     if isinstance(value, int):
-        return {"code": 0, "size": 0, "value": value, "absref": value}
+        return {"code": None, "size": 0, "value": value, "absref": value}
     if isinstance(value, dict):
         return value
     return value
@@ -840,6 +848,17 @@ def normalize_silver(
                 continue
             if k in vs_skip or k in mat_consumed:
                 continue
+            # LAYOUT base_ucs/named_ucs are handle-stream fields in gold
+            # (code 5, dwg.spec); silver stores the raw Handle int. Wrap so
+            # the differ resolves them (a bare int never matches a token).
+            if silver_type == "Layout" and k in ("base_ucs", "named_ucs"):
+                fields[k] = normalize_handle_value(v)
+                continue
+            # GEODATA host_block: gold handle-stream field (code 4); silver
+            # stores the raw Handle int.
+            if gold_type == "GEODATA" and k == "host_block":
+                fields[k] = normalize_handle_value(v)
+                continue
             if is_ignored(k, ignore_set, ignore_patterns):
                 continue
             fields[k] = normalize_value(v)
@@ -966,6 +985,12 @@ def normalize_silver(
                         continue
                     if ku in ("DIMCLRD", "DIMCLRE", "DIMCLRT") and v == 0 and r2004_plus:
                         continue
+                    # DIMLDRBLK/DIMBLK/DIMBLK1/DIMBLK2: gold emits these
+                    # handles SINCE R_2000b (code 5, dwg.spec); silver stores
+                    # raw Handle ints. Wrap for the differ's handle resolution.
+                    if ku in ("DIMLDRBLK", "DIMBLK", "DIMBLK1", "DIMBLK2"):
+                        fields[ku] = normalize_handle_value(v)
+                        continue
                     fields[ku] = normalize_value(v)
                     continue
                 # Drop silver's xref bookkeeping duplicates (already emitted
@@ -976,6 +1001,12 @@ def normalize_silver(
                 # stores the enum string. Map it.
                 if k == "line_weight":
                     fields["linewt"] = _lineweight_to_gold(v)
+                    continue
+                # BLOCK_HEADER.layout / LAYER.material are handle-stream fields
+                # in gold (code 5); silver stores raw Handle ints. Wrap for
+                # the differ's handle resolution.
+                if (record_gold_type, k) in (("BLOCK_HEADER", "layout"), ("LAYER", "material")):
+                    fields[k] = normalize_handle_value(v)
                     continue
                 if is_ignored(k, ignore_set, ignore_patterns):
                     continue

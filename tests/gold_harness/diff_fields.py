@@ -2,7 +2,13 @@
 """Diff two normalized JSON object lists (gold vs silver).
 
 Alignment is by (type, ordinal-within-type) because handles are reassigned on
-rewrite. Handles compare by resolved target type, not raw value.
+rewrite. Handles compare by (handle code, resolved target type), not raw value:
+gold emits handle tuples whose `absref` is the absolute handle (the `value`
+slot is a relative counter for coded references) and whose `code` carries the
+reference semantics (0 absolute/none, 4 soft owner, 8 hard owner, 12 hard
+pointer). Silver stores only the resolved absolute handle, so its code is
+None ("unknown") and imposes no constraint; when both sides carry a code the
+codes must match exactly.
 """
 
 import json
@@ -37,14 +43,19 @@ def is_ignored(name: str, ignore_set: set, ignore_patterns: List[str]) -> bool:
 
 
 def handle_value(value: Any) -> Any:
-    """Extract the numeric handle value from a normalized handle dict."""
+    """Extract the absolute handle value from a normalized handle dict.
+
+    LibreDWG emits handle tuples as [code, size, value, absref]; for coded
+    references (ownerhandle, reactors, ...) `value` is a relative counter and
+    only `absref` is the absolute handle silver stores. Prefer `absref`.
+    """
     if isinstance(value, dict):
-        return value.get("value")
+        return value.get("absref", value.get("value"))
     return value
 
 
 def build_handle_type_map(objects: List[Dict[str, Any]]) -> Dict[Any, str]:
-    """Map raw handle value -> object type for handle comparison."""
+    """Map absolute handle value -> object type for handle comparison."""
     m: Dict[Any, str] = {}
     for obj in objects:
         hv = handle_value(obj.get("fields", {}).get("handle"))
@@ -53,16 +64,49 @@ def build_handle_type_map(objects: List[Dict[str, Any]]) -> Dict[Any, str]:
     return m
 
 
+def is_handle_dict(value: Any) -> bool:
+    """A normalized handle tuple dict carries a code and an absolute ref."""
+    return isinstance(value, dict) and "code" in value and (
+        "absref" in value or "value" in value
+    )
+
+
 def resolve_handle(value: Any, handle_map: Dict[Any, str]) -> Any:
-    """Replace handle values with the type of the object they point to."""
+    """Replace handle values with a (code, resolved target type) token.
+
+    The token keeps the handle code so `values_equal` can compare codes when
+    both sides carry one (silver emits None: it stores no code). Non-handle
+    dicts carry no comparable payload and collapse to None as before.
+    """
     if isinstance(value, dict):
-        return handle_map.get(handle_value(value), handle_value(value))
+        if is_handle_dict(value):
+            absref = handle_value(value)
+            return {
+                "__handle_code__": value.get("code"),
+                "__handle_target__": handle_map.get(absref, absref),
+            }
+        return None
     if isinstance(value, list):
         return [resolve_handle(v, handle_map) for v in value]
     return value
 
 
 def values_equal(a: Any, b: Any, rel_tol: float = 1e-6) -> bool:
+    # Handle tokens compare by (code, resolved target). A token on only one
+    # side means the handle resolved on one side but not the other (or one
+    # side lacks the handle): a real mismatch, never equality. A side whose
+    # code is None (silver stores no handle codes) constrains the target only.
+    a_tok = isinstance(a, dict) and "__handle_target__" in a
+    b_tok = isinstance(b, dict) and "__handle_target__" in b
+    if a_tok or b_tok:
+        if not (a_tok and b_tok):
+            return False
+        if not values_equal(a["__handle_target__"], b["__handle_target__"], rel_tol):
+            return False
+        code_a, code_b = a["__handle_code__"], b["__handle_code__"]
+        if code_a is None or code_b is None:
+            return True
+        return code_a == code_b
     if type(a) is not type(b):
         # Allow int vs float near-equality.
         if isinstance(a, (int, float)) and isinstance(b, (int, float)):

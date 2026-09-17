@@ -1,5 +1,16 @@
 # Next task: `ownerhandle` handle-code semantics
 
+**STATUS: DONE (2026-09-17).** Differ resolves handles by `absref` and
+compares `(code, resolved_target)`; silver emits `code=None` (unknown).
+Corpus: `LINE.ownerhandle` 43 778 → 0; read-fidelity 196 252 → 137 823;
+write-fidelity 127 737 → 127 172. Residual `ownerhandle` rows (504) are real
+silver gaps (UNKNOWN_OBJ/SECTIONVIEWSTYLE/EVALUATION_GRAPH owners silver
+does not model). See `IMPLEMENTATION.md` §8.1.6.
+
+---
+
+**Original brief below (kept for the record).**
+
 **Status**: ready to start. **Branch**: `gold-vs-silver` (clean, in sync with
 `origin`). **Baseline**: `cargo test --features serde` = 1556 passed / 0 failed.
 
