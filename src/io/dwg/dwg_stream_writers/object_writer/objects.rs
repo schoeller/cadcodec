@@ -807,8 +807,13 @@ impl<'a> DwgObjectWriter<'a> {
                 .write_bit_long(Self::visual_style_long(&properties[21]));
             self.writer
                 .write_bit_long(Self::visual_style_long(&properties[22]));
-            self.writer
-                .write_bit_double(Self::visual_style_double(&properties[23]));
+            // bd2007_45 is only present in R2007 and later (gold spec: SINCE
+            // R_2007a). Emitting it for R2000/R2004 appends 8 bytes that
+            // AutoCAD does not expect and corrupts the object stream.
+            if self.version.r2007_plus() {
+                self.writer
+                    .write_bit_double(Self::visual_style_double(&properties[23]));
+            }
             self.writer.write_bit(value.internal_use_only);
         } else {
             self.writer.write_bit_short(value.extended_lighting_model);

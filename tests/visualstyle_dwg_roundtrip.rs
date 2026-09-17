@@ -1,9 +1,11 @@
 //! Regression test for AcDbVisualStyle pre-R2010 DWG serialization.
 //!
 //! The legacy (pre-R2010) VisualStyle writer consumes a 24-element property
-//! vector in a fixed order.  This test builds a VisualStyle with exactly that
-//! legacy property bag, round-trips it through a R2000 DWG write/read, and
-//! asserts the recovered properties match the input values and types.
+//! vector in a fixed order.  The final element (`bd2007_45`) is version-gated:
+//! it is only serialized for R2007 and later (gold spec `SINCE R_2007a`).  This
+//! test round-trips a VisualStyle through R2000 (23 stored properties, no
+//! `bd2007_45`) and R2007 (24 stored properties) and asserts the recovered
+//! properties match the version's expected field set.
 
 use std::io::Cursor;
 
@@ -13,10 +15,8 @@ use acadrust::objects::{
 use acadrust::types::{Color, DxfVersion};
 use acadrust::{CadDocument, DwgReader, DwgWriter};
 
-#[test]
-fn visualstyle_survives_dwg_roundtrip_r2000() {
-    let mut doc = CadDocument::with_version(DxfVersion::AC1015);
-
+/// Build a VisualStyle with the full 24-element legacy property bag.
+fn make_style(doc: &mut CadDocument) -> acadrust::types::Handle {
     let mut style = VisualStyle::new();
     style.handle = doc.allocate_handle();
     let style_handle = style.handle;
@@ -57,37 +57,17 @@ fn visualstyle_survives_dwg_roundtrip_r2000() {
         VisualStyleProperty { value: VisualStylePropertyValue::Long(25), enabled: 1 }, // 20 display_brightness (written/read as BLd)
         VisualStyleProperty { value: VisualStylePropertyValue::Long(1), enabled: 1 }, // 21 display_shadow_type
         VisualStyleProperty { value: VisualStylePropertyValue::Long(0), enabled: 1 }, // 22 reserved long
-        VisualStyleProperty { value: VisualStylePropertyValue::Double(0.0), enabled: 1 }, // 23 bd2007_45
+        VisualStyleProperty { value: VisualStylePropertyValue::Double(0.0), enabled: 1 }, // 23 bd2007_45 (R2007+ only)
     ];
 
     doc.objects
         .insert(style.handle, ObjectType::VisualStyle(style));
+    style_handle
+}
 
-    let bytes = DwgWriter::write_to_vec(&doc).expect("DWG write failed");
-    let mut reader = DwgReader::from_stream(Cursor::new(bytes));
-    let rt_doc = reader.read().expect("DWG read failed");
-
-    let ObjectType::VisualStyle(rt) = rt_doc.objects.get(&style_handle).expect("VisualStyle missing") else {
-        panic!("round-tripped object is not a VisualStyle");
-    };
-
-    assert_eq!(rt.description, "TestStyle");
-    assert_eq!(rt.style_type, 1);
-    assert_eq!(rt.face_lighting_model, 2);
-    assert_eq!(rt.face_lighting_quality, 1);
-    assert_eq!(rt.face_color_mode, 3);
-    assert_eq!(rt.face_modifier, 5);
-    assert_eq!(rt.edge_model, 1);
-    assert_eq!(rt.edge_style, 2);
-    assert!(rt.internal_use_only);
-
-    // After a pre-R2010 round-trip the model stores the 24 legacy properties.
-    assert_eq!(rt.properties.len(), 24, "expected 24 legacy properties");
-
-    // The reader stores each field with the type it reads.  Values that are
-    // written as wider/narrower integer types are still stored as the reader's
-    // native type (Short, Long, Double, Bool, Color).
-    let expected: Vec<VisualStylePropertyValue> = vec![
+/// The first 23 legacy properties are version-independent (R2000–R2007).
+fn expected_common_properties() -> Vec<VisualStylePropertyValue> {
+    vec![
         VisualStylePropertyValue::Double(0.75),
         VisualStylePropertyValue::Double(45.0),
         VisualStylePropertyValue::Color(Color::Index(5)),
@@ -111,9 +91,63 @@ fn visualstyle_survives_dwg_roundtrip_r2000() {
         VisualStylePropertyValue::Long(25),
         VisualStylePropertyValue::Long(1),
         VisualStylePropertyValue::Long(0),
-        VisualStylePropertyValue::Double(0.0),
-    ];
+    ]
+}
 
+fn roundtrip(version: DxfVersion) -> (VisualStyle, acadrust::types::Handle) {
+    let mut doc = CadDocument::with_version(version);
+    let style_handle = make_style(&mut doc);
+    let bytes = DwgWriter::write_to_vec(&doc).expect("DWG write failed");
+    let mut reader = DwgReader::from_stream(Cursor::new(bytes));
+    let rt_doc = reader.read().expect("DWG read failed");
+    let ObjectType::VisualStyle(rt) = rt_doc
+        .objects
+        .get(&style_handle)
+        .expect("VisualStyle missing")
+    else {
+        panic!("round-tripped object is not a VisualStyle");
+    };
+    (rt.clone(), style_handle)
+}
+
+fn assert_common_fields(rt: &VisualStyle) {
+    assert_eq!(rt.description, "TestStyle");
+    assert_eq!(rt.style_type, 1);
+    assert_eq!(rt.face_lighting_model, 2);
+    assert_eq!(rt.face_lighting_quality, 1);
+    assert_eq!(rt.face_color_mode, 3);
+    assert_eq!(rt.face_modifier, 5);
+    assert_eq!(rt.edge_model, 1);
+    assert_eq!(rt.edge_style, 2);
+    assert!(rt.internal_use_only);
+}
+
+#[test]
+fn visualstyle_survives_dwg_roundtrip_r2000() {
+    let (rt, _) = roundtrip(DxfVersion::AC1015);
+    assert_common_fields(&rt);
+
+    // R2000 predates bd2007_45, so only the 23 common properties are stored.
+    let expected = expected_common_properties();
+    assert_eq!(rt.properties.len(), 23, "expected 23 legacy properties for R2000");
+    for (i, (actual, exp)) in rt.properties.iter().zip(expected.iter()).enumerate() {
+        assert_eq!(
+            &actual.value, exp,
+            "property {i} mismatch: got {:?}, expected {:?}",
+            actual.value, exp
+        );
+    }
+}
+
+#[test]
+fn visualstyle_survives_dwg_roundtrip_r2007() {
+    let (rt, _) = roundtrip(DxfVersion::AC1021);
+    assert_common_fields(&rt);
+
+    // R2007 adds bd2007_45 as the 24th property.
+    let mut expected = expected_common_properties();
+    expected.push(VisualStylePropertyValue::Double(0.0)); // bd2007_45
+    assert_eq!(rt.properties.len(), 24, "expected 24 legacy properties for R2007");
     for (i, (actual, exp)) in rt.properties.iter().zip(expected.iter()).enumerate() {
         assert_eq!(
             &actual.value, exp,

@@ -277,11 +277,21 @@ def merge_common(
     layer_map: Dict[str, int],
 ) -> Dict[str, Any]:
     fields: Dict[str, Any] = {}
+
+    # Gold emits `ownerhandle` for an entity only when entmode == 0 (e.g.
+    # polyline sub-entities); model/paper-space entities have no ownerhandle
+    # in gold JSON. entity_mode lives in the `_common_dwg` entry, so resolve
+    # it before projecting `owner_handle`.
+    entity_mode = None
+    if common_dwg_entry:
+        entity_mode = common_dwg_entry.get("entity_mode")
+
     for k, v in common.items():
         if k == "handle":
             fields["handle"] = normalize_handle_value(v)
         elif k == "owner_handle":
-            fields["ownerhandle"] = normalize_handle_value(v)
+            if entity_mode == 0:
+                fields["ownerhandle"] = normalize_handle_value(v)
         elif k == "layer":
             fields["layer"] = normalize_handle_value(_resolve_layer_name(str(v), layer_map))
         elif k == "color":
@@ -289,15 +299,19 @@ def merge_common(
         elif k == "line_weight":
             fields["linewt"] = v if isinstance(v, int) else 29
         elif k == "linetype":
-            # Silver stores the resolved linetype name; gold stores a handle.
-            # Keep the name for now; the differ can ignore or we can resolve later.
-            fields["linetype"] = v
+            # Silver stores the resolved linetype NAME; gold has no name field
+            # (only the `ltype` handle when ltype_flags == 3). Drop it.
+            pass
         elif k == "linetype_scale":
             fields["ltype_scale"] = normalize_float(v)
         elif k == "invisible":
             fields["invisible"] = 1 if v else 0
         elif k == "transparency":
             pass
+        elif k == "color_name":
+            # Gold only emits color names when the color carries one.
+            if v is not None:
+                fields["color_name"] = v
         elif k == "extended_data":
             pass
         elif k == "reactors":
@@ -308,7 +322,7 @@ def merge_common(
                 fields["xdicobjhandle"] = normalize_handle_value(v)
         elif k == "full_visual_style_handle":
             if v is not None:
-                fields["visualstyle_handle"] = normalize_handle_value(v)
+                fields["full_visualstyle"] = normalize_handle_value(v)
         else:
             fields[k] = normalize_value(v)
 
@@ -320,9 +334,26 @@ def merge_common(
                 continue
             if k == "graphic_data" and v is None:
                 continue
-            if k == "linetype_handle" and v is not None:
-                # Store under gold-ish name; ignored by default for now.
-                fields["linetype_handle"] = normalize_handle_value(v)
+            # Map silver storage field names to gold vocabulary.
+            if k == "linetype_handle":
+                fields["ltype"] = normalize_handle_value(v)
+                continue
+            if k == "plotstyle_handle":
+                fields["plotstyle"] = normalize_handle_value(v)
+                continue
+            if k == "material_handle":
+                fields["material"] = normalize_handle_value(v)
+                continue
+            if k == "face_visual_style_handle":
+                fields["face_visualstyle"] = normalize_handle_value(v)
+                continue
+            if k == "edge_visual_style_handle":
+                fields["edge_visualstyle"] = normalize_handle_value(v)
+                continue
+            if k == "entity_mode":
+                # Gold's name for the raw entity-mode value. `entmode` is in
+                # ignore_fields.toml, so this is ignored on both sides.
+                fields["entmode"] = v
                 continue
             if k == "linetype_flags":
                 fields["ltype_flags"] = v

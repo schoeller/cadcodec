@@ -88,8 +88,13 @@ def normalize_value(value: Any) -> Any:
             return normalize_handle(value)
         return [normalize_value(v) for v in value]
     if isinstance(value, dict):
-        # CMC color hash? Collapse to simple int if only index is present.
+        # CMC color hash? Collapse to the index when the rgb payload is absent
+        # or zero (ByLayer/ByBlock/indexed colors). R2004+ ENC output includes
+        # derived keys (`rgb`, `flag`) alongside `index`; the index is the
+        # semantic value silver stores. True-color entities keep their dict.
         if set(value.keys()) == {"index"}:
+            return value["index"]
+        if "index" in value and value.get("rgb") in (None, "000000", 0):
             return value["index"]
         return {k: normalize_value(v) for k, v in value.items()}
     if isinstance(value, float):

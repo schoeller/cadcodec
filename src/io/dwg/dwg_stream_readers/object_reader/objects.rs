@@ -102,10 +102,18 @@ pub fn read_visual_style(
             VisualStylePropertyValue::Long(reader.read_bit_long()),
             VisualStylePropertyValue::Long(reader.read_bit_long()),
             VisualStylePropertyValue::Long(reader.read_bit_long()),
-            VisualStylePropertyValue::Double(reader.read_bit_double()),
         ] {
             value.properties.push(VisualStyleProperty {
                 value: property,
+                enabled: 1,
+            });
+        }
+        // bd2007_45 is only present in R2007 and later (gold spec: SINCE
+        // R_2007a). Reading it for R2000/R2004 would consume the
+        // internal_use_only bit and desynchronize the stream.
+        if version.r2007_plus() {
+            value.properties.push(VisualStyleProperty {
+                value: VisualStylePropertyValue::Double(reader.read_bit_double()),
                 enabled: 1,
             });
         }

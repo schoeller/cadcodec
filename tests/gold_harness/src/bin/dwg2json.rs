@@ -29,6 +29,12 @@ struct SilverDump {
 }
 
 /// Mirror of `EntityCommon` with the fields that the crate skips for serde.
+///
+/// Fields that gold only serializes from a certain DWG version onwards are
+/// `Option` and set to `None` when the document version predates them, so the
+/// silver dump does not emit fields that gold cannot have:
+///   - `material_flags` / `shadow_flags`: gold `SINCE R_2007a`
+///   - `has_ds_data`: gold `SINCE R_2013`
 #[derive(Serialize)]
 struct SilverEntityCommon {
     handle: Handle,
@@ -42,17 +48,34 @@ struct SilverEntityCommon {
     face_visual_style_handle: Option<Handle>,
     #[serde(skip_serializing_if = "Option::is_none")]
     edge_visual_style_handle: Option<Handle>,
-    material_flags: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    material_flags: Option<u8>,
     #[serde(skip_serializing_if = "Option::is_none")]
     material_handle: Option<Handle>,
-    shadow_flags: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    shadow_flags: Option<u8>,
     plotstyle_flags: u8,
     #[serde(skip_serializing_if = "Option::is_none")]
     plotstyle_handle: Option<Handle>,
     linetype_flags: u8,
     #[serde(skip_serializing_if = "Option::is_none")]
     entity_mode: Option<u8>,
-    has_ds_data: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    has_ds_data: Option<bool>,
+    /// Gold `is_xdic_missing` bit (SINCE R_2004a). Derived: gold sets it
+    /// exactly when the entity carries no xdictionary handle.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    is_xdic_missing: Option<bool>,
+    /// Gold `has_full_visualstyle` bit (SINCE R_2010b). Derived from the
+    /// presence of the full visual-style handle.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    has_full_visualstyle: Option<bool>,
+    /// Gold `has_face_visualstyle` bit (SINCE R_2010b).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    has_face_visualstyle: Option<bool>,
+    /// Gold `has_edge_visualstyle` bit (SINCE R_2010b).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    has_edge_visualstyle: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     prev_entity_handle: Option<Handle>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -64,7 +87,12 @@ struct SilverEntityCommon {
 }
 
 impl SilverEntityCommon {
-    fn from_common(common: &EntityCommon) -> Self {
+    fn from_common(common: &EntityCommon, version: acadrust::types::DxfVersion) -> Self {
+        use acadrust::types::DxfVersion;
+        let r2004 = version >= DxfVersion::AC1018;
+        let r2007 = version >= DxfVersion::AC1021;
+        let r2010 = version >= DxfVersion::AC1024;
+        let r2013 = version >= DxfVersion::AC1027;
         Self {
             handle: common.handle,
             linetype_handle: common.linetype_handle,
@@ -72,14 +100,18 @@ impl SilverEntityCommon {
             color_book_handle: common.color_book_handle,
             face_visual_style_handle: common.face_visual_style_handle,
             edge_visual_style_handle: common.edge_visual_style_handle,
-            material_flags: common.material_flags,
+            material_flags: r2007.then_some(common.material_flags),
             material_handle: common.material_handle,
-            shadow_flags: common.shadow_flags,
+            shadow_flags: r2007.then_some(common.shadow_flags),
             plotstyle_flags: common.plotstyle_flags,
             plotstyle_handle: common.plotstyle_handle,
             linetype_flags: common.linetype_flags,
             entity_mode: common.entity_mode,
-            has_ds_data: common.has_ds_data,
+            has_ds_data: r2013.then_some(common.has_ds_data),
+            is_xdic_missing: r2004.then_some(common.xdictionary_handle.is_none()),
+            has_full_visualstyle: r2010.then_some(common.full_visual_style_handle.is_some()),
+            has_face_visualstyle: r2010.then_some(common.face_visual_style_handle.is_some()),
+            has_edge_visualstyle: r2010.then_some(common.edge_visual_style_handle.is_some()),
             prev_entity_handle: common.prev_entity_handle,
             next_entity_handle: common.next_entity_handle,
             nolinks: common.nolinks,
@@ -119,7 +151,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut common_dwg: BTreeMap<String, SilverEntityCommon> = BTreeMap::new();
     for entity in doc.entities().chain(block_entity_iter(&doc)) {
-        let silver = SilverEntityCommon::from_common(entity.common());
+        let silver = SilverEntityCommon::from_common(entity.common(), doc.version);
         common_dwg.insert(format!("{}", silver.handle), silver);
     }
 
