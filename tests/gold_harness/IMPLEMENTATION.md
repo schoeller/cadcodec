@@ -705,10 +705,15 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** LTYPE dash patterns (`pattern_len`,
-   `alignment`, `numdashes`, `elements`, `pattern_length`, `xref_dependent` —
-   ~472 each) — the new top read-fidelity divergence after the view-params
-   cluster (done). Spec `dwg.spec` 3580 `DWG_TABLE(LTYPE)`.
+   **Next task (ready to start):** POINT view-independent fields (`x`, `y`,
+   `z`, `extrusion`, `x_ang`, `point` — ~392 each) — the new top read-fidelity
+   divergence after LTYPE (done). Spec `dwg.spec` 2030 `DWG_ENTITY(POINT)`.
+
+   ~~LTYPE dash patterns~~ — **DONE (2026-09-17)**: silver `elements[]`
+   (length+complex) reshaped to gold `dashes[]` (8 fields), `alignment` char→
+   ord, `pattern_length`→`pattern_len`, `numdashes` from len, `strings_area`
+   all-zero TF (256 bytes pre-R2007 always, 512 R2007+ when has_strings_area),
+   xref-bookkeeping drop. Corpus: read 101 741 → 98 639, write 92 472 → 89 406.
 
    ~~VIEWPORT entity + VIEW table record~~ — **DONE (2026-09-17)**: full
    view-param projection for both (renames, 2RD slicing, status_flag bit
