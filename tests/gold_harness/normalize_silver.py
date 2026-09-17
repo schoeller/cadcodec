@@ -780,6 +780,14 @@ def normalize_silver(
         for k, v in payload.items():
             if k == "common":
                 continue
+            # BLOCK/ENDBLK entity (dwg.spec 610-712): gold's dwgread emits only
+            # `name` + common handle data on the binary-DWG path; base_pt /
+            # description / xref_path are `#ifdef IS_DXF`-only. Silver wrongly
+            # carries the parent BLOCK_HEADER's fields onto the entity — drop
+            # them (both pre- and post-FIELD_NAME_MAP names).
+            if silver_type in ("Block", "BlockEnd") and k in (
+                "base_pt", "base_point", "description", "xref_path"):
+                continue
             name = field_map.get(k, k)
             if is_ignored(name, ignore_set, ignore_patterns):
                 continue
@@ -968,6 +976,9 @@ def normalize_silver(
                 fields["blkisxref"] = 0
                 fields["xrefoverlaid"] = 0
                 fields["xref_loaded"] = 0
+                # Gold always emits xref_pname (FIELD_T, R13b1+); silver stores
+                # no xref_pname, so emit gold's default empty string.
+                fields.setdefault("xref_pname", "")
             if r2004_plus:
                 # Gold emits is_xdic_missing on every object's handle stream,
                 # table records included.
@@ -982,6 +993,39 @@ def normalize_silver(
             for k, v in rec.items():
                 if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                     continue
+                # BLOCK_HEADER (dwg.spec 3146-3278): rename silver storage
+                # names to gold's, version-gate the R2004+/R2007+ fields, and
+                # drop silver-only fields gold never serializes to JSON.
+                if record_gold_type == "BLOCK_HEADER":
+                    if k == "base_point":
+                        fields["base_pt"] = normalize_value(v); continue
+                    if k == "block_entity_handle":
+                        fields["block_entity"] = normalize_handle_value(v); continue
+                    if k == "block_end_handle":
+                        fields["endblk_entity"] = normalize_handle_value(v); continue
+                    if k == "entity_handles":
+                        if r2004_plus and v:
+                            fields["entities"] = [normalize_handle_value(h) for h in v]
+                        continue
+                    if k == "units":
+                        if r2007_plus:
+                            fields["insert_units"] = normalize_value(v)
+                        continue
+                    if k == "scale_uniformly":
+                        if r2007_plus:
+                            fields["block_scaling"] = 1 if v else 0
+                        continue
+                    if k == "explodable":
+                        if r2007_plus:
+                            fields["explodable"] = 1 if v else 0
+                        continue
+                    # gold never serializes these to binary-DWG JSON:
+                    # flags (composite -> split bits done above), preview_data,
+                    # insert_count_bytes, insert_handles, xref_path, is_xdic_missing
+                    # (already set above), has_ds_data (set above).
+                    if k in ("flags", "preview_data", "insert_count_bytes",
+                             "insert_handles", "xref_path"):
+                        continue
                 # DIMSTYLE: silver stores lowercase dim* names; gold uses
                 # uppercase DIM*. Uppercase the dim prefix and drop
                 # silver-only derived fields (true_color, name, handle forms)
