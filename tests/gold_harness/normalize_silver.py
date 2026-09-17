@@ -260,6 +260,9 @@ def normalize_color(value: Any) -> Any:
         return 256
     if value == "ByBlock":
         return 0
+    if value is None:
+        # Absent color (gold's "none"/index 257).
+        return 257
     return value
 
 
@@ -391,6 +394,135 @@ def _object_common_fields(payload: Dict[str, Any]) -> Dict[str, Any]:
     return fields
 
 
+# ── VisualStyle property-bag mapping ──────────────────────────────────────
+# Silver stores VisualStyle properties as a positional bag of
+# {value: {Double|Long|Short|Bool|Color|Text: …}, enabled: int}. Gold names
+# every field. The bag order is fixed per version range and matches the read
+# order in object_reader/objects.rs::read_visual_style.
+#
+# Pre-R2010 (R2000/R2004 = 23 props, R2007 = 24 props: + bd2007_45).
+# Indices into the silver `properties` array (top-level fields like
+# description/style_type/face_* are NOT in the bag).
+VISUALSTYLE_PRE2010 = [
+    "face_opacity",            # 0  BD
+    "face_specular",           # 1  BD
+    "face_mono_color",         # 2  CMC
+    "edge_intersection_color", # 3  CMC
+    "edge_obscured_color",     # 4  CMC
+    "edge_obscured_ltype",     # 5  BL
+    "edge_crease_angle",       # 6  BD
+    "edge_modifier",           # 7  BL
+    "edge_color",              # 8  CMC
+    "edge_opacity",            # 9  BD
+    "edge_width",              # 10 BS
+    "edge_overhang",           # 11 BS
+    "edge_jitter",             # 12 BL
+    "edge_silhouette_color",   # 13 CMC
+    "edge_silhouette_width",   # 14 BS
+    "edge_halo_gap",           # 15 RC
+    "edge_isolines",           # 16 BS
+    "edge_do_hide_precision",  # 17 B
+    "edge_style_apply",        # 18 BS
+    "edge_intersection_ltype", # 19 BS
+    "display_settings",        # 20 BL
+    "display_brightness_bl",   # 21 BLd
+    "display_shadow_type",     # 22 BL
+    "bd2007_45",               # 23 BD (R2007+ only)
+]
+
+# R2010+ core bag (28 props): gold emits each value paired with a `*_int`
+# "modified" flag (the silver bag's `enabled` field), except ext_lighting_model
+# and internal_only which are top-level. Order matches the reader's push order.
+VISUALSTYLE_2010_CORE = [
+    "face_lighting_model",     # 0
+    "face_lighting_quality",   # 1
+    "face_color_mode",         # 2
+    "face_modifier",           # 3
+    "face_opacity",            # 4
+    "face_specular",           # 5
+    "face_mono_color",         # 6
+    "edge_model",              # 7
+    "edge_style",              # 8
+    "edge_intersection_color", # 9
+    "edge_obscured_color",     # 10
+    "edge_obscured_ltype",     # 11
+    "edge_intersection_ltype", # 12
+    "edge_crease_angle",       # 13
+    "edge_modifier",           # 14
+    "edge_color",              # 15
+    "edge_opacity",            # 16
+    "edge_width",              # 17
+    "edge_overhang",           # 18
+    "edge_jitter",             # 19
+    "edge_silhouette_color",   # 20
+    "edge_silhouette_width",   # 21
+    "edge_halo_gap",           # 22
+    "edge_isolines",           # 23
+    "edge_do_hide_precision",  # 24
+    "display_settings",        # 25
+    "display_brightness",      # 26
+    "display_shadow_type",     # 27
+]
+
+# R2013+ extended property bag (props[28:]) — gold names these generically.
+VISUALSTYLE_2013_EXT = [
+    "b_prop1c", "b_prop1d", "b_prop1e", "b_prop1f", "b_prop20", "b_prop21",
+    "b_prop22", "b_prop23", "b_prop24", "bl_prop25", "bd_prop26", "bd_prop27",
+    "bl_prop28", "c_prop29", "bl_prop2a", "bl_prop2b", "c_prop2c", "b_prop2d",
+    "bl_prop2e", "bl_prop2f", "bl_prop30", "b_prop31", "bl_prop32", "c_prop33",
+    "bd_prop34", "b_prop37", "bd_prop38", "bd_prop39",
+]
+
+
+def _vs_property_value(prop: Dict[str, Any]) -> Any:
+    """Unwrap a silver VisualStyleProperty {value: {Variant: x}} to a scalar,
+    normalizing colors to gold's index convention."""
+    v = prop.get("value")
+    if isinstance(v, dict) and len(v) == 1:
+        kind = next(iter(v.keys()))
+        inner = v[kind]
+        if kind == "Color":
+            return normalize_color(inner)
+        return normalize_value(inner)
+    return normalize_value(v)
+
+
+def _map_visual_style(payload: Dict[str, Any], fields: Dict[str, Any]) -> None:
+    """Project silver's positional VisualStyle property bag onto gold's named
+    fields. Top-level payload fields (description, style_type, face_*,
+    edge_model, edge_style, internal_use_only, extended_lighting_model) are
+    handled by the generic loop; this maps the `properties` bag."""
+    props = payload.get("properties")
+    if not isinstance(props, list):
+        return
+    n = len(props)
+    if n in (23, 24):
+        # Pre-R2010 layout.
+        for i, name in enumerate(VISUALSTYLE_PRE2010):
+            if i >= n:
+                break
+            fields[name] = _vs_property_value(props[i])
+        fields["internal_only"] = 1 if payload.get("internal_use_only") else 0
+    else:
+        # R2010+ layout: core 28 paired value/enabled, then R2013+ extras.
+        core = props[:28]
+        for i, name in enumerate(VISUALSTYLE_2010_CORE):
+            if i >= len(core):
+                break
+            fields[name] = _vs_property_value(core[i])
+            fields[name + "_int"] = core[i].get("enabled", 1)
+        # R2013+ extended bag (generic gold names), paired value/enabled.
+        ext = props[28:]
+        for i, name in enumerate(VISUALSTYLE_2013_EXT):
+            if i >= len(ext):
+                break
+            fields[name] = _vs_property_value(ext[i])
+            fields[name + "_int"] = ext[i].get("enabled", 1)
+        if "extended_lighting_model" in payload:
+            fields["ext_lighting_model"] = normalize_value(payload["extended_lighting_model"])
+        fields["internal_only"] = 1 if payload.get("internal_use_only") else 0
+
+
 def normalize_silver(
     data: Dict[str, Any],
     ignore: Optional[Dict[str, Any]] = None,
@@ -454,8 +586,24 @@ def normalize_silver(
 
         out.append({"type": gold_type, "fields": fields})
 
-    # Objects map keyed by handle string.
-    for _handle_key, obj in objects.items():
+    # Objects map keyed by handle string. Silver stores objects in a HashMap
+    # (unordered), while gold's OBJECTS array is in handle order. The differ
+    # aligns by (type, ordinal-within-type), so emit silver objects in
+    # ascending handle order to match gold's canonical ordering.
+    def _obj_sort_key(item) -> int:
+        payload = item[1]
+        if isinstance(payload, dict) and len(payload) == 1:
+            inner = next(iter(payload.values()))
+            if isinstance(inner, dict):
+                h = inner.get("handle")
+                if isinstance(h, int):
+                    return h
+        try:
+            return int(item[0], 0)
+        except (ValueError, TypeError):
+            return 0
+
+    for _handle_key, obj in sorted(objects.items(), key=_obj_sort_key):
         if not isinstance(obj, dict) or len(obj) != 1:
             continue
         silver_type = list(obj.keys())[0]
@@ -471,8 +619,19 @@ def normalize_silver(
             # has_ds_data marks AcDs (SAB) modeler geometry storage; only
             # entities with modeler data set it, objects are always 0.
             fields["has_ds_data"] = 0
+        if silver_type == "VisualStyle":
+            _map_visual_style(payload, fields)
+        # Silver-only top-level VisualStyle fields that gold stores inside the
+        # property bag or under a different name; skip so they don't appear as
+        # extra_in_silver. The pre-R2010 top-level face_*/edge_* fields ARE
+        # gold fields (read into the struct, not the bag), so keep them.
+        vs_skip = {
+            "properties", "internal_use_only", "extended_lighting_model",
+        } if silver_type == "VisualStyle" else set()
         for k, v in payload.items():
             if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
+                continue
+            if k in vs_skip:
                 continue
             if is_ignored(k, ignore_set, ignore_patterns):
                 continue
