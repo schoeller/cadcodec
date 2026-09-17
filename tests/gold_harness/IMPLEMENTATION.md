@@ -256,17 +256,18 @@ A zero-context agent begins here. Read in order, on demand:
    §8.1.1 context budget → §8.1.2 packet → §8.1.3 decision tree → §8.1.4 fix
    recipe → §8.1.6 work queue → §8.1.6a coverage audit → §8.1.7 prohibitions).
 2. **The work queue** §8.1.6 — the next packet is named there with its full
-   diagnosis (currently BLOCK/BLOCK_HEADER topology, mapping table included).
+   diagnosis (currently VPORT/VIEWPORT view-params; BLOCK_HEADER is done).
    Per-packet cold-start briefs are written as `NEXT_<PACKET>.md` beside this
    file when a packet needs one (e.g. `NEXT_OWNERHANDLE.md` — now DONE); if
    none exists for the current packet, §8.1.6 is sufficient.
 3. **Verify the environment** with §8.1.0 before editing.
 
-**Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids,
-commit e953d44, 2026-09-17):** read-fidelity **124 128**, write-fidelity
-**113 631**, across 125 corpus files (110 unique dirs; counts inflated by the
-stem-collision issue below). `cargo test --features serde` = 1556 passed /
-0 failed; `cargo test --features gold-harness --test gold_roundtrip` = ok.
+**Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids/
+BLOCK_HEADER, commit c8fd18d, 2026-09-17):** read-fidelity **112 493**,
+write-fidelity **102 857**, across 125 corpus files (110 unique dirs; counts
+inflated by the stem-collision issue below). `cargo test --features serde` =
+1556 passed / 0 failed; `cargo test --features gold-harness --test
+gold_roundtrip` = ok.
 
 **Things that will look broken but are not (do not "fix" them):**
 - **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
@@ -286,7 +287,8 @@ stem-collision issue below). `cargo test --features serde` = 1556 passed /
 - **LINE entity diffs: 0** on all six versions (2000–2018), both read fidelity
   (`diff_orig`) and write fidelity (`diff_rt`). Same for CIRCLE on 2000.
 - Corpus totals are dominated by **object/table-record** representation gaps
-  (~2.6k read-fidelity diffs on `2000/Line.dwg`), not entity fields.
+  (2000/Line.dwg read-fidelity is now 602 after the BLOCK_HEADER packet; it was
+  ~2.6k at EntityCommon closure), not entity fields.
 - Strict mode (`GOLD_HARNESS_STRICT=1`) still fails on the representative
   subset due to **table-record storage fields** and object representation
   gaps, not entities.
@@ -633,7 +635,7 @@ Given a diff `(type, field, kind)`:
 > **Reading the counts:** corpus `report.md`/`report.json` counts are
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
-> file before committing to a packet. Baseline: read 124 128 / write 113 631.
+> file before committing to a packet. Baseline: read 112 493 / write 102 857.
 
 1. ~~Table-record storage fields~~ — **done** for the uniform set (see §7).
    What remains is per-record **payload**, one packet per table type:
@@ -810,7 +812,9 @@ deduplicated counts are lower due to the stem-collision inflation noted in §7):
   1461 `DWG_OBJECT(MLEADERSTYLE)`); silver uses different field names entirely
   (`content_type` vs gold, `class_version`, `mleader_order`, …). Big normalizer
   packet.
-- **BLOCK_HEADER** (~10 691): the diagnosed packet (§8.1.6) — ready to start.
+- **BLOCK_HEADER** (~~10 691~~ residual ~700: `first_entity`/`last_entity`
+  reader gap + `name` ordinal + `xdicobjhandle`): **packet DONE** (§8.1.6) —
+  the topology renames/gates landed; only the reader-gap residuals remain.
 - **TABLESTYLE** (~9 346): `sty/ovr cellstyle` nested structs + `unknown_bits/
   version/flags/…`. Spec `dwg2.spec` 964.
 - **VPORT** (~8 816, `dwg.spec` 3934 `DWG_TABLE(VPORT)`) and **VIEWPORT**
