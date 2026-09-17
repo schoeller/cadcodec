@@ -708,11 +708,49 @@ packets — small, well-scoped, and reproducible):
 
 ### 8.1.6a Gold-spec coverage audit (as of commit 4554a0e..HEAD, 2026-09-17)
 
-**Answer: gold specs are NOT 100% covered.** This section is the honest
-accounting. "Done" below means *that specific packet's target fields* are
-spec-verified — it does NOT mean the whole type's gold spec is covered.
+**Answer: gold specs are 100% KNOWN, but NOT 100% COVERED.** Measured
+empirically against the corpus (not just the diff report):
 
-*Packets landed since 4554a0e and their spec grounding:*
+- **Known = 100%.** There are 324 unique spec blocks across `dwg.spec` (88) +
+  `dwg2.spec` (236). Gold emits **160 distinct types** in the corpus. All **85
+  types gold emits that silver never emits** have a locatable spec block
+  (verified: 85/85 found via the §8.1.1 grep recipe). There is no "unknown"
+  spec — every gold-emitted type has a spec block an agent can open.
+- **Covered ≠ 100%.** Silver emits only **84 distinct types**; 75 are shared
+  with gold. On those 75 shared types, **703 gold fields never appear on the
+  silver side** (the field-level backlog). So coverage is roughly
+  75/160 types and a fraction of fields per shared type.
+
+*Coverage by category:*
+
+| Category | State | Count |
+|---|---|---|
+| Spec blocks (dwg.spec + dwg2.spec) | all present | 324 |
+| Types gold emits in corpus | — | 160 |
+| Types silver emits | — | 84 (75 shared with gold) |
+| Gold types silver never emits (reader gap) | **uncovered** | 85 |
+| Gold fields missing on the 75 shared types | **uncovered** | 703 |
+
+*The 85 gold-only types* (silver reader coverage gap — the largest structural
+class): all `ACSH_*` (11), all `ASSOC*` (16), `VERTEX_2D/3D/MESH/PFACE/
+PFACE_FACE` (silver stores vertices inside the parent polyline — §10),
+`DIMENSION_*` subtypes (silver has one `Dimension` variant — §9), `SEQEND`,
+`ATTRIB`, `DIMASSOC`, `EVALUATION_GRAPH`, `SECTIONVIEWSTYLE`/`DETAILVIEWSTYLE`,
+`PROXY_OBJECT`, `SUN`, `TRACE`, `BLOCK*ACTION`/`BLOCK*PARAMETER`/`BLOCK*GRIP`,
+`RENDER*`/`MENTALRAY*`/`RAPIDRT*`, `PDF*/UNDERLAY`, `UNKNOWN_ENT/OBJ`, and the
+`SECTION_*`/`LAYOUTPRINTCONFIG`/`CELLSTYLEMAP`/… singles. Each is a
+`FOO._missing`/`FOO._count` row in the report.
+
+*The 703 missing fields on shared types* are dominated by: LAYOUT/PLOTSETTINGS
+(nested plot config), TABLESTYLE `sty/ovr cellstyle.*` nested structs,
+MULTILEADER `ctx.*`, MLEADERSTYLE (full rename set), VIEWPORT/VPORT/VIEW view
+params, GEODATA, 3DSOLID/REGION ACIS+revision, HATCH gradient, HELIX/SPLINE
+NURBS, LEADER, IMAGE/WIPEOUT, plus the near-universal `isbylayerlt`
+(entity-common) and the `*_CONTROL.has_ds_data/is_xdic_missing` control-object
+fields.
+
+*Per-packet spec grounding (the landed packets — "done" = that packet's target
+fields are spec-verified, NOT the whole type):*
 
 | Packet | Spec source | Coverage of the type's gold spec |
 |---|---|---|
