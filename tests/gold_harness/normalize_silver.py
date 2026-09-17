@@ -674,6 +674,69 @@ def normalize_silver(
 
         fields = merge_common(common, common_dwg_entry, layer_map)
 
+        if silver_type == "LwPolyline":
+            # Gold LWPOLYLINE: flag (bitfield), points (2D array), bulges,
+            # conditional const_width/elevation/thickness/extrusion.
+            # Silver stores vertices (nested) + is_closed/plinegen/
+            # constant_width/elevation/thickness/extrusion separately.
+            flag = 0
+            if payload.get("is_closed"):
+                flag |= 512
+            if payload.get("plinegen"):
+                flag |= 256
+            const_width = payload.get("constant_width", 0.0)
+            if const_width:
+                flag |= 4
+            elevation = payload.get("elevation", 0.0)
+            if elevation:
+                flag |= 8
+            thickness = payload.get("thickness", 0.0)
+            if thickness:
+                flag |= 2
+            extrusion = payload.get("extrusion")
+            if extrusion and extrusion != [0.0, 0.0, 1.0]:
+                flag |= 1
+            verts = payload.get("vertices", [])
+            if isinstance(verts, list) and verts:
+                pts = []
+                bulges = []
+                has_bulge = False
+                for vx in verts:
+                    if isinstance(vx, dict):
+                        loc = vx.get("location")
+                        # location is {x, y} dict or [x, y] list.
+                        if isinstance(loc, dict):
+                            pts.append([normalize_float(loc.get("x", 0.0)), normalize_float(loc.get("y", 0.0))])
+                        elif isinstance(loc, list) and len(loc) >= 2:
+                            pts.append([normalize_float(loc[0]), normalize_float(loc[1])])
+                        b = vx.get("bulge", 0.0)
+                        bulges.append(normalize_float(b))
+                        if b:
+                            has_bulge = True
+                    elif isinstance(vx, list) and len(vx) >= 2:
+                        pts.append([normalize_float(vx[0]), normalize_float(vx[1])])
+                fields["points"] = pts
+                # Gold always emits bulges (empty list when none set).
+                fields["bulges"] = bulges if has_bulge else []
+                if has_bulge:
+                    flag |= 16
+            fields["flag"] = flag
+            if flag & 4:
+                fields["const_width"] = normalize_float(const_width)
+            if flag & 8:
+                fields["elevation"] = normalize_float(elevation)
+            if flag & 2:
+                fields["thickness"] = normalize_float(thickness)
+            if flag & 1:
+                fields["extrusion"] = normalize_value(extrusion)
+            # Silver stores the extrusion as `normal`; pop it so it doesn't
+            # appear as extra (gold's `extrusion` is only present when flag&1).
+            payload.pop("normal", None)
+            # Drop silver's split fields so they don't appear as extra.
+            for sk in ("vertices", "is_closed", "plinegen", "constant_width",
+                       "elevation", "thickness", "extrusion"):
+                payload.pop(sk, None)
+
         field_map = FIELD_NAME_MAP.get(silver_type, {})
         for k, v in payload.items():
             if k == "common":
