@@ -705,22 +705,20 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** VIEWPORT entity + VIEW table record — the
-   remaining view-params work after the VPORT table record (done). Both are the
-   same field family but use DIFFERENT silver struct names than VPORT and live
-   in different structs:
+   **Next task (ready to start):** LTYPE dash patterns (`pattern_len`,
+   `alignment`, `numdashes`, `elements`, `pattern_length`, `xref_dependent` —
+   ~472 each) — the new top read-fidelity divergence after the view-params
+   cluster (done). Spec `dwg.spec` 3580 `DWG_TABLE(LTYPE)`.
 
-   - **VIEWPORT entity** (dwg.spec 2412, ~29/field × ~50 fields): silver names
-     `snap_angle`/`twist_angle`/`front_clip_z`/`back_clip_z`/`circle_sides`/
-     `view_height`/`view_center`/`view_direction`/`lens_length`/`frozen_layers`/
-     `clip_boundary_handle`/`ucs_handle`/`shade_plot_mode`/`status`/`id`/
-     `custom_scale`/`default_lighting` + `*_handle` forms. Same rename+convert+
-     gate pattern as VPORT. Also `vport_entity_header` (a handle).
-   - **VIEW table record** (~3/field): silver `center`/`height`/`width`/
-     `direction`/`target`/`lens_length`/`front_clip`/`back_clip`/`twist_angle`/
-     `perspective` + `associated_ucs`/`is_pspace`/`camera_plottable`/`livesection`/
-     `ucs_associated` + handle forms (`named_ucs_handle`, `background_handle`,
-     `visual_style_handle`, `sun_handle`, `live_section_handle`). Same pattern.
+   ~~VIEWPORT entity + VIEW table record~~ — **DONE (2026-09-17)**: full
+   view-param projection for both (renames, 2RD slicing, status_flag bit
+   recomposition via silver's own to_bits() layout, render_mode string→int,
+   grid_flags dict→bits, composite VIEWMODE, derived aspect_ratio/view_width,
+   R2000b/R2004a/R2007a gates, handle wraps). Corpus: read 103 649 → 101 741,
+   write 94 153 → 92 472. Residuals (real gaps): VIEWPORT.status_flag bits
+   16–19 (silver's ViewportStatusFlags drops them), VIEWPORT.named_ucs (silver
+   stores 0 where gold resolves a UCS), VIEW.VIEWMODE (silver lacks
+   ucs_per_viewport on VIEW), and the *_CONTROL/xdicobjhandle control fields.
 
    ~~VPORT table record~~ — **DONE (2026-09-17)**: full view-param projection
    (renames, bool→int, render_mode string→int, grid_flags dict→bits,
