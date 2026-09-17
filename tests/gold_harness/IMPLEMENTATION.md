@@ -579,12 +579,12 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** SCALE/XRECORD/DICTIONARYVAR `reactors`
-   storage (silver does not store reactor handle lists; gold emits them for
-   every object) — the new top read-fidelity divergences after the
-   `ownerhandle` packet are `SCALE.reactors` (3 833) and
-   `DICTIONARY.reactors` (1 824). `ownerhandle` handle-code semantics is
-   **done** — see the residual-gaps bullet above.
+   **Next task (ready to start):** VISUALSTYLE property-bag residual
+   (`c_prop33`, 2 600) — the new top read-fidelity divergence after the
+   `ownerhandle`, `SCALE.is_temporary`, and `reactors` packets. The `reactors`
+   storage gap is **done** (side-channel injection + DICTIONARY/DICTIONARYVAR
+   struct fields); residual entity-level reactors (~122) are a separate
+   packet (DIMASSOC/ASSOC* targets).
 3. Re-run `run_corpus.py` after each landed packet to re-rank the queue.
 
 Concrete entity-level mappings exposed by `2000/entities-2d.dwg` (good early
