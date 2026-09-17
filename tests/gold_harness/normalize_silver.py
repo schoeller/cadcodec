@@ -792,12 +792,12 @@ def normalize_silver(
         if silver_type == "VisualStyle":
             _map_visual_style(payload, fields)
         if silver_type == "Scale":
-            # Gold stores a raw `flag` BS (bit 0x01 = temporary); silver stores
-            # the derived is_temporary bool. Project `flag` and emit
-            # is_temporary as gold's int (0/1).
-            is_temp = bool(payload.get("is_temporary"))
+            # Gold stores a raw `flag` BS (bit 0x01 = temporary) and does NOT
+            # emit the derived `is_temporary` bool; silver stores only the
+            # derived bool. Project `flag`; pop is_temporary so the generic
+            # payload loop cannot re-emit it (extra_in_silver on every SCALE).
+            is_temp = bool(payload.pop("is_temporary", False))
             fields.setdefault("flag", 1 if is_temp else 0)
-            fields["is_temporary"] = 1 if is_temp else 0
         if silver_type == "XRecord":
             # Gold: xdata_size (BL), xdata (raw entry list), cloning (BS,
             # SINCE R_2000b). Silver: name (derived), cloning_flags (enum),
