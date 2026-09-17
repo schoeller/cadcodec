@@ -808,6 +808,33 @@ STYLE, LTYPE dashes, 3DFACE, SOLID, ELLIPSE). MLEADERSTYLE and TABLESTYLE are
 large but mechanical. LAYOUT and 3DSOLID/ACIS and the `*._missing` coverage
 require reader/storage work.
 
+#### Nested (dotted) field paths — how gold defines them
+
+Some gold types nest sub-structs; the differ surfaces them as **dotted field
+paths** (e.g. `TABLESTYLE.sty.cellstyle.content_format.value_format_string`).
+Every nested root is defined by a spec **`*_fields` macro** (or an inline
+`SUBCLASS`), so each dotted segment is spec-known — there is no opaque nesting.
+To consult a nested field, open the defining macro, not just the outer
+`DWG_OBJECT`/`DWG_ENTITY` block:
+
+| Gold JSON nested root | Defined by | Spec location |
+|---|---|---|
+| `LAYOUT.plotsettings.*` / `PLOTSETTINGS.*` | inline `SUBCLASS (AcDbPlotSettings)` | dwg.spec 5225, 5318 |
+| `TABLESTYLE.sty.*` / `.ovr.*` (and TABLE cells) | `CellStyle_fields` (wraps `ContentFormat_fields`) | dwg2.spec 244, 227 |
+| `MULTILEADER.ctx.*` (and MLEADERSTYLE context) | `MLEADER_CONTEXT_DATA_fields` | dwg2.spec 1227 |
+| `BLOCK*.evalexpr.*`, `ACSH_*.evalexpr.*`, `ASSOC*` expr | `AcDbEvalExpr_fields` | dwg2.spec 2860 |
+| `ACSH_*.history_node.*` | `AcDbShHistoryNode_fields` | dwg2.spec 2910 |
+| `MATERIAL.<color>.rgb`, `MATERIAL.*map.*` | `MAT_COLOR` / `MAT_MAPPER` macros | dwg2.spec 2680, 2743 |
+| `UNDERLAY.*` sub-fields | `UNDERLAY_fields` | dwg2.spec 1621 |
+| `ASSOC*.assocdep.*` | `AcDbAssocDependency_fields` | dwg2.spec 1863 |
+| `FIELD.value.*` and TABLE cell values | `TABLE_value_fields` macro (moved out of the spec into `dwg_spec_shared.h`; the `dwg.spec` 5868 stub is `#REMOVED`/inactive) | dwg_spec_shared.h |
+
+The remaining `*_fields` macros (constraint/assoc/block-param families,
+`AcDbObjectContextData_fields` dwg2.spec 3612, …) follow the same pattern:
+grep `#define <root>_fields` across both spec files. A nested-field packet
+diffs the *leaf* scalar; walk the macro chain to find the leaf's `FIELD_*`
+macro, bitcode type, and version gate exactly as for a flat field.
+
 ### 8.1.7 Hard prohibitions (loop invariants, restated)
 
 - Never edit anything under `~/work/libredwg`.
