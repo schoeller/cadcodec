@@ -777,6 +777,147 @@ def normalize_silver(
                        "elevation", "thickness", "extrusion"):
                 payload.pop(sk, None)
 
+        # VIEWPORT entity (dwg.spec 2412 DWG path): rename silver snake_case to
+        # gold names, convert types, version-gate, wrap handles. The consumed
+        # keys are dropped from payload so the generic loop below skips them.
+        if silver_type == "Viewport":
+            _VP_RENAME = {
+                "view_center": "VIEWCTR", "view_direction": "VIEWDIR",
+                "view_height": "VIEWSIZE", "twist_angle": "VIEWTWIST",
+                "lens_length": "LENSLENGTH", "front_clip_z": "FRONTZ",
+                "back_clip_z": "BACKZ", "snap_angle": "SNAPANG",
+                "snap_base": "SNAPBASE", "snap_spacing": "SNAPUNIT",
+                "grid_spacing": "GRIDUNIT", "ucs_origin": "ucsorg",
+                "ucs_x_axis": "ucsxdir", "ucs_y_axis": "ucsydir",
+                "ucs_ortho_type": "UCSORTHOVIEW", "elevation": "ucs_elevation",
+                "ucs_at_origin": "ucs_at_origin", "style_sheet": "style_sheet",
+                "circle_sides": "circle_zoom", "status_flag": "status_flag",
+                "grid_major": "grid_major",
+            }
+            _VP_BOOL = {"ucs_per_viewport": "UCSVP"}
+            # 2RD fields: gold stores 2 elements; silver carries a 3D point.
+            _VP_2D = {"VIEWCTR", "SNAPBASE", "SNAPUNIT", "GRIDUNIT"}
+            # R2000b+: view params; R2004a+: shadeplot_mode; R2007a+: lighting
+            _VP_R2000 = {"VIEWCTR", "VIEWDIR", "VIEWSIZE", "VIEWTWIST", "LENSLENGTH",
+                         "FRONTZ", "BACKZ", "SNAPANG", "SNAPBASE", "SNAPUNIT",
+                         "GRIDUNIT", "ucsorg", "ucsxdir", "ucsydir", "ucs_elevation",
+                         "UCSORTHOVIEW", "ucs_at_origin", "UCSVP", "render_mode",
+                         "num_frozen_layers", "status_flag", "style_sheet"}
+            _VP_R2004 = {"shadeplot_mode"}
+            _VP_R2007 = {"grid_major", "use_default_lights", "default_lighting_type",
+                         "brightness", "contrast", "ambient_color",
+                         "background", "visualstyle", "shadeplot", "sun"}
+            consumed = set()
+            for k, v in payload.items():
+                gk = _VP_RENAME.get(k) or _VP_BOOL.get(k)
+                if gk is None:
+                    if k in ("render_mode", "ambient_color", "status",
+                             "named_ucs_handle", "base_ucs_handle", "ucs_handle",
+                             "clip_boundary_handle", "visual_style_handle",
+                             "sun_handle", "background_handle", "shade_plot_handle",
+                             "vport_entity_header", "shade_plot_mode",
+                             "use_default_lights", "default_lighting_type",
+                             "brightness", "contrast", "custom_scale", "id",
+                             "frozen_layers", "num_frozen_layers", "shade_plot_mode"):
+                        consumed.add(k)  # handled below or dropped
+                    continue
+                consumed.add(k)
+                if gk in _VP_R2000 and not r2000_plus:
+                    continue
+                if gk in _VP_R2004 and not r2004_plus:
+                    continue
+                if gk in _VP_R2007 and not r2007_plus:
+                    continue
+                if k in _VP_BOOL:
+                    fields[gk] = 1 if v else 0
+                elif gk in _VP_2D:
+                    nv = normalize_value(v)
+                    # gold 2RD: keep only the first two elements
+                    if isinstance(nv, list):
+                        nv = nv[:2]
+                    fields[gk] = nv
+                else:
+                    fields[gk] = normalize_value(v)
+            # status_flag: silver decomposes into a `status` bit-struct; gold
+            # keeps the raw BL (R2000+). Recompose using silver's own bit
+            # layout (viewport.rs ViewportStatusFlags::to_bits):
+            #   bit0 perspective, 1 front_clipping, 2 back_clipping, 3 ucs_follow,
+            #   4 front_clip_not_at_eye, 5 ucs_icon_visible, 6 ucs_icon_at_origin,
+            #   7 fast_zoom, 8 snap_on, 9 grid_on, 10 isometric_snap, 11 hide_plot,
+            #   12 iso_pair_top, 13 iso_pair_right, 14 locked, 15 is_on.
+            st = payload.get("status")
+            if r2000_plus and isinstance(st, dict):
+                _ST_BITS = (("perspective", 0), ("front_clipping", 1),
+                            ("back_clipping", 2), ("ucs_follow", 3),
+                            ("front_clip_not_at_eye", 4), ("ucs_icon_visible", 5),
+                            ("ucs_icon_at_origin", 6), ("fast_zoom", 7),
+                            ("snap_on", 8), ("grid_on", 9), ("isometric_snap", 10),
+                            ("hide_plot", 11), ("iso_pair_top", 12),
+                            ("iso_pair_right", 13), ("locked", 14), ("is_on", 15))
+                bits = 0
+                for name, bit in _ST_BITS:
+                    if st.get(name):
+                        bits |= (1 << bit)
+                fields["status_flag"] = bits
+                consumed.add("status")
+                consumed.add("status_flag")
+            # render_mode string -> int (R2000+)
+            if r2000_plus:
+                rm = payload.get("render_mode")
+                if isinstance(rm, str):
+                    _RM = {"Wireframe2D": 0, "Wireframe3D": 1, "HiddenLine": 2,
+                           "FlatShaded": 3, "GouraudShaded": 4,
+                           "FlatShadedWithEdges": 5, "GouraudShadedWithEdges": 6}
+                    fields["render_mode"] = _RM.get(rm, 0)
+                elif rm is not None:
+                    fields["render_mode"] = rm
+                consumed.add("render_mode")
+                fields["num_frozen_layers"] = len(payload.get("frozen_layers") or [])
+                consumed.add("frozen_layers")
+            # handle wraps (version-gated)
+            def _wh(src, dst, ok):
+                if ok:
+                    fields[dst] = normalize_handle_value(payload.get(src))
+                consumed.add(src)
+            _wh("named_ucs_handle", "named_ucs", r2000_plus)
+            _wh("base_ucs_handle", "base_ucs", r2000_plus)
+            _wh("clip_boundary_handle", "clip_boundary", r2000_plus)
+            _wh("visual_style_handle", "visualstyle", r2007_plus)
+            _wh("sun_handle", "sun", r2007_plus)
+            _wh("background_handle", "background", r2007_plus)
+            _wh("shade_plot_handle", "shadeplot", r2007_plus)
+            _wh("vport_entity_header", "vport_entity_header", not r2000_plus or not r2004_plus)
+            consumed.add("ucs_handle")  # silver stores; gold uses named_ucs
+            # R2004+: shadeplot_mode
+            if r2004_plus:
+                fields["shadeplot_mode"] = payload.get("shade_plot_mode", 0)
+                consumed.add("shade_plot_mode")
+            # R2007+: lighting
+            if r2007_plus:
+                fields["use_default_lights"] = 1 if payload.get("use_default_lights", payload.get("default_lighting")) else 0
+                fields["default_lighting_type"] = payload.get("default_lighting_type", 1)
+                fields["brightness"] = payload.get("brightness", 0.0)
+                fields["contrast"] = payload.get("contrast", 0.0)
+                ac = payload.get("ambient_color")
+                if isinstance(ac, dict) and "Rgb" in ac:
+                    rgb = ac["Rgb"]
+                    fields["ambient_color"] = {"index": 250,
+                        "rgb": "c2%02x%02x%02x%02x" % (0, rgb.get("r", 0), rgb.get("g", 0), rgb.get("b", 0))}
+                elif isinstance(ac, str):
+                    fields["ambient_color"] = normalize_value(ac)
+                for kk in ("use_default_lights", "default_lighting", "default_lighting_type",
+                           "brightness", "contrast", "ambient_color"):
+                    consumed.add(kk)
+            # drop silver-only / DXF-only fields so they don't appear as extra
+            for sk in ("custom_scale", "id", "on_off",
+                       # top-level silver-only status/UI bits and pre-2007 fields
+                       # gold omits on the binary-DWG path for this version:
+                       "ucs_icon_visible", "grid_flags", "default_lighting",
+                       "shade_plot_mode", "frozen_layers"):
+                payload.pop(sk, None)
+            for sk in consumed:
+                payload.pop(sk, None)
+
         field_map = FIELD_NAME_MAP.get(silver_type, {})
         for k, v in payload.items():
             if k == "common":
@@ -1074,6 +1215,113 @@ def normalize_silver(
                 ar = rec.get("aspect_ratio")
                 if isinstance(vh, (int, float)) and isinstance(ar, (int, float)):
                     fields.setdefault("view_width", ar * vh)
+            if record_gold_type == "VIEW":
+                # VIEW table record (dwg.spec 3738 DWG path): rename silver
+                # snake_case view params to gold names, convert, version-gate.
+                _VIEW_RENAME = {
+                    "height": "VIEWSIZE", "width": "view_width",
+                    "direction": "VIEWDIR", "target": "view_target",
+                    "twist_angle": "VIEWTWIST", "lens_length": "LENSLENGTH",
+                    "front_clip": "FRONTZ", "back_clip": "BACKZ",
+                    "ucs_origin": "ucsorg", "ucs_x_axis": "ucsxdir",
+                    "ucs_y_axis": "ucsydir", "ucs_ortho_type": "UCSORTHOVIEW",
+                    "ucs_elevation": "ucs_elevation", "ucs_associated": "associated_ucs",
+                    "camera_plottable": "is_camera_plottable",
+                    "default_lighting_type": "default_lightning_type",
+                    "brightness": "brightness", "contrast": "contrast",
+                }
+                _VIEW_BOOL = {"paper_space": "is_pspace", "ucs_associated_bool": "associated_ucs",
+                              "use_default_lights": "use_default_lights"}
+                _VIEW_2D = {"VIEWCTR"}
+                _VIEW_R2000 = {"render_mode", "associated_ucs", "ucsorg", "ucsxdir",
+                               "ucsydir", "UCSORTHOVIEW", "ucs_elevation",
+                               "named_ucs", "base_ucs"}
+                _VIEW_R2007 = {"use_default_lights", "default_lightning_type",
+                               "brightness", "contrast", "ambient_color",
+                               "background", "visualstyle", "sun", "livesection"}
+                view_consumed = set()
+                for k, v in rec.items():
+                    if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
+                        continue
+                    gk = _VIEW_RENAME.get(k) or _VIEW_BOOL.get(k)
+                    if gk is None:
+                        if k in ("render_mode", "ambient_color", "named_ucs_handle",
+                                 "base_ucs_handle", "sun_handle", "background_handle",
+                                 "visual_style_handle", "live_section_handle",
+                                 "perspective", "front_clipping", "back_clipping",
+                                 "front_clip_at_eye", "center"):
+                            view_consumed.add(k)
+                        continue
+                    view_consumed.add(k)
+                    if gk in _VIEW_R2000 and not r2000_plus:
+                        continue
+                    if gk in _VIEW_R2007 and not r2007_plus:
+                        continue
+                    if k in _VIEW_BOOL:
+                        fields[gk] = 1 if v else 0
+                    else:
+                        fields[gk] = normalize_value(v)
+                # center -> VIEWCTR (2RD)
+                c = rec.get("center")
+                if c is not None:
+                    nv = normalize_value(c)
+                    if isinstance(nv, list):
+                        nv = nv[:2]
+                    fields["VIEWCTR"] = nv
+                    view_consumed.add("center")
+                # render_mode string -> int (R2000+)
+                if r2000_plus:
+                    rm = rec.get("render_mode")
+                    if isinstance(rm, str):
+                        _RM = {"Wireframe2D": 0, "Wireframe3D": 1, "HiddenLine": 2,
+                               "FlatShaded": 3, "GouraudShaded": 4,
+                               "FlatShadedWithEdges": 5, "GouraudShadedWithEdges": 6}
+                        fields["render_mode"] = _RM.get(rm, 0)
+                    elif rm is not None:
+                        fields["render_mode"] = rm
+                    fields["named_ucs"] = normalize_handle_value(rec.get("named_ucs_handle"))
+                    fields["base_ucs"] = normalize_handle_value(rec.get("base_ucs_handle"))
+                    for kk in ("render_mode", "named_ucs_handle", "base_ucs_handle"):
+                        view_consumed.add(kk)
+                if r2007_plus:
+                    fields["use_default_lights"] = 1 if rec.get("use_default_lights") else 0
+                    fields["background"] = normalize_handle_value(rec.get("background_handle"))
+                    fields["visualstyle"] = normalize_handle_value(rec.get("visual_style_handle"))
+                    fields["sun"] = normalize_handle_value(rec.get("sun_handle"))
+                    ac = rec.get("ambient_color")
+                    if isinstance(ac, dict) and "Rgb" in ac:
+                        rgb = ac["Rgb"]
+                        fields["ambient_color"] = {"index": 250,
+                            "rgb": "c2%02x%02x%02x%02x" % (0, rgb.get("r", 0), rgb.get("g", 0), rgb.get("b", 0))}
+                    for kk in ("use_default_lights", "background_handle", "visual_style_handle",
+                               "sun_handle", "ambient_color"):
+                        view_consumed.add(kk)
+                # drop silver-only / DXF-only fields
+                for kk in ("perspective", "front_clipping", "back_clipping",
+                           "front_clip_at_eye", "live_section_handle"):
+                    view_consumed.add(kk)
+                # composite VIEWMODE bits (same as VPORT)
+                viewmode = ((1 if rec.get("ucs_per_viewport") else 0)
+                            | (2 if rec.get("ucs_at_origin") else 0)
+                            | (8 if rec.get("ucsfollow") else 0))
+                fields["VIEWMODE"] = viewmode
+                view_consumed.update(("ucs_per_viewport", "ucsfollow"))
+                # aspect_ratio: gold computes view_width / VIEWSIZE (both stored
+                # in silver as width/height). Derive it.
+                vw = rec.get("width"); vh2 = rec.get("height")
+                if isinstance(vw, (int, float)) and isinstance(vh2, (int, float)) and vh2:
+                    fields.setdefault("aspect_ratio", vw / vh2)
+                # livesection handle (R2007+)
+                if r2007_plus:
+                    fields["livesection"] = normalize_handle_value(rec.get("live_section_handle"))
+                    view_consumed.add("live_section_handle")
+                # drop silver xref bookkeeping (gold table-record block emits the
+                # is_xref_* bits; these silver-internal dupes never appear in gold)
+                view_consumed.update(("xref_reference", "xref_resolved",
+                                      "xref_dependent", "xref_handle"))
+                # consumed-key guard for the generic loop below
+                for kk in view_consumed:
+                    rec.pop(kk, None)
             if r2004_plus:
                 # Gold emits is_xdic_missing on every object's handle stream,
                 # table records included.
