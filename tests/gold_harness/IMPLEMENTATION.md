@@ -436,6 +436,24 @@ Repos: silver = `~/work/cadcodec` (Rust crate `acadrust`), gold =
 `~/work/libredwg` (C, read-only oracle). **Never edit anything under
 `~/work/libredwg`.**
 
+**Corpus + artifacts (where things land):**
+- Run the full corpus (125 files, all six versions): `python3 tests/gold_harness/run_corpus.py`
+  (no args). Takes ~9 min. Writes `target/gold_harness_corpus/report.json` +
+  `report.md` (the **work-queue source**) and, per file, a workdir
+  `target/gold_harness_corpus/<stem>/` holding `<stem>_gold_orig.json`,
+  `<stem>_silver_orig.json`, `<stem>_gold_orig.norm.json`,
+  `<stem>_silver_orig.norm.json`, `<stem>_diff_orig.json`, and the `_rt`
+  (roundtrip) counterparts.
+- Run one file: `python3 tests/gold_harness/run_roundtrip.py "$GOLD_TESTDATA/<ver>/<File>.dwg" <out_dir>`
+  → same artifact set under `<out_dir>/<Filestem>_…`.
+- The pipeline each driver runs: `dwgread -O JSON` (gold) → `normalize_gold.py`;
+  `dwg2json` (silver) → `normalize_silver.py`; then `diff_fields.py` with
+  `ignore_fields.toml`. `run_roundtrip.py` prints
+  `read-fidelity diffs: N` / `write-fidelity diffs: N`.
+- **Stem collision**: workdirs are keyed by file stem, so same-named files
+  across versions share one dir (last write wins). For a version-specific
+  artifact, run `run_roundtrip.py` yourself into a fresh `<out_dir>`.
+
 ### 8.1.1 Context budget rules (hard constraints)
 
 1. **Never read a whole large file.** These files are too big to load:
@@ -470,12 +488,14 @@ fields. The packet comes from the corpus report
 (`target/gold_harness_corpus/report.md`, "Top read-fidelity divergences"
 first) or from a single file's diff JSON.
 
-Quick per-file query (prints only the interesting rows):
+Quick per-file query (prints only the interesting rows). The corpus workdir is
+`target/gold_harness_corpus/<stem>/<stem>_diff_orig.json`; if you ran a single
+file yourself it is `<out_dir>/<Filestem>_diff_orig.json`:
 
 ```bash
 python3 - <<'EOF'
 import json
-d = json.load(open("target/gold_harness/FILESTEM_diff_orig.json"))
+d = json.load(open("target/gold_harness_corpus/FILESTEM/FILESTEM_diff_orig.json"))
 rows = [x for x in d["diffs"] if x.get("type") == "TYPE"]
 print(f"{len(rows)} diffs for TYPE")
 for x in rows[:20]:
