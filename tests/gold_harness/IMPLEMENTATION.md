@@ -726,9 +726,18 @@ Given a diff `(type, field, kind)`:
    (renames, bool→int, render_mode string→int, grid_flags dict→bits,
    ambient_color Rgb→CMC, composite VIEWMODE/UCSICON bits, derived view_width,
    R2000b/R2007a gates, handle wraps, silver-only drops). Corpus: read
-   112 493 → 103 649, write 102 857 → 94 153. Residuals:
-   VPORT_CONTROL.has_ds_data/is_xdic_missing/xdicobjhandle (control-object
-   fields) and VPORT.sun/VIEWMODE leftovers.
+   112 493 → 103 649, write 102 857 → 94 153. **Reviewed**: VPORT-only
+   old-vs-new recompute (d587311 → HEAD, 76 pairs) shows 104 566 → 99 156 with
+   only 10 added rows, all `wrong_value` and all real silver gaps surfaced by
+   the correct projection — `VPORT.sun` (gold SUN object vs silver UNKNOWN;
+   silver doesn't model SUN) and one `VPORT.VIEWMODE` (PolyLine2D: silver sets
+   the UCSVP bit where gold has 0). No structural regressions. Note: the
+   `example_r13`/`example_r14`/`gh44-error` corpus dirs are out-of-scope legacy
+   (run_corpus.py line ~33 skips R13/R14); stale versions of those dirs were
+   removed from `target/gold_harness_corpus/` so their pre-packet content
+   doesn't pollute future corpus scans. Residuals: VPORT_CONTROL.has_ds_data/
+   is_xdic_missing/xdicobjhandle (control-object fields) + the sun/VIEWMODE
+   gaps above.
 
    ~~BLOCK/BLOCK_HEADER topology~~ — **DONE (2026-09-17)**: silver normalizer
    renames + handle-wraps + version gates per the mapping table above (BLOCK
