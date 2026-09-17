@@ -1324,6 +1324,55 @@ def normalize_silver(
                 # consumed-key guard for the generic loop below
                 for kk in view_consumed:
                     rec.pop(kk, None)
+            if record_gold_type == "LTYPE":
+                # LTYPE dash patterns (dwg.spec 3580 DWG path). Silver stores
+                # elements[] (length+complex), pattern_length, alignment as a
+                # char; gold stores dashes[] (8 fields each), pattern_len,
+                # numdashes, alignment as a byte (ord). Project.
+                al = rec.get("alignment")
+                if isinstance(al, str) and len(al) == 1:
+                    fields["alignment"] = ord(al)
+                elif isinstance(al, int):
+                    fields["alignment"] = al
+                if r2000_plus or True:  # pattern_len is LATER_VERSIONS (R13+)
+                    fields["pattern_len"] = rec.get("pattern_length", 0.0)
+                elems = rec.get("elements") or []
+                fields["numdashes"] = len(elems)
+                if elems:
+                    dashes = []
+                    for e in elems:
+                        cx = e.get("complex")
+                        if isinstance(cx, dict):
+                            dashes.append({
+                                "length": e.get("length", 0.0),
+                                "complex_shapecode": cx.get("shapecode", 0),
+                                "style": normalize_handle_value(cx.get("style_handle", 0)),
+                                "x_offset": cx.get("x_offset", 0.0),
+                                "y_offset": cx.get("y_offset", 0.0),
+                                "scale": cx.get("scale", 1.0),
+                                "rotation": cx.get("rotation", 0.0),
+                                "shape_flag": cx.get("flags", 0),
+                            })
+                        else:
+                            dashes.append({
+                                "length": e.get("length", 0.0),
+                                "complex_shapecode": 0,
+                                "style": normalize_handle_value(0),
+                                "x_offset": 0.0, "y_offset": 0.0,
+                                "scale": 1.0, "rotation": 0.0, "shape_flag": 0,
+                            })
+                    fields["dashes"] = dashes
+                # strings_area: gold emits a TF binary field. UNTIL R_2004 it's
+                # always 256 bytes; R2007+ only when has_strings_area (any dash
+                # with shape_flag & 2). All-zero in the corpus. Silver stores
+                # none; emit zeros on pre-R2007 so gold's field matches.
+                if not r2007_plus:
+                    fields["strings_area"] = "00" * 256
+                elif elems and any((e.get("complex") or {}).get("flags", 0) & 2 for e in elems):
+                    fields["strings_area"] = "00" * 512
+                # drop silver-only names so the generic loop skips them
+                for kk in ("elements", "pattern_length", "alignment"):
+                    rec.pop(kk, None)
             if r2004_plus:
                 # Gold emits is_xdic_missing on every object's handle stream,
                 # table records included.
@@ -1444,7 +1493,7 @@ def normalize_silver(
                     continue
                 # Drop silver's xref bookkeeping duplicates (already emitted
                 # as is_xref_* above) and the text-style name duplicate.
-                if record_gold_type == "DIMSTYLE" and k in ("xref_reference", "xref_resolved", "xref_dependent", "xref_handle", "annotative"):
+                if record_gold_type in ("DIMSTYLE", "LTYPE") and k in ("xref_reference", "xref_resolved", "xref_dependent", "xref_handle", "annotative"):
                     continue
                 # LAYER.linewt: gold stores the raw lweights[] index; silver
                 # stores the enum string. Map it.
