@@ -754,6 +754,12 @@ def normalize_silver(
                 if has_bulge:
                     flag |= 16
             fields["flag"] = flag
+            # Gold's JSON always carries a vertexids array SINCE R_2010b
+            # (libredwg serializes the empty struct array even when flag&1024
+            # is clear; the field is absent pre-R2010). Silver stores none.
+            # Emit [] on R2010+ so gold's [] doesn't diff missing_in_silver.
+            if r2010_plus:
+                fields["vertexids"] = []
             if flag & 4:
                 fields["const_width"] = normalize_float(const_width)
             if flag & 8:
