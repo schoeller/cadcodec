@@ -464,14 +464,84 @@ VISUALSTYLE_2010_CORE = [
     "display_shadow_type",     # 27
 ]
 
-# R2013+ extended property bag (props[28:]) — gold names these generically.
+# R2013+ extended property bag (props[28:]) — gold names these generically,
+# with edge_wiggle/strokes spliced in before the final b_prop37/bd_prop38/39.
 VISUALSTYLE_2013_EXT = [
     "b_prop1c", "b_prop1d", "b_prop1e", "b_prop1f", "b_prop20", "b_prop21",
     "b_prop22", "b_prop23", "b_prop24", "bl_prop25", "bd_prop26", "bd_prop27",
     "bl_prop28", "c_prop29", "bl_prop2a", "bl_prop2b", "c_prop2c", "b_prop2d",
     "bl_prop2e", "bl_prop2f", "bl_prop30", "b_prop31", "bl_prop32", "c_prop33",
-    "bd_prop34", "b_prop37", "bd_prop38", "bd_prop39",
+    "bd_prop34", "edge_wiggle", "strokes", "b_prop37", "bd_prop38", "bd_prop39",
 ]
+
+
+# ── Material map flattening ───────────────────────────────────────────────
+# Silver nests each texture map as {blend_factor, projection, tiling,
+# auto_transform, transform, source, file_name, texture} and colors as
+# {flag, factor, rgb}. Gold flattens them to dotted keys: `<map>.blendfactor`,
+# `<map>.autotransform`, `<map>.transmatrix`, `<map>.filename`, … and
+# `<color>.flag`, `<color>.factor`.
+MATERIAL_MAPS = (
+    "diffuse", "specular", "reflection", "opacity", "bump", "refraction",
+    "normal",
+)
+_MATERIAL_MAP_FIELD = {
+    "blend_factor": "blendfactor",
+    "auto_transform": "autotransform",
+    "transform": "transmatrix",
+    "file_name": "filename",
+}
+
+
+def _map_material(payload: Dict[str, Any], fields: Dict[str, Any], r2007: bool, r2010: bool) -> set:
+    """Flatten silver Material maps/colors onto gold's dotted keys. Returns
+    the set of silver payload keys consumed (to be skipped by the generic
+    loop). Gates the advanced set on the gold spec (SINCE R_2007a)."""
+    consumed = set()
+    for m in MATERIAL_MAPS:
+        for key in (m + "_map", m + "map"):
+            if key in payload and isinstance(payload[key], dict):
+                sub = payload[key]
+                for sk, sv in sub.items():
+                    if sk == "texture":
+                        continue
+                    gk = _MATERIAL_MAP_FIELD.get(sk, sk)
+                    fields[f"{m}map.{gk}"] = normalize_value(sv)
+                consumed.add(key)
+    for c in ("ambient_color", "diffuse_color", "specular_color"):
+        if c in payload and isinstance(payload[c], dict):
+            sub = payload[c]
+            for sk, sv in sub.items():
+                if sk == "rgb":
+                    continue
+                fields[f"{c}.{sk}"] = normalize_value(sv)
+            consumed.add(c)
+    # Advanced set (gold SINCE R_2007a). Empirically, the corpus only carries
+    # `translucence` (and the normalmap group is never emitted by gold even on
+    # R2018), so gate each field to the version gold actually emits it.
+    ADVANCED_2007 = ("translucence", "self_illumination", "reflectivity",
+                     "illumination_model", "channel_flags", "mode")
+    ADVANCED_LATER = ("indirect_bump_scale", "reflectance_scale",
+                      "transmittance_scale", "two_sided_material", "luminance",
+                      "luminance_mode", "normal_map_method",
+                      "normal_map_strength", "is_anonymous",
+                      "global_illumination", "final_gather", "color_bleed_scale",
+                      "advanced_data_present")
+    for k in ADVANCED_2007:
+        if k in payload:
+            consumed.add(k)
+            if r2007:
+                fields[k] = normalize_value(payload[k])
+    for k in ADVANCED_LATER:
+        if k in payload:
+            consumed.add(k)
+            # Not emitted by gold in the covered corpus (R2007–R2018); skip.
+    # normalmap group is never emitted by gold in this corpus.
+    for k in list(fields.keys()):
+        if k.startswith("normalmap."):
+            del fields[k]
+    consumed.add("normal_map")
+    return consumed
 
 
 def _vs_property_value(prop: Dict[str, Any]) -> Any:
@@ -554,6 +624,8 @@ def normalize_silver(
     # SINCE R_2013). Both are emitted for objects and table records alike.
     version = data.get("version", "")
     r2004_plus = isinstance(version, str) and version >= "AC1018"
+    r2007_plus = isinstance(version, str) and version >= "AC1021"
+    r2010_plus = isinstance(version, str) and version >= "AC1024"
     r2013_plus = isinstance(version, str) and version >= "AC1027"
 
     out: List[Dict[str, Any]] = []
@@ -628,10 +700,11 @@ def normalize_silver(
         vs_skip = {
             "properties", "internal_use_only", "extended_lighting_model",
         } if silver_type == "VisualStyle" else set()
+        mat_consumed = _map_material(payload, fields, r2007_plus, r2010_plus) if silver_type == "Material" else set()
         for k, v in payload.items():
             if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                 continue
-            if k in vs_skip:
+            if k in vs_skip or k in mat_consumed:
                 continue
             if is_ignored(k, ignore_set, ignore_patterns):
                 continue
