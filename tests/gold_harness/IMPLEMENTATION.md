@@ -456,6 +456,31 @@ Repos: silver = `~/work/cadcodec` (Rust crate `acadrust`), gold =
 
 ### 8.1.1 Context budget rules (hard constraints)
 
+0. **The gold spec is split across MORE than two files.** Object/entity/table
+   field definitions live in exactly two: `dwg.spec` (88 blocks) and
+   `dwg2.spec` (236 blocks). But three `*_fields` macros were moved out into
+   `~/work/libredwg/src/dwg_spec_shared.h`, and the shared "common" field
+   macros live in their own specs. Full gold source map:
+
+   | File | Content | When to consult |
+   |---|---|---|
+   | `dwg.spec` | 88 object/entity/table blocks (pre-R2000 + tables + entities) | the outer type block |
+   | `dwg2.spec` | 236 blocks (R2000+ objects: SCALE, XRECORD, VISUALSTYLE, MATERIAL, MLEADERSTYLE, TABLESTYLE, MULTILEADER, …) + most nested `*_fields` macros | the outer type block + nested macros |
+   | `dwg_spec_shared.h` | 3 macros moved out of the specs: `TABLE_value_fields` (FIELD.value / TABLE cell values), `WIRESTRUCT_fields`, `AcDbMTextObjectEmbedded_fields` | nested `value.*`, wireframe structs, embedded MText |
+   | `common_entity_data.spec` | entity common *data* fields (entmode, linewt, color, ltype_scale, invisible, …) | entity common fields |
+   | `common_entity_handle_data.spec` | entity common *handle-stream* fields (ownerhandle, ltype, plotstyle, visualstyles, material, …) | entity handle refs |
+   | `common_object_handle_data.spec` | object common handle-stream fields (ownerhandle, reactors, xdictionary) | object handle refs |
+   | `classes.inc`, `objects.inc` | class-table / object-type registration | class names, type codes |
+
+   The remaining `.spec` files (`header.spec`, `header_variables*.spec`,
+   `auxheader.spec`, `2ndheader.spec`, `summaryinfo.spec`, `acds.spec`,
+   `appinfo.spec`, `filedeplist.spec`, `objfreespace.spec`,
+   `r2004_file_header.spec`, `revhistory.spec`, `security.spec`,
+   `template.spec`, `vbaproject.spec`) describe **header/section
+   infrastructure** — out of scope for the OBJECTS field diff (the harness
+   diffs only the object stream, not the header). Do not chase them for
+   field-level work.
+
 1. **Never read a whole large file.** These files are too big to load:
    - `~/work/libredwg/src/dwg.spec`, `dwg2.spec` (many thousand lines)
    - `src/io/dwg/dwg_stream_readers/object_reader/entities.rs` (~6000 lines)
@@ -469,6 +494,10 @@ Repos: silver = `~/work/cadcodec` (Rust crate `acadrust`), gold =
      VISUALSTYLE, MATERIAL, MLEADERSTYLE, TABLESTYLE, MULTILEADER, LAYOUT is
      in dwg.spec) live in `dwg2.spec`; tables/entities/older objects in
      `dwg.spec`. Grep both every time.
+   - **Nested field? Grep the macro.** A dotted path like `FIELD.value.x` or
+     `TABLESTYLE.sty.cellstyle.x` is defined by a `*_fields` macro — grep
+     `#define <macro>` across `dwg.spec dwg2.spec dwg_spec_shared.h`
+     (TABLE_value_fields and WIRESTRUCT_fields are in the header).
    - **Underscore aliases**: gold names `3DFACE`→`_3DFACE`, `3DSOLID`→`_3DSOLID`,
      `3DLINE`→`_3DLINE` in the spec. If `DWG_ENTITY (3DFACE)` finds nothing,
      grep `DWG_ENTITY (_3DFACE)`.
