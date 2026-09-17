@@ -565,6 +565,11 @@ Given a diff `(type, field, kind)`:
    - `reactors`: gold emits them; silver doesn't store them (storage gap).
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
+
+   **Next task (ready to start):** `ownerhandle` handle-code semantics in the
+   differ — see [`NEXT_OWNERHANDLE.md`](./NEXT_OWNERHANDLE.md) for the
+   cold-start brief. It is the single largest remaining divergence
+   (~43 778 corpus diffs, ~22% of read-fidelity).
 3. Re-run `run_corpus.py` after each landed packet to re-rank the queue.
 
 Concrete entity-level mappings exposed by `2000/entities-2d.dwg` (good early
