@@ -715,10 +715,14 @@ Given a diff `(type, field, kind)`:
    recomposition via silver's own to_bits() layout, render_mode string→int,
    grid_flags dict→bits, composite VIEWMODE, derived aspect_ratio/view_width,
    R2000b/R2004a/R2007a gates, handle wraps). Corpus: read 103 649 → 101 741,
-   write 94 153 → 92 472. Residuals (real gaps): VIEWPORT.status_flag bits
-   16–19 (silver's ViewportStatusFlags drops them), VIEWPORT.named_ucs (silver
-   stores 0 where gold resolves a UCS), VIEW.VIEWMODE (silver lacks
-   ucs_per_viewport on VIEW), and the *_CONTROL/xdicobjhandle control fields.
+   write 94 153 → 92 472. **Reviewed** (84f5f84 → HEAD, 76 pairs): 99 156 →
+   95 567, 97 added rows all `wrong_value` real gaps (VIEWPORT.named_ucs,
+   status_flag bits 16–19, vport_entity_header, VIEW.VIEWMODE); 0 low-16
+   status_flag mismatches; 0 2RD fields with ≠2 elements. One overshoot fixed:
+   VIEW `is_camera_plottable` is R2007a+ in gold (dwg.spec 3836), now gated
+   (was leaking onto pre-R2007 files). Residuals (real gaps): the named_ucs/
+   status_flag/vport_entity_header/VIEWMODE gaps above, plus the
+   *_CONTROL/xdicobjhandle control fields.
 
    ~~VPORT table record~~ — **DONE (2026-09-17)**: full view-param projection
    (renames, bool→int, render_mode string→int, grid_flags dict→bits,
