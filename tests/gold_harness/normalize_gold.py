@@ -96,16 +96,23 @@ def normalize_value(value: Any) -> Any:
             return value["index"]
         if "index" in value and value.get("rgb") in (None, "000000", 0):
             return value["index"]
-        # R2007+ CMC: `index` is often 256 (unreliable); the real color index
-        # is the low byte of `rgb` ("c30000NN"). Extract it. Flag-only colors
-        # ("c8000000", no index byte) are left as the dict so the differ can
-        # still compare them against silver's absent/None representation.
+        # CMC `rgb` high byte is a flag: c0 = ByBlock, c1 = ByLayer /
+        # true-color black, c2 = true-color RGB, c3 = indexed (real index in
+        # low byte), c8 = "none". Collapse to silver's scalar convention.
         rgb = value.get("rgb")
-        if isinstance(rgb, str) and len(rgb) == 8 and rgb.startswith("c3"):
-            try:
-                return int(rgb[6:8], 16)
-            except ValueError:
-                pass
+        if isinstance(rgb, str) and len(rgb) == 8:
+            flag = rgb[:2]
+            if flag == "c3":
+                try:
+                    return int(rgb[6:8], 16)
+                except ValueError:
+                    pass
+            if flag == "c0":
+                return 0        # ByBlock
+            if flag == "c1":
+                return 256      # ByLayer
+            if flag == "c8":
+                return 257      # none
         return {k: normalize_value(v) for k, v in value.items()}
     if isinstance(value, float):
         # Normalize -0.0 and NaN the same way gold release build does.

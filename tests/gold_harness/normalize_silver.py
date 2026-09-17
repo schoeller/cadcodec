@@ -260,8 +260,9 @@ def normalize_color(value: Any) -> Any:
         return 256
     if value == "ByBlock":
         return 0
-    if value is None:
-        # Absent color (gold's "none"/index 257).
+    if value in (None, "None"):
+        # Absent color (gold's "none"/index 257). Silver's Color::None
+        # serializes as the bare string "None".
         return 257
     return value
 
