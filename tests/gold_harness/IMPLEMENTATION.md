@@ -247,6 +247,40 @@ Inventoried `test/test-data` at commit `34f02f54…`. Per-version `.dwg` counts:
 
 ## 7. Current baseline and blockers
 
+### How to start cold (read this first in a fresh session)
+
+A zero-context agent begins here. Read in order, on demand:
+
+1. **This file** (`tests/gold_harness/IMPLEMENTATION.md`) — the single source
+   of truth. The self-contained operating manual is §8.1 (§8.1.0 environment →
+   §8.1.1 context budget → §8.1.2 packet → §8.1.3 decision tree → §8.1.4 fix
+   recipe → §8.1.6 work queue → §8.1.6a coverage audit → §8.1.7 prohibitions).
+2. **The work queue** §8.1.6 — the next packet is named there with its full
+   diagnosis (currently BLOCK/BLOCK_HEADER topology, mapping table included).
+   Per-packet cold-start briefs are written as `NEXT_<PACKET>.md` beside this
+   file when a packet needs one (e.g. `NEXT_OWNERHANDLE.md` — now DONE); if
+   none exists for the current packet, §8.1.6 is sufficient.
+3. **Verify the environment** with §8.1.0 before editing.
+
+**Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids,
+commit e953d44, 2026-09-17):** read-fidelity **124 128**, write-fidelity
+**113 631**, across 125 corpus files (110 unique dirs; counts inflated by the
+stem-collision issue below). `cargo test --features serde` = 1556 passed /
+0 failed; `cargo test --features gold-harness --test gold_roundtrip` = ok.
+
+**Things that will look broken but are not (do not "fix" them):**
+- **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
+  `serde_json` under default features) — **pre-existing**, reproduced on the
+  pre-packet commit `6d375d1`. Use `cargo test --features serde` as the gate;
+  §8.1.4 step 6's `cargo test | tail -3` will show this error. Do not chase it.
+- **Corpus counts are stem-collision inflated**: `run_corpus.py` keys workdirs
+  by file stem, so same-named files across versions (e.g. six `Line.dwg`)
+  overwrite one dir and the report re-counts the survivor once per version.
+  The `BLOCK_HEADER`/`LAYOUT`/`VPORT` counts (~576/~376/~231) are inflated
+  (true unique counts ~350/~?/…); the *ranking* is unaffected. See §7 table.
+- **`-nan` in gold JSON**: `diff_fields.py`/`run_roundtrip.py` parse with a
+  `parse_constant` shim — expected, not an error.
+
 ### Baseline after EntityCommon closure (2026-09-17)
 
 - **LINE entity diffs: 0** on all six versions (2000–2018), both read fidelity
@@ -413,6 +447,13 @@ Repos: silver = `~/work/cadcodec` (Rust crate `acadrust`), gold =
 2. **Always locate with grep, then read a narrow window.** Patterns:
    - Gold object block: `grep -n "DWG_OBJECT (NAME)" ~/work/libredwg/src/dwg2.spec ~/work/libredwg/src/dwg.spec`, then `sed -n '<start>,<start+80>p' <file>`.
    - Gold entity block: same with `DWG_ENTITY (NAME)`.
+   - **Grep both `dwg.spec` AND `dwg2.spec`** — R2000+ objects (SCALE, XRECORD,
+     VISUALSTYLE, MATERIAL, MLEADERSTYLE, TABLESTYLE, MULTILEADER, LAYOUT is
+     in dwg.spec) live in `dwg2.spec`; tables/entities/older objects in
+     `dwg.spec`. Grep both every time.
+   - **Underscore aliases**: gold names `3DFACE`→`_3DFACE`, `3DSOLID`→`_3DSOLID`,
+     `3DLINE`→`_3DLINE` in the spec. If `DWG_ENTITY (3DFACE)` finds nothing,
+     grep `DWG_ENTITY (_3DFACE)`.
    - Common entity fields: `grep -n "field_name" ~/work/libredwg/src/common_entity_data.spec ~/work/libredwg/src/common_entity_handle_data.spec`, then `sed -n` around the hit.
    - Silver reader: `grep -n "fn read_<name>" src/io/dwg/dwg_stream_readers/object_reader/*.rs`, then read at most that function (`sed -n '<line>,<line+120>p'`).
    - Silver writer: `grep -n "fn write_<name>" src/io/dwg/dwg_stream_writers/object_writer/*.rs`.
@@ -507,12 +548,15 @@ Given a diff `(type, field, kind)`:
    Then confirm with the query from 8.1.2 that (a) the target diff is gone on
    every covered version and (b) `total_diffs` did not increase anywhere.
 6. **Regression gate (must all pass):**
-   - `cargo test 2>&1 | tail -3` → ok
-   - `cargo test --features serde 2>&1 | grep -E 'test result:' | awk '{p+=$4; f+=$6} END {print p, f}'` → failed = 0
-   - `cargo test --features gold-harness --test gold_roundtrip` → ok
-   - `target` diff totals strictly decreased (or unchanged if the packet
-     targeted a type absent from the representative files — then verify on the
-     affected file directly).
+    - `cargo test --features serde 2>&1 | grep -E 'test result:' | awk '{p+=$4; f+=$6} END {print p, f}'` → failed = 0
+      (this is the **authoritative** gate; baseline 1556/0)
+    - `cargo test --features gold-harness --test gold_roundtrip` → ok
+    - Plain `cargo test` will fail to compile `examples/entity_atlas.rs`
+      (pre-existing, unrelated — see §7 "How to start cold"). Do NOT treat that
+      specific E0432 as a regression; check that the *test* targets pass.
+    - `target` diff totals strictly decreased (or unchanged if the packet
+      targeted a type absent from the representative files — then verify on the
+      affected file directly).
 7. **Checkpoint:** `git add -A && git commit -m "fix(dwg): <type>.<field> — <gold spec ref>"`
    if git mutations are allowed; otherwise append a line to
    `target/gold_harness_corpus/report.md` under a `FIXED` heading.
@@ -536,6 +580,11 @@ Given a diff `(type, field, kind)`:
   `normalize_value()` in `normalize_gold.py`.
 
 ### 8.1.6 Current work queue (ordered)
+
+> **Reading the counts:** corpus `report.md`/`report.json` counts are
+> stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
+> only; verify the true per-file count with the §8.1.2 query on a concrete
+> file before committing to a packet. Baseline: read 124 128 / write 113 631.
 
 1. ~~Table-record storage fields~~ — **done** for the uniform set (see §7).
    What remains is per-record **payload**, one packet per table type:
@@ -697,10 +746,11 @@ deduplicated counts are lower due to the stem-collision inflation noted in §7):
   silver `view_center`).
 - **MTEXT** (~5 932, dwg.spec 2881), **INSERT** (~3 563, dwg.spec 735),
   **POINT** (~3 382, dwg.spec 2030), **LTYPE** (~2 968 dash patterns, dwg.spec
-  3580), **STYLE** (~2 805 font/shape, dwg.spec 3479), **3DFACE** (~1 859),
-  **SOLID** (~1 699, dwg.spec 2274), **ELLIPSE** (~1 523, dwg.spec 2555),
-  **APPID** (~1 272; name=fabricated APPIDs, reader gap), **MULTILEADER**
-  (~1 269, dwg2.spec 1298), **3DSOLID** (~1 077 ACIS/modeler), **DIMSTYLE**
+  3580), **STYLE** (~2 805 font/shape, dwg.spec 3479), **3DFACE** (~1 859,
+  dwg.spec 2057 — spec name is `_3DFACE`), **SOLID** (~1 699, dwg.spec 2274),
+  **ELLIPSE** (~1 523, dwg.spec 2555), **APPID** (~1 272; name=fabricated
+  APPIDs, reader gap), **MULTILEADER** (~1 269, dwg2.spec 1298), **3DSOLID**
+  (~1 077 ACIS/modeler, dwg.spec 2681 — spec name is `_3DSOLID`), **DIMSTYLE**
   (~1 036 residual DIM* vars, dwg.spec 4188).
 - **UNKNOWN.* and `*._missing`/`._count`** (~5 000+ combined): unmodeled object
   coverage on the silver reader — the single largest *structural* class. Each
