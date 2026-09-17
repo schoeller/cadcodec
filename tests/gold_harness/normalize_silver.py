@@ -1226,7 +1226,6 @@ def normalize_silver(
                     "ucs_origin": "ucsorg", "ucs_x_axis": "ucsxdir",
                     "ucs_y_axis": "ucsydir", "ucs_ortho_type": "UCSORTHOVIEW",
                     "ucs_elevation": "ucs_elevation", "ucs_associated": "associated_ucs",
-                    "camera_plottable": "is_camera_plottable",
                     "default_lighting_type": "default_lightning_type",
                     "brightness": "brightness", "contrast": "contrast",
                 }
@@ -1238,7 +1237,8 @@ def normalize_silver(
                                "named_ucs", "base_ucs"}
                 _VIEW_R2007 = {"use_default_lights", "default_lightning_type",
                                "brightness", "contrast", "ambient_color",
-                               "background", "visualstyle", "sun", "livesection"}
+                               "background", "visualstyle", "sun", "livesection",
+                               "is_camera_plottable"}
                 view_consumed = set()
                 for k, v in rec.items():
                     if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
@@ -1285,6 +1285,8 @@ def normalize_silver(
                         view_consumed.add(kk)
                 if r2007_plus:
                     fields["use_default_lights"] = 1 if rec.get("use_default_lights") else 0
+                    fields["is_camera_plottable"] = 1 if rec.get("camera_plottable") else 0
+                    view_consumed.add("camera_plottable")
                     fields["background"] = normalize_handle_value(rec.get("background_handle"))
                     fields["visualstyle"] = normalize_handle_value(rec.get("visual_style_handle"))
                     fields["sun"] = normalize_handle_value(rec.get("sun_handle"))
