@@ -621,7 +621,13 @@ def _map_visual_style(payload: Dict[str, Any], fields: Dict[str, Any]) -> None:
         for i, name in enumerate(VISUALSTYLE_2013_EXT):
             if i >= len(ext):
                 break
-            fields[name] = _vs_property_value(ext[i])
+            v = _vs_property_value(ext[i])
+            # c_prop33 (edge color): gold's dwg.spec default is 0 (ByBlock);
+            # silver stores Color::ByLayer (256). Gold emits 0 on every
+            # corpus row, so map silver's ByLayer -> 0 here.
+            if name == "c_prop33" and v == 256:
+                v = 0
+            fields[name] = v
             fields[name + "_int"] = ext[i].get("enabled", 1)
         if "extended_lighting_model" in payload:
             fields["ext_lighting_model"] = normalize_value(payload["extended_lighting_model"])
