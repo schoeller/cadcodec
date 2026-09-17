@@ -572,19 +572,49 @@ Given a diff `(type, field, kind)`:
       ~46k to 504 (the residual rows are real silver gaps: owners of type
       UNKNOWN_OBJ/SECTIONVIEWSTYLE/EVALUATION_GRAPH that silver does not
       model). Corpus totals: read 196 252 → 137 823, write 127 737 → 127 172.
+    - ~~`SCALE.is_temporary`~~ — **DONE (2026-09-17)**: gold's dwg.spec emits
+      only the raw `flag` BS for AcDbScale; `is_temporary` is a libredwg-internal
+      derived field never in the JSON. Silver both emitted it and leaked it via
+      the generic payload loop. Fixed by popping it; projects only `flag`.
+      Read 137 823 → 133 990, write 127 172 → 123 373.
+    - ~~object-level `reactors`~~ — **DONE (2026-09-17)**: silver's reader parses
+      reactors into the `reactors_by_handle` side channel but never projected
+      them to JSON. The normalizer now injects that map (serde keys integer
+      maps as decimal strings) into each object/table/entity payload; Dictionary
+      and DictionaryVariable carry parsed `reactors` on the struct. Residual
+      entity-level reactors (~122: LINE/DIMSTYLE→DIMASSOC/ASSOC*, TABLESTYLE→
+      TABLE mis-resolution) are a separate packet. Read 133 990 → 125 747,
+      write 123 373 → 115 180.
+    - ~~VISUALSTYLE `c_prop33`~~ — **DONE (2026-09-17)**: gold's dwg.spec default
+      for the edge-color CMC is 0 (ByBlock); silver's property bag stores
+      Color::ByLayer (256). Map silver's 256→0 for c_prop33 only. Read
+      125 747 → 124 779, write 115 180 → 114 260.
+    - ~~LWPOLYLINE `vertexids`~~ — **DONE (2026-09-17)**: gold always serializes
+      the vertexids array SINCE R_2010b (even when flag&1024 is clear); silver
+      stores none. Emit `[]` on R2010+ so gold's `[]` doesn't diff
+      missing_in_silver. Read 124 779 → 124 128, write 114 260 → 113 631.
     - CMC absent/true colors: gold `c1000000` RGB-black vs silver index 0;
       gold `{index:256, rgb:…}` vs silver `Color::None`. Cross-cutting; one
       fix in `normalize_gold.py`/`normalize_color` clears it everywhere.
+    - ~~UNKNOWN_ENT/UNKNOWN_OBJ→UNKNOWN canonicalization~~ — **REVERTED
+      (2026-09-17)**: merging gold's distinct UNKNOWN_ENT (entity-common) and
+      UNKNOWN_OBJ (object-common) into silver's single UNKNOWN bucket caused
+      ordinal misalignment (+1 127 net rows). Do not merge types with different
+      common-field shapes.
    - `reactors`: gold emits them; silver doesn't store them (storage gap).
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** VISUALSTYLE property-bag residual
-   (`c_prop33`, 2 600) — the new top read-fidelity divergence after the
-   `ownerhandle`, `SCALE.is_temporary`, and `reactors` packets. The `reactors`
-   storage gap is **done** (side-channel injection + DICTIONARY/DICTIONARYVAR
-   struct fields); residual entity-level reactors (~122) are a separate
-   packet (DIMASSOC/ASSOC* targets).
+   **Next task (ready to start):** BLOCK/BLOCK_HEADER topology — the new top
+   read-fidelity cluster after `ownerhandle`, `SCALE.is_temporary`, `reactors`,
+   `c_prop33`, and `vertexids` (all done): `BLOCK.base_pt` / `BLOCK.description`
+   / `BLOCK.xref_path` / `BLOCK_HEADER.base_pt` / `BLOCK_HEADER.xref_pname` /
+   `BLOCK_HEADER.block_entity` / `BLOCK_HEADER.endblk_entity` (~576 each). This
+   is the "BLOCK_HEADER topology" packet listed under §7 Table-record payload
+   fields. Skip `APPID.name` (silver fabricates AcCmTransparency/AcAecLayerStandard
+   APPIDs gold lacks — a silver reader gap, not a normalizer fix) and
+   `UNKNOWN._missing` (unmodeled-object coverage; do NOT canonicalize
+   UNKNOWN_ENT/UNKNOWN_OBJ — reverted, see residual-gaps bullet).
 3. Re-run `run_corpus.py` after each landed packet to re-rank the queue.
 
 Concrete entity-level mappings exposed by `2000/entities-2d.dwg` (good early
