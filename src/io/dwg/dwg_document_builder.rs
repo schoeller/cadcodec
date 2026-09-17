@@ -4896,6 +4896,15 @@ impl DwgDocumentBuilder {
                     obj.owner = owner_handle;
                     obj.hard_owner = data.hard_owner;
                     obj.duplicate_cloning = data.duplicate_cloning;
+                    // Reactors are parsed into the object-common data; keep
+                    // them on the struct so dwg2json emits them for the gold
+                    // comparison (the side-channel map is only for write-back).
+                    obj.reactors = non_entity_data
+                        .reactors
+                        .iter()
+                        .copied()
+                        .map(Handle::from)
+                        .collect();
                     for entry in data.entries {
                         obj.add_entry(entry.name, Handle::from(entry.handle));
                     }
@@ -4926,6 +4935,17 @@ impl DwgDocumentBuilder {
                     obj.handle = Handle::from(handle);
                     obj.owner_handle = owner_handle;
                     obj.schema_number = data.schema_number as i16;
+                    // Keep parsed reactors/xdictionary on the struct so
+                    // dwg2json emits them for the gold comparison.
+                    obj.reactors = non_entity_data
+                        .reactors
+                        .iter()
+                        .copied()
+                        .map(Handle::from)
+                        .collect();
+                    obj.xdictionary_handle = non_entity_data
+                        .xdictionary_handle
+                        .map(Handle::from);
                     document.objects.insert(
                         Handle::from(handle),
                         crate::objects::ObjectType::DictionaryVariable(obj),

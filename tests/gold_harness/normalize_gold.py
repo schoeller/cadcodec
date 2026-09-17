@@ -125,7 +125,12 @@ def normalize_value(value: Any) -> Any:
 
 
 def object_type(obj: Dict[str, Any]) -> str:
-    return obj.get("entity") or obj.get("object") or "UNKNOWN"
+    # LibreDWG names unmodeled types UNKNOWN_ENT (fixed-size entities) and
+    # UNKNOWN_OBJ (unmodeled objects); silver's normalizer collapses every
+    # unmodeled variant to UNKNOWN. Canonicalize so the differ's resolved
+    # target types match.
+    t = obj.get("entity") or obj.get("object") or "UNKNOWN"
+    return "UNKNOWN" if t.startswith("UNKNOWN") else t
 
 
 def normalize_gold(data: Dict[str, Any], ignore: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:

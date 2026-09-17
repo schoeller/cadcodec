@@ -653,6 +653,25 @@ def normalize_silver(
     entities = data.get("entities", [])
     objects = data.get("objects", {})
 
+    # Silver's DWG reader parses object reactors into the `reactors_by_handle`
+    # side channel (document.rs: populated on read, consumed on write). Most
+    # object structs don't carry a reactors field, so the payloads below would
+    # otherwise have none and every gold `reactors` row would diff. Inject the
+    # side-channel list into each payload (keyed by decimal handle string, as
+    # serde serializes integer map keys) so the existing `reactors` projections
+    # in `merge_common`/`_object_common_fields`/table records pick it up.
+    reactors_by_handle = data.get("reactors_by_handle", {})
+
+    def _inject_reactors(payload: Any) -> None:
+        if not isinstance(payload, dict) or "reactors" in payload:
+            return
+        h = payload.get("handle")
+        if not isinstance(h, int):
+            return
+        v = reactors_by_handle.get(str(h))
+        if v:
+            payload["reactors"] = v
+
     # DWG/DXF version string, e.g. "AC1015". AC1018 (R2004) introduced the
     # `is_xdic_missing` bit and AC1027 (R2013) the `has_ds_data` bit on every
     # object handle stream (common_object_handle_data.spec SINCE R_2004a /
@@ -781,6 +800,7 @@ def normalize_silver(
         payload = obj[silver_type]
         if not isinstance(payload, dict):
             continue
+        _inject_reactors(payload)
         fields = _object_common_fields(payload)
         if r2004_plus:
             # Gold emits is_xdic_missing on every object's handle stream.
@@ -913,6 +933,7 @@ def normalize_silver(
         for _key, rec in entries.items():
             if not isinstance(rec, dict):
                 continue
+            _inject_reactors(rec)
             fields = _object_common_fields(rec)
             if table_handle is not None:
                 fields["ownerhandle"] = table_handle
