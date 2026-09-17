@@ -27,6 +27,11 @@ def in_scope_files(testdata: Path) -> List[Path]:
     for prefix in ["example_", "sample_"]:
         for p in testdata.iterdir():
             if p.name.startswith(prefix) and p.suffix.lower() == ".dwg":
+                # Scope guard: only R2000-R2018 (AC1015..AC1032). Exclude the
+                # R13/R14 examples, which use a different, out-of-scope format.
+                lower = p.name.lower()
+                if "r13" in lower or "r14" in lower:
+                    continue
                 files.append(p)
     return sorted(set(files))
 

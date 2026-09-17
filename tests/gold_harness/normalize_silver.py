@@ -244,6 +244,32 @@ def normalize_handle_value(value: Any) -> Any:
     return value
 
 
+def _lineweight_to_gold(value: Any) -> Any:
+    """Map silver's Lineweight enum (string) to gold's raw linewt byte.
+
+    Gold (common_entity_data.spec FIELD_RC linewt, 370) stores the *index* into
+    libredwg's lweights[] table: 0..23 = mm*100, 29 (0x1D) = ByLayer,
+    30 (0x1E) = ByBlock, 31 (0x1F) = ByLwDefault. Silver serializes the enum
+    as a string ("ByLayer"/"ByBlock"/"Default") or an integer mm*100 value.
+    """
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        if value == "ByLayer":
+            return 29
+        if value == "ByBlock":
+            return 30
+        if value == "Default":
+            return 31
+        # "W0_05" style mm*100 names
+        if value.startswith("W") and "_" in value:
+            try:
+                return int(value[1:].replace("_", ""))
+            except ValueError:
+                return value
+    return value
+
+
 def normalize_color(value: Any) -> Any:
     if isinstance(value, dict):
         if "Index" in value:
@@ -301,7 +327,7 @@ def merge_common(
         elif k == "color":
             fields["color"] = normalize_color(v)
         elif k == "line_weight":
-            fields["linewt"] = v if isinstance(v, int) else 29
+            fields["linewt"] = _lineweight_to_gold(v)
         elif k == "linetype":
             # Silver stores the resolved linetype NAME; gold has no name field
             # (only the `ltype` handle when ltype_flags == 3). Drop it.
@@ -838,6 +864,11 @@ def normalize_silver(
                 # Drop silver's xref bookkeeping duplicates (already emitted
                 # as is_xref_* above) and the text-style name duplicate.
                 if record_gold_type == "DIMSTYLE" and k in ("xref_reference", "xref_resolved", "xref_dependent", "xref_handle", "annotative"):
+                    continue
+                # LAYER.linewt: gold stores the raw lweights[] index; silver
+                # stores the enum string. Map it.
+                if k == "line_weight":
+                    fields["linewt"] = _lineweight_to_gold(v)
                     continue
                 if is_ignored(k, ignore_set, ignore_patterns):
                     continue
