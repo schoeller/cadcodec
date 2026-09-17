@@ -831,6 +831,41 @@ deduplicated counts are lower due to the stem-collision inflation noted in §7):
   EVALUATION_GRAPH, SECTIONVIEWSTYLE, ACSH_*, ASSOC*, …). These need reader
   support in cadcodec, not normalizer work.
 
+*Complete residual-cluster census* (every type in the current report is in one
+of these — verified 2026-09-17, none unnamed). Beyond the top list above:
+
+- **`*_CONTROL` tables** (~2 684): `APPID/BLOCK/DIMSTYLE/LAYER/LTYPE/STYLE/UCS/
+  VIEW/VPORT_CONTROL` — `has_ds_data`/`is_xdic_missing`/`xdicobjhandle` handle
+  fields + `BLOCK_CONTROL.model_space`/`paper_space`/`LTYPE_CONTROL.byblock`/
+  `bylayer` (the control record's own child handles).
+- **`*_CONTROL`/`*` xdic + ds-data** — same family as above; derivable
+  (`is_xdic_missing` = `xdictionary_handle.is_none()`).
+- **Legacy polyline/mesh variants** (~250): `POLYLINE_2D`, `POLYLINE_3D`,
+  `POLYLINE_MESH`, `POLYLINE_PFACE`, `POLYFACE_MESH`, `POLYGON_MESH` — legacy
+  (pre-LWPOLYLINE) polyline forms; spec `dwg.spec` (POLYLINE_2D/3D blocks) +
+  mesh variants. Partially reader gaps (mesh variants), partially naming.
+- **Single-object reader-coverage types** (`_missing`/`_count`, silver does not
+  parse): `PLACEHOLDER`, `TABLEGEOMETRY`, `LEADEROBJECTCONTEXTDATA`,
+  `OBJECTCONTEXTDATA`, `ARC_DIMENSION` (separate from `DIMENSION_*` — its own
+  entity), `DYNAMICBLOCKPURGEPREVENTER`, `VX_TABLE_RECORD`, `POLYLINE_MESH`,
+  `POLYGON_MESH`, `PLANESURFACE`, `SECTIONOBJECT`, `SECTION_MANAGER`,
+  `SECTION_SETTINGS`, `LAYOUTPRINTCONFIG`, `CELLSTYLEMAP`. Each is a small
+  reader packet (add the type to the silver reader + a normalizer mapping).
+- **Misc small**: `TABLE` (the TABLE entity, `dwg.spec`), `SORTENTSTABLE`
+  (block_owner/entry_map handles), `FIELD`/`FIELDLIST` (value/childval
+  nesting), `MLINE`/`MLINESTYLE`, `HATCH` gradient/pattern, `GROUP`,
+  `RASTERVARIABLES`, `OLE2FRAME`, `GEODATA`, `SUN`, `LIGHT`.
+- **Remaining named smalls**: `DICTIONARYWDFLT` (dictionary-with-default;
+  `defaultid`/`default_handle` handle fields, spec `dwg.spec`), `IMAGEDEF` /
+  `IMAGEDEF_REACTOR` (raster image definition objects: file_path/size/resunits
+  + reactor), `ENDBLK` (the ENDBLK entity — shares the BLOCK entity's DXF-only
+  field treatment), `IMAGE`/`WIPEOUT` (raster clip/display props), `MLINE`,
+  `RAY`/`XLINE` (point/vector naming), `3DFACE` corner/invis_flags.
+
+This census is exhaustive for the current corpus: every `(type, field)` row in
+`report.json` belongs to one of the clusters above or the top list. When a new
+cluster appears after a corpus run, add it here before working it.
+
 *Ordering guidance:* after BLOCK_HEADER, the highest-value normalizer-only
 packets are the naming/shape clusters (VPORT/VIEWPORT, MTEXT, INSERT, POINT,
 STYLE, LTYPE dashes, 3DFACE, SOLID, ELLIPSE). MLEADERSTYLE and TABLESTYLE are
