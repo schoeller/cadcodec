@@ -657,6 +657,63 @@ packets — small, well-scoped, and reproducible):
   or the differ's handle map misresolves — add a targeted probe before
   editing (print both normalized records for the same ordinal).
 
+### 8.1.6a Gold-spec coverage audit (as of commit 4554a0e..HEAD, 2026-09-17)
+
+**Answer: gold specs are NOT 100% covered.** This section is the honest
+accounting. "Done" below means *that specific packet's target fields* are
+spec-verified — it does NOT mean the whole type's gold spec is covered.
+
+*Packets landed since 4554a0e and their spec grounding:*
+
+| Packet | Spec source | Coverage of the type's gold spec |
+|---|---|---|
+| ownerhandle/absref differ semantics | `common_object_handle_data.spec` `FIELD_HANDLE(ownerhandle,4)` + `common_entity_handle_data.spec` | **differ-only**, correct; not a field coverage item |
+| SCALE flag/is_temporary | `dwg2.spec` 1194 `DWG_OBJECT(SCALE)`: `flag name paper_units drawing_units is_unit_scale` | **100% of SCALE's spec fields** (is_temporary correctly dropped — it is libredwg-internal, NOT in spec) |
+| XRECORD xdata/cloning | `dwg2.spec` 1117: `xdata_size xdata cloning`(R2000b+) `objid_handles` | partial: `objid_handles` (handle-stream) NOT yet projected |
+| DICTIONARYVAR schema/strvalue | `dwg.spec` 4585: `schema strvalue` | **100%** |
+| DICTIONARY/DICTIONARYVAR reactors | struct carry + side-channel inject | correct (reactors are common-object, `common_object_handle_data.spec` `REACTORS(4)`) |
+| VISUALSTYLE property bag | `dwg2.spec` 2092: pre-R2010 named fields + R2010+ `value/int` pairs + R2013+ `*_prop*` bag | partial: bag order mapped, but `c_prop33` default mapped by *empirical* (all-zero) default, not a spec-stated default — verify against a non-trivial file if one appears |
+| MATERIAL maps/colors | `dwg2.spec` 2769: MAT_COLOR/MAT_MAP macros + R2007a advanced set | partial: `#if 0` block (indirect_bump_scale, luminance, normalmap, …) is NOT in gold's serialized output — correctly excluded, but if libredwg ever emits them, revisit |
+| LWPOLYLINE vertex reshape + vertexids | `dwg.spec` 5446 `DWG_ENTITY(LWPOLYLINE)`: `flag points bulges vertexids`(R2010b+) | partial: `const_width/elevation/thickness/extrusion` gated on flag bits — verified; `num_vertexids`/`widths` not separately projected (folded) |
+| LAYER linewt enum→byte | `common_entity_data.spec` `FIELD_RC(linewt,370)` + LAYER `dwg.spec` 3298 | linewt correct; LAYER table record itself NOT covered (see residual `LAYER.*` rows) |
+| BLOCK/BLOCK_HEADER topology | **diagnosed, not yet implemented** (`dwg.spec` 3146–3278) | mapping table ready in §8.1.6 |
+
+*What is NOT covered — the real remaining backlog (read-fidelity, by type,
+deduplicated counts are lower due to the stem-collision inflation noted in §7):*
+
+- **LAYOUT** (~33 066): `plotsettings.*` nested plot config + `INBASE/LIMMIN/
+  LIMMAX/UCSORG/…` + `min_limits/max_extents/…` + handle refs. Largest single
+  gap. Spec: `dwg.spec` `DWG_OBJECT(LAYOUT)` (5316) + embedded PLOTSETTINGS.
+- **MLEADERSTYLE** (~16 799): full per-field mapping missing (gold `dwg2.spec`
+  1461 `DWG_OBJECT(MLEADERSTYLE)`); silver uses different field names entirely
+  (`content_type` vs gold, `class_version`, `mleader_order`, …). Big normalizer
+  packet.
+- **BLOCK_HEADER** (~10 691): the diagnosed packet (§8.1.6) — ready to start.
+- **TABLESTYLE** (~9 346): `sty/ovr cellstyle` nested structs + `unknown_bits/
+  version/flags/…`. Spec `dwg2.spec` 964.
+- **VPORT** (~8 816, `dwg.spec` 3934 `DWG_TABLE(VPORT)`) and **VIEWPORT**
+  (~1 798, `dwg.spec` 2412 `DWG_ENTITY(VIEWPORT)`): view params (`VIEWCTR
+  VIEWDIR FRONTZ BACKZ GRID* SNAP* UCS*`), naming differs (gold `VIEWCTR` vs
+  silver `view_center`).
+- **MTEXT** (~5 932, dwg.spec 2881), **INSERT** (~3 563, dwg.spec 735),
+  **POINT** (~3 382, dwg.spec 2030), **LTYPE** (~2 968 dash patterns, dwg.spec
+  3580), **STYLE** (~2 805 font/shape, dwg.spec 3479), **3DFACE** (~1 859),
+  **SOLID** (~1 699, dwg.spec 2274), **ELLIPSE** (~1 523, dwg.spec 2555),
+  **APPID** (~1 272; name=fabricated APPIDs, reader gap), **MULTILEADER**
+  (~1 269, dwg2.spec 1298), **3DSOLID** (~1 077 ACIS/modeler), **DIMSTYLE**
+  (~1 036 residual DIM* vars, dwg.spec 4188).
+- **UNKNOWN.* and `*._missing`/`._count`** (~5 000+ combined): unmodeled object
+  coverage on the silver reader — the single largest *structural* class. Each
+  `FOO._missing` is a gold object type silver does not parse (DIMASSOC,
+  EVALUATION_GRAPH, SECTIONVIEWSTYLE, ACSH_*, ASSOC*, …). These need reader
+  support in cadcodec, not normalizer work.
+
+*Ordering guidance:* after BLOCK_HEADER, the highest-value normalizer-only
+packets are the naming/shape clusters (VPORT/VIEWPORT, MTEXT, INSERT, POINT,
+STYLE, LTYPE dashes, 3DFACE, SOLID, ELLIPSE). MLEADERSTYLE and TABLESTYLE are
+large but mechanical. LAYOUT and 3DSOLID/ACIS and the `*._missing` coverage
+require reader/storage work.
+
 ### 8.1.7 Hard prohibitions (loop invariants, restated)
 
 - Never edit anything under `~/work/libredwg`.
