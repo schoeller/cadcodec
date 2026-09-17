@@ -14,7 +14,7 @@ categories = ["parser-implementations", "encoding"]
 
 [features]
 default = []
-serde = ["dep:serde", "bitflags/serde", "indexmap/serde"]
+serde = ["dep:serde", "dep:serde_json", "bitflags/serde", "indexmap/serde"]
 import = ["dep:quick-xml"]
 gold-harness = ["serde"]
 
@@ -39,6 +39,7 @@ encoding_rs = "0.8"
 
 # Serialization (optional)
 serde = { version = "1", features = ["derive", "rc"], optional = true }
+serde_json = { version = "1", optional = true }
 
 # XML parsing (optional, for COLLADA import)
 quick-xml = { version = "0.36", optional = true }
@@ -59,7 +60,6 @@ rayon = "1"
 [dev-dependencies]
 criterion = "0.5"
 proptest = "1.4"
-serde_json = "1"
 
 [profile.release]
 opt-level = 3
@@ -69,11 +69,11 @@ codegen-units = 1
 [profile.bench]
 inherits = "release"
 
-[[example]]
+[[bin]]
 name = "dwg2json"
-path = "examples/dwg2json.rs"
+path = "tests/gold_harness/src/bin/dwg2json.rs"
 required-features = ["serde"]
 
-[[example]]
+[[bin]]
 name = "dwgrewrite"
-path = "examples/dwgrewrite.rs"
+path = "tests/gold_harness/src/bin/dwgrewrite.rs"

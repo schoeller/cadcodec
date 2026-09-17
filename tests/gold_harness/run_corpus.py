@@ -58,7 +58,14 @@ def run_file(path: Path, workdir: Path) -> Dict[str, Any]:
     }
 
 
-def aggregate(results: List[Dict[str, Any]]) -> Tuple[Dict[Tuple[str, str], int], Dict[Tuple[str, str], int]]:
+def default_workdir() -> Path:
+    """Return a repo-relative default corpus workdir under target/gold_harness_corpus/."""
+    target = REPO_ROOT / "target"
+    target.mkdir(parents=True, exist_ok=True)
+    return target / "gold_harness_corpus"
+
+
+def aggregate(results: List[Dict[str, Any]], workdir: Path) -> Tuple[Dict[Tuple[str, str], int], Dict[Tuple[str, str], int]]:
     read_counts: Dict[Tuple[str, str], int] = {}
     write_counts: Dict[Tuple[str, str], int] = {}
     for r in results:
@@ -66,10 +73,10 @@ def aggregate(results: List[Dict[str, Any]]) -> Tuple[Dict[Tuple[str, str], int]
             continue
         # Re-read the diff files to aggregate by (type, field).
         stem = Path(r["file"]).stem
-        workdir = Path("/tmp/harness_corpus") / stem
+        file_workdir = workdir / stem
         for diff_path, counter in [
-            (workdir / f"{stem}_diff_orig.json", read_counts),
-            (workdir / f"{stem}_diff_rt.json", write_counts),
+            (file_workdir / f"{stem}_diff_orig.json", read_counts),
+            (file_workdir / f"{stem}_diff_rt.json", write_counts),
         ]:
             if not diff_path.exists():
                 continue
@@ -88,7 +95,7 @@ def aggregate(results: List[Dict[str, Any]]) -> Tuple[Dict[Tuple[str, str], int]
 
 def main() -> int:
     testdata = Path(GOLD_TESTDATA)
-    workdir = Path("/tmp/harness_corpus")
+    workdir = default_workdir()
     workdir.mkdir(parents=True, exist_ok=True)
 
     files = in_scope_files(testdata)
@@ -99,7 +106,7 @@ def main() -> int:
         print(f"[{i}/{len(files)}] {f.name}")
         results.append(run_file(f, workdir))
 
-    read_counts, write_counts = aggregate(results)
+    read_counts, write_counts = aggregate(results, workdir)
 
     report = {
         "files": len(results),

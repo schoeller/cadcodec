@@ -1,7 +1,7 @@
 //! DWG rewrite binary for the silver round-trip harness.
 //!
 //! Usage:
-//!   cargo run --example dwgrewrite --features serde -- INPUT_DWG [OUTPUT_DWG]
+//!   cargo run --bin dwgrewrite --features serde -- INPUT_DWG [OUTPUT_DWG]
 //!
 //! Reads a DWG file and writes it back out. The default output path is
 //! `<input>_rt.dwg`. This binary intentionally performs *no* semantic

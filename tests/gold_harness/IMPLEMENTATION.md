@@ -42,11 +42,11 @@ normalize_gold.py  +  normalize_silver.py  ──► canonical records
 
 ## 3. What is already implemented
 
-### Silver JSON dump (`examples/dwg2json.rs`)
+### Silver JSON dump (`tests/gold_harness/src/bin/dwg2json.rs`)
 - Reads a DWG into `CadDocument`, serializes with `serde`, and re-injects the 12 serde-skipped `EntityCommon` round-trip fields under `_common_dwg[handle]`.
 - Fields: `linetype_handle`, `graphic_data`, `color_book_handle`, `face_visual_style_handle`, `edge_visual_style_handle`, `material_flags`, `material_handle`, `shadow_flags`, `plotstyle_flags`, `plotstyle_handle`, `entity_mode`, `has_ds_data`.
 
-### Silver rewrite binary (`examples/dwgrewrite.rs`)
+### Silver rewrite binary (`tests/gold_harness/src/bin/dwgrewrite.rs`)
 - Minimal read → write binary that targets the same DWG version as the source.
 
 ### Normalizers
@@ -99,12 +99,12 @@ The following are intentionally deferred until they block a covered entity or th
 ## 7. Next steps
 
 1. Open the rewritten files in AutoCAD:
-   - `/tmp/gold_harness_test/Line_2000_rt.dwg`
-   - `/tmp/gold_harness_test/Line_2004_rt.dwg`
-   - `/tmp/gold_harness_test/Line_2007_rt.dwg`
-   - `/tmp/gold_harness_test/Line_2010_rt.dwg`
-   - `/tmp/gold_harness_test/Line_2013_rt.dwg`
-   - `/tmp/gold_harness_test/Line_2018_rt.dwg`
+   - `target/gold_harness_test/Line_2000_rt.dwg`
+   - `target/gold_harness_test/Line_2004_rt.dwg`
+   - `target/gold_harness_test/Line_2007_rt.dwg`
+   - `target/gold_harness_test/Line_2010_rt.dwg`
+   - `target/gold_harness_test/Line_2013_rt.dwg`
+   - `target/gold_harness_test/Line_2018_rt.dwg`
 2. Report which versions still show `AcDbVisualStyle` "Object improperly read".
 3. If the error is version-specific, inspect the pre-R2010 VisualStyle writer for version-conditional fields (e.g. `bd2007_45` should only be emitted since R2007).
 4. If the error is gone, proceed with Phase 6: close `EntityCommon` storage-only field gaps (`prev_entity`, `next_entity`, `nolinks`, `ltype_flags`, `plotstyle_flags`, `z_is_zero`).
@@ -113,24 +113,39 @@ The following are intentionally deferred until they block a covered entity or th
 
 ## 8. How to run
 
+Required environment variables:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `GOLD_DWGREAD` | Absolute path to a built LibreDWG `dwgread` binary | **required** |
+| `GOLD_TESTDATA` | Absolute path to LibreDWG `test/test-data` directory | **required** |
+
 ```bash
-# Build examples
 cd ~/work/cadcodec
 source $HOME/.cargo/env
-cargo build --features serde --examples
 
-# Run harness on one file
+# Verify the environment is ready
+python3 tests/gold_harness/check_env.py
+
+# Build the harness binaries
+cargo build --features serde --bins
+
+# Run harness on one file (output goes to target/gold_harness/ by default)
 GOLD_DWGREAD=$HOME/work/libredwg/programs/dwgread \
 GOLD_TESTDATA=$HOME/work/libredwg/test/test-data \
 python3 tests/gold_harness/run_roundtrip.py \
-    $HOME/work/libredwg/test/test-data/2000/Line.dwg \
-    /tmp/harness_out
+    $HOME/work/libredwg/test/test-data/2000/Line.dwg
+
+# Run the full corpus batch driver
+GOLD_DWGREAD=$HOME/work/libredwg/programs/dwgread \
+GOLD_TESTDATA=$HOME/work/libredwg/test/test-data \
+python3 tests/gold_harness/run_corpus.py
 
 # Run representative cargo test
 cargo test --features gold-harness --test gold_roundtrip
 
-# Strict mode
-cargo test --features gold-harness --test gold_roundtrip
+# Strict mode: assert zero missing_in_silver diffs
+GOLD_HARNESS_STRICT=1 cargo test --features gold-harness --test gold_roundtrip
 ```
 
 ---
@@ -147,11 +162,28 @@ cargo test --features gold-harness --test gold_roundtrip
 | `tests/gold_harness/ignore_fields.toml` | Fields ignored during diff |
 | `tests/gold_roundtrip.rs` | Cargo integration test |
 | `tests/visualstyle_dwg_roundtrip.rs` | VisualStyle regression test |
-| `examples/dwg2json.rs` | Silver JSON dump |
-| `examples/dwgrewrite.rs` | Silver rewrite binary |
+| `tests/gold_harness/src/bin/dwg2json.rs` | Silver JSON dump |
+| `tests/gold_harness/src/bin/dwgrewrite.rs` | Silver rewrite binary |
+| `tests/gold_harness/check_env.py` | Environment sanity checker |
 
 ---
 
-## 10. Plan history
+## 10. Self-sufficiency notes
 
-- `tests/gold_harness/REFINEMENT_REPORT.md` and repo-root `REFINEMENT_REPORT.md` documented Phase 2–5 refinement. They are now superseded by this file.
+The harness is intentionally self-contained in `tests/gold_harness/`:
+
+- All Python scripts, normalizers, the differ, and the environment checker live under `tests/gold_harness/`.
+- The silver JSON dump and rewrite binaries live under `tests/gold_harness/src/bin/` and are registered as Cargo `[[bin]]` targets.
+- Working directories default to `target/gold_harness/` and `target/gold_harness_corpus/` instead of `/tmp`, so outputs are repo-local and easy to inspect.
+
+The only intentionally external dependencies are:
+
+1. **LibreDWG `dwgread`** — the gold oracle; set via `GOLD_DWGREAD`.
+2. **LibreDWG `test/test-data`** — the DWG corpus; set via `GOLD_TESTDATA`.
+3. **Python 3** — the normalizer/differ runtime.
+
+These are documented in `check_env.py` and are not embedded because they are large, license-distinct, or runtime-level.
+
+## 11. Plan history
+
+- `tests/gold_harness/REFINEMENT_REPORT.md` and `tests/gold_harness/REFINEMENT_REPORT_ROOT.md` documented Phase 2–5 refinement. They are now superseded by this file.

@@ -1,7 +1,7 @@
 //! DWG -> JSON silver dump for round-trip comparison.
 //!
 //! Usage:
-//!   cargo run --example dwg2json --features serde -- INPUT_DWG [OUTPUT_JSON]
+//!   cargo run --bin dwg2json --features serde -- INPUT_DWG [OUTPUT_JSON]
 //!
 //! This binary writes a JSON representation of a `CadDocument` *and* a
 //! companion map `_common_dwg` keyed by entity handle. The map exposes the

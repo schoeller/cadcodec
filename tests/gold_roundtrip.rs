@@ -47,6 +47,7 @@ const PROHIBITED_COMMON_FIELDS: &[&str] = &[
     "nolinks",
 ];
 
+#[cfg(feature = "gold-harness")]
 #[test]
 fn gold_harness_runs_on_representative_files() {
     let testdata = std::env::var_os("GOLD_TESTDATA")
@@ -57,8 +58,10 @@ fn gold_harness_runs_on_representative_files() {
         testdata.join("2000/Line.dwg"),
         testdata.join("2000/circle.dwg"),
     ];
-    let workdir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_else(|| "/tmp".into()))
-        .join("gold_harness_test");
+    let out_dir = std::env::var_os("OUT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| cargo_root().join("target").join("gold_harness_test"));
+    let workdir = out_dir.join("gold_harness_test");
 
     for file in representative {
         if !file.exists() {
