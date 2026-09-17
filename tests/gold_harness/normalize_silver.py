@@ -683,6 +683,7 @@ def normalize_silver(
     # object handle stream (common_object_handle_data.spec SINCE R_2004a /
     # SINCE R_2013). Both are emitted for objects and table records alike.
     version = data.get("version", "")
+    r2000_plus = isinstance(version, str) and version >= "AC1015"
     r2004_plus = isinstance(version, str) and version >= "AC1018"
     r2007_plus = isinstance(version, str) and version >= "AC1021"
     r2010_plus = isinstance(version, str) and version >= "AC1024"
@@ -979,6 +980,100 @@ def normalize_silver(
                 # Gold always emits xref_pname (FIELD_T, R13b1+); silver stores
                 # no xref_pname, so emit gold's default empty string.
                 fields.setdefault("xref_pname", "")
+            if record_gold_type == "VPORT":
+                # VPORT view params (dwg.spec 4007-4160 DWG path): rename silver
+                # snake_case to gold names, convert types, version-gate. The
+                # consumed keys are skipped by the generic loop below.
+                _VPORT_RENAME = {
+                    "view_height": "VIEWSIZE", "view_width": "view_width",
+                    "view_center": "VIEWCTR", "view_direction": "VIEWDIR",
+                    "view_target": "view_target", "view_twist": "VIEWTWIST",
+                    "lens_length": "LENSLENGTH", "front_clip": "FRONTZ",
+                    "back_clip": "BACKZ", "snap_rotation": "SNAPANG",
+                    "snap_base": "SNAPBASE", "snap_spacing": "SNAPUNIT",
+                    "grid_spacing": "GRIDUNIT", "ucs_origin": "ucsorg",
+                    "ucs_x_axis": "ucsxdir", "ucs_y_axis": "ucsydir",
+                    "ucs_elevation": "ucs_elevation", "ucs_ortho_type": "UCSORTHOVIEW",
+                    "ucs_at_origin": "ucs_at_origin", "grid_major": "grid_major",
+                    "brightness": "brightness", "contrast": "contrast",
+                    "default_lighting_type": "default_lightning_type",  # gold typo
+                    "snap_isopair": "SNAPISOPAIR",
+                }
+                _VPORT_BOOL = {
+                    "grid_on": "GRIDMODE", "snap_on": "SNAPMODE",
+                    "snap_style": "SNAPSTYLE", "fast_zoom": "FASTZOOM",
+                    "ucsfollow": "UCSFOLLOW", "use_default_lights": "use_default_lights",
+                    "ucs_per_viewport": "UCSVP",
+                }
+                _VPORT_R2000 = {"ucsorg", "ucsxdir", "ucsydir", "ucs_elevation",
+                                "UCSORTHOVIEW", "ucs_at_origin", "UCSVP",
+                                "render_mode", "named_ucs", "base_ucs"}
+                _VPORT_R2007 = {"grid_flags", "grid_major", "use_default_lights",
+                                "default_lightning_type", "brightness", "contrast",
+                                "ambient_color", "sun", "background", "visualstyle"}
+                # all silver keys this block consumes (generic loop must skip)
+                vport_consumed = (set(_VPORT_RENAME) | set(_VPORT_BOOL)
+                                  | {"render_mode", "grid_flags", "ambient_color",
+                                     "named_ucs_handle", "base_ucs_handle", "sun_handle",
+                                     "background_handle", "visual_style_handle",
+                                     "ucsicon_lower", "ucsicon_origin"})
+                for k, v in rec.items():
+                    if k not in vport_consumed:
+                        continue
+                    gk = _VPORT_RENAME.get(k) or _VPORT_BOOL.get(k)
+                    if gk is None:
+                        continue  # special-conversion keys handled below
+                    if gk in _VPORT_R2000 and not r2000_plus:
+                        continue
+                    if gk in _VPORT_R2007 and not r2007_plus:
+                        continue
+                    if k in _VPORT_BOOL:
+                        fields[gk] = 1 if v else 0
+                    else:
+                        fields[gk] = normalize_value(v)
+                # special conversions
+                if r2000_plus:
+                    rm = rec.get("render_mode")
+                    if isinstance(rm, str):
+                        _RM = {"Wireframe2D": 0, "Wireframe3D": 1, "HiddenLine": 2,
+                               "FlatShaded": 3, "GouraudShaded": 4,
+                               "FlatShadedWithEdges": 5, "GouraudShadedWithEdges": 6}
+                        fields["render_mode"] = _RM.get(rm, 0)
+                    elif rm is not None:
+                        fields["render_mode"] = rm
+                    fields["named_ucs"] = normalize_handle_value(rec.get("named_ucs_handle"))
+                    fields["base_ucs"] = normalize_handle_value(rec.get("base_ucs_handle"))
+                if r2007_plus:
+                    gfl = rec.get("grid_flags")
+                    if isinstance(gfl, dict):
+                        fields["grid_flags"] = ((1 if gfl.get("beyond_limits") else 0)
+                                                | (2 if gfl.get("adaptive") else 0)
+                                                | (4 if gfl.get("subdivision") else 0)
+                                                | (8 if gfl.get("follow_dynamic") else 0))
+                    elif gfl is not None:
+                        fields["grid_flags"] = gfl
+                    fields["sun"] = normalize_handle_value(rec.get("sun_handle"))
+                    fields["background"] = normalize_handle_value(rec.get("background_handle"))
+                    fields["visualstyle"] = normalize_handle_value(rec.get("visual_style_handle"))
+                    ac = rec.get("ambient_color")
+                    if isinstance(ac, dict) and "Rgb" in ac:
+                        rgb = ac["Rgb"]
+                        fields["ambient_color"] = {"index": 250,
+                            "rgb": "c2%02x%02x%02x%02x" % (0, rgb.get("r", 0), rgb.get("g", 0), rgb.get("b", 0))}
+                # composite bits
+                ucsicon = (1 if rec.get("ucsicon_lower") else 0) | (2 if rec.get("ucsicon_origin") else 0)
+                fields["UCSICON"] = ucsicon
+                viewmode = ((1 if rec.get("ucs_per_viewport") else 0)
+                            | (2 if rec.get("ucs_at_origin") else 0)
+                            | (8 if rec.get("ucsfollow") else 0))
+                fields["VIEWMODE"] = viewmode
+                # view_width: gold computes it (aspect_ratio * VIEWSIZE); silver
+                # stores neither. Derive from the two silver values so the
+                # R2000+ gold field (a plain BD in the DWG path) matches.
+                vh = rec.get("view_height")
+                ar = rec.get("aspect_ratio")
+                if isinstance(vh, (int, float)) and isinstance(ar, (int, float)):
+                    fields.setdefault("view_width", ar * vh)
             if r2004_plus:
                 # Gold emits is_xdic_missing on every object's handle stream,
                 # table records included.
@@ -993,6 +1088,33 @@ def normalize_silver(
             for k, v in rec.items():
                 if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                     continue
+                # VPORT: the dedicated block above already projected/renamed or
+                # intentionally dropped every view-param key; skip them here so
+                # the generic loop doesn't re-add them under silver names.
+                if record_gold_type == "VPORT":
+                    if k in ("view_height", "view_width", "view_center", "view_direction",
+                             "view_target", "view_twist", "lens_length", "front_clip",
+                             "back_clip", "snap_rotation", "snap_base", "snap_spacing",
+                             "grid_spacing", "ucs_origin", "ucs_x_axis", "ucs_y_axis",
+                             "ucs_elevation", "ucs_ortho_type", "ucs_at_origin",
+                             "grid_major", "brightness", "contrast", "default_lighting_type",
+                             "snap_isopair", "grid_on", "snap_on", "snap_style",
+                             "fast_zoom", "ucsfollow", "use_default_lights",
+                             "ucs_per_viewport", "render_mode", "grid_flags",
+                             "ambient_color", "named_ucs_handle", "base_ucs_handle",
+                             "sun_handle", "background_handle", "visual_style_handle",
+                             "ucsicon_lower", "ucsicon_origin",
+                             # silver-only VPORT fields gold never emits on the
+                             # binary-DWG path (clipping flags live in VIEWMODE/
+                             # plot settings; perspective is DXF-only):
+                             "perspective", "front_clipping", "back_clipping",
+                             "front_clip_at_eye",
+                             # silver xref bookkeeping (the gold-side is_xref_*
+                             # bits are emitted by the table-record block; these
+                             # silver-internal duplicates never appear in gold):
+                             "xref_reference", "xref_resolved", "xref_dependent",
+                             "xref_handle"):
+                        continue
                 # BLOCK_HEADER (dwg.spec 3146-3278): rename silver storage
                 # names to gold's, version-gate the R2004+/R2007+ fields, and
                 # drop silver-only fields gold never serializes to JSON.
