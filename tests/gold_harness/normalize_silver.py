@@ -720,6 +720,41 @@ def normalize_silver(
             fields["has_ds_data"] = 0
         if silver_type == "VisualStyle":
             _map_visual_style(payload, fields)
+        if silver_type == "Scale":
+            # Gold stores a raw `flag` BS (bit 0x01 = temporary); silver stores
+            # the derived is_temporary bool. Project `flag` and emit
+            # is_temporary as gold's int (0/1).
+            is_temp = bool(payload.get("is_temporary"))
+            fields.setdefault("flag", 1 if is_temp else 0)
+            fields["is_temporary"] = 1 if is_temp else 0
+        if silver_type == "XRecord":
+            # Gold: xdata_size (BL), xdata (raw entry list), cloning (BS,
+            # SINCE R_2000b). Silver: name (derived), cloning_flags (enum),
+            # entries (structured list). Project to gold's shape.
+            entries = payload.get("entries", [])
+            fields["xdata_size"] = len(entries) if isinstance(entries, list) else 0
+            # Project entries to gold's flat [code, value] pairs.
+            if isinstance(entries, list):
+                xdata = []
+                for e in entries:
+                    if isinstance(e, dict):
+                        code = e.get("code", 0)
+                        val = e.get("value")
+                        # Unwrap the value variant ({"Int16": 1} -> 1).
+                        if isinstance(val, dict) and len(val) == 1:
+                            val = next(iter(val.values()))
+                        xdata.append([code, normalize_value(val)])
+                fields["xdata"] = xdata
+            # cloning_flags enum -> cloning int (KeepExisting=0, etc.).
+            cf = payload.get("cloning_flags")
+            cloning_map = {"KeepExisting": 0, "Keep": 0, "ReplaceExisting": 1,
+                           "Replace": 1, "XrefKeepExisting": 2, "Xref": 2}
+            fields["cloning"] = cloning_map.get(cf, 0)
+            # Drop silver-only fields.
+            for sk in ("name", "cloning_flags", "entries", "object_references",
+                       "preserve_object_reference_stream", "entries_complete",
+                       "raw_data", "raw_dwg_handle_bits"):
+                payload.pop(sk, None)
         # Silver-only top-level VisualStyle fields that gold stores inside the
         # property bag or under a different name; skip so they don't appear as
         # extra_in_silver. The pre-R2010 top-level face_*/edge_* fields ARE
