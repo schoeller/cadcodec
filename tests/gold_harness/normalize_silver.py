@@ -755,6 +755,15 @@ def normalize_silver(
                        "preserve_object_reference_stream", "entries_complete",
                        "raw_data", "raw_dwg_handle_bits"):
                 payload.pop(sk, None)
+        if silver_type == "DictionaryVariable":
+            # Gold: schema (RCd), strvalue (T). Silver: schema_number, value,
+            # name. Map and drop the empty name.
+            if "schema_number" in payload:
+                fields["schema"] = normalize_value(payload["schema_number"])
+            if "value" in payload:
+                fields["strvalue"] = normalize_value(payload["value"])
+            for sk in ("schema_number", "value", "name"):
+                payload.pop(sk, None)
         # Silver-only top-level VisualStyle fields that gold stores inside the
         # property bag or under a different name; skip so they don't appear as
         # extra_in_silver. The pre-R2010 top-level face_*/edge_* fields ARE
