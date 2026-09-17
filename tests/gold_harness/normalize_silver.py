@@ -416,6 +416,14 @@ def normalize_silver(
     entities = data.get("entities", [])
     objects = data.get("objects", {})
 
+    # DWG/DXF version string, e.g. "AC1015". AC1018 (R2004) introduced the
+    # `is_xdic_missing` bit and AC1027 (R2013) the `has_ds_data` bit on every
+    # object handle stream (common_object_handle_data.spec SINCE R_2004a /
+    # SINCE R_2013). Both are emitted for objects and table records alike.
+    version = data.get("version", "")
+    r2004_plus = isinstance(version, str) and version >= "AC1018"
+    r2013_plus = isinstance(version, str) and version >= "AC1027"
+
     out: List[Dict[str, Any]] = []
 
     # Entities.
@@ -456,6 +464,13 @@ def normalize_silver(
         if not isinstance(payload, dict):
             continue
         fields = _object_common_fields(payload)
+        if r2004_plus:
+            # Gold emits is_xdic_missing on every object's handle stream.
+            fields["is_xdic_missing"] = 1 if payload.get("xdictionary_handle") is None else 0
+        if r2013_plus:
+            # has_ds_data marks AcDs (SAB) modeler geometry storage; only
+            # entities with modeler data set it, objects are always 0.
+            fields["has_ds_data"] = 0
         for k, v in payload.items():
             if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                 continue
@@ -476,15 +491,48 @@ def normalize_silver(
         ("vports", "VPORT", "VPORT"),
         ("ucss", "UCS", "UCS"),
     ]
+    # Gold emits these storage fields for every table record
+    # (COMMON_TABLE_FLAGS + common_object_handle_data.spec). Silver parses the
+    # xref bits and unknown byte but discards them; for ordinary drawings they
+    # are always this uniform set, so the normalizer derives them:
+    #   ownerhandle       = the owning table's control-object handle
+    #   is_xref_ref       = 1   (ordinary records always reference-free)
+    #   is_xref_resolved  = 0
+    #   is_xref_dep       = 0
+    #   xref              = null handle
+    #   unknown           = 0   (APPID only, SINCE R_13b1)
     for table_key, _entry_gold_type, record_gold_type in TABLE_SPECS:
         table = data.get(table_key, {})
         if not isinstance(table, dict):
             continue
+        table_handle = normalize_handle_value(table.get("handle"))
         entries = table.get("entries", {})
         for _key, rec in entries.items():
             if not isinstance(rec, dict):
                 continue
             fields = _object_common_fields(rec)
+            if table_handle is not None:
+                fields["ownerhandle"] = table_handle
+            fields["is_xref_ref"] = 1
+            fields["is_xref_resolved"] = 0
+            fields["is_xref_dep"] = 0
+            fields["xref"] = normalize_handle_value(0)
+            if record_gold_type == "APPID":
+                fields["unknown"] = 0
+            if record_gold_type == "BLOCK_HEADER":
+                # BLOCK_RECORD flag bits (dwg.spec): ordinary block records
+                # are neither anonymous nor xref-bound.
+                fields["anonymous"] = 0
+                fields["hasattrs"] = 0
+                fields["blkisxref"] = 0
+                fields["xrefoverlaid"] = 0
+                fields["xref_loaded"] = 0
+            if r2004_plus:
+                # Gold emits is_xdic_missing on every object's handle stream,
+                # table records included.
+                fields["is_xdic_missing"] = 1 if rec.get("xdictionary_handle") is None else 0
+            if r2013_plus:
+                fields["has_ds_data"] = 0
             for k, v in rec.items():
                 if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                     continue

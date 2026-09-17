@@ -284,7 +284,8 @@ core codec; the gaps were in the dump/normalizer projection:
 | `ACDBSECTIONVIEWSTYLE` / `ACDBDETAILVIEWSTYLE` missing after rewrite | **Fixed** | Same class-table retention fix |
 | `AcDbVisualStyle` "Object improperly read" | **Fixed** (2026-09-17) | `bd2007_45` was read/written unconditionally in the pre-R2010 branch; gold gates it `SINCE R_2007a`. R2000/R2004 rewrites carried 8 extra bytes per VisualStyle, desynchronizing the object stream. Fixed by gating on `r2007_plus()` in both `read_visual_style` and `write_visual_style`. Confirmed: gold `dwgread` now decodes R2000/R2004 rewrites with exit 0 and no VisualStyle errors; R2007 behavior unchanged. |
 | EntityCommon storage-only field gaps | **Fixed** (2026-09-17) | See table above. LINE/CIRCLE entity diffs now zero on all versions. |
-| Table-record storage fields (`ownerhandle`, `is_xref_ref`, `is_xref_resolved`, `is_xref_dep`, `xref`, `unknown`) | **Open** | Gold emits these for table records (APPID, LAYER, …). Silver's table structs (e.g. `AppId { handle, name }`) discard them at read time (`read_xref_dependant_bits`, `unknown_byte`, `xref_handle` parsed but dropped). Requires extending table structs + writer, or deriving in the dump. |
+| Uniform table-record storage fields (`ownerhandle`, `is_xref_ref`, `is_xref_resolved`, `is_xref_dep`, `xref`, `unknown`, `is_xdic_missing` R2004+, `has_ds_data` R2013+) | **Fixed** (2026-09-17) | These are uniform across ordinary table records and derived in `normalize_silver.py` from silver state: `ownerhandle` = the table's control-object handle, xref bits = `1/0/0`, `xref` = null handle, `unknown` = 0 (APPID only), `is_xdic_missing` = `xdictionary_handle.is_none()` (R2004+, all objects), `has_ds_data` = 0 (R2013+, objects). No codec changes needed. APPID/TEXTSTYLE/VIEW/UCS table records are now diff-free. |
+| Table-record payload fields | **Open** | Per-record semantic data, not uniform: DIMSTYLE ~70 `DIM*` vars (largest), LTYPE dash patterns (`dashes`, `numdashes`, `pattern_len`), VPORT view params (`VIEWCTR`, `VIEWDIR`, `BACKZ`, `FRONTZ`, `GRID*`, `SNAP*`, `UCS*`, …), BLOCK_HEADER topology (`xdicobjhandle`, `base_pt`, `xref_pname`, `block_entity`, `entities`, `endblk_entity`, …), LAYER `plotstyle`/`linewt`. These require reader storage and/or per-type normalizer mapping — one packet per table type. |
 | Object representation gaps (`VISUALSTYLE`, `MATERIAL`, `DIMSTYLE`, `LAYOUT`, `SCALE`, `MLEADERSTYLE`, `DICTIONARYVAR`, …) | **Open** | Field-name/structure mapping between silver serde schema and gold spec. Dominates remaining diff count. |
 
 ---
@@ -533,20 +534,10 @@ Given a diff `(type, field, kind)`:
 
 ### 8.1.6 Current work queue (ordered)
 
-1. **Table-record storage fields** — block `GOLD_HARNESS_STRICT=1`.
-   Gold emits for every table record (see `DWG_OBJECT (APPID)` etc. in
-   `dwg.spec` and `common_table_data.spec`-style shared blocks):
-   `ownerhandle`, `is_xref_ref`, `is_xref_resolved`, `is_xref_dep`, `xref`
-   (handle), `unknown` (byte). Silver parses them
-   (`read_xref_dependant_bits`, `unknown_byte`, `xref_handle` in
-   `object_reader/tables.rs`) but the structs (`src/tables/appid.rs`:
-   `AppId { handle, name }`) discard them. Fix per decision tree rule 1:
-   add storage to the table structs + read/write + dump, OR derive
-   `ownerhandle` from the table's own `handle` key in the normalizer (the
-   table JSON is `{entries, handle}`; a record's owner is the table).
-   Mirror the writer changes in `object_writer/` equivalents.
-   Verify with `GOLD_HARNESS_STRICT=1 cargo test --features gold-harness
-   --test gold_roundtrip`.
+1. ~~Table-record storage fields~~ — **done** for the uniform set (see §7).
+   What remains is per-record **payload**, one packet per table type:
+   DIMSTYLE `DIM*` vars (largest), LTYPE dash patterns, VPORT view params,
+   BLOCK_HEADER topology, LAYER `plotstyle`/`linewt`.
 2. **Object representation gaps** by corpus frequency: VISUALSTYLE,
    MATERIAL, DIMSTYLE, LAYOUT, SCALE, MLEADERSTYLE, DICTIONARYVAR,
    BLOCK_HEADER, LTYPE, APPID. These are name/shape mappings between the
