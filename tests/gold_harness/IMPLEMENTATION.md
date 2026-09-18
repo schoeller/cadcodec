@@ -717,7 +717,13 @@ Given a diff `(type, field, kind)`:
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). Corpus: read
-   29 341 → 27 589, write 29 559 → 27 863. **Reviewed**: corpus-wide checks
+   29 341 → 27 589, write 29 559 → 27 863.
+
+   ~~LAYER flag0/ltype~~ — **DONE (2026-09-18)**: the first reader packet.
+   Silver's LAYER reader reads the R2000+ flag bitmask but discards the raw
+   value (gold's flag0); silver resolves the linetype to a name but drops the
+   handle. Store both on LayerData/Layer. Corpus: read 27 589 → 27 214, write
+   27 863 → 27 498. **The reader-gap phase has begun.** **Reviewed**: corpus-wide checks
    clean (z_is_zero 0 mismatches, invis_flags 0 mismatches, 0 leaks). The
    `has_no_flags` key in silver output is the *projection* (gold has it too) —
    not a leak.
