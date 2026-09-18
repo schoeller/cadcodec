@@ -707,9 +707,19 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** DIMSTYLE `DIMCLRD`/`DIMCLRE`/`DIMCLRT`/
-   `DIMTFILLCLR` color vars (~238 each) — the new top normalizer-only
-   divergence after SOLID (done). Spec `dwg.spec` 4188 `DWG_TABLE(DIMSTYLE)`.
+   **Next task (ready to start):** the remaining reader-gap fields
+   (`XRECORD.ownerhandle`, `LINE.color`/`POINT.color` dict cases,
+   `LAYER.flag0`/`ltype`, `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`,
+   `INSERT.block_header`/`attribs`/`first_attrib`/`last_attrib`,
+   `MTEXT.style`, `DIMSTYLE.DIMCLRD/E/T/DIMTFILLCLR` — silver reader stores
+   `dimclrd=0` where the file has 256; reader gap, not normalizer).
+   These need silver READER/codec changes. The normalizer-only work is
+   exhausted.
+
+   ~~DIMSTYLE color vars~~ — **SKIPPED (2026-09-18)**: `DIMCLRD`/`DIMCLRE`/
+   `DIMCLRT`/`DIMTFILLCLR` are a silver reader gap — the reader stores
+   `dimclrd=0` (ByBlock) where the file has `256` (ByLayer). Not a normalizer
+   fix. Reverted the attempted projection.
 
    ~~SOLID/TRACE~~ — **DONE (2026-09-18)**: corner1-4 rename + 2RD slicing;
    elevation left missing (silver reader drops it — real gap). Corpus: read
