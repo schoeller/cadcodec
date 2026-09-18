@@ -333,14 +333,7 @@ def merge_common(
         elif k == "layer":
             fields["layer"] = normalize_handle_value(_resolve_layer_name(str(v), layer_map))
         elif k == "color":
-            c = normalize_color(v)
-            # Gold's field_cmc emits the index only when index != 0 OR the
-            # method is truecolor/bylayer/byblock (resolved to a 1..255 index).
-            # When index == 0 and the method is none of those, gold emits only
-            # the rgb field (no index). Silver always emits the index. Drop
-            # silver's index-0 default so gold's omission doesn't diff.
-            if isinstance(c, dict) or c != 0:
-                fields["color"] = c
+            fields["color"] = normalize_color(v)
         elif k == "line_weight":
             fields["linewt"] = _lineweight_to_gold(v)
         elif k == "linetype":
