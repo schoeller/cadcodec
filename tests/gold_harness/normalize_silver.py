@@ -1970,14 +1970,15 @@ def normalize_silver(
                 # drop silver-only
                 for kk in ("plotstyle", "ltype", "plot_style", "book_name", "color_name",
                            "description", "is_plottable", "transparency",
-                           "xref_block_record_handle", "material", "material_handle",
+                           "xref_block_record_handle", "material_handle",
                            "flags", "line_type"):
                     rec.pop(kk, None)
-                # material: gold emits it as a handle dict (code 5); silver
-                # stores the raw Handle int. Wrap it (R2007a+).
+                # material: gold emits it as a handle dict (R2007a+); silver
+                # stores the raw Handle int. Wrap it. Drop it on pre-R2007 so
+                # the generic loop doesn't re-add it.
                 if r2007_plus and "material" in rec:
                     fields["material"] = normalize_handle_value(rec["material"])
-                    rec.pop("material", None)
+                rec.pop("material", None)
             for k, v in rec.items():
                 if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                     continue
