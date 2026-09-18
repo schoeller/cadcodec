@@ -777,6 +777,28 @@ def normalize_silver(
                        "elevation", "thickness", "extrusion"):
                 payload.pop(sk, None)
 
+        # POINT entity (dwg.spec 2030, R13+ DWG path): silver stores
+        # `location`/`point` (a 3-vector), gold splits into x/y/z scalars
+        # (BD 10/20/30). Silver `normal` -> gold `extrusion` (BE 210);
+        # `x_axis_angle` -> `x_ang` (BD 50). thickness matches.
+        if silver_type == "Point":
+            loc = payload.get("location") or payload.get("point")
+            locn = normalize_value(loc)
+            if isinstance(locn, list):
+                if len(locn) > 0: fields["x"] = locn[0]
+                if len(locn) > 1: fields["y"] = locn[1]
+                if len(locn) > 2: fields["z"] = locn[2]
+            nrm = payload.get("normal")
+            if nrm is not None:
+                fields["extrusion"] = normalize_value(nrm)
+            xaa = payload.get("x_axis_angle")
+            if xaa is not None:
+                fields["x_ang"] = normalize_float(xaa)
+            payload.pop("location", None)
+            payload.pop("point", None)
+            payload.pop("normal", None)
+            payload.pop("x_axis_angle", None)
+
         # VIEWPORT entity (dwg.spec 2412 DWG path): rename silver snake_case to
         # gold names, convert types, version-gate, wrap handles. The consumed
         # keys are dropped from payload so the generic loop below skips them.
