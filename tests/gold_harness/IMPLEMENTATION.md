@@ -715,7 +715,8 @@ Given a diff `(type, field, kind)`:
    `major_axis`→`sm_axis`, `minor_axis_ratio`→`axis_ratio` (the map had the
    wrong silver key `minor_to_major_ratio`), `start_parameter`→`start_angle`,
    `end_parameter`→`end_angle`. Corpus: read 36 675 → 35 155, write 35 798 →
-   34 294.
+   34 294. **Reviewed** (4ef2e23 → HEAD, 76 pairs): 48 049 → 45 105, **0 added
+   rows**; corpus-wide checks clean (all four renames exact, no leaks).
 
    ~~INSERT entity~~ — **DONE (2026-09-18)**: insert_point→ins_pt, x/y/z_scale→
    scale+scale_flag (recomposed per spec ENCODER), attributes→has_attribs,
