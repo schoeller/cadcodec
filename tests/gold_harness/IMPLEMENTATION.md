@@ -716,8 +716,12 @@ Given a diff `(type, field, kind)`:
 
    ~~MTEXT entity~~ — **DONE (2026-09-18)**: full projection (renames, enum
    string→int maps, column_data nested → column fields, version gates).
-   Corpus: read 35 155 → 30 737, write 34 294 → 30 685. Residual (real gap):
-   style (silver stores the style name, not the handle).
+   Corpus: read 35 155 → 30 737, write 34 294 → 30 685. **Reviewed** (0dd9dde
+   → HEAD, 76 pairs): 45 105 → 37 598 → 30 766; 1 749 added rows were the
+   version-gate leaks (bg_fill_* pre-R2004, column_* pre-R2018) — fixed with
+   gates (60458af). Residuals (real gaps): style (silver stores name, not
+   handle), R2018 embedded-object fields (is_not_annotative, class_version,
+   default_flag, appid, ignore_attachment, column_*).
 
    ~~ELLIPSE~~ — **DONE (2026-09-18)**: FIELD_NAME_MAP fix — silver's
    `major_axis`→`sm_axis`, `minor_axis_ratio`→`axis_ratio` (the map had the
