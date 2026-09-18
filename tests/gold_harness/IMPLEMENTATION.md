@@ -707,12 +707,12 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** the remaining reader-gap fields
-   (`XRECORD.ownerhandle`, `LINE.color`/`POINT.color` dict cases,
-   `LAYER.flag0`/`ltype`, `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`,
-   `INSERT.block_header`/`attribs`/`first_attrib`/`last_attrib`,
-   `MTEXT.style`, `DIMSTYLE.DIMCLRD/E/T/DIMTFILLCLR`). These need silver
-   READER/codec changes. The normalizer-only work is exhausted.
+   **Next task (ready to start):** DIMSTYLE `DIMCLRD`/`DIMCLRE`/`DIMCLRT`/
+   `DIMTFILLCLR` color vars (~238 each) — the new top normalizer-only
+   divergence after SOLID (done). Spec `dwg.spec` 4188 `DWG_TABLE(DIMSTYLE)`.
+
+   ~~SOLID/TRACE~~ — **DONE (2026-09-18)**: corner1-4 rename + 2RD slicing +
+   elevation default. Corpus: read 30 766 → 29 182, write 30 714 → 29 430.
 
    ~~MTEXT entity~~ — **DONE (2026-09-18)**: full projection (renames, enum
    string→int maps, column_data nested → column fields, version gates).
