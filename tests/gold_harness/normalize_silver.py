@@ -537,10 +537,15 @@ def _map_material(payload: Dict[str, Any], fields: Dict[str, Any], r2007: bool, 
         for key in (m + "_map", m + "map"):
             if key in payload and isinstance(payload[key], dict):
                 sub = payload[key]
+                # Gold emits <map>.filename only when the map is file-based
+                # (source==1); silver always emits it. Gate on source.
+                src = sub.get("source", sub.get("source_type", 1))
                 for sk, sv in sub.items():
                     if sk == "texture":
                         continue
                     gk = _MATERIAL_MAP_FIELD.get(sk, sk)
+                    if gk == "filename" and src != 1:
+                        continue
                     fields[f"{m}map.{gk}"] = normalize_value(sv)
                 consumed.add(key)
     for c in ("ambient_color", "diffuse_color", "specular_color"):
