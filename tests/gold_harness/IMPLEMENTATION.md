@@ -707,10 +707,18 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** `*_CONTROL` handle fields
-   (`LAYER.flag0`/`color`/`plotstyle`, `LINE.color`, `STYLE.is_shape`/
-   `text_size` — ~255 each) — the new top read-fidelity divergences after
-   MATERIAL (done). These are the table-record/control-object fields.
+   **Next task (ready to start):** LINE.color (gold omits where silver emits a
+   default 0/256) and the reader-gap fields (`LAYER.flag0` raw bitmask,
+   `LAYER.ltype` handle, `*_CONTROL.xdicobjhandle`). These need silver READER
+   changes, not normalizer — see the residual-gaps note.
+
+   ~~*_CONTROL/color~~ — **DONE (2026-09-18)**: LAYER color {Index:n}→int,
+   flags→flag0, plotstyle_handle→plotstyle; STYLE is_shape_file→is_shape,
+   height→text_size, is_vertical, big_font_file→bigfont_file, flags→generation.
+   Corpus: read 62 577 → 56 847, write 54 648 → 49 050. Residuals (real silver
+   READER gaps, not normalizer): LAYER.flag0 (raw bitmask not stored),
+   LAYER.ltype (handle not stored, only name), LINE.color (default-vs-omit),
+   *_CONTROL.xdicobjhandle.
 
    ~~MATERIAL map filenames~~ — **DONE (2026-09-18)**: gold's MAT_MAP emits
    `<map>.filename` only when `source==1` (file-based); silver emitted it
