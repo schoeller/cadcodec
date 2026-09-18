@@ -113,7 +113,7 @@ FIELD_NAME_MAP: Dict[str, Dict[str, str]] = {
     "Line": {"normal": "extrusion", "start": "start", "end": "end", "thickness": "thickness"},
     "Circle": {"normal": "extrusion", "center": "center", "radius": "radius", "thickness": "thickness"},
     "Arc": {"normal": "extrusion", "center": "center", "radius": "radius", "start_angle": "start_angle", "end_angle": "end_angle", "thickness": "thickness"},
-    "Ellipse": {"normal": "extrusion", "center": "center", "major_axis": "major_axis", "minor_to_major_ratio": "axis_ratio", "start_parameter": "start_param", "end_parameter": "end_param"},
+    "Ellipse": {"normal": "extrusion", "center": "center", "major_axis": "sm_axis", "minor_axis_ratio": "axis_ratio", "start_parameter": "start_angle", "end_parameter": "end_angle"},
     "Point": {"location": "point"},
     "Text": {"normal": "extrusion", "insertion_point": "insertion_pt", "alignment_point": "alignment_pt", "value": "text_value"},
     "MText": {"normal": "extrusion", "insertion_point": "insertion_pt", "value": "text_value"},
