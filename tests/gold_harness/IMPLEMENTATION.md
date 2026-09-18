@@ -716,10 +716,13 @@ Given a diff `(type, field, kind)`:
    ~~INSERT entity~~ — **DONE (2026-09-18)**: insert_point→ins_pt, x/y/z_scale→
    scale+scale_flag (recomposed per spec ENCODER), attributes→has_attribs,
    seqend_handle→seqend, num_cols/rows R11-only drop, block_name/name fix.
-   Corpus: read 39 973 → 36 675, write 38 756 → 35 798. Residuals (real gaps):
-   block_header (silver stores name, not handle), attribs/first_attrib/
-   last_attrib (silver stores entities, not handles), seqend resolution, color
-   dict cases.
+   Corpus: read 39 973 → 36 675, write 38 756 → 35 798. **Reviewed** (897e023 →
+   HEAD, 76 pairs): 54 305 → 48 049, only 32 added rows (all `seqend` — gold
+   resolves to SEQEND target type, silver's seqend_handle resolves to a raw int;
+   the SEQEND reader-coverage gap). Corpus-wide checks clean: scale_flag 0
+   mismatches, POINT leak 0, ins_pt/scale/rotation 0 mismatches. Residuals
+   (real gaps): block_header (name-vs-handle), attribs/first_attrib/last_attrib
+   (handle vectors), seqend (SEQEND coverage), color dict cases.
 
    ~~APPID fabrication~~ — **DONE (2026-09-18)**: CadDocument::new() pre-creates
    AcCmTransparency/AcAecLayerStandard for the writer's XDATA/EED needs; on the
