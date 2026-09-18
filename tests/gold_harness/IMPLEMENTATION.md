@@ -715,7 +715,9 @@ Given a diff `(type, field, kind)`:
    ~~MATERIAL map filenames~~ — **DONE (2026-09-18)**: gold's MAT_MAP emits
    `<map>.filename` only when `source==1` (file-based); silver emitted it
    always. Gated on `source==1`. Corpus: read 63 108 → 62 577, write
-   55 131 → 54 648.
+   55 131 → 54 648. **Reviewed** (66dde3c → HEAD, 76 pairs): 68 083 → 67 579,
+   **0 added rows**; corpus-wide gate verification clean (gold/silver agree
+   exactly: filename present iff source==1, 426 cases, 0 mismatches).
 
    ~~LAYOUT plotsettings.*~~ — **DONE (2026-09-18)**: full nested plot-config
    projection (printer_cfg_file/paper_size/canonical_media_name three-way swap,
