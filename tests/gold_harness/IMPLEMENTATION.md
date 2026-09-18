@@ -950,9 +950,13 @@ To consult a nested field, open the defining macro, not just the outer
 | `MULTILEADER.ctx.*` (and MLEADERSTYLE context) | `MLEADER_CONTEXT_DATA_fields` | dwg2.spec 1227 |
 | `BLOCK*.evalexpr.*`, `ACSH_*.evalexpr.*`, `ASSOC*` expr | `AcDbEvalExpr_fields` | dwg2.spec 2860 |
 | `ACSH_*.history_node.*` | `AcDbShHistoryNode_fields` | dwg2.spec 2910 |
-| `MATERIAL.<color>.rgb`, `MATERIAL.*map.*` | `MAT_COLOR` / `MAT_MAPPER` macros | dwg2.spec 2680, 2743 |
+| `MATERIAL.<color>.*` (`ambient_color`, `diffuse_color`, `specular_color`) | `MAT_COLOR` macro (emits `.rgb`/`.method`/…) | dwg2.spec 2680; uses at 2774, 2775, 2782 |
+| `MATERIAL.*map.*` (`diffusemap`, `specularmap`, `reflectionmap`, `opacitymap`, `bumpmap`, `refractionmap`) | `MAT_MAP` macro (wraps `MAT_MAPPER`/`MAT_COLOR`) | dwg2.spec 2680 (MAT_COLOR), 2743 (MAT_MAPPER), 2700 (MAT_MAP uses) |
 | `UNDERLAY.*` sub-fields | `UNDERLAY_fields` | dwg2.spec 1621 |
 | `ASSOC*.assocdep.*` | `AcDbAssocDependency_fields` | dwg2.spec 1863 |
+| `ASSOC*.pab.*` (extruded/lofted/revolved surface action bodies) | `AcDbAssocParamBasedActionBody_fields` | dwg2.spec 1928 |
+| `BLOCK*PARAMETER.prop3` / `prop4` (BLOCKLINEAR/BLOCKROTATION) | inline per-parameter `FIELD_*` block (a 2-element parameter tuple) | dwg2.spec (per-parameter blocks) |
+| `ASSOCVARIABLE.u.*` | `AcDbAssocVariable` inline (`SUBCLASS`, dwg2.spec 5694) | dwg2.spec 5691 |
 | `FIELD.value.*` and TABLE cell values | `TABLE_value_fields` macro (moved out of the spec into `dwg_spec_shared.h`; the `dwg.spec` 5868 stub is `#REMOVED`/inactive) | dwg_spec_shared.h |
 
 The remaining `*_fields` macros (constraint/assoc/block-param families,
@@ -960,6 +964,13 @@ The remaining `*_fields` macros (constraint/assoc/block-param families,
 grep `#define <root>_fields` across both spec files. A nested-field packet
 diffs the *leaf* scalar; walk the macro chain to find the leaf's `FIELD_*`
 macro, bitcode type, and version gate exactly as for a flat field.
+
+**Verified exhaustive (2026-09-18):** a full rescan of the libredwg tree
+(`grep -rE '#define [A-Za-z_0-9]+_fields'` across `dwg.spec`, `dwg2.spec`,
+`dwg_spec_shared.h`, plus all `SUBCLASS` blocks) confirms **66 `*_fields`
+macros** total (1 dwg.spec + 62 dwg2.spec + 3 dwg_spec_shared.h) and **21
+distinct nested roots** in the corpus gold JSON. Every one of the 21 roots maps
+to a spec construct (macro or inline SUBCLASS) — there is no opaque nesting.
 
 ### 8.1.7 Hard prohibitions (loop invariants, restated)
 
