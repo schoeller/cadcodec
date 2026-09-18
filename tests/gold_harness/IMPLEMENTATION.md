@@ -731,6 +731,13 @@ Given a diff `(type, field, kind)`:
    mismatches, version gates 0 issues. Residuals (real gaps): arrow_head/block
    reader gap, class_version/is_annotative version gates, color CMC.
 
+   ~~LINE/POINT color~~ — **DONE (2026-09-18)**: gold's field_cmc omits the
+   index when index==0 and the method is not truecolor/bylayer/byblock; silver
+   always emitted it. Drop silver's index-0 default so gold's omission doesn't
+   diff. Corpus: no net change (the remaining color diffs are the gold dict
+   cases — truecolor with alpha, flag&32 — which silver doesn't model; a real
+   silver gap).
+
    ~~*_CONTROL/color~~ — **DONE (2026-09-18)**: LAYER color {Index:n}→int,
    flags→flag0, plotstyle_handle→plotstyle, material handle-wrap (R2007a+);
    STYLE is_shape_file→is_shape, height→text_size, is_vertical, big_font_file→
