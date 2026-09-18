@@ -705,10 +705,18 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** LAYOUT `plotsettings.*` nested plot config
-   (`printer_cfg_file`, `paper_size`, `plot_flags`, margins, … — ~376 each) —
-   the new top read-fidelity divergence after POINT (done). Spec `dwg.spec`
-   5316 `DWG_OBJECT(LAYOUT)` + inline `SUBCLASS (AcDbPlotSettings)`.
+   **Next task (ready to start):** MATERIAL map filenames
+   (`refractionmap.filename`, ~372) and the CMC color residuals — the new top
+   read-fidelity divergences after LAYOUT (done). MATERIAL spec `dwg2.spec`
+   2769.
+
+   ~~LAYOUT plotsettings.*~~ — **DONE (2026-09-18)**: full nested plot-config
+   projection (printer_cfg_file/paper_size/canonical_media_name three-way swap,
+   margins, 2D point pairs, plot_flags bits via silver's to_bits layout,
+   shadeplot R2004a+/R2007a+, EXTMIN/EXTMAX/INSBASE/LIMMIN/LIMMAX/UCS*
+   renames, handle wraps). Corpus: read 95 503 → 63 185, write 87 006 → 55 208.
+   Residuals (real gaps): plotsettings.shadeplot (silver null), has_ds_data,
+   plotview/plotview_name (VIEW ordinal), viewports.
 
    ~~POINT view-independent fields~~ — **DONE (2026-09-18)**: silver
    `location`/`point` 3-vector split to gold `x`/`y`/`z` scalars, `normal`→
