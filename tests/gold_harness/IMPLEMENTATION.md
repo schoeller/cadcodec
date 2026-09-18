@@ -707,10 +707,17 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** the reader-gap fields (`APPID.name`/
-   `_missing`, `XRECORD.ownerhandle`, `LINE.color`, `LAYER.flag0`/`ltype`,
-   `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`) — these need silver READER/
-   codec changes, not normalizer. The normalizer-only work is nearly exhausted.
+   **Next task (ready to start):** the remaining reader-gap fields
+   (`XRECORD.ownerhandle`, `LINE.color`, `LAYER.flag0`/`ltype`,
+   `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`). These need silver READER/
+   codec changes. APPID fabrication is done.
+
+   ~~APPID fabrication~~ — **DONE (2026-09-18)**: CadDocument::new() pre-creates
+   AcCmTransparency/AcAecLayerStandard for the writer's XDATA/EED needs; on the
+   read path these persist as phantom records. Fixed: the DWG document builder
+   now drops fabricated APPIDs the source file didn't contain (files that
+   genuinely have them keep them). Corpus: read 41 153 → 39 973, write
+   38 845 → 38 756.
 
    ~~MLEADERSTYLE~~ — **DONE (2026-09-18)**: full view-param projection
    (renames, enum string→int maps, linewt raw BLd, colors, block_scale 3BD,
