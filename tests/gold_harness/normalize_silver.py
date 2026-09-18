@@ -955,8 +955,8 @@ def normalize_silver(
                         nv = nv[:2]  # gold 2RD
                     fields[gk] = nv
                     payload.pop(sk, None)
-            # elevation: gold always emits 0.0; silver doesn't store it.
-            fields.setdefault("elevation", 0.0)
+            # elevation: silver doesn't store it (reader gap); gold emits the
+            # real value. Leave it missing so the differ reports the real gap.
             # drop silver-only
             for kk in ("is_trace",):
                 payload.pop(kk, None)
