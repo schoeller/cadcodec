@@ -707,10 +707,16 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** LINE.color (gold omits where silver emits a
-   default 0/256) and the reader-gap fields (`LAYER.flag0` raw bitmask,
-   `LAYER.ltype` handle, `*_CONTROL.xdicobjhandle`). These need silver READER
-   changes, not normalizer — see the residual-gaps note.
+   **Next task (ready to start):** the reader-gap fields (`APPID.name`/
+   `_missing`, `XRECORD.ownerhandle`, `LINE.color`, `LAYER.flag0`/`ltype`,
+   `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`) — these need silver READER/
+   codec changes, not normalizer. The normalizer-only work is nearly exhausted.
+
+   ~~MLEADERSTYLE~~ — **DONE (2026-09-18)**: full view-param projection
+   (renames, enum string→int maps, linewt raw BLd, colors, block_scale 3BD,
+   R2010b/R2013b gates, handle wraps). Corpus: read 56 712 → 41 162, write
+   48 925 → 38 850. Residuals (real gaps): arrow_head/block reader gap,
+   class_version/is_annotative version gates, color CMC.
 
    ~~*_CONTROL/color~~ — **DONE (2026-09-18)**: LAYER color {Index:n}→int,
    flags→flag0, plotstyle_handle→plotstyle, material handle-wrap (R2007a+);
