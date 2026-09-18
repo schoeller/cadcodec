@@ -1133,9 +1133,8 @@ def normalize_silver(
                 fields["plotsettings.paper_units"] = payload["plot_scale_numerator"]
             if payload.get("plot_scale_denominator") is not None:
                 fields["plotsettings.drawing_units"] = payload["plot_scale_denominator"]
-            # plotview handle (R2002+ LATER_VERSIONS; the plotview_name is
-            # DXF-only on the binary path, so only the handle).
-            if payload.get("plot_view_handle") is not None:
+            # plotview handle (R2004a+; gold omits it on R2000/AC1015).
+            if r2004_plus and payload.get("plot_view_handle") is not None:
                 fields["plotsettings.plotview"] = normalize_handle_value(payload["plot_view_handle"])
             # shadeplot handle (R2007a+, code 4)
             if r2007_plus and payload.get("shade_plot_handle") is not None:
