@@ -715,8 +715,11 @@ Given a diff `(type, field, kind)`:
    ~~MLEADERSTYLE~~ — **DONE (2026-09-18)**: full view-param projection
    (renames, enum string→int maps, linewt raw BLd, colors, block_scale 3BD,
    R2010b/R2013b gates, handle wraps). Corpus: read 56 712 → 41 162, write
-   48 925 → 38 850. Residuals (real gaps): arrow_head/block reader gap,
-   class_version/is_annotative version gates, color CMC.
+   48 925 → 38 850. **Reviewed**: corpus-wide checks clean except one enum
+   miss — my attach_* maps lacked the underline variants (BottomOfTopLine
+   Underline*=6-8, CenterOfTextOverline=10); fixed (698e4ae). linewt 0
+   mismatches, version gates 0 issues. Residuals (real gaps): arrow_head/block
+   reader gap, class_version/is_annotative version gates, color CMC.
 
    ~~*_CONTROL/color~~ — **DONE (2026-09-18)**: LAYER color {Index:n}→int,
    flags→flag0, plotstyle_handle→plotstyle, material handle-wrap (R2007a+);
