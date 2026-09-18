@@ -1047,6 +1047,134 @@ def normalize_silver(
             "properties", "internal_use_only", "extended_lighting_model",
         } if silver_type == "VisualStyle" else set()
         mat_consumed = _map_material(payload, fields, r2007_plus, r2010_plus) if silver_type == "Material" else set()
+        # LAYOUT object (dwg.spec 5316): silver stores plot config FLAT with
+        # different names; gold nests them under `plotsettings.*` (the
+        # AcDbPlotSettings subclass). Project the whole set.
+        if silver_type == "Layout":
+            # --- plotsettings.* (the AcDbPlotSettings subclass) ---
+            _PS = {
+                # gold printer_cfg_file = silver plot_page_name (the page setup
+                # name); gold paper_size = silver plot_printer_name (the device);
+                # gold canonical_media_name = silver paper_size (the media).
+                "plot_page_name": "plotsettings.printer_cfg_file",
+                "plot_printer_name": "plotsettings.paper_size",
+                "plot_flags_dict": "plotsettings.plot_flags",  # placeholder; dict handled below
+                "plot_margin_left": "plotsettings.left_margin",
+                "plot_margin_bottom": "plotsettings.bottom_margin",
+                "plot_margin_right": "plotsettings.right_margin",
+                "plot_margin_top": "plotsettings.top_margin",
+                "paper_width": "plotsettings.paper_width",
+                "paper_height": "plotsettings.paper_height",
+                "plot_printer_name": "plotsettings.paper_size",  # gold paper_size = silver device name
+                "paper_size": "plotsettings.canonical_media_name",  # gold canonical = silver media
+                "plot_paper_units": "plotsettings.plot_paper_unit",
+                "plot_rotation": "plotsettings.plot_rotation_mode",
+                "plot_type": "plotsettings.plot_type",
+                "plot_scale_factor": "plotsettings.std_scale_factor",
+                "plot_scale_type": "plotsettings.std_scale_type",
+                "plot_style_sheet": "plotsettings.stylesheet",
+            }
+            # version gates (shadeplot R2004a+, livesection/plotview handles)
+            _PS_R2004 = {"plotsettings.shadeplot_type", "plotsettings.shadeplot_reslevel",
+                         "plotsettings.shadeplot_customdpi"}
+            for sk, gk in _PS.items():
+                if sk in ("plot_flags_dict",):
+                    continue
+                v = payload.get(sk)
+                if v is None:
+                    continue
+                if gk in _PS_R2004 and not r2004_plus:
+                    continue
+                fields[gk] = normalize_value(v)
+            # plot_flags dict -> int bits, using silver's PlotFlags::to_bits
+            # layout (plot_settings.rs): bit0 plot_viewport_borders, 1
+            # show_plot_styles, 2 plot_centered, 3 plot_hidden, 4
+            # use_standard_scale, 5 plot_plot_styles, 6 scale_lineweights, 7
+            # print_lineweights, 9 draw_viewports_first, 10 model_type, 11
+            # update_paper, 12 zoom_to_paper_on_update, 13 initializing, 14
+            # prev_plot_init; unknown_bits carried through (mask !0x7EFF).
+            pfl = payload.get("plot_flags")
+            if isinstance(pfl, dict):
+                bits = pfl.get("unknown_bits", 0) & ~0x7EFF
+                for name, bit in (("plot_viewport_borders", 0), ("show_plot_styles", 1),
+                        ("plot_centered", 2), ("plot_hidden", 3), ("use_standard_scale", 4),
+                        ("plot_plot_styles", 5), ("scale_lineweights", 6),
+                        ("print_lineweights", 7), ("draw_viewports_first", 9),
+                        ("model_type", 10), ("update_paper", 11),
+                        ("zoom_to_paper_on_update", 12), ("initializing", 13),
+                        ("prev_plot_init", 14)):
+                    if pfl.get(name):
+                        bits |= (1 << bit)
+                fields["plotsettings.plot_flags"] = bits
+            elif isinstance(pfl, int):
+                fields["plotsettings.plot_flags"] = pfl
+            # 2-point fields: plot_origin, plot_window_ll/ur, paper_image_origin
+            if payload.get("plot_origin_x") is not None or payload.get("plot_origin_y") is not None:
+                fields["plotsettings.plot_origin"] = [payload.get("plot_origin_x", 0.0), payload.get("plot_origin_y", 0.0)]
+            if payload.get("plot_window_min_x") is not None or payload.get("plot_window_min_y") is not None:
+                fields["plotsettings.plot_window_ll"] = [payload.get("plot_window_min_x", 0.0), payload.get("plot_window_min_y", 0.0)]
+            if payload.get("plot_window_max_x") is not None or payload.get("plot_window_max_y") is not None:
+                fields["plotsettings.plot_window_ur"] = [payload.get("plot_window_max_x", 0.0), payload.get("plot_window_max_y", 0.0)]
+            if payload.get("paper_image_origin_x") is not None or payload.get("paper_image_origin_y") is not None:
+                fields["plotsettings.paper_image_origin"] = [payload.get("paper_image_origin_x", 0.0), payload.get("paper_image_origin_y", 0.0)]
+            # canonical_media_name is mapped from silver's `paper_size` in _PS
+            # above; do NOT double-emit it here.
+            # shadeplot (R2004a+)
+            if r2004_plus:
+                if payload.get("shade_plot_mode") is not None:
+                    fields["plotsettings.shadeplot_type"] = payload["shade_plot_mode"]
+                if payload.get("shade_plot_resolution") is not None:
+                    fields["plotsettings.shadeplot_reslevel"] = payload["shade_plot_resolution"]
+                if payload.get("shade_plot_dpi") is not None:
+                    fields["plotsettings.shadeplot_customdpi"] = payload["shade_plot_dpi"]
+            # paper_units/drawing_units: gold computes from std_scale_factor;
+            # silver stores plot_scale_numerator/denominator.
+            if payload.get("plot_scale_numerator") is not None:
+                fields["plotsettings.paper_units"] = payload["plot_scale_numerator"]
+            if payload.get("plot_scale_denominator") is not None:
+                fields["plotsettings.drawing_units"] = payload["plot_scale_denominator"]
+            # plotview handle (R2002+ LATER_VERSIONS; the plotview_name is
+            # DXF-only on the binary path, so only the handle).
+            if payload.get("plot_view_handle") is not None:
+                fields["plotsettings.plotview"] = normalize_handle_value(payload["plot_view_handle"])
+            # shadeplot handle (R2007a+, code 4)
+            if r2007_plus and payload.get("shade_plot_handle") is not None:
+                fields["plotsettings.shadeplot"] = normalize_handle_value(payload["shade_plot_handle"])
+            # --- non-plotsettings LAYOUT fields ---
+            _LAY = {
+                "min_extents": "EXTMIN", "max_extents": "EXTMAX",
+                "insertion_base": "INSBASE", "min_limits": "LIMMIN",
+                "max_limits": "LIMMAX", "ucs_origin": "UCSORG",
+                "ucs_x_axis": "UCSXDIR", "ucs_y_axis": "UCSYDIR",
+                "ucs_ortho_type": "UCSORTHOVIEW", "elevation": "ucs_elevation",
+                "flags": "layout_flags", "name": "layout_name",
+                "tab_order": "tab_order",
+            }
+            for sk, gk in _LAY.items():
+                v = payload.get(sk)
+                if v is None:
+                    continue
+                fields[gk] = normalize_value(v)
+            # handles
+            if payload.get("block_record") is not None:
+                fields["block_header"] = normalize_handle_value(payload["block_record"])
+            if payload.get("viewport") is not None:
+                fields["active_viewport"] = normalize_handle_value(payload["viewport"])
+            # drop all consumed/silver-only keys so the generic loop skips them
+            for kk in (list(_PS) + list(_LAY) + [
+                "plot_flags", "plot_origin_x", "plot_origin_y",
+                "plot_window_min_x", "plot_window_min_y",
+                "plot_window_max_x", "plot_window_max_y",
+                "paper_image_origin_x", "paper_image_origin_y",
+                "shade_plot_mode", "shade_plot_resolution", "shade_plot_dpi",
+                "plot_scale_numerator", "plot_scale_denominator",
+                "plot_view_handle", "plot_view_name", "plot_page_name",
+                "block_record", "viewport", "viewports",
+                # silver-only LAYOUT fields gold omits on the binary path:
+                "visual_style_handle",
+            ]):
+                payload.pop(kk, None)
+
         for k, v in payload.items():
             if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                 continue
