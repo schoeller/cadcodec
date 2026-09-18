@@ -714,6 +714,9 @@ Given a diff `(type, field, kind)`:
    ord, `pattern_length`→`pattern_len`, `numdashes` from len, `strings_area`
    all-zero TF (256 bytes pre-R2007 always, 512 R2007+ when has_strings_area),
    xref-bookkeeping drop. Corpus: read 101 741 → 98 639, write 92 472 → 89 406.
+   **Reviewed** (1fd481c → HEAD, 76 pairs): 95 567 → 93 847, **0 added rows**;
+   corpus-wide correctness checks clean (alignment ord exact, strings_area
+   version gate correct on every version, numdashes matches everywhere).
 
    ~~VIEWPORT entity + VIEW table record~~ — **DONE (2026-09-17)**: full
    view-param projection for both (renames, 2RD slicing, status_flag bit
