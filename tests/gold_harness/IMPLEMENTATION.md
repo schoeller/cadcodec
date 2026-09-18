@@ -711,10 +711,13 @@ Given a diff `(type, field, kind)`:
    (`XRECORD.ownerhandle`, `LINE.color`/`POINT.color` dict cases,
    `LAYER.flag0`/`ltype`, `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`,
    `INSERT.block_header`/`attribs`/`first_attrib`/`last_attrib`,
-   `MTEXT.style`, `DIMSTYLE.DIMCLRD/E/T/DIMTFILLCLR` — silver reader stores
-   `dimclrd=0` where the file has 256; reader gap, not normalizer).
-   These need silver READER/codec changes. The normalizer-only work is
-   exhausted.
+   `MTEXT.style`, `DIMSTYLE.DIMCLRD/E/T/DIMTFILLCLR`, `BLOCK_HEADER.name`,
+   `LAYER.visualstyle`). These need silver READER/codec changes. The
+   normalizer-only work is exhausted.
+
+   ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
+   0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). Corpus: read
+   29 341 → 27 589, write 29 559 → 27 863.
 
    ~~DIMSTYLE color vars~~ — **SKIPPED (2026-09-18)**: `DIMCLRD`/`DIMCLRE`/
    `DIMCLRT`/`DIMTFILLCLR` are a silver reader gap — the reader stores
