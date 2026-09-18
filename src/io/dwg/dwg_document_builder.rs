@@ -1534,6 +1534,29 @@ impl DwgDocumentBuilder {
             }
         }
 
+        // Remove fabricated APPIDs that the source file didn't contain.
+        //
+        // CadDocument::new() pre-creates AcCmTransparency, AcAecLayerStandard,
+        // and AcadAnnotative for the writer's XDATA/EED needs. On the read
+        // path these persist even when the file has no such APPID, producing
+        // phantom records. Track which APPIDs the file actually contained and
+        // drop any fabricated ones not present.
+        {
+            let file_appid_names: std::collections::HashSet<String> = parsed_entries
+                .iter()
+                .filter_map(|e| match e {
+                    ParsedEntry::AppId(_, data) => Some(data.name.clone()),
+                    _ => None,
+                })
+                .collect();
+            let fabricated = ["AcCmTransparency", "AcAecLayerStandard"];
+            for name in fabricated {
+                if !file_appid_names.iter().any(|n| n.eq_ignore_ascii_case(name)) {
+                    let _ = document.app_ids.remove(name);
+                }
+            }
+        }
+
         // Build a reverse map: entity_handle → block_record_handle
         // from the canonical entity_handles read from the DWG binary
         // (R2004+).  This is needed because entity_mode=1 only says
