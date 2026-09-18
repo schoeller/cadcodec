@@ -713,12 +713,15 @@ Given a diff `(type, field, kind)`:
    changes, not normalizer — see the residual-gaps note.
 
    ~~*_CONTROL/color~~ — **DONE (2026-09-18)**: LAYER color {Index:n}→int,
-   flags→flag0, plotstyle_handle→plotstyle; STYLE is_shape_file→is_shape,
-   height→text_size, is_vertical, big_font_file→bigfont_file, flags→generation.
-   Corpus: read 62 577 → 56 847, write 54 648 → 49 050. Residuals (real silver
-   READER gaps, not normalizer): LAYER.flag0 (raw bitmask not stored),
-   LAYER.ltype (handle not stored, only name), LINE.color (default-vs-omit),
-   *_CONTROL.xdicobjhandle.
+   flags→flag0, plotstyle_handle→plotstyle, material handle-wrap (R2007a+);
+   STYLE is_shape_file→is_shape, height→text_size, is_vertical, big_font_file→
+   bigfont_file, flags→generation. Corpus: read 62 577 → 56 712, write
+   54 648 → 48 925. **Reviewed** (603668e → HEAD, 76 pairs): 67 579 → 62 107 →
+   56 712; corpus-wide checks clean (color 0 mismatches, STYLE 0 mismatches,
+   plotstyle 0 presence mismatches). One overcorrection fixed: LAYER material
+   was dropped; now handle-wrapped. Residuals (real silver READER gaps, not
+   normalizer): LAYER.flag0 (raw bitmask not stored), LAYER.ltype (handle not
+   stored, only name), LINE.color (default-vs-omit), *_CONTROL.xdicobjhandle.
 
    ~~MATERIAL map filenames~~ — **DONE (2026-09-18)**: gold's MAT_MAP emits
    `<map>.filename` only when `source==1` (file-based); silver emitted it
