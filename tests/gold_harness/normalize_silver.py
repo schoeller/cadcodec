@@ -116,7 +116,7 @@ FIELD_NAME_MAP: Dict[str, Dict[str, str]] = {
     "Ellipse": {"normal": "extrusion", "center": "center", "major_axis": "sm_axis", "minor_axis_ratio": "axis_ratio", "start_parameter": "start_angle", "end_parameter": "end_angle"},
     "Point": {"location": "point"},
     "Text": {"normal": "extrusion", "insertion_point": "insertion_pt", "alignment_point": "alignment_pt", "value": "text_value"},
-    "MText": {"normal": "extrusion", "insertion_point": "insertion_pt", "value": "text_value"},
+    "MText": {"normal": "extrusion", "insertion_point": "ins_pt", "value": "text"},
     "LwPolyline": {"normal": "extrusion"},
     "Polyline2D": {"normal": "extrusion"},
     "Polyline3D": {"normal": "extrusion"},
@@ -693,6 +693,7 @@ def normalize_silver(
     r2007_plus = isinstance(version, str) and version >= "AC1021"
     r2010_plus = isinstance(version, str) and version >= "AC1024"
     r2013_plus = isinstance(version, str) and version >= "AC1027"
+    r2018_plus = isinstance(version, str) and version >= "AC1032"
 
     out: List[Dict[str, Any]] = []
 
@@ -847,6 +848,78 @@ def normalize_silver(
             for sk in ("dwg_minsert", "view_rep_handle", "insertion_pt",
                        "block_name", "x", "y", "z"):
                 payload.pop(sk, None)
+
+        # MTEXT entity (dwg.spec 2881, R2000b+ DWG path): silver uses snake_case
+        # names; gold uses the spec names. Rename + convert + gate.
+        if silver_type == "MText":
+            _MT = {
+                "insertion_point": "ins_pt", "insertion_pt": "ins_pt",
+                "value": "text", "text_value": "text",
+                "height": "text_height",
+                "rectangle_width": "rect_width", "rectangle_height": "rect_height",
+                "drawing_direction": "flow_dir",
+                "line_spacing_factor": "linespace_factor",
+                "line_spacing_style": "linespace_style",
+                "attachment_point": "attachment",
+                "dwg_x_direction": "x_axis_dir",
+                "background_fill_flags": "bg_fill_flag",
+                "background_scale": "bg_fill_scale",
+                "background_color": "bg_fill_color",
+                "background_transparency": "bg_fill_trans",
+            }
+            _MT_ENUM = {
+                "flow_dir": {"ByStyle": 5, "LeftToRight": 1, "TopToBottom": 3},
+                "linespace_style": {"AtLeast": 1, "Exact": 2},
+                "attachment": {"TopLeft": 1, "TopCenter": 2, "TopRight": 3,
+                               "MiddleLeft": 4, "MiddleCenter": 5, "MiddleRight": 6,
+                               "BottomLeft": 7, "BottomCenter": 8, "BottomRight": 9},
+            }
+            _MT_R2000 = {"linespace_style", "linespace_factor", "unknown_b0"}
+            _MT_R2007 = {"rect_height", "bg_fill_flag", "bg_fill_scale",
+                         "bg_fill_color", "bg_fill_trans"}
+            _MT_R2018 = {"column_type", "column_width", "gutter", "auto_height",
+                         "flow_reversed", "num_column_heights", "column_heights",
+                         "numfragments", "column_count", "width", "heights"}
+            for k, v in payload.items():
+                if k in ("common", "handle", "owner", "owner_handle", "reactors",
+                         "xdictionary_handle", "style"):
+                    continue
+                gk = _MT.get(k)
+                if gk is None:
+                # column_data nested struct -> column fields (R2018+)
+                    if k == "column_data" and isinstance(v, dict):
+                        for ck, cv in v.items():
+                            cgk = "column_type" if ck == "column_type" else ck
+                            if cgk in _MT_R2018 and not r2018_plus:
+                                continue
+                            fields[cgk] = normalize_value(cv)
+                    continue
+                if gk in _MT_R2000 and not r2000_plus:
+                    continue
+                if gk in _MT_R2007 and not r2007_plus:
+                    continue
+                if gk in _MT_R2018 and not r2018_plus:
+                    continue
+                if gk in _MT_ENUM:
+                    m = _MT_ENUM[gk]
+                    fields[gk] = m.get(str(v), v) if isinstance(v, str) else v
+                else:
+                    fields[gk] = normalize_value(v)
+            # style handle (R2000+): silver stores the style name; gold has the
+            # handle. The name resolution is a reader gap — leave style missing.
+            payload.pop("style", None)
+            # drop silver-only / gold-omitted fields
+            for kk in ("is_annotative", "dwg_x_direction", "rotation",
+                       "attachment_point", "drawing_direction", "line_spacing_factor",
+                       "line_spacing_style", "background_fill_flags", "background_scale",
+                       "background_color", "background_transparency", "column_data",
+                       "height", "rectangle_width", "rectangle_height"):
+                payload.pop(kk, None)
+            # gold omits these on R13-2017 (R2018+ only): emit only when gated
+            if r2000_plus:
+                fields.setdefault("unknown_b0", 0)
+            if r2004_plus:
+                fields.setdefault("bg_fill_flag", 0)
 
         # POINT entity (dwg.spec 2030, R13+ DWG path): silver stores
         # `location`/`point` (a 3-vector), gold splits into x/y/z scalars
