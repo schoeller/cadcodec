@@ -705,9 +705,15 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** POINT view-independent fields (`x`, `y`,
-   `z`, `extrusion`, `x_ang`, `point` — ~392 each) — the new top read-fidelity
-   divergence after LTYPE (done). Spec `dwg.spec` 2030 `DWG_ENTITY(POINT)`.
+   **Next task (ready to start):** LAYOUT `plotsettings.*` nested plot config
+   (`printer_cfg_file`, `paper_size`, `plot_flags`, margins, … — ~376 each) —
+   the new top read-fidelity divergence after POINT (done). Spec `dwg.spec`
+   5316 `DWG_OBJECT(LAYOUT)` + inline `SUBCLASS (AcDbPlotSettings)`.
+
+   ~~POINT view-independent fields~~ — **DONE (2026-09-18)**: silver
+   `location`/`point` 3-vector split to gold `x`/`y`/`z` scalars, `normal`→
+   `extrusion`, `x_axis_angle`→`x_ang`. Corpus: read 98 639 → 95 503, write
+   89 406 → 87 006.
 
    ~~LTYPE dash patterns~~ — **DONE (2026-09-17)**: silver `elements[]`
    (length+complex) reshaped to gold `dashes[]` (8 fields), `alignment` char→
