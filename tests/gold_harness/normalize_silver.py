@@ -122,7 +122,7 @@ FIELD_NAME_MAP: Dict[str, Dict[str, str]] = {
     "Polyline3D": {"normal": "extrusion"},
     "Spline": {"normal": "extrusion"},
     "Hatch": {"normal": "extrusion"},
-    "Insert": {"normal": "extrusion", "insertion_point": "insertion_pt", "block_name": "name"},
+    "Insert": {"normal": "extrusion"},
     "Block": {"base_point": "base_pt", "name": "name"},
     "BlockEnd": {},
     "Seqend": {},
@@ -780,6 +780,72 @@ def normalize_silver(
             # Drop silver's split fields so they don't appear as extra.
             for sk in ("vertices", "is_closed", "plinegen", "constant_width",
                        "elevation", "thickness", "extrusion"):
+                payload.pop(sk, None)
+
+        # INSERT entity (dwg.spec 735, R2000b+ DWG path): silver stores
+        # insert_point/x_scale/y_scale/z_scale; gold uses ins_pt (3DPOINT),
+        # scale (3BD) + scale_flag (BB). block_header is a handle (not the
+        # name). has_attribs is a B (not dwg_minsert). attributes -> attribs
+        # (handle vector, R2004a+). seqend_handle -> seqend.
+        # NOTE: must run BEFORE the Point block (INSERT also has insert_point).
+        if silver_type == "Insert":
+            ins_pt = payload.get("insert_point")
+            if ins_pt is not None:
+                fields["ins_pt"] = normalize_value(ins_pt)
+                payload.pop("insert_point", None)
+            # scale: silver stores x/y/z scalars; gold uses scale (3BD) +
+            # scale_flag (BB). Recompose.
+            xs = payload.get("x_scale", 1.0)
+            ys = payload.get("y_scale", 1.0)
+            zs = payload.get("z_scale", 1.0)
+            if r2000_plus:
+                # scale_flag: 3=all 1.0, 1=x=1 y/z=DD, 2=all equal, 0=full
+                if xs == 1.0 and ys == 1.0 and zs == 1.0:
+                    fields["scale_flag"] = 3
+                    fields["scale"] = [1.0, 1.0, 1.0]
+                elif xs == ys and xs == zs:
+                    fields["scale_flag"] = 2
+                    fields["scale"] = [xs, ys, zs]
+                elif xs == 1.0:
+                    fields["scale_flag"] = 1
+                    fields["scale"] = [xs, ys, zs]
+                else:
+                    fields["scale_flag"] = 0
+                    fields["scale"] = [xs, ys, zs]
+                for kk in ("x_scale", "y_scale", "z_scale"):
+                    payload.pop(kk, None)
+            # has_attribs: silver stores `attributes` (the ATTRIB entities);
+            # gold has has_attribs (B) + attribs (handle vector, R2004a+).
+            attrs = payload.get("attributes")
+            if isinstance(attrs, list):
+                fields["has_attribs"] = 1 if attrs else 0
+                # attribs is a handle vector (R2004a+); silver's attributes are
+                # the ATTRIB *entities* (not handles). We can't resolve them to
+                # handles here — leave attribs missing so the differ reports
+                # the real gap.
+                payload.pop("attributes", None)
+            # block_header: gold has the handle, silver stores the name. The
+            # name resolution is a reader gap (silver drops the handle); leave
+            # block_header missing so the differ reports the real gap.
+            payload.pop("name", None)
+            # seqend_handle -> seqend (R13b1+)
+            if payload.get("seqend_handle") is not None:
+                fields["seqend"] = normalize_handle_value(payload["seqend_handle"])
+            payload.pop("seqend_handle", None)
+            # num_cols/num_rows/col_spacing/row_spacing: R11-only in gold
+            # (VERSIONS R_2_0b, R_11). Silver always emits them; drop on R13+.
+            if not r2000_plus:
+                for sk, gk in (("column_count", "num_cols"), ("row_count", "num_rows"),
+                               ("column_spacing", "col_spacing"), ("row_spacing", "row_spacing")):
+                    if sk in payload:
+                        fields[gk] = normalize_value(payload[sk])
+                        payload.pop(sk, None)
+            else:
+                for sk in ("column_count", "row_count", "column_spacing", "row_spacing"):
+                    payload.pop(sk, None)
+            # drop silver-only / DXF-only fields so they don't appear as extra
+            for sk in ("dwg_minsert", "view_rep_handle", "insertion_pt",
+                       "block_name", "x", "y", "z"):
                 payload.pop(sk, None)
 
         # POINT entity (dwg.spec 2030, R13+ DWG path): silver stores
