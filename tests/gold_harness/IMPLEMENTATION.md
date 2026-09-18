@@ -732,6 +732,24 @@ Given a diff `(type, field, kind)`:
    normalizer): LAYER.flag0 (raw bitmask not stored), LAYER.ltype (handle not
    stored, only name), LINE.color (default-vs-omit), *_CONTROL.xdicobjhandle.
 
+#### Gold-spec grounding for the reader-gap residuals (verified 2026-09-18)
+
+Every one of the remaining top divergences is **100% spec-known** — the spec
+block and field are located; what blocks them is silver *reader/codec* work,
+not spec uncertainty:
+
+| Divergence | Gold spec | What blocks it |
+|---|---|---|
+| `APPID.name` / `APPID._missing` | `dwg.spec` 4146 `DWG_TABLE(APPID)`; `name` is `COMMON_TABLE_FLAGS` (`spec.h` 755, `FIELD_T(name,2)`) | Silver fabricates `AcCmTransparency`/`AcAecLayerStandard` APPIDs gold lacks → ordinal shift; and silver doesn't parse some APPIDs. Reader gap. |
+| `XRECORD.ownerhandle` | `dwg2.spec` 1117 `DWG_OBJECT(XRECORD)`; `ownerhandle` is `common_object_handle_data.spec` 51 `FIELD_HANDLE(ownerhandle,4,330)` | Silver resolves some XRECORD owners to `UNKNOWN` (unmodeled types). Reader-coverage gap. |
+| `LINE.color` | `common_entity_data.spec` 491 `FIELD_CMC(color,62)` (entity-common) | Gold omits `color` when it equals the default; silver always emits. Default-vs-omit projection. |
+| `LAYER.flag0` | `dwg.spec` 3305 `FIELD_CAST(flag0, RC, BS, 0)` (the raw LAYER flag bitmask) | Silver's reader decomposes the raw bitmask into bools and discards the raw value. Reader gap. |
+| `LAYER.ltype` | `dwg.spec` 3303 `FIELD_HANDLE(ltype,2,6)` | Silver stores `line_type` as a name string, drops the handle. Reader gap. |
+| `UNKNOWN._missing` | `objects.inc` 104 `DWG_ENTITY(UNKNOWN_ENT)`, 320 `DWG_OBJECT(UNKNOWN_OBJ)` — the fallthrough types for unmodeled objects | Silver doesn't model the object type at all (DIMASSOC, EVALUATION_GRAPH, SECTIONVIEWSTYLE, …). Reader coverage. |
+| `*_CONTROL.xdicobjhandle` / `has_ds_data` / `is_xdic_missing` | `common_object_handle_data.spec` `FIELD_HANDLE(xdicobjhandle,…)` | Derivable: `is_xdic_missing` = `xdictionary_handle.is_none()`; `xdicobjhandle` needs the handle. Normalizer+reader. |
+
+All are spec-locatable; the work is reader/codec, not normalizer projection.
+
    ~~MATERIAL map filenames~~ — **DONE (2026-09-18)**: gold's MAT_MAP emits
    `<map>.filename` only when `source==1` (file-based); silver emitted it
    always. Gated on `source==1`. Corpus: read 63 108 → 62 577, write
