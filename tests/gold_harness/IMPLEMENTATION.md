@@ -717,7 +717,10 @@ Given a diff `(type, field, kind)`:
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). Corpus: read
-   29 341 → 27 589, write 29 559 → 27 863.
+   29 341 → 27 589, write 29 559 → 27 863. **Reviewed**: corpus-wide checks
+   clean (z_is_zero 0 mismatches, invis_flags 0 mismatches, 0 leaks). The
+   `has_no_flags` key in silver output is the *projection* (gold has it too) —
+   not a leak.
 
    ~~DIMSTYLE color vars~~ — **SKIPPED (2026-09-18)**: `DIMCLRD`/`DIMCLRE`/
    `DIMCLRT`/`DIMTFILLCLR` are a silver reader gap — the reader stores
