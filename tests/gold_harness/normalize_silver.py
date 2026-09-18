@@ -940,6 +940,27 @@ def normalize_silver(
             if r2004_plus:
                 fields.setdefault("bg_fill_flag", 0)
 
+        # SOLID/TRACE entity (dwg.spec 2274): silver stores first_corner/
+        # second_corner/third_corner/fourth_corner (3D points); gold uses
+        # corner1/corner2/corner3/corner4 (2RD). Silver doesn't store elevation
+        # (gold emits 0.0). thickness matches.
+        if silver_type in ("Solid", "Trace"):
+            _SOL = {"first_corner": "corner1", "second_corner": "corner2",
+                    "third_corner": "corner3", "fourth_corner": "corner4"}
+            for sk, gk in _SOL.items():
+                v = payload.get(sk)
+                if v is not None:
+                    nv = normalize_value(v)
+                    if isinstance(nv, list):
+                        nv = nv[:2]  # gold 2RD
+                    fields[gk] = nv
+                    payload.pop(sk, None)
+            # elevation: gold always emits 0.0; silver doesn't store it.
+            fields.setdefault("elevation", 0.0)
+            # drop silver-only
+            for kk in ("is_trace",):
+                payload.pop(kk, None)
+
         # POINT entity (dwg.spec 2030, R13+ DWG path): silver stores
         # `location`/`point` (a 3-vector), gold splits into x/y/z scalars
         # (BD 10/20/30). Silver `normal` -> gold `extrusion` (BE 210);
