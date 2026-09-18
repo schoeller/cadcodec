@@ -1063,6 +1063,7 @@ impl DwgDocumentBuilder {
                     layer.flags.frozen_in_new_viewport = data.frozen_in_new_vp;
                     layer.flags.locked = data.locked;
                     layer.flags.xref_dependent = data.xref_dependent;
+                    layer.flag0 = data.flag0;
                     layer.is_plottable = data.plottable;
                     layer.line_weight = LineWeight::from_value(data.line_weight);
                     layer.color = data.color;
@@ -1127,6 +1128,9 @@ impl DwgDocumentBuilder {
                         .get(&data.linetype_handle)
                         .cloned()
                         .unwrap_or_else(|| "Continuous".to_string());
+                    // Keep the linetype handle for the gold comparison (the
+                    // normalizer emits `ltype` as a handle dict).
+                    layer.linetype_handle = Handle::from(data.linetype_handle);
                     // Material handle
                     if let Some(mh) = data.material_handle {
                         layer.material = Handle::from(mh);

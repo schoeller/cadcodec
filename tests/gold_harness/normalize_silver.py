@@ -1949,39 +1949,29 @@ def normalize_silver(
                            "xref_dependent", "annotative"):
                     rec.pop(kk, None)
             if record_gold_type == "LAYER":
-                # LAYER (dwg.spec 3298): silver stores a `flags` bit-struct and
-                # color as {Index: n}; gold emits flag0 (the raw RC bitmask) and
-                # color as a plain index int, plus plotstyle (handle).
-                fl = rec.get("flags")
-                if isinstance(fl, dict):
-                    bits = fl.get("unknown_bits", 0) & ~0x7F
-                    for name, bit in (("frozen", 0), ("off", 1), ("frozen_in_new", 2),
-                                      ("locked", 3), ("xref", 4), ("xref_dep", 4),
-                                      ("xref_resolved", 5), ("xref_ref", 6),
-                                      ("frozen_in_new_vp", 2)):
-                        if fl.get(name):
-                            bits |= (1 << bit)
-                    fields["flag0"] = bits
-                    rec.pop("flags", None)
+                # LAYER (dwg.spec 3298): silver stores flag0 (raw bitmask) and
+                # linetype_handle on the struct; project them. color {Index:n}
+                # -> int. plotstyle_handle -> plotstyle (handle-wrap).
+                if "flag0" in rec:
+                    fields["flag0"] = rec["flag0"]
+                    rec.pop("flag0", None)
                 col = rec.get("color")
                 if isinstance(col, dict) and "Index" in col:
                     fields["color"] = col["Index"]
                     rec.pop("color", None)
-                # plotstyle: silver stores plotstyle_handle; gold plotstyle.
                 if "plotstyle_handle" in rec:
                     fields["plotstyle"] = normalize_handle_value(rec["plotstyle_handle"])
                     rec.pop("plotstyle_handle", None)
-                # ltype: silver stores line_type as a NAME string and drops the
-                # handle (linetype_handle is null). Gold emits the handle dict.
-                # This is a silver READER gap — the normalizer can't recover the
-                # handle from a name without a lookup. Leave it missing so the
-                # differ reports the real gap.
-                if "line_type" in rec:
-                    rec.pop("line_type", None)
+                # ltype: silver stores line_type (name) + linetype_handle. Gold
+                # emits the handle dict. Project the handle.
+                if "linetype_handle" in rec:
+                    fields["ltype"] = normalize_handle_value(rec["linetype_handle"])
+                    rec.pop("linetype_handle", None)
                 # drop silver-only
                 for kk in ("plotstyle", "ltype", "plot_style", "book_name", "color_name",
                            "description", "is_plottable", "transparency",
-                           "xref_block_record_handle"):
+                           "xref_block_record_handle", "material", "material_handle",
+                           "flags", "line_type"):
                     rec.pop(kk, None)
                 # material: gold emits it as a handle dict (code 5); silver
                 # stores the raw Handle int. Wrap it (R2007a+).

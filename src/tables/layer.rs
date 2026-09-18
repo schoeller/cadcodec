@@ -95,6 +95,14 @@ pub struct Layer {
     pub plotstyle_handle: Handle,
     /// External reference block record handle (for xref-dependent layers)
     pub xref_block_record_handle: Handle,
+    /// Linetype handle (the handle the name `line_type` resolves to). Stored
+    /// so the gold comparison can emit `ltype` as a handle dict.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub linetype_handle: Handle,
+    /// Gold's flag0: the raw bitmask from the R2000+ BS read (the decomposed
+    /// bools above lose it). Stored so the normalizer can emit it.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub flag0: i16,
 }
 
 impl Layer {
@@ -116,6 +124,8 @@ impl Layer {
             material: Handle::NULL,
             plotstyle_handle: Handle::NULL,
             xref_block_record_handle: Handle::NULL,
+            linetype_handle: Handle::NULL,
+            flag0: 0,
         }
     }
 
@@ -137,6 +147,8 @@ impl Layer {
             material: Handle::NULL,
             plotstyle_handle: Handle::NULL,
             xref_block_record_handle: Handle::NULL,
+            linetype_handle: Handle::NULL,
+            flag0: 0,
         }
     }
 

@@ -86,6 +86,9 @@ pub struct LayerData {
     pub material_handle: Option<u64>,
     pub linetype_handle: u64,
     pub unknown_handle: Option<u64>,
+    /// Gold's flag0: the raw bitmask from the R2000+ BS read (discarded by the
+    /// decomposed bools above). Stored so the normalizer can emit it.
+    pub flag0: i16,
 }
 
 /// Parsed text STYLE data.
@@ -515,6 +518,7 @@ pub fn read_layer(
     let locked;
     let mut plottable = false;
     let mut line_weight: i16 = 0;
+    let mut flag0: i16 = 0;
 
     if version.r2000_plus() {
         let values = reader.read_bit_short();
@@ -525,6 +529,8 @@ pub fn read_layer(
         frozen_in_new_vp = (values & 0b0100) != 0;
         locked = (values & 0b1000) != 0;
         plottable = (values & 0b10000) != 0;
+        // Gold's flag0 is the raw bitmask; store it so the normalizer can emit it.
+        flag0 = values;
     } else {
         frozen = reader.read_bit();
         off = reader.read_bit(); // off flag (0=on, 1=off, same as R2000+)
@@ -578,6 +584,7 @@ pub fn read_layer(
         material_handle,
         linetype_handle,
         unknown_handle,
+        flag0,
     }
 }
 
