@@ -715,8 +715,12 @@ Given a diff `(type, field, kind)`:
    margins, 2D point pairs, plot_flags bits via silver's to_bits layout,
    shadeplot R2004a+/R2007a+, EXTMIN/EXTMAX/INSBASE/LIMMIN/LIMMAX/UCS*
    renames, handle wraps). Corpus: read 95 503 → 63 185, write 87 006 → 55 208.
-   Residuals (real gaps): plotsettings.shadeplot (silver null), has_ds_data,
-   plotview/plotview_name (VIEW ordinal), viewports.
+   **Reviewed** (7ef5a1b → HEAD, 76 pairs): 88 391 → 68 135 → 63 108;
+   plot_flags recomposition 0 mismatches, name swap 0 mismatches, 2D pairs
+   within tolerance (f64 rounding), no leaks. One overshoot fixed:
+   plotsettings.plotview is R2004a+ in gold, now gated. Residuals (real gaps):
+   plotsettings.shadeplot (silver null handle), has_ds_data, plotview_name
+   (DXF-only), viewports.
 
    ~~POINT view-independent fields~~ — **DONE (2026-09-18)**: silver
    `location`/`point` 3-vector split to gold `x`/`y`/`z` scalars, `normal`→
