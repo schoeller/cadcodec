@@ -256,18 +256,20 @@ A zero-context agent begins here. Read in order, on demand:
    §8.1.1 context budget → §8.1.2 packet → §8.1.3 decision tree → §8.1.4 fix
    recipe → §8.1.6 work queue → §8.1.6a coverage audit → §8.1.7 prohibitions).
 2. **The work queue** §8.1.6 — the next packet is named there with its full
-   diagnosis (currently VPORT/VIEWPORT view-params; BLOCK_HEADER is done).
-   Per-packet cold-start briefs are written as `NEXT_<PACKET>.md` beside this
-   file when a packet needs one (e.g. `NEXT_OWNERHANDLE.md` — now DONE); if
-   none exists for the current packet, §8.1.6 is sufficient.
+   diagnosis (currently MATERIAL map filenames; BLOCK_HEADER, VPORT, VIEWPORT,
+   VIEW, LTYPE, POINT, LAYOUT are done). Per-packet cold-start briefs are
+   written as `NEXT_<PACKET>.md` beside this file when a packet needs one
+   (e.g. `NEXT_OWNERHANDLE.md` — now DONE); if none exists for the current
+   packet, §8.1.6 is sufficient.
 3. **Verify the environment** with §8.1.0 before editing.
 
 **Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids/
-BLOCK_HEADER, commit c8fd18d, 2026-09-17):** read-fidelity **112 493**,
-write-fidelity **102 857**, across 125 corpus files (110 unique dirs; counts
-inflated by the stem-collision issue below). `cargo test --features serde` =
-1556 passed / 0 failed; `cargo test --features gold-harness --test
-gold_roundtrip` = ok.
+BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT packets, 2026-09-18):**
+read-fidelity **63 108**, write-fidelity **55 131**, across 125 corpus files
+(110 unique dirs; counts inflated by the stem-collision issue below). `cargo
+test --features serde` = 1556 passed / 0 failed; `cargo test --features
+gold-harness --test gold_roundtrip` = ok. Update these numbers after each
+packet lands.
 
 **Things that will look broken but are not (do not "fix" them):**
 - **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
@@ -635,7 +637,7 @@ Given a diff `(type, field, kind)`:
 > **Reading the counts:** corpus `report.md`/`report.json` counts are
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
-> file before committing to a packet. Baseline: read 112 493 / write 102 857.
+> file before committing to a packet. Baseline: read 63 108 / write 55 131.
 
 1. ~~Table-record storage fields~~ — **done** for the uniform set (see §7).
    What remains is per-record **payload**, one packet per table type:
@@ -928,11 +930,12 @@ This census is exhaustive for the current corpus: every `(type, field)` row in
 `report.json` belongs to one of the clusters above or the top list. When a new
 cluster appears after a corpus run, add it here before working it.
 
-*Ordering guidance:* after BLOCK_HEADER, the highest-value normalizer-only
-packets are the naming/shape clusters (VPORT/VIEWPORT, MTEXT, INSERT, POINT,
-STYLE, LTYPE dashes, 3DFACE, SOLID, ELLIPSE). MLEADERSTYLE and TABLESTYLE are
-large but mechanical. LAYOUT and 3DSOLID/ACIS and the `*._missing` coverage
-require reader/storage work.
+*Ordering guidance:* the naming/shape clusters are mostly done (VPORT/
+VIEWPORT/VIEW, LTYPE, POINT, LAYOUT, BLOCK_HEADER). Remaining normalizer-only
+work: MATERIAL map filenames (`refractionmap.filename`, ~372), MTEXT/INSERT/
+STYLE/3DFACE/SOLID/ELLIPSE naming, and the `*_CONTROL` handle fields.
+MLEADERSTYLE and TABLESTYLE are large but mechanical (nested structs). The
+`*._missing` coverage and 3DSOLID/ACIS require reader/storage work.
 
 #### Nested (dotted) field paths — how gold defines them
 
