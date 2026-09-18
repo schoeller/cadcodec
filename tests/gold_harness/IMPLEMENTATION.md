@@ -723,11 +723,12 @@ Given a diff `(type, field, kind)`:
    ~~LAYER flag0/ltype~~ — **DONE (2026-09-18)**: the first reader packet.
    Silver's LAYER reader reads the R2000+ flag bitmask but discards the raw
    value (gold's flag0); silver resolves the linetype to a name but drops the
-   handle. Store both on LayerData/Layer. Corpus: read 27 589 → 27 214, write
-   27 863 → 27 498. **The reader-gap phase has begun.** **Reviewed**: corpus-wide checks
-   clean (z_is_zero 0 mismatches, invis_flags 0 mismatches, 0 leaks). The
-   `has_no_flags` key in silver output is the *projection* (gold has it too) —
-   not a leak.
+   handle. Store both on LayerData/Layer. Corpus: read 27 589 → 27 019, write
+   27 863 → 27 313. **The reader-gap phase has begun.** **Reviewed** (ad4d835 →
+   HEAD, 76 pairs): 31 624 → 31 190, 278 added rows all `LAYER.material`
+   (generic-loop leak on pre-R2007 — the pop was inside the R2007 gate; fixed
+   by popping unconditionally, f9b86ec). Corpus-wide checks clean: flag0 0
+   mismatches, ltype 0 mismatches.
 
    ~~DIMSTYLE color vars~~ — **SKIPPED (2026-09-18)**: `DIMCLRD`/`DIMCLRE`/
    `DIMCLRT`/`DIMTFILLCLR` are a silver reader gap — the reader stores
