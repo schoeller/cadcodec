@@ -707,10 +707,15 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** MATERIAL map filenames
-   (`refractionmap.filename`, ~372) and the CMC color residuals — the new top
-   read-fidelity divergences after LAYOUT (done). MATERIAL spec `dwg2.spec`
-   2769.
+   **Next task (ready to start):** `*_CONTROL` handle fields
+   (`LAYER.flag0`/`color`/`plotstyle`, `LINE.color`, `STYLE.is_shape`/
+   `text_size` — ~255 each) — the new top read-fidelity divergences after
+   MATERIAL (done). These are the table-record/control-object fields.
+
+   ~~MATERIAL map filenames~~ — **DONE (2026-09-18)**: gold's MAT_MAP emits
+   `<map>.filename` only when `source==1` (file-based); silver emitted it
+   always. Gated on `source==1`. Corpus: read 63 108 → 62 577, write
+   55 131 → 54 648.
 
    ~~LAYOUT plotsettings.*~~ — **DONE (2026-09-18)**: full nested plot-config
    projection (printer_cfg_file/paper_size/canonical_media_name three-way swap,
