@@ -707,9 +707,17 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** MTEXT entity fields (`ins_pt`, ~183) — the
-   new top normalizer-only divergence after ELLIPSE (done). Spec `dwg.spec`
-   2881 `DWG_ENTITY(MTEXT)`.
+   **Next task (ready to start):** the remaining reader-gap fields
+   (`XRECORD.ownerhandle`, `LINE.color`/`POINT.color` dict cases,
+   `LAYER.flag0`/`ltype`, `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`,
+   `INSERT.block_header`/`attribs`/`first_attrib`/`last_attrib`,
+   `MTEXT.style`, `DIMSTYLE.DIMCLRD/E/T/DIMTFILLCLR`). These need silver
+   READER/codec changes. The normalizer-only work is exhausted.
+
+   ~~MTEXT entity~~ — **DONE (2026-09-18)**: full projection (renames, enum
+   string→int maps, column_data nested → column fields, version gates).
+   Corpus: read 35 155 → 30 737, write 34 294 → 30 685. Residual (real gap):
+   style (silver stores the style name, not the handle).
 
    ~~ELLIPSE~~ — **DONE (2026-09-18)**: FIELD_NAME_MAP fix — silver's
    `major_axis`→`sm_axis`, `minor_axis_ratio`→`axis_ratio` (the map had the
