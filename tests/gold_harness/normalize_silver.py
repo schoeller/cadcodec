@@ -97,7 +97,10 @@ OBJECT_TYPE_MAP: Dict[str, str] = {
     "WipeoutVariables": "WIPEOUTVARIABLES",
     "BlockVisibilityParameter": "BLOCKVISIBILITYPARAMETER",
     "DynamicBlock": "UNKNOWN",
-    "Associative": "UNKNOWN",
+    # "Associative" is NOT mapped to a single gold type: the variant wraps many
+    # ASSOC*/DIMASSOC/PERSUBENTMGR classes distinguished by payload.dxf_name.
+    # The object loop resolves the gold type from dxf_name (see below). Mapping
+    # the whole bucket to UNKNOWN would discard every parsed DIMASSOC.
     "ClassObject": "UNKNOWN",
     "DataObject": "UNKNOWN",
     "Field": "FIELD",
@@ -107,6 +110,27 @@ OBJECT_TYPE_MAP: Dict[str, str] = {
     "ProxyObject": "UNKNOWN",
     "Unknown": "UNKNOWN",
 }
+
+
+def _associative_gold_name(dxf_name: str) -> str:
+    """Map silver's stored class-table dxf_name to gold's canonical spec name.
+
+    Silver keeps the DWG class-table DXF name (e.g. ACDBASSOCACTION,
+    ACDBPERSSUBENTMANAGER, ACDBDIMASSOC); gold (libredwg) registers and emits
+    these objects under their canonical spec names (ASSOCACTION, PERSUBENTMGR,
+    DIMASSOC). Mirror the silver reader's `associative_canonical_name`.
+    """
+    upper = dxf_name.upper()
+    if upper.startswith("ACDBASSOC"):
+        upper = "ASSOC" + upper[len("ACDBASSOC"):]
+    # Aliases seen in class tables without the doubled letter.
+    if upper == "ASSOCALIGNEDIMACTIONBODY":
+        return "ASSOCALIGNEDDIMACTIONBODY"
+    if upper == "ACDBPERSSUBENTMANAGER":
+        return "PERSUBENTMGR"
+    if upper == "ACDBDIMASSOC":
+        return "DIMASSOC"
+    return upper
 
 # Per-silver-type field-name overrides to match gold vocabulary.
 FIELD_NAME_MAP: Dict[str, Dict[str, str]] = {
@@ -1231,10 +1255,22 @@ def normalize_silver(
         if not isinstance(obj, dict) or len(obj) != 1:
             continue
         silver_type = list(obj.keys())[0]
-        gold_type = OBJECT_TYPE_MAP.get(silver_type, silver_type.upper())
         payload = obj[silver_type]
         if not isinstance(payload, dict):
             continue
+        if silver_type == "Associative":
+            # Resolve DIMASSOC from the payload's dxf_name; silver's reader
+            # parses it fully, so emit it under its real gold type instead of
+            # flattening to UNKNOWN. The remaining ASSOC*/PERSUBENTMGR classes
+            # are NOT yet field-projected — emitting them under canonical names
+            # would surface many field-level gaps — so keep them as UNKNOWN
+            # until their per-type projection packets land.
+            if _associative_gold_name(payload.get("dxf_name") or "") == "DIMASSOC":
+                gold_type = "DIMASSOC"
+            else:
+                gold_type = "UNKNOWN"
+        else:
+            gold_type = OBJECT_TYPE_MAP.get(silver_type, silver_type.upper())
         _inject_reactors(payload)
         fields = _object_common_fields(payload)
         if r2004_plus:
@@ -1246,6 +1282,17 @@ def normalize_silver(
             fields["has_ds_data"] = 0
         if silver_type == "VisualStyle":
             _map_visual_style(payload, fields)
+        assoc_data = None
+        if silver_type == "Associative":
+            # Every Associative payload wraps its parsed data under `data` plus
+            # class-name metadata (`dxf_name`/`cpp_class_name`/`source_version`)
+            # that gold does not serialize. Capture `data` for the per-type
+            # projection below, then drop it and the metadata so the generic
+            # loop cannot re-emit them as extra_in_silver (this runs for ALL
+            # Associative subtypes, including the UNKNOWN-typed ones).
+            assoc_data = payload.get("data")
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
         if silver_type == "Scale":
             # Gold stores a raw `flag` BS (bit 0x01 = temporary) and does NOT
             # emit the derived `is_temporary` bool; silver stores only the
@@ -1253,6 +1300,60 @@ def normalize_silver(
             # payload loop cannot re-emit it (extra_in_silver on every SCALE).
             is_temp = bool(payload.pop("is_temporary", False))
             fields.setdefault("flag", 1 if is_temp else 0)
+        if silver_type == "Associative" and gold_type == "DIMASSOC":
+            # Gold (dwg2.spec 3653 DWG_OBJECT(DIMASSOC)): associativity (BLx),
+            # trans_space_flag (B), rotated_type (RC), dimensionobj (handle 4,
+            # 330), then a fixed 6-slot `ref` array of AcDbOsnapPointRef blocks.
+            # Silver stores the parsed data nested under
+            # data.DimensionAssociation with snake_case names and a
+            # per-associativity-slot list-of-lists; project to gold's flat,
+            # slot-padded shape. unknown_bits (the HANDLE_UNKNOWN_BITS raw hex)
+            # is NOT stored by silver and is left missing_in_silver.
+            da = (assoc_data or {}).get("DimensionAssociation", {})
+            if da:
+                fields["associativity"] = da.get("associativity", 0)
+                fields["trans_space_flag"] = 1 if da.get("trans_space") else 0
+                fields["rotated_type"] = da.get("rotated_type", 0)
+                if da.get("dimension") is not None:
+                    fields["dimensionobj"] = normalize_handle_value(da["dimension"])
+                # Gold's `ref` array is indexed by the associativity bit position
+                # (dwg2.spec 3661 REPEAT_CN(6, ref): bit rcount1 -> ref[rcount1]),
+                # so ref[1] holds the bit-1 (associativity&2) reference and unset
+                # slots serialize as empty objects. Silver stores the same slot
+                # layout in references: [Vec; 4], already keyed by bit position —
+                # project each slot IN PLACE, preserving its index. Do NOT flatten
+                # and re-pack (that shifts slot1 refs to index 0).
+                refs = []
+                for slot in da.get("references", []):
+                    if isinstance(slot, list) and slot:
+                        # One OsnapPointRef per slot in the corpus (the on-disk
+                        # continuation bit can chain more, but none appear here).
+                        r = slot[0]
+                        gr = {
+                            "classname": r.get("class_name", ""),
+                            "osnap_type": r.get("osnap_type", 0),
+                            "xrefs": [normalize_handle_value(h) for h in r.get("xrefs", [])],
+                            "osnap_dist": normalize_float(r.get("osnap_distance", 0.0)),
+                            "osnap_pt": normalize_value(r.get("osnap_point", [0.0, 0.0, 0.0])),
+                            "has_lastpt_ref": 1 if r.get("has_last_point_reference") else 0,
+                        }
+                        if r.get("osnap_type"):
+                            gr["main_subent_type"] = r.get("main_subent_type", 0)
+                            gr["main_gsmarker"] = r.get("main_gs_marker", 0)
+                            gr["xrefpaths"] = r.get("xref_paths", [])
+                        if r.get("osnap_type") in (6, 11):
+                            gr["intsectobj"] = [normalize_handle_value(h) for h in r.get("intersection_objects", [])]
+                            gr["intersec_subent_type"] = r.get("intersection_subent_type", 0)
+                            gr["intersec_gsmarker"] = r.get("intersection_gs_marker", 0)
+                            gr["intersec_xrefpaths"] = r.get("intersection_xref_paths", [])
+                        refs.append(gr)
+                    else:
+                        refs.append({})
+                while len(refs) < 6:
+                    refs.append({})
+                fields["ref"] = refs[:6]
+            # `data` + metadata were already popped by the general Associative
+            # block above (assoc_data was captured before the pop).
         if silver_type == "XRecord":
             # Gold: xdata_size (BL), xdata (raw entry list), cloning (BS,
             # SINCE R_2000b). Silver: name (derived), cloning_flags (enum),

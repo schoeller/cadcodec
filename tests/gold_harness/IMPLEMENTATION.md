@@ -256,19 +256,17 @@ A zero-context agent begins here. Read in order, on demand:
    §8.1.1 context budget → §8.1.2 packet → §8.1.3 decision tree → §8.1.4 fix
    recipe → §8.1.6 work queue → §8.1.6a coverage audit → §8.1.7 prohibitions).
 2. **The work queue** §8.1.6 — the next packet is named there with its full
-   diagnosis (currently UNKNOWN._missing / DIMASSOC — the unmodeled-object
-   coverage class; all normalizer-only work is done). Per-packet cold-start
-   briefs are written as `NEXT_<PACKET>.md` beside this file when a packet
-   needs one (e.g. `NEXT_OWNERHANDLE.md` — now DONE); if none exists for the
-   current packet, §8.1.6 is sufficient.
+   diagnosis. Per-packet cold-start briefs are written as `NEXT_<PACKET>.md`
+   beside this file when a packet needs one (e.g. `NEXT_OWNERHANDLE.md` — now
+   DONE); if none exists for the current packet, §8.1.6 is sufficient.
 3. **Verify the environment** with §8.1.0 before editing.
 
 **Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids/
 BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
-LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype packets,
-2026-09-18):** read-fidelity **27 019**, write-fidelity **27 313**, across 125
-corpus files (110 unique dirs; counts inflated by the stem-collision issue
-below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
+LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
+packets, 2026-09-18):** read-fidelity **26 980**, write-fidelity **27 282**,
+across 125 corpus files (110 unique dirs; counts inflated by the stem-collision
+issue below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
@@ -708,14 +706,42 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** `UNKNOWN._missing` (933) — the unmodeled-
-   object coverage class. Each unmodeled type is its own reader packet.
-   Cleanest single: **DIMASSOC** (dimension-association object on every
-   dimension entity). Spec `dwg2.spec` 3653 `DWG_OBJECT(DIMASSOC)`. Silver has
-   `read_dimension_association` in `associative.rs` but the object type
-   dispatch doesn't route to it — DIMASSOC objects are read as UNKNOWN_OBJ.
-   The fix: route DIMASSOC to the associative reader in the object type
-   dispatch, add a `DimensionAssociation` object struct, and emit it.
+   ~~DIMASSOC~~ — **DONE (2026-09-18)**: turned out to be a **normalizer**
+   packet, not a reader packet. Silver's reader was already fully wired
+   (`read_dimension_association` `object_reader/associative.rs:480`, routed at
+   `:1255`, builder dispatch `dwg_document_builder.rs:5928`, class registered in
+   `classes/mod.rs`); the gap was `OBJECT_TYPE_MAP` flattening the whole
+   `Associative` variant to `UNKNOWN`. Projected DIMASSOC to gold's shape
+   (dwg2.spec 3653): `associativity`/`trans_space_flag`/`rotated_type`/
+   `dimensionobj` scalars + the fixed 6-slot `ref` array (sub-fields renamed
+   class_name→classname, main_gs_marker→main_gsmarker, osnap_distance→
+   osnap_dist, osnap_point→osnap_pt, has_last_point_reference→has_lastpt_ref).
+   **The `ref` array is indexed by the associativity BIT position** (spec
+   REPEAT_CN(6, ref): bit rcount1 → ref[rcount1]); silver's `references: [Vec;4]`
+   is already slot-keyed, so project each slot in place — flatten-then-repack
+   misaligns slot-1 refs to index 0 (caught by field-by-field verification, not
+   by the differ, since `unknown_bits` forces a diff on those records anyway).
+   Added `_associative_gold_name` (mirrors the reader's
+   `associative_canonical_name`) but scoped the typed emission to DIMASSOC only
+   — emitting all ASSOC* under canonical names surfaces their unprojected
+   field-level gaps (net-negative). Corpus: read 27 019 → 26 980, write 27 313
+   → 27 282. **Verified field-by-field against gold on all 6 versions: every
+   normalizer-mappable field (associativity/trans_space_flag/rotated_type/
+   osnap_*/main_*/xrefpaths/classname/ref-slot positions) matches 100%.**
+   Residuals (separate packets, all reader-coverage not normalizer):
+   `DIMASSOC.unknown_bits` (gold-only HANDLE_UNKNOWN_BITS verbatim hex, silver
+   stores no raw remainder), `DIMASSOC.dimensionobj` (resolves to gold's
+   DIMENSION_* subtypes; silver has one Dimension variant — §9), and
+   `ref[].xrefs` second elements resolving to VERTEX_3D (silver stores vertices
+   inside the parent polyline — §10).
+
+   **Next task (ready to start):** the remaining `UNKNOWN._missing` (871) /
+   ASSOC*._missing unmodeled-object coverage class. Each unmodeled type is its
+   own reader packet; the DIMASSOC projection pattern (resolve dxf_name in the
+   normalizer once the reader stores the object) is the template for the
+   already-read ASSOC* types. Largest remaining ASSOC clusters in the report:
+   ASSOCDEPENDENCY (36), ASSOCGEOMDEPENDENCY (34), ASSOCVARIABLE (22),
+   ASSOCDIMDEPENDENCYBODY (18), ASSOCVALUEDEPENDENCY (18), ASSOCNETWORK (17).
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). Corpus: read
@@ -952,11 +978,17 @@ empirically against the corpus (not just the diff report):
 class): all `ACSH_*` (11), all `ASSOC*` (16), `VERTEX_2D/3D/MESH/PFACE/
 PFACE_FACE` (silver stores vertices inside the parent polyline — §10),
 `DIMENSION_*` subtypes (silver has one `Dimension` variant — §9), `SEQEND`,
-`ATTRIB`, `DIMASSOC`, `EVALUATION_GRAPH`, `SECTIONVIEWSTYLE`/`DETAILVIEWSTYLE`,
+`ATTRIB`, `EVALUATION_GRAPH`, `SECTIONVIEWSTYLE`/`DETAILVIEWSTYLE`,
 `PROXY_OBJECT`, `SUN`, `TRACE`, `BLOCK*ACTION`/`BLOCK*PARAMETER`/`BLOCK*GRIP`,
 `RENDER*`/`MENTALRAY*`/`RAPIDRT*`, `PDF*/UNDERLAY`, `UNKNOWN_ENT/OBJ`, and the
 `SECTION_*`/`LAYOUTPRINTCONFIG`/`CELLSTYLEMAP`/… singles. Each is a
-`FOO._missing`/`FOO._count` row in the report.
+`FOO._missing`/`FOO._count` row in the report. ~~`DIMASSOC`~~ — **DONE
+(2026-09-18)**: not a reader gap; silver read it all along. The gap was the
+`Associative`→`UNKNOWN` normalizer flatten. Note the ASSOC* `_missing` rows in
+the report are the *normalizer* coverage gap (silver reads them into
+`Associative`, the normalizer keeps them UNKNOWN until each field projection
+lands) — the reader dispatch for ASSOC* already exists
+(`object_reader/associative.rs::read_associative_data`).
 
 *The 703 missing fields on shared types* are dominated by: LAYOUT/PLOTSETTINGS
 (nested plot config), TABLESTYLE `sty/ovr cellstyle.*` nested structs,
