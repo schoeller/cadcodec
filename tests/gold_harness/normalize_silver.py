@@ -875,7 +875,7 @@ def normalize_silver(
                                "BottomLeft": 7, "BottomCenter": 8, "BottomRight": 9},
             }
             _MT_R2000 = {"linespace_style", "linespace_factor", "unknown_b0"}
-            _MT_R2007 = {"rect_height", "bg_fill_flag", "bg_fill_scale",
+            _MT_R2007 = {"rect_height", "bg_fill_scale",
                          "bg_fill_color", "bg_fill_trans"}
             _MT_R2018 = {"column_type", "column_width", "gutter", "auto_height",
                          "flow_reversed", "num_column_heights", "column_heights",
@@ -911,10 +911,29 @@ def normalize_silver(
             # drop silver-only / gold-omitted fields
             for kk in ("is_annotative", "dwg_x_direction", "rotation",
                        "attachment_point", "drawing_direction", "line_spacing_factor",
-                       "line_spacing_style", "background_fill_flags", "background_scale",
-                       "background_color", "background_transparency", "column_data",
-                       "height", "rectangle_width", "rectangle_height"):
+                       "line_spacing_style", "column_data",
+                       "height", "rectangle_width", "rectangle_height",
+                       "background_scale", "background_color",
+                       "background_transparency"):
                 payload.pop(kk, None)
+            # version-gated drops (gold omits these on older versions)
+            if not r2004_plus:
+                for kk in ("background_fill_flags",):
+                    payload.pop(kk, None)
+            if not r2007_plus:
+                for kk in ("background_scale", "background_color",
+                           "background_transparency", "rect_height"):
+                    payload.pop(kk, None)
+            if not r2018_plus:
+                for kk in ("column_type", "column_count", "flow_reversed",
+                           "auto_height", "width", "gutter", "heights",
+                           "num_column_heights", "column_heights", "numfragments"):
+                    payload.pop(kk, None)
+            # bg_fill_flag is R2004a+ (FIELD_BL0 90); silver stores
+            # background_fill_flags. Project it.
+            if r2004_plus and "background_fill_flags" in payload:
+                fields["bg_fill_flag"] = payload["background_fill_flags"]
+                payload.pop("background_fill_flags", None)
             # gold omits these on R13-2017 (R2018+ only): emit only when gated
             if r2000_plus:
                 fields.setdefault("unknown_b0", 0)
