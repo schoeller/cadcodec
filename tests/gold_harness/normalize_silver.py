@@ -1538,6 +1538,67 @@ def normalize_silver(
                 # silver struct doesn't store it. Gold always has it as 0 for
                 # ordinary styles.
                 fields.setdefault("flag0", 0)
+            if record_gold_type == "STYLE":
+                # STYLE (dwg.spec 3479): silver stores is_shape_file / height;
+                # gold uses is_shape / text_size. Project.
+                if "is_shape_file" in rec:
+                    fields["is_shape"] = 1 if rec["is_shape_file"] else 0
+                if "height" in rec:
+                    fields["text_size"] = normalize_value(rec["height"])
+                # is_vertical: silver stores it; gold emits it (R2000+).
+                if r2000_plus and "is_vertical" in rec:
+                    fields["is_vertical"] = 1 if rec["is_vertical"] else 0
+                # generation: silver stores flags dict; gold emits a plain RC.
+                # bigfont_file: silver stores big_font_file; gold bigfont_file.
+                if "big_font_file" in rec:
+                    fields["bigfont_file"] = rec["big_font_file"]
+                    rec.pop("big_font_file", None)
+                fl = rec.get("flags")
+                if isinstance(fl, dict):
+                    gen = 0
+                    if fl.get("backward"): gen |= 2
+                    if fl.get("upside_down"): gen |= 4
+                    fields["generation"] = gen
+                    rec.pop("flags", None)
+                # drop silver-only
+                for kk in ("is_shape_file", "height", "true_type_font", "is_vertical",
+                           "xref_dependent", "annotative"):
+                    rec.pop(kk, None)
+            if record_gold_type == "LAYER":
+                # LAYER (dwg.spec 3298): silver stores a `flags` bit-struct and
+                # color as {Index: n}; gold emits flag0 (the raw RC bitmask) and
+                # color as a plain index int, plus plotstyle (handle).
+                fl = rec.get("flags")
+                if isinstance(fl, dict):
+                    bits = fl.get("unknown_bits", 0) & ~0x7F
+                    for name, bit in (("frozen", 0), ("off", 1), ("frozen_in_new", 2),
+                                      ("locked", 3), ("xref", 4), ("xref_dep", 4),
+                                      ("xref_resolved", 5), ("xref_ref", 6),
+                                      ("frozen_in_new_vp", 2)):
+                        if fl.get(name):
+                            bits |= (1 << bit)
+                    fields["flag0"] = bits
+                    rec.pop("flags", None)
+                col = rec.get("color")
+                if isinstance(col, dict) and "Index" in col:
+                    fields["color"] = col["Index"]
+                    rec.pop("color", None)
+                # plotstyle: silver stores plotstyle_handle; gold plotstyle.
+                if "plotstyle_handle" in rec:
+                    fields["plotstyle"] = normalize_handle_value(rec["plotstyle_handle"])
+                    rec.pop("plotstyle_handle", None)
+                # ltype: silver stores line_type as a NAME string and drops the
+                # handle (linetype_handle is null). Gold emits the handle dict.
+                # This is a silver READER gap — the normalizer can't recover the
+                # handle from a name without a lookup. Leave it missing so the
+                # differ reports the real gap.
+                if "line_type" in rec:
+                    rec.pop("line_type", None)
+                # drop silver-only
+                for kk in ("plotstyle", "ltype", "plot_style", "book_name", "color_name",
+                           "description", "is_plottable", "transparency",
+                           "xref_block_record_handle", "material", "material_handle"):
+                    rec.pop(kk, None)
             for k, v in rec.items():
                 if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                     continue
