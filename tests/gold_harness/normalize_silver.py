@@ -132,7 +132,8 @@ FIELD_NAME_MAP: Dict[str, Dict[str, str]] = {
     "MLine": {"normal": "extrusion"},
     "Helix": {"normal": "extrusion"},
     "Solid": {"normal": "extrusion"},
-    "Face3D": {"normal": "extrusion"},
+    "Face3D": {"normal": "extrusion", "first_corner": "corner1", "second_corner": "corner2",
+               "third_corner": "corner3", "fourth_corner": "corner4"},
     "Viewport": {"normal": "extrusion"},
     "Tolerance": {"normal": "extrusion"},
     "AttributeDefinition": {"normal": "extrusion"},
@@ -959,6 +960,72 @@ def normalize_silver(
             # real value. Leave it missing so the differ reports the real gap.
             # drop silver-only
             for kk in ("is_trace",):
+                payload.pop(kk, None)
+
+        # SOLID/TRACE entity (dwg.spec 2274): silver stores first_corner/
+        # second_corner/third_corner/fourth_corner (3D points); gold uses
+        # corner1/corner2/corner3/corner4 (2RD). Silver doesn't store elevation
+        # (gold emits 0.0). thickness matches.
+        if silver_type in ("Solid", "Trace"):
+            _SOL = {"first_corner": "corner1", "second_corner": "corner2",
+                    "third_corner": "corner3", "fourth_corner": "corner4"}
+            for sk, gk in _SOL.items():
+                v = payload.get(sk)
+                if v is not None:
+                    nv = normalize_value(v)
+                    if isinstance(nv, list):
+                        nv = nv[:2]  # gold 2RD
+                    fields[gk] = nv
+                    payload.pop(sk, None)
+            # elevation: silver doesn't store it (reader gap); gold emits the
+            # real value. Leave it missing so the differ reports the real gap.
+            # drop silver-only
+            for kk in ("is_trace",):
+                payload.pop(kk, None)
+
+        # 3DFACE entity (dwg.spec 2057): silver stores first_corner/
+        # second_corner/third_corner/fourth_corner (3D points); gold uses
+        # corner1/corner2/corner3/corner4 (3DPOINT). invis_flags: silver stores
+        # invisible_edges {bits: n}; gold emits invis_flags (BS 70) when
+        # has_no_flags is false.
+        if silver_type == "Face3D":
+            _F3 = {"first_corner": "corner1", "second_corner": "corner2",
+                   "third_corner": "corner3", "fourth_corner": "corner4"}
+            # read corner1 before popping (needed for z_is_zero below)
+            c1 = payload.get("first_corner")
+            for sk, gk in _F3.items():
+                v = payload.get(sk)
+                if v is not None:
+                    fields[gk] = normalize_value(v)
+                    payload.pop(sk, None)
+            # invis_flags: silver stores invisible_edges {bits: n}; gold emits
+            # invis_flags (BS 70) only when has_no_flags is false.
+            inv = payload.get("invisible_edges")
+            if isinstance(inv, dict) and "bits" in inv:
+                # gold omits invis_flags when has_no_flags (all corners visible);
+                # silver always emits it. Drop when 0.
+                if inv["bits"] != 0:
+                    fields["invis_flags"] = inv["bits"]
+                payload.pop("invisible_edges", None)
+            # has_no_flags / z_is_zero: gold emits these R2000b+ flags; silver
+            # doesn't store them. Emit the defaults (has_no_flags=1 when all
+            # corners are visible, z_is_zero=1 when corner1.z==0).
+            if r2000_plus:
+                fields["has_no_flags"] = 1
+                # z_is_zero: 1 when corner1.z == 0 (the corner has no height).
+                # corner1 is a 3-element list [x, y, z].
+                if isinstance(c1, list) and len(c1) > 2:
+                    fields["z_is_zero"] = 1 if c1[2] == 0 else 0
+                elif isinstance(c1, dict):
+                    fields["z_is_zero"] = 1 if c1.get("z", 0.0) == 0 else 0
+                else:
+                    fields["z_is_zero"] = 1
+            # dxfname: gold emits the class name string (R2000b+); silver
+            # doesn't store it. Emit the fixed name.
+            if r2000_plus:
+                fields["dxfname"] = "3DFACE"
+            # drop silver-only
+            for kk in ("has_no_flags", "z_is_zero", "dxfname"):
                 payload.pop(kk, None)
 
         # POINT entity (dwg.spec 2030, R13+ DWG path): silver stores
