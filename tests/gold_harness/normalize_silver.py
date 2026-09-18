@@ -1051,6 +1051,128 @@ def normalize_silver(
         vs_skip = {
             "properties", "internal_use_only", "extended_lighting_model",
         } if silver_type == "VisualStyle" else set()
+        # MLEADERSTYLE object (dwg2.spec 1461): silver uses different field
+        # names (snake_case + enums). Rename + convert + gate.
+        if silver_type == "MultiLeaderStyle":
+            _ML = {
+                "content_type": "content_type", "leader_draw_order": "leader_order",
+                "multileader_draw_order": "mleader_order",
+                "max_leader_points": "max_points",
+                "first_segment_angle": "first_seg_angle",
+                "second_segment_angle": "second_seg_angle",
+                "path_type": "type", "line_weight": "linewt",
+                "enable_landing": "has_landing", "landing_gap": "landing_gap",
+                "enable_dogleg": "has_dogleg", "landing_distance": "landing_dist",
+                "arrowhead_size": "arrow_head_size", "default_text": "text_default",
+                "text_left_attachment": "attach_left", "text_right_attachment": "attach_right",
+                "text_alignment": "text_align_type", "text_color": "text_color",
+                "text_height": "text_height", "text_frame": "has_text_frame",
+                "text_always_left": "text_always_left", "align_space": "align_space",
+                "block_content_color": "block_color", "block_content_rotation": "block_rotation",
+                "enable_block_scale": "use_block_scale", "enable_block_rotation": "use_block_rotation",
+                "block_content_connection": "block_connection", "scale_factor": "scale",
+                "property_changed": "is_changed", "break_gap_size": "break_size",
+                "text_angle_type": "text_angle_type",
+                "text_attachment_direction": "attach_dir",
+                "text_top_attachment": "attach_top", "text_bottom_attachment": "attach_bottom",
+                "unknown_flag_298": "text_extended",
+            }
+            # enum string -> int maps (gold stores the BS/RC index)
+            _ML_ENUM = {
+                "content_type": {"None": 0, "Block": 1, "MText": 2},
+                "leader_order": {"ContentFirst": 0, "LeaderFirst": 1, "LeaderHeadFirst": 0},
+                "mleader_order": {"ContentFirst": 0, "LeaderFirst": 1},
+                "type": {"StraightLineSegments": 0, "Spline": 1, "None_": 2, "InVisible": 2},
+                "text_angle_type": {"Insert": 0, "Horizontal": 1, "BestFit": 2},
+                "text_align_type": {"Left": 0, "Center": 1, "Right": 2, "Justify": 3, "Aligned": 4},
+                "attach_dir": {"Horizontal": 0, "Vertical": 1},
+                "attach_top": {"TopOfTopLine": 0, "MiddleOfTopLine": 1, "MiddleOfText": 2,
+                               "CenterOfText": 9, "MiddleOfBottomLine": 3,
+                               "BottomOfBottomLine": 4, "BottomOfDescender": 5},
+                "attach_bottom": {"TopOfTopLine": 0, "MiddleOfTopLine": 1, "MiddleOfText": 2,
+                                  "CenterOfText": 9, "MiddleOfBottomLine": 3,
+                                  "BottomOfBottomLine": 4, "BottomOfDescender": 5},
+                "attach_left": {"TopOfTopLine": 0, "MiddleOfTopLine": 1, "MiddleOfText": 2,
+                                "MiddleOfBottomLine": 3, "BottomOfBottomLine": 4, "BottomOfDescender": 5},
+                "attach_right": {"TopOfTopLine": 0, "MiddleOfTopLine": 1, "MiddleOfText": 2,
+                                 "MiddleOfBottomLine": 3, "BottomOfBottomLine": 4, "BottomOfDescender": 5},
+                "block_connection": {"BlockExtents": 0, "InsertionPoint": 1},
+            }
+            _ML_BOOL = {"has_landing", "has_dogleg", "use_block_scale", "use_block_rotation",
+                        "has_text_frame", "text_always_left", "is_changed", "text_extended"}
+            _ML_R2010 = {"class_version", "attach_dir", "attach_top", "attach_bottom"}
+            _ML_R2013 = {"text_extended"}
+            ml_consumed = set()
+            for k, v in payload.items():
+                if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
+                    continue
+                gk = _ML.get(k)
+                if gk is None:
+                    if k in ("line_type_handle", "text_style_handle", "arrowhead_handle",
+                             "block_content_handle", "block_content_scale_x",
+                             "block_content_scale_y", "block_content_scale_z",
+                             "line_color", "text_color", "is_annotative", "description",
+                             "name", "class_version"):
+                        ml_consumed.add(k)
+                    continue
+                ml_consumed.add(k)
+                if gk in _ML_R2010 and not r2010_plus:
+                    continue
+                if gk in _ML_R2013 and not r2013_plus:
+                    continue
+                if gk in _ML_ENUM:
+                    m = _ML_ENUM[gk]
+                    fields[gk] = m.get(str(v), m.get(v.replace(" ", ""), v)) if isinstance(v, str) else v
+                elif k in _ML_BOOL:
+                    fields[gk] = 1 if v else 0
+                else:
+                    fields[gk] = normalize_value(v)
+            # class_version (R2010+)
+            if r2010_plus:
+                fields["class_version"] = payload.get("class_version", 2)
+                ml_consumed.add("class_version")
+            # linewt: gold stores the raw BLd lineweight value (negative =
+            # ByLayer=-1/ByBlock=-2/Default=-3, else mm*100). Silver stores the
+            # enum string. Map to gold's raw value.
+            lw = payload.get("line_weight")
+            if isinstance(lw, str):
+                _LW = {"ByLayer": -1, "ByBlock": -2, "Default": -3, "ByLwDefault": -3}
+                fields["linewt"] = _LW.get(lw, -3)
+                ml_consumed.add("line_weight")
+            # handles
+            fields["line_type"] = normalize_handle_value(payload.get("line_type_handle"))
+            fields["text_style"] = normalize_handle_value(payload.get("text_style_handle"))
+            fields["arrow_head"] = normalize_handle_value(payload.get("arrowhead_handle"))
+            fields["block"] = normalize_handle_value(payload.get("block_content_handle"))
+            for kk in ("line_type_handle", "text_style_handle", "arrowhead_handle",
+                       "block_content_handle"):
+                ml_consumed.add(kk)
+            # colors: silver "ByBlock" -> gold CMC; silver block_content_color
+            # line_color (CMC), text_color (CMC), block_color (CMC)
+            for src, dst in (("line_color", "line_color"), ("text_color", "text_color"),
+                             ("block_content_color", "block_color")):
+                v = payload.get(src)
+                if isinstance(v, str):
+                    fields[dst] = normalize_color({"Index": 256 if v == "ByBlock" else 0})
+                ml_consumed.add(src)
+            # block_scale: silver stores x/y/z scalars; gold uses a 3BD
+            if r2013_plus or True:  # block_scale is JSON 3BD
+                bsc = [payload.get("block_content_scale_x", 1.0),
+                       payload.get("block_content_scale_y", 1.0),
+                       payload.get("block_content_scale_z", 1.0)]
+                fields["block_scale"] = bsc
+                for kk in ("block_content_scale_x", "block_content_scale_y", "block_content_scale_z"):
+                    ml_consumed.add(kk)
+            # description/name: silver stores both; gold has description
+            if payload.get("description"):
+                fields["description"] = payload["description"]
+            ml_consumed.update(("description", "name", "is_annotative"))
+            # is_annotative (R2008+)
+            if r2007_plus:
+                fields["is_annotative"] = 1 if payload.get("is_annotative") else 0
+            for kk in ml_consumed:
+                payload.pop(kk, None)
+
         mat_consumed = _map_material(payload, fields, r2007_plus, r2010_plus) if silver_type == "Material" else set()
         # LAYOUT object (dwg.spec 5316): silver stores plot config FLAT with
         # different names; gold nests them under `plotsettings.*` (the
