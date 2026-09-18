@@ -717,7 +717,10 @@ Given a diff `(type, field, kind)`:
    read path these persist as phantom records. Fixed: the DWG document builder
    now drops fabricated APPIDs the source file didn't contain (files that
    genuinely have them keep them). Corpus: read 41 153 → 39 973, write
-   38 845 → 38 756.
+   38 845 → 38 756. **Reviewed**: fabricated APPIDs absent on 70 files where
+   gold lacks them, kept on 8 files where gold has them, 0 issues. Writer path
+   unaffected (the fabricated APPIDs are only dropped on read). 46 test suites
+   all ok, 0 failed.
 
    ~~MLEADERSTYLE~~ — **DONE (2026-09-18)**: full view-param projection
    (renames, enum string→int maps, linewt raw BLd, colors, block_scale 3BD,
