@@ -713,7 +713,9 @@ Given a diff `(type, field, kind)`:
    ~~POINT view-independent fields~~ — **DONE (2026-09-18)**: silver
    `location`/`point` 3-vector split to gold `x`/`y`/`z` scalars, `normal`→
    `extrusion`, `x_axis_angle`→`x_ang`. Corpus: read 98 639 → 95 503, write
-   89 406 → 87 006.
+   89 406 → 87 006. **Reviewed** (d000524 → HEAD, 76 pairs): 93 847 → 88 391,
+   **0 added rows**; corpus-wide checks clean (x/y/z exact, extrusion exact,
+   x_ang exact, no leftover point/location/normal/x_axis_angle keys).
 
    ~~LTYPE dash patterns~~ — **DONE (2026-09-17)**: silver `elements[]`
    (length+complex) reshaped to gold `dashes[]` (8 fields), `alignment` char→
