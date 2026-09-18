@@ -708,9 +708,18 @@ Given a diff `(type, field, kind)`:
      LTYPE dash patterns, VPORT view params.
 
    **Next task (ready to start):** the remaining reader-gap fields
-   (`XRECORD.ownerhandle`, `LINE.color`, `LAYER.flag0`/`ltype`,
-   `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`). These need silver READER/
-   codec changes. APPID fabrication is done.
+   (`XRECORD.ownerhandle`, `LINE.color`/`POINT.color` dict cases,
+   `LAYER.flag0`/`ltype`, `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`,
+   `INSERT.block_header`/`attribs`/`first_attrib`/`last_attrib`,
+   `DIMSTYLE.DIMCLRD/E/T/DIMTFILLCLR`). These need silver READER/codec changes.
+
+   ~~INSERT entity~~ — **DONE (2026-09-18)**: insert_point→ins_pt, x/y/z_scale→
+   scale+scale_flag (recomposed per spec ENCODER), attributes→has_attribs,
+   seqend_handle→seqend, num_cols/rows R11-only drop, block_name/name fix.
+   Corpus: read 39 973 → 36 675, write 38 756 → 35 798. Residuals (real gaps):
+   block_header (silver stores name, not handle), attribs/first_attrib/
+   last_attrib (silver stores entities, not handles), seqend resolution, color
+   dict cases.
 
    ~~APPID fabrication~~ — **DONE (2026-09-18)**: CadDocument::new() pre-creates
    AcCmTransparency/AcAecLayerStandard for the writer's XDATA/EED needs; on the
