@@ -707,13 +707,14 @@ Given a diff `(type, field, kind)`:
    - Next types to start: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology,
      LTYPE dash patterns, VPORT view params.
 
-   **Next task (ready to start):** the remaining reader-gap fields
-   (`XRECORD.ownerhandle`, `LINE.color`/`POINT.color` dict cases,
-   `LAYER.flag0`/`ltype`, `*_CONTROL.xdicobjhandle`, `UNKNOWN._missing`,
-   `INSERT.block_header`/`attribs`/`first_attrib`/`last_attrib`,
-   `MTEXT.style`, `DIMSTYLE.DIMCLRD/E/T/DIMTFILLCLR`, `BLOCK_HEADER.name`,
-   `LAYER.visualstyle`). These need silver READER/codec changes. The
-   normalizer-only work is exhausted.
+   **Next task (ready to start):** `UNKNOWN._missing` (933) — the unmodeled-
+   object coverage class. Each unmodeled type is its own reader packet.
+   Cleanest single: **DIMASSOC** (dimension-association object on every
+   dimension entity). Spec `dwg2.spec` 3653 `DWG_OBJECT(DIMASSOC)`. Silver has
+   `read_dimension_association` in `associative.rs` but the object type
+   dispatch doesn't route to it — DIMASSOC objects are read as UNKNOWN_OBJ.
+   The fix: route DIMASSOC to the associative reader in the object type
+   dispatch, add a `DimensionAssociation` object struct, and emit it.
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). Corpus: read
