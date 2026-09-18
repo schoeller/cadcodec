@@ -711,8 +711,12 @@ Given a diff `(type, field, kind)`:
    `DIMTFILLCLR` color vars (~238 each) — the new top normalizer-only
    divergence after SOLID (done). Spec `dwg.spec` 4188 `DWG_TABLE(DIMSTYLE)`.
 
-   ~~SOLID/TRACE~~ — **DONE (2026-09-18)**: corner1-4 rename + 2RD slicing +
-   elevation default. Corpus: read 30 766 → 29 182, write 30 714 → 29 430.
+   ~~SOLID/TRACE~~ — **DONE (2026-09-18)**: corner1-4 rename + 2RD slicing;
+   elevation left missing (silver reader drops it — real gap). Corpus: read
+   30 766 → 29 182 → 29 341 (the +159 is the real elevation gap now surfaced),
+   write 29 430 → 29 559. **Reviewed**: 0 corner mismatches, 0 leftover keys.
+   Residuals: SOLID.elevation (reader gap), SOLID.color (dict cases),
+   3DSOLID.* (ACIS/modeler — separate packet).
 
    ~~MTEXT entity~~ — **DONE (2026-09-18)**: full projection (renames, enum
    string→int maps, column_data nested → column fields, version gates).
