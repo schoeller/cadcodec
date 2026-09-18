@@ -900,11 +900,20 @@ def normalize_silver(
                                "BottomLeft": 7, "BottomCenter": 8, "BottomRight": 9},
             }
             _MT_R2000 = {"linespace_style", "linespace_factor", "unknown_b0"}
-            _MT_R2007 = {"rect_height", "bg_fill_scale",
-                         "bg_fill_color", "bg_fill_trans"}
+            _MT_R2007 = {"rect_height"}
             _MT_R2018 = {"column_type", "column_width", "gutter", "auto_height",
                          "flow_reversed", "num_column_heights", "column_heights",
                          "numfragments", "column_count", "width", "heights"}
+            # Gold gates (dwg.spec 2881 MTEXT):
+            #  - bg_fill_flag is R2004a+; bg_fill_scale/color/trans exist only
+            #    when bg_fill_flag & 1 (a fill is actually enabled).
+            #  - bg_fill_scale/color/trans are R2004a+ too (inside that block).
+            #  - the column_* detail fields exist only when column_type != 0
+            #    (R2018+); column_type itself is always emitted on R2018+.
+            bg_flag = payload.get("background_fill_flags", 0) or 0
+            has_bg_fill = bool(bg_flag & 1)
+            col = payload.get("column_data") if isinstance(payload.get("column_data"), dict) else {}
+            column_type = col.get("column_type", 0)
             for k, v in payload.items():
                 if k in ("common", "handle", "owner", "owner_handle", "reactors",
                          "xdictionary_handle", "style"):
@@ -917,8 +926,18 @@ def normalize_silver(
                             cgk = "column_type" if ck == "column_type" else ck
                             if cgk in _MT_R2018 and not r2018_plus:
                                 continue
+                            # Detail column fields only when column_type != 0.
+                            if cgk != "column_type" and not column_type:
+                                continue
                             fields[cgk] = normalize_value(cv)
                     continue
+                # bg_fill_flag: R2004a+ only.
+                if gk == "bg_fill_flag" and not r2004_plus:
+                    continue
+                # bg_fill_scale/color/trans: R2004a+ AND only when a fill is on.
+                if gk in ("bg_fill_scale", "bg_fill_color", "bg_fill_trans"):
+                    if not r2004_plus or not has_bg_fill:
+                        continue
                 if gk in _MT_R2000 and not r2000_plus:
                     continue
                 if gk in _MT_R2007 and not r2007_plus:
@@ -1025,17 +1044,21 @@ def normalize_silver(
             # invis_flags: silver stores invisible_edges {bits: n}; gold emits
             # invis_flags (BS 70) only when has_no_flags is false.
             inv = payload.get("invisible_edges")
+            inv_bits = None
             if isinstance(inv, dict) and "bits" in inv:
+                inv_bits = inv["bits"]
                 # gold omits invis_flags when has_no_flags (all corners visible);
-                # silver always emits it. Drop when 0.
-                if inv["bits"] != 0:
-                    fields["invis_flags"] = inv["bits"]
+                # silver always emits it. Keep only when nonzero.
+                if inv_bits != 0:
+                    fields["invis_flags"] = inv_bits
                 payload.pop("invisible_edges", None)
-            # has_no_flags / z_is_zero: gold emits these R2000b+ flags; silver
-            # doesn't store them. Emit the defaults (has_no_flags=1 when all
-            # corners are visible, z_is_zero=1 when corner1.z==0).
+            # has_no_flags (R2000b+): 1 when the entity has NO invis_flags (all
+            # corners visible), 0 when invis_flags is present (dwg.spec 2144:
+            # `if (!has_no_flags) FIELD_BS0(invis_flags)`). Silver doesn't store
+            # it, so derive from the invisible_edges bits: has_no_flags = 1 iff
+            # bits == 0. Verified against gold (gh109_1: bits!=0 -> 0).
             if r2000_plus:
-                fields["has_no_flags"] = 1
+                fields["has_no_flags"] = 1 if (inv_bits in (None, 0)) else 0
                 # z_is_zero: 1 when corner1.z == 0 (the corner has no height).
                 # corner1 is a 3-element list [x, y, z].
                 if isinstance(c1, list) and len(c1) > 2:

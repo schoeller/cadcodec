@@ -264,7 +264,7 @@ A zero-context agent begins here. Read in order, on demand:
 **Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids/
 BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
 LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
-packets, 2026-09-18):** read-fidelity **26 980**, write-fidelity **27 282**,
+packets, 2026-09-18):** read-fidelity **26 115**, write-fidelity **26 633**,
 across 125 corpus files (110 unique dirs; counts inflated by the stem-collision
 issue below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
@@ -744,7 +744,12 @@ Given a diff `(type, field, kind)`:
    ASSOCDIMDEPENDENCYBODY (18), ASSOCVALUEDEPENDENCY (18), ASSOCNETWORK (17).
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
-   0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). Corpus: read
+   0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). **Follow-up fix
+   (mapping audit, 2026-09-18):** `has_no_flags` was hardcoded to 1; correct
+   derivation is `1 iff invisible_edges.bits == 0` (dwg.spec 2144
+   `if (!has_no_flags) FIELD_BS0(invis_flags)`) — it is 0 on gh109_1 where
+   invis_flags is present. Corpus: read 26 980 → 26 115 (combined with the
+   MTEXT gate fixes below).
    29 341 → 27 589, write 29 559 → 27 863.
 
    ~~LAYER flag0/ltype~~ — **DONE (2026-09-18)**: the first reader packet.
@@ -776,7 +781,17 @@ Given a diff `(type, field, kind)`:
    version-gate leaks (bg_fill_* pre-R2004, column_* pre-R2018) — fixed with
    gates (60458af). Residuals (real gaps): style (silver stores name, not
    handle), R2018 embedded-object fields (is_not_annotative, class_version,
-   default_flag, appid, ignore_attachment, column_*).
+    default_flag, appid, ignore_attachment, column_*). **Follow-up fix
+    (mapping audit, 2026-09-18):** the earlier gates (60458af) keyed on version
+    only, not value. Corrected per dwg.spec 2881: `bg_fill_flag` is R2004a+
+    (was leaking on R2000); `bg_fill_scale/color/trans` exist only when
+    `bg_fill_flag & 1` (gold omits them when the fill is off — was leaking 381
+    rows); `column_*` detail fields (column_count/width/gutter/auto_height/
+    flow_reversed/heights) exist only when `column_type != 0` (was leaking 324
+    rows even on R2018). rect_height moved to R2007 gate (was R2007-set +
+    trailing pop; now consistent). Remaining residuals are reader gaps: style
+    (name not handle), rect_height (silver stores Option None), R2018
+    embedded-object fields, color.
 
    ~~ELLIPSE~~ — **DONE (2026-09-18)**: FIELD_NAME_MAP fix — silver's
    `major_axis`→`sm_axis`, `minor_axis_ratio`→`axis_ratio` (the map had the
