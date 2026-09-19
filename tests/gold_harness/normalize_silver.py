@@ -1536,6 +1536,56 @@ def normalize_silver(
                        "modern_unknown_long2", "modern_cell_style_handle",
                        "modern_style", "modern_overrides", "annotative"):
                 payload.pop(sk, None)
+        # MLINESTYLE object (dwg.spec 4513): gold emits name/description/flag/
+        # fill_color/start_angle/end_angle + num_lines + lines[] (offset/color/
+        # lt). Silver stores elements[] (offset/color/linetype-name) + a flags
+        # bitflag dict + fill_color. Project to gold's shape.
+        if silver_type == "MLineStyle":
+            # flag: gold BS 70 bitmask. Silver stores a flags dict
+            # (fill_on/display_joints/display_start_caps/... booleans). The
+            # corpus's styles have all-false flags -> flag 0. Project the dict
+            # to the bitmask: fill_on=1, display_miters=2 (not stored), caps.
+            fl = payload.get("flags")
+            flag = 0
+            if isinstance(fl, dict):
+                if fl.get("fill_on"):
+                    flag |= 1
+                if fl.get("display_miters"):
+                    flag |= 2
+                if fl.get("start_square"):
+                    flag |= 16
+                if fl.get("start_inner_arc") or fl.get("start_inner_arcs"):
+                    flag |= 32
+                if fl.get("start_round"):
+                    flag |= 64
+                if fl.get("end_square"):
+                    flag |= 256
+                if fl.get("end_inner_arc") or fl.get("end_inner_arcs"):
+                    flag |= 512
+                if fl.get("end_round"):
+                    flag |= 1024
+            elif isinstance(fl, int):
+                flag = fl
+            fields["flag"] = flag
+            if "description" in payload:
+                fields["description"] = payload["description"]
+            if "fill_color" in payload:
+                fields["fill_color"] = normalize_color(payload["fill_color"])
+            if "start_angle" in payload:
+                fields["start_angle"] = normalize_float(payload["start_angle"])
+            if "end_angle" in payload:
+                fields["end_angle"] = normalize_float(payload["end_angle"])
+            # lines[]: gold normalizes each line to its leading BD (offset) ->
+            # the corpus rows are degenerate ([0,0]). Silver stores elements[]
+            # with offset/color/linetype. Project count + the offset list.
+            elements = payload.get("elements", [])
+            fields["num_lines"] = len(elements) if isinstance(elements, list) else 0
+            if isinstance(elements, list):
+                fields["lines"] = [normalize_float(e.get("offset", 0.0)) if isinstance(e, dict) else 0
+                                   for e in elements]
+            for sk in ("elements", "flags", "fill_color", "start_angle",
+                       "end_angle", "description"):
+                payload.pop(sk, None)
         # Silver-only top-level VisualStyle fields that gold stores inside the
         # property bag or under a different name; skip so they don't appear as
         # extra_in_silver. The pre-R2010 top-level face_*/edge_* fields ARE

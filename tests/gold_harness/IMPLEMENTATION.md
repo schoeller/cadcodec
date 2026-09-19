@@ -266,12 +266,12 @@ BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
 LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes (3DFACE has_no_flags, MTEXT value gates, entity-color
 ByBlock-transparency collapse) + TABLESTYLE + CMC color-method fix (c0/c1
-inversion + c_prop33 hack removal) + DIMSTYLE color indices, 2026-09-19):**
-read-fidelity **19 199**, write-fidelity **17 803**, across 125 corpus files
-(110 unique dirs; counts inflated by the stem-collision issue below). `cargo
-test --features serde` = 1556 passed / 0 failed; `cargo test --features
-gold-harness --test gold_roundtrip` = ok. Update these numbers after each
-packet lands.
+inversion + c_prop33 hack removal) + DIMSTYLE color indices + MLINESTYLE,
+2026-09-19):** read-fidelity **18 703**, write-fidelity **17 315**, across 125
+corpus files (110 unique dirs; counts inflated by the stem-collision issue
+below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
+--features gold-harness --test gold_roundtrip` = ok. Update these numbers after
+each packet lands.
 
 **Things that will look broken but are not (do not "fix" them):**
 - **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
@@ -782,6 +782,15 @@ Given a diff `(type, field, kind)`:
    Corpus: read 20 167 → 19 199, write 18 723 → 17 803. **Lesson: when a
    "silver gap" looks wrong, check the gold normalizer against gold's own
    spec/decoder — the bug may be on the gold side.**
+
+   ~~MLINESTYLE~~ — **DONE (2026-09-19)**: dwg.spec 4513. Projected
+   name/description/flag (silver flags dict → gold BS 70 bitmask)/
+   fill_color (CMC → normalize_color)/start_angle/end_angle/num_lines/lines
+   (silver `elements[]` → gold offset list). Corpus: read 19 199 → 18 703,
+   write 17 803 → 17 315. Residual: `lines` (39) — gold's REPEAT decode of the
+   per-line array is degenerate ([0,0]); silver has the real offsets. Matching
+   gold's degenerate output would need a bespoke gold-side rule; left as the
+   faithful silver value.
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). **Follow-up fix
