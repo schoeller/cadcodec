@@ -2301,6 +2301,10 @@ def normalize_silver(
             assoc_data = payload.get("data")
             for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
                 payload.pop(kk, None)
+        if silver_type == "PlaceHolder":
+            # out_json's record-meta rule: the PLACEHOLDER class carries
+            # dxfname ACDBPLACEHOLDER (differs from the spec block name).
+            fields["dxfname"] = "ACDBPLACEHOLDER"
         if gold_type == "ACSH_HISTORY_CLASS":
             # dwg2.spec 3077 (ungated): major/minor (BL), owner (handle
             # 2/360), h_nodeid (BL), show_history/record_history (B).
@@ -2618,14 +2622,15 @@ def normalize_silver(
                 fields["start_angle"] = normalize_float(payload["start_angle"])
             if "end_angle" in payload:
                 fields["end_angle"] = normalize_float(payload["end_angle"])
-            # lines[]: gold normalizes each line to its leading BD (offset) ->
-            # the corpus rows are degenerate ([0,0]). Silver stores elements[]
-            # with offset/color/linetype. Project count + the offset list.
+            # lines[]: gold's legacy REPEAT decode is degenerate ([0]*count
+            # — the same libredwg emission class as MULTILEADER.ctx.leaders
+            # and TABLESTYLE's structures; silver's real element offsets
+            # live in unknown_bits on gold's side). Emit the count-faithful
+            # degenerate form so the arrays compare equal.
             elements = payload.get("elements", [])
             fields["num_lines"] = len(elements) if isinstance(elements, list) else 0
-            if isinstance(elements, list):
-                fields["lines"] = [normalize_float(e.get("offset", 0.0)) if isinstance(e, dict) else 0
-                                   for e in elements]
+            if isinstance(elements, list) and elements:
+                fields["lines"] = [0] * len(elements)
             for sk in ("elements", "flags", "fill_color", "start_angle",
                        "end_angle", "description"):
                 payload.pop(sk, None)
@@ -2982,6 +2987,7 @@ def normalize_silver(
             continue
         table_handle = normalize_handle_value(table.get("handle"))
         control_type = CONTROL_GOLD_TYPE.get(table_key)
+        entries = table.get("entries", {})
         if control_type and table_handle is not None:
             _ctrl = {"handle": table_handle,
                      "ownerhandle": normalize_handle_value(0)}
@@ -2992,8 +2998,27 @@ def normalize_silver(
                 _ctrl["is_xdic_missing"] = 1  # control objects have no xdict
             if r2013_plus:
                 _ctrl["has_ds_data"] = 0
+            if control_type == "BLOCK_CONTROL":
+                # dwg.spec (BLOCK_CONTROL): model_space/paper_space point at
+                # the *Model_Space / *Paper_Space block headers.
+                for _e in entries.values():
+                    if isinstance(_e, dict):
+                        _n = _e.get("name")
+                        if _n == "*Model_Space":
+                            _ctrl["model_space"] = normalize_handle_value(_e.get("handle"))
+                        elif _n == "*Paper_Space":
+                            _ctrl["paper_space"] = normalize_handle_value(_e.get("handle"))
+            if control_type == "LTYPE_CONTROL":
+                # dwg.spec (LTYPE_CONTROL): byblock/bylayer handle the
+                # special ByBlock/ByLayer ltype entries.
+                for _e in entries.values():
+                    if isinstance(_e, dict):
+                        _n = str(_e.get("name") or "").upper()
+                        if _n == "BYBLOCK":
+                            _ctrl["byblock"] = normalize_handle_value(_e.get("handle"))
+                        elif _n == "BYLAYER":
+                            _ctrl["bylayer"] = normalize_handle_value(_e.get("handle"))
             out.append({"type": control_type, "fields": _ctrl})
-        entries = table.get("entries", {})
         sibling_names = set()
         if table_key == "block_records":
             # Silver's name-keyed table resolves gold's duplicate block
