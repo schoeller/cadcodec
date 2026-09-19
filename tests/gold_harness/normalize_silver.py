@@ -2423,6 +2423,24 @@ def normalize_silver(
             # gets one.
             if gold_type == "3DSOLID":
                 fields["dxfname"] = "3DSOLID"
+            # R2013+ AcDs-backed prologue-divergence drop (mirrored in
+            # normalize_gold.py under `has_ds_data`): LibreDWG's 3DSOLID
+            # spec reads a phantom leading `acis_empty` bit on the
+            # R2013+/R2018 ds-backed records and derails — its wireframe/
+            # revision internals are desync garbage that silver's bit-true
+            # reads (verified against the raw wire 2026-09-20, see
+            # IMPLEMENTATION.md §8.1.6) can never match. The ds-backed
+            # selector on this side is the parsed SAB — the data-section
+            # blob that silver alone reads. Drop the divergent fields for
+            # exactly those records; every other family record (inline
+            # SAT/SAB, pre-R2013, non-ds) keeps them.
+            if r2013_plus and isinstance(acis.get("sab_data"), list) and acis["sab_data"]:
+                for fk in ("acis_data", "history_id",
+                           "point_present", "point", "isolines", "isoline_present",
+                           "acis_empty_bit",
+                           "has_revision_guid", "revision_major", "revision_minor1",
+                           "revision_minor2", "revision_bytes", "end_marker"):
+                    fields.pop(fk, None)
             for sk in ("uid", "point_of_reference", "acis_data", "wires",
                        "silhouettes", "history_handle"):
                 payload.pop(sk, None)

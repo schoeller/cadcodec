@@ -150,13 +150,46 @@ def normalize_gold(data: Dict[str, Any], ignore: Optional[Dict[str, Any]] = None
 
     objects = data.get("OBJECTS", [])
     out: List[Dict[str, Any]] = []
+
+    # R2013+ (AC1027/AC1032) file version gate for the 3DSOLID-family
+    # prologue-divergence drop below. LibreDWG's 3DSOLID spec reads a legacy
+    # leading `acis_empty` bit that AutoCAD's R2013+ AcDs-backed records
+    # never carry (`DECODE_3DSOLID`, dwg_spec_shared.h 175), so gold's decode
+    # derails on those records and emits desync garbage for COMMON_3DSOLID's
+    # wireframe/revision internals (isolines=205, revision_major=big, hex
+    # revision_bytes, absent points; "Invalid REGION.wires" aborts) while
+    # silver's reader is bit-true on the very same bytes (verified against
+    # the raw object records with dump_section_bytes, 2026-09-20 — see
+    # IMPLEMENTATION.md §8.1.6). The garbage cannot be derived from silver's
+    # model, so both normalizers drop the divergent fields symmetrically for
+    # these records only; non-ds and pre-R2013 family records keep every
+    # field (gold parses those sanely).
+    _ver = ((data.get("FILEHEADER") or {}).get("version")) or ""
+    _r2013_plus = _ver in ("AC1027", "AC1032")
+    _PROLOGUE_DIVERGENT_FIELDS = frozenset({
+        "acis_data", "history_id",  # garbage inline emissions (R2013 files)
+        "point_present", "point", "isolines", "isoline_present",
+        "acis_empty_bit",
+        "has_revision_guid", "revision_major", "revision_minor1",
+        "revision_minor2", "revision_bytes", "end_marker",
+    })
+
     for obj in objects:
         typ = object_type(obj)
+        # has_ds_data marks the AcDs-backed records where gold's decode
+        # derailed (the entity-common bit R2013+).
+        _drop_prologue = (
+            _r2013_plus
+            and typ in ("3DSOLID", "REGION")
+            and bool(obj.get("has_ds_data"))
+        )
         fields: Dict[str, Any] = {}
         for k, v in obj.items():
             if k in ("entity", "object"):
                 continue
             if is_ignored(k, ignore_set, ignore_patterns):
+                continue
+            if _drop_prologue and k in _PROLOGUE_DIVERGENT_FIELDS:
                 continue
             # LibreDWG prints a code-0 null handle as the bare 2-tuple
             # [0, 0] (absolute, no offset counter) while code-3 nulls print
