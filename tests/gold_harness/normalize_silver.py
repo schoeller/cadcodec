@@ -709,6 +709,11 @@ def normalize_silver(
     # Keys are decimal handle strings (serde integer map keys), like
     # reactors_by_handle.
     xdic_by_handle = data.get("xdic_by_handle", {})
+    # R2013+ AcDs (SAB) data-store bit: silver's reader stores the handles of
+    # every object whose data stream set `has_ds_data` in the document-level
+    # `dwg_data_store_handles` set (round-tripped by the DWG writer).
+    # Serialized as a plain list of handle ints.
+    dwg_ds_handles = {str(h) for h in data.get("dwg_data_store_handles", [])}
 
     def _lookup_xdic(raw_handle: Any) -> Any:
         if not isinstance(raw_handle, int):
@@ -2640,9 +2645,12 @@ def normalize_silver(
             # (and xdicobjhandle when the dictionary exists — all versions).
             fields["is_xdic_missing"] = 1 if payload.get("xdictionary_handle") is None else 0
         if r2013_plus:
-            # has_ds_data marks AcDs (SAB) modeler geometry storage; only
-            # entities with modeler data set it, objects are always 0.
-            fields["has_ds_data"] = 0
+            # has_ds_data marks AcDs (SAB) modeler geometry storage. Objects
+            # that own AcDs store data (e.g. the Model LAYOUT) set the bit;
+            # silver's reader keeps them in the document-level
+            # dwg_data_store_handles set (see dwg_ds_handles), everything
+            # else is 0.
+            fields["has_ds_data"] = 1 if str(payload.get("handle")) in dwg_ds_handles else 0
         if silver_type == "VisualStyle":
             _map_visual_style(payload, fields)
         assoc_data = None
@@ -2660,6 +2668,33 @@ def normalize_silver(
             # out_json's record-meta rule: the PLACEHOLDER class carries
             # dxfname ACDBPLACEHOLDER (differs from the spec block name).
             fields["dxfname"] = "ACDBPLACEHOLDER"
+        if silver_type == "ImageDefinitionReactor":
+            # dwg.spec IMAGEDEF_REACTOR: gold serializes class_version (BL)
+            # and the ownerhandle only; the image-entity link is implied by
+            # the owner relationship and never serialized. Silver stores an
+            # image_handle on the struct — drop it. class_version flows
+            # through the generic same-name loop.
+            payload.pop("image_handle", None)
+        if silver_type == "SortEntitiesTable":
+            # dwg2.spec 149 (SORTENTSTABLE): gold's `block_owner` is the
+            # owning block record handle (FIELD_HANDLE 4) — silver stores the
+            # raw handle as block_owner_handle. `entries`/`entry_map` are
+            # silver-side conveniences with no gold counterpart (gold's
+            # sort_ents/ents are DXF-only handle vectors, never serialized);
+            # drop them. Project the counts only for non-empty tables (gold
+            # emits nothing for num_ents == 0, verified on the corpus').
+            if "block_owner_handle" in payload:
+                fields["block_owner"] = normalize_handle_value(
+                    payload["block_owner_handle"])
+                payload.pop("block_owner_handle", None)
+            _ents = payload.pop("entries", None)
+            payload.pop("entry_map", None)
+            if isinstance(_ents, list) and _ents:
+                fields["num_ents"] = len(_ents)
+                fields["sort_ents"] = [
+                    normalize_handle_value(e.get("sort_handle"))
+                    for e in _ents if isinstance(e, dict)
+                ]
         _vw_data = (payload.get("data")
                     if silver_type == "ClassObject" and isinstance(payload.get("data"), dict)
                     else None)
@@ -2925,42 +2960,18 @@ def normalize_silver(
                 fields["rotated_type"] = da.get("rotated_type", 0)
                 if da.get("dimension") is not None:
                     fields["dimensionobj"] = normalize_handle_value(da["dimension"])
-                # Gold's `ref` array is indexed by the associativity bit position
-                # (dwg2.spec 3661 REPEAT_CN(6, ref): bit rcount1 -> ref[rcount1]),
-                # so ref[1] holds the bit-1 (associativity&2) reference and unset
-                # slots serialize as empty objects. Silver stores the same slot
-                # layout in references: [Vec; 4], already keyed by bit position —
-                # project each slot IN PLACE, preserving its index. Do NOT flatten
-                # and re-pack (that shifts slot1 refs to index 0).
-                refs = []
-                for slot in da.get("references", []):
-                    if isinstance(slot, list) and slot:
-                        # One OsnapPointRef per slot in the corpus (the on-disk
-                        # continuation bit can chain more, but none appear here).
-                        r = slot[0]
-                        gr = {
-                            "classname": r.get("class_name", ""),
-                            "osnap_type": r.get("osnap_type", 0),
-                            "xrefs": [normalize_handle_value(h) for h in r.get("xrefs", [])],
-                            "osnap_dist": normalize_float(r.get("osnap_distance", 0.0)),
-                            "osnap_pt": normalize_value(r.get("osnap_point", [0.0, 0.0, 0.0])),
-                            "has_lastpt_ref": 1 if r.get("has_last_point_reference") else 0,
-                        }
-                        if r.get("osnap_type"):
-                            gr["main_subent_type"] = r.get("main_subent_type", 0)
-                            gr["main_gsmarker"] = r.get("main_gs_marker", 0)
-                            gr["xrefpaths"] = r.get("xref_paths", [])
-                        if r.get("osnap_type") in (6, 11):
-                            gr["intsectobj"] = [normalize_handle_value(h) for h in r.get("intersection_objects", [])]
-                            gr["intersec_subent_type"] = r.get("intersection_subent_type", 0)
-                            gr["intersec_gsmarker"] = r.get("intersection_gs_marker", 0)
-                            gr["intersec_xrefpaths"] = r.get("intersection_xref_paths", [])
-                        refs.append(gr)
-                    else:
-                        refs.append({})
-                while len(refs) < 6:
-                    refs.append({})
-                fields["ref"] = refs[:6]
+                # Gold's `ref` array is indexed by the associativity bit
+                # position (dwg2.spec 3661 REPEAT_CN(6, ref): bit rcount1 ->
+                # ref[rcount1]) — but out_json's REPEAT emission collapses
+                # EVERY AcDbOsnapPointRef struct to a bare 0, the same
+                # degenerate emission class as TABLESTYLE.borders /
+                # LTYPE.dashes / MLINESTYLE.lines / MULTILEADER ctx.leaders.
+                # Verified on every corpus DIMASSOC (Dynblocks and
+                # example_2004 carry real slots that still serialize as
+                # [0]*6, gold-normalized). Emit the degenerate form — the
+                # real slot data has no gold JSON expression (silver's
+                # references stay in the dump for the writer).
+                fields["ref"] = [0] * 6
             # `data` + metadata were already popped by the general Associative
             # block above (assoc_data was captured before the pop).
         if silver_type == "XRecord":

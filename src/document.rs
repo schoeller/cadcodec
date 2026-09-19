@@ -1247,7 +1247,10 @@ pub struct CadDocument {
 
     /// Non-entity objects whose source record points into the AcDs data store.
     /// Retained for same-version saves together with the original section.
-    #[cfg_attr(feature = "serde", serde(skip))]
+    /// Serialized (as a plain handle list) like the other DWG round-trip
+    /// side channels (`xdic_by_handle`, `reactors_by_handle`) so the gold
+    /// harness dump can project the per-object R2013+ `has_ds_data` bit.
+    #[cfg_attr(feature = "serde", serde(default))]
     pub(crate) dwg_data_store_handles: HashSet<Handle>,
 
     /// Section-view style (`AcDbSectionViewStyle`) display fields, decoded from

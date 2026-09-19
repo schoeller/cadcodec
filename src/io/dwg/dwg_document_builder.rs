@@ -1559,7 +1559,7 @@ impl DwgDocumentBuilder {
                     _ => None,
                 })
                 .collect();
-            let fabricated = ["AcCmTransparency", "AcAecLayerStandard"];
+            let fabricated = ["AcCmTransparency", "AcAecLayerStandard", "AcadAnnotative"];
             for name in fabricated {
                 if !file_appid_names.iter().any(|n| n.eq_ignore_ascii_case(name)) {
                     let _ = document.app_ids.remove(name);
@@ -5377,7 +5377,7 @@ impl DwgDocumentBuilder {
                     );
                 }
                 OBJ_IMAGEDEFREACTOR => {
-                    let _data = objects::read_image_definition_reactor(&mut reader);
+                    let data = objects::read_image_definition_reactor(&mut reader);
                     document.objects.insert(
                         Handle::from(handle),
                         crate::objects::ObjectType::ImageDefinitionReactor(
@@ -5385,6 +5385,7 @@ impl DwgDocumentBuilder {
                                 handle: Handle::from(handle),
                                 owner: owner_handle,
                                 image_handle: Handle::NULL,
+                                class_version: data.class_version,
                             },
                         ),
                     );

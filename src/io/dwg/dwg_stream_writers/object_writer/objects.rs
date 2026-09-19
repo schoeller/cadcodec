@@ -2134,7 +2134,9 @@ impl<'a> DwgObjectWriter<'a> {
         let type_code = self.class_type_code("IMAGEDEF_REACTOR", common::OBJ_IMAGEDEFREACTOR);
         self.write_common_non_entity_data(type_code, reactor.handle, reactor.owner, &[], &None);
 
-        self.writer.write_bit_long(0); // class version
+        // class_version (dwg.spec IMAGEDEF_REACTOR: FIELD_BL (class_version,
+        // 90); values 0-2). Round-trip the read value instead of 0.
+        self.writer.write_bit_long(reactor.class_version);
 
         // C# reference does NOT write an image_handle here
         // (the reader gets this from the reactor's owner relationship)
