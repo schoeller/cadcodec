@@ -265,11 +265,12 @@ A zero-context agent begins here. Read in order, on demand:
 BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
 LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes (3DFACE has_no_flags, MTEXT value gates, entity-color
-ByBlock-transparency collapse), 2026-09-19):** read-fidelity **25 526**,
-write-fidelity **26 270**, across 125 corpus files (110 unique dirs; counts
-inflated by the stem-collision issue below). `cargo test --features serde` =
-1556 passed / 0 failed; `cargo test --features gold-harness --test
-gold_roundtrip` = ok. Update these numbers after each packet lands.
+ByBlock-transparency collapse) + TABLESTYLE, 2026-09-19):** read-fidelity
+**19 516**, write-fidelity **20 899**, across 125 corpus files (110 unique
+dirs; counts inflated by the stem-collision issue below). `cargo test
+--features serde` = 1556 passed / 0 failed; `cargo test --features
+gold-harness --test gold_roundtrip` = ok. Update these numbers after each
+packet lands.
 
 **Things that will look broken but are not (do not "fix" them):**
 - **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
@@ -743,6 +744,26 @@ Given a diff `(type, field, kind)`:
    already-read ASSOC* types. Largest remaining ASSOC clusters in the report:
    ASSOCDEPENDENCY (36), ASSOCGEOMDEPENDENCY (34), ASSOCVARIABLE (22),
    ASSOCDIMDEPENDENCYBODY (18), ASSOCVALUEDEPENDENCY (18), ASSOCNETWORK (17).
+
+   ~~TABLESTYLE~~ — **DONE (2026-09-19)**: the largest single type (was 2 351
+   rows, 9 346 stem-inflated). Normalizer packet. The object has two disjoint
+   shapes (dwg2.spec 964): legacy pre-R2008 (`name`/`flow_direction`/`flags`/
+   `horiz_cell_margin`/`vert_cell_margin`/`is_title_suppressed`/
+   `is_header_suppressed`/`rowstyles`) and modern R2010+ (`unknown_rc`/
+   `unknown_bl1`/`unknown_bl2`/`cellstyle` handle + the `sty.cellstyle.*` /
+   `ovr.cellstyle.*` named cell-style payload from the `CellStyle_fields`
+   macro, dwg2.spec 244). Silver reads both into one struct (legacy →
+   snake_case fields; modern → `modern_style`/`modern_overrides`). Projected
+   both, version-gated on `r2010_plus`, including the nested
+   `content_format.*` and per-border `borders[]` projection. Key subtleties:
+   the `sty.cellstyle` detail block is only serialized when `data_flags != 0`;
+   gold omits the `borders` array when `num_borders == 0`; silver's
+   `line_weight`/`color`/`border_type` enums collapse via `normalize_color`/
+   int passthrough. Corpus: read 25 526 → 19 516, write 26 270 → 20 899.
+   Residuals (separate): `unknown_bits` (HANDLE_UNKNOWN_BITS verbatim, 36),
+   `content_color` gold=256 vs silver ByBlock=0 (silver CMC value gap, 50),
+   `borders` `[0,0,0,0,0,0]` gold per-border normalization vs silver dicts
+   (45), and the entity-common `xdicobjhandle`/`is_xdic_missing`/`reactors`.
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). **Follow-up fix

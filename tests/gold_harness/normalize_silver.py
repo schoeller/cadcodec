@@ -1414,6 +1414,133 @@ def normalize_silver(
                 fields["strvalue"] = normalize_value(payload["value"])
             for sk in ("schema_number", "value", "name"):
                 payload.pop(sk, None)
+        # TABLESTYLE object (dwg2.spec 964). Two disjoint shapes:
+        #  - legacy (pre-R2008, UNTIL R_2007): name/flow_direction/flags/
+        #    horiz_cell_margin/vert_cell_margin/is_title_suppressed/
+        #    is_header_suppressed/rowstyles. Silver reads the same data under
+        #    snake_case names into flow_direction/flags/horizontal_margin/...
+        #  - modern (R2010+): unknown_rc/name/unknown_bl1/unknown_bl2/cellstyle
+        #    handle + the named cell-style payload CellStyle_fields under
+        #    `sty.cellstyle.*` (and per-override `ovr.cellstyle.*`). Silver
+        #    reads it into modern_style / modern_overrides.
+        if silver_type == "TableStyle":
+            def _content_format(cf, pfx):
+                if not isinstance(cf, dict):
+                    return
+                fields[f"{pfx}.property_override_flags"] = cf.get("property_override_flags", 0)
+                fields[f"{pfx}.property_flags"] = cf.get("property_flags", 0)
+                fields[f"{pfx}.value_data_type"] = cf.get("value_data_type", 0)
+                fields[f"{pfx}.value_unit_type"] = cf.get("value_unit_type", 0)
+                fields[f"{pfx}.value_format_string"] = cf.get("value_format_string", "")
+                fields[f"{pfx}.rotation"] = normalize_float(cf.get("rotation", 0.0))
+                fields[f"{pfx}.block_scale"] = normalize_float(cf.get("block_scale", 0.0))
+                ca = cf.get("cell_alignment", 0)
+                fields[f"{pfx}.cell_alignment"] = ca if isinstance(ca, int) else 0
+                fields[f"{pfx}.content_color"] = normalize_color(cf.get("content_color"))
+                ts = cf.get("text_style")
+                if ts is not None:
+                    fields[f"{pfx}.text_style"] = normalize_handle_value(ts)
+                fields[f"{pfx}.text_height"] = normalize_float(cf.get("text_height", 0.0))
+
+            def _cell_style(cs, pfx):
+                if not isinstance(cs, dict):
+                    return
+                fields[f"{pfx}.type"] = cs.get("style_type", 0)
+                dflags = cs.get("data_flags", 0)
+                fields[f"{pfx}.data_flags"] = dflags
+                # The detail block is only serialized when data_flags != 0.
+                if not dflags:
+                    return
+                fields[f"{pfx}.property_override_flags"] = cs.get("property_override_flags", 0)
+                fields[f"{pfx}.merge_flags"] = cs.get("merge_flags", 0)
+                fields[f"{pfx}.bg_color"] = normalize_color(cs.get("background_color"))
+                fields[f"{pfx}.content_layout"] = cs.get("content_layout", 0)
+                _content_format(cs.get("content_format"), f"{pfx}.content_format")
+                mof = cs.get("margin_override_flags", 0)
+                fields[f"{pfx}.margin_override_flags"] = mof
+                if mof:
+                    fields[f"{pfx}.vert_margin"] = normalize_float(cs.get("vertical_margin", 0.0))
+                    fields[f"{pfx}.horiz_margin"] = normalize_float(cs.get("horizontal_margin", 0.0))
+                    fields[f"{pfx}.bottom_margin"] = normalize_float(cs.get("bottom_margin", 0.0))
+                    fields[f"{pfx}.right_margin"] = normalize_float(cs.get("right_margin", 0.0))
+                    fields[f"{pfx}.margin_horiz_spacing"] = normalize_float(cs.get("horizontal_spacing", 0.0))
+                    fields[f"{pfx}.margin_vert_spacing"] = normalize_float(cs.get("vertical_spacing", 0.0))
+                borders = cs.get("borders", [])
+                nb = len(borders) if isinstance(borders, list) else 0
+                fields[f"{pfx}.num_borders"] = nb
+                # Gold omits the borders array entirely when num_borders == 0
+                # (REPEAT2(num_borders) yields nothing -> no key). Only emit it
+                # when there are borders.
+                if isinstance(borders, list) and nb:
+                    projected = []
+                    for b in borders:
+                        if not isinstance(b, dict):
+                            continue
+                        gb = {"index_mask": b.get("index_mask", 0)}
+                        border = b.get("border")
+                        if isinstance(border, dict):
+                            gb["border_overrides"] = 0  # property_flags bitflags -> BL
+                            bt = border.get("border_type", 0)
+                            gb["border_type"] = bt if isinstance(bt, int) else 0
+                            gb["color"] = normalize_color(border.get("color"))
+                            lw = border.get("line_weight", 0)
+                            gb["linewt"] = lw if isinstance(lw, int) else 0
+                            lt = b.get("line_type")
+                            if lt is not None:
+                                gb["ltype"] = normalize_handle_value(lt)
+                            gb["visible"] = 0 if border.get("is_invisible") else 1
+                            gb["double_line_spacing"] = normalize_float(border.get("double_line_spacing", 0.0))
+                        projected.append(gb)
+                    fields[f"{pfx}.borders"] = projected
+
+            if not r2010_plus:
+                # Legacy pre-R2008 path. Map snake_case -> gold names.
+                fields["flow_direction"] = {"Down": 0, "Up": 1}.get(
+                    payload.get("flow_direction"), payload.get("flow_direction", 0))
+                fl = payload.get("flags", 0)
+                fields["flags"] = fl if isinstance(fl, int) else 0
+                fields["horiz_cell_margin"] = normalize_float(payload.get("horizontal_margin", 0.0))
+                fields["vert_cell_margin"] = normalize_float(payload.get("vertical_margin", 0.0))
+                fields["is_title_suppressed"] = 1 if payload.get("title_suppressed") else 0
+                fields["is_header_suppressed"] = 1 if payload.get("header_suppressed") else 0
+                # rowstyles: libredwg's legacy decode is degenerate ([0,0,0]);
+                # the real content is in unknown_bits. Emit the placeholder to
+                # match gold's shape.
+                fields["rowstyles"] = [0, 0, 0]
+            else:
+                # Modern R2010+ path.
+                fields["unknown_rc"] = payload.get("modern_unknown_byte", 0)
+                fields["unknown_bl1"] = payload.get("modern_unknown_long1", 0)
+                fields["unknown_bl2"] = payload.get("modern_unknown_long2", 0)
+                csh = payload.get("modern_cell_style_handle")
+                if csh is not None:
+                    fields["cellstyle"] = normalize_handle_value(csh)
+                ms = payload.get("modern_style")
+                if isinstance(ms, dict):
+                    _cell_style(ms.get("cell_style"), "sty.cellstyle")
+                    fields["sty.id"] = ms.get("id", 0)
+                    fields["sty.type"] = ms.get("style_type", 0)
+                    fields["sty.name"] = ms.get("name", "")
+                overrides = payload.get("modern_overrides", [])
+                fields["numoverrides"] = len(overrides) if isinstance(overrides, list) else 0
+                if isinstance(overrides, list) and overrides:
+                    # Gold emits the FIRST override as `ovr.*` (+ unknown_bl3).
+                    fields["unknown_bl3"] = overrides[0][0] if isinstance(overrides[0], (list, tuple)) else 0
+                    ovr = overrides[0][1] if isinstance(overrides[0], (list, tuple)) and len(overrides[0]) > 1 else None
+                    if isinstance(ovr, dict):
+                        _cell_style(ovr.get("cell_style"), "ovr.cellstyle")
+                        fields["ovr.id"] = ovr.get("id", 0)
+                        fields["ovr.type"] = ovr.get("style_type", 0)
+                        fields["ovr.name"] = ovr.get("name", "")
+            # Drop silver-only / differently-named fields.
+            for sk in ("description", "version", "horizontal_margin",
+                       "vertical_margin", "title_suppressed", "header_suppressed",
+                       "flow_direction", "flags",
+                       "data_row_style", "header_row_style", "title_row_style",
+                       "modern_unknown_byte", "modern_unknown_long1",
+                       "modern_unknown_long2", "modern_cell_style_handle",
+                       "modern_style", "modern_overrides", "annotative"):
+                payload.pop(sk, None)
         # Silver-only top-level VisualStyle fields that gold stores inside the
         # property bag or under a different name; skip so they don't appear as
         # extra_in_silver. The pre-R2010 top-level face_*/edge_* fields ARE
