@@ -270,12 +270,11 @@ ASSOC family + polyline vertex emission + xdic family + layer visualstyle +
 mid-rank batch (has_ds_data/SORTENTSTABLE/APPID/DIMASSOC.ref/
 IMAGEDEF_REACTOR) + elevation/linewt projections + R2013+ AcDs
 3DSOLID-family writer payload + pre-R2007 is_xref_ref wire bit +
-fabricated-Standard-DIMSTYLE removal, 2026-09-20):**
-read-fidelity **3 917** (the last commit is writer-only except the
-DIMSTYLE-phantom builder removal — 84 phantom rows died),
-write-fidelity **3 431** (example_2013/2018 left write-side exclusion in
-`b40ba42`, +456 rows surfacing, then the is_xref_ref/phantom packets took
-−860), across 125
+fabricated-Standard-DIMSTYLE removal + 3DSOLID prologue-divergence
+projection, 2026-09-20):**
+read-fidelity **3 858**, write-fidelity **3 372** (example_2013/2018 left
+write-side exclusion in `b40ba42`, then `ff45453` took −84 read/−860
+write, then `1597db6` took −59/−59), across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below; only gh44-error.dwg remains excluded, rc 1 on both sides).
 `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
@@ -711,7 +710,8 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> packets `b40ba42` + `ff45453`): read **3 917** / write **3 431**.
+> packets `b40ba42` + `ff45453` + `1597db6`): read **3 858** /
+> write **3 372**.
 
    ~~xdic family + LAYER visualstyle~~ — **DONE (2026-09-19, first reader-PR
    packet of the campaign)**: the top read rows after the 2026-09-19 session
@@ -1153,20 +1153,27 @@ Given a diff `(type, field, kind)`:
      fix" is discharged): the rows are gold's desync artifacts (garbage
      `isolines=205`/`revision_major=2423192302`/hex-string
      `revision_bytes`) from the SAME misparse, read as wrong_value against
-     silver's bit-true values — now on the read side only 59 rows
-     (example_2018 3DSOLID idx 0: 28 + example_2013: 31, incl. its
-     R2013-only `acis_data`/`history_id` shapes) and, since the files
-     joined the write side, the same rows count on the write diff too
-     (~118 total). They are NOT reducible from silver's model (silver's
-     values are the true wire). Small normalizer packet queued:
-     **3DSOLID prologue-divergence projection** — for R2013+ ds-backed
-     3DSOLID-family records drop the divergent COMMON_3DSOLID-internal
-     fields (`point_present/isolines/isoline_present/acis_empty_bit/
-     has_revision_guid/revision_major/minor1/minor2/revision_bytes/
-     end_marker` on both sides, plus 2013's `acis_data`/`history_id`
-     wrong_value shapes) so the differ sees nothing there (gold's own
-     decode is a spec bug — no real fidelity is lost); keep the fields for
-     non-ds and pre-R2013 records where gold parses sanely.
+     silver's bit-true values — 59 rows (example_2018: 28 + example_2013:
+     31, incl. its R2013-only `acis_data`/`history_id` shapes) on the
+     read side and, since the files joined the write side, the same 59 on
+     the write diff. They are NOT reducible from silver's model (silver's
+     values are the true wire). ~~Small normalizer packet queued:
+     **3DSOLID prologue-divergence projection**~~ — **DONE (2026-09-20,
+     `1597db6`)**: both normalizers drop the divergent
+     COMMON_3DSOLID-internal fields (`point_present/point/isolines/
+     isoline_present/acis_empty_bit/has_revision_guid/revision_major/
+     minor1/minor2/revision_bytes/end_marker`, plus 2013's
+     `acis_data`/`history_id`) **symmetrically** for exactly those
+     records — gold side gated on `FILEHEADER.version` AC1027/AC1032 +
+     the record's `has_ds_data`; silver side gated on
+     `r2013_plus` + the parsed SAB (the ds-section blob silver alone
+     reads). Non-ds and pre-R2013 family records (ATMOS R2007 verified at
+     its 369/186 baseline) keep every field — gold parses those sanely
+     and they stay verified. Read **3 917 → 3 858**, write
+     **3 431 → 3 372** (−59/−59, exactly the family, counted on both
+     sides). Remaining family residuals: `encr_sat_data` (6, v1-SAT
+     obfuscated wire blocks, unrecoverable by design) and the
+     pre-existing `next_entity` chain family (1) — accepted.
 
    ~~Pre-R2007 table `is_xref_ref` wire bit + fabricated Standard
    DIMSTYLE~~ — **DONE (2026-09-20, `ff45453`)**: second writer packet.
