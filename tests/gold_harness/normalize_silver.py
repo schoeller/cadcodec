@@ -1786,6 +1786,261 @@ def normalize_silver(
                        "cv_frame_visible"):
                 payload.pop(sk, None)
 
+        if silver_type == "MultiLeader":
+            # MULTILEADER (gold dwg2.spec 1298 + MLEADER_CONTEXT_DATA_fields
+            # macro at dwg2.spec 1227; silver: src/entities/multileader.rs,
+            # readers/entities.rs::read_multileader and
+            # read_multileader_annotation_context). Silver keeps the full
+            # MultiLeaderAnnotContext under `context` plus flat own-named
+            # fields; project everything to the gold shape, version-gated
+            # per the spec: R14-R2007 carries arrowheads/blocklabels and the
+            # neg/ipe/just/scale tail, SINCE R_2010b class_version, attach_dir
+            # and ctx.text_top/bottom, SINCE R_2013b is_text_extended.
+            # Residuals (kept): gold-only `unknown_bits` (silver stores no raw
+            # remainder) and gold's attach_top/attach_bottom BS values (32 /
+            # 4786-style raw codes outside silver's TextAttachmentType enum:
+            # structs/multileader.rs:79 collapses them, so silver's record
+            # cannot express them — see the §8.1.6 DONE entry).
+            _ML_ATTACH = {
+                "TopOfTopLine": 0, "MiddleOfTopLine": 1, "MiddleOfText": 2,
+                "MiddleOfBottomLine": 3, "BottomOfBottomLine": 4, "BottomLine": 5,
+                "BottomOfTopLineUnderlineBottomLine": 6,
+                "BottomOfTopLineUnderlineTopLine": 7,
+                "BottomOfTopLineUnderlineAll": 8, "CenterOfText": 9,
+                "CenterOfTextOverline": 10,
+            }
+
+            def _ml_enum(value, table):
+                return table.get(value, value) if isinstance(value, str) else value
+
+            def _ml_flags(value):
+                # MultiLeaderPropertyOverrideFlags (multileader.rs 291):
+                # serde prints "NAME | NAME"; rebuild the u32 via the bit table.
+                if isinstance(value, int):
+                    return value
+                total = 0
+                if isinstance(value, str):
+                    for part in (p.strip() for p in value.split("|")):
+                        total |= {
+                            "PATH_TYPE": 0x1, "LINE_COLOR": 0x2,
+                            "LEADER_LINE_TYPE": 0x4, "LEADER_LINE_WEIGHT": 0x8,
+                            "ENABLE_LANDING": 0x10, "LANDING_GAP": 0x20,
+                            "ENABLE_DOGLEG": 0x40, "LANDING_DISTANCE": 0x80,
+                            "ARROWHEAD": 0x100, "ARROWHEAD_SIZE": 0x200,
+                            "CONTENT_TYPE": 0x400, "TEXT_STYLE": 0x800,
+                            "TEXT_LEFT_ATTACHMENT": 0x1000, "TEXT_ANGLE": 0x2000,
+                            "TEXT_ALIGNMENT": 0x4000, "TEXT_COLOR": 0x8000,
+                            "TEXT_HEIGHT": 0x10000, "TEXT_FRAME": 0x20000,
+                            "ENABLE_USE_DEFAULT_MTEXT": 0x40000,
+                            "BLOCK_CONTENT": 0x80000,
+                            "BLOCK_CONTENT_COLOR": 0x100000,
+                            "BLOCK_CONTENT_SCALE": 0x200000,
+                            "BLOCK_CONTENT_ROTATION": 0x400000,
+                            "BLOCK_CONTENT_CONNECTION": 0x800000,
+                            "SCALE_FACTOR": 0x1000000,
+                            "TEXT_RIGHT_ATTACHMENT": 0x2000000,
+                            "TEXT_SWITCH_ALIGNMENT_TYPE": 0x4000000,
+                            "TEXT_ATTACHMENT_DIRECTION": 0x8000000,
+                            "TEXT_TOP_ATTACHMENT": 0x10000000,
+                            "TEXT_BOTTOM_ATTACHMENT": 0x20000000,
+                        }.get(part, 0)
+                return total
+
+            def _ml_linewt(value):
+                # line_linewt is BLd (raw DXF-style codes: -1 ByLayer,
+                # -2 ByBlock, -3 default), NOT the common-entity linewt RC
+                # index used by _lineweight_to_gold.
+                if isinstance(value, int):
+                    return value
+                if value == "ByLayer":
+                    return -1
+                if value == "ByBlock":
+                    return -2
+                if value == "Default":
+                    return -3
+                return 0
+
+            ctx = payload.get("context") if isinstance(payload.get("context"), dict) else {}
+
+            # -- entity fields, all versions (dwg2.spec 1395-1447) --
+            fields["mleaderstyle"] = normalize_handle_value(payload.get("style_handle") or 0)
+            fields["flags"] = _ml_flags(payload.get("property_override_flags"))
+            fields["line_color"] = normalize_color(payload.get("line_color"))
+            fields["line_ltype"] = normalize_handle_value(payload.get("line_type_handle") or 0)
+            fields["line_linewt"] = _ml_linewt(payload.get("line_weight"))
+            fields["has_landing"] = 1 if payload.get("enable_landing") else 0
+            fields["has_dogleg"] = 1 if payload.get("enable_dogleg") else 0
+            fields["landing_dist"] = normalize_float(payload.get("dogleg_length", 0.0))
+            fields["arrow_handle"] = normalize_handle_value(payload.get("arrowhead_handle") or 0)
+            fields["arrow_size"] = normalize_float(payload.get("arrowhead_size", 0.0))
+            fields["style_content"] = _ml_enum(
+                payload.get("content_type"),
+                {"None": 0, "Block": 1, "MText": 2, "Tolerance": 3})
+            fields["text_style"] = normalize_handle_value(payload.get("text_style_handle") or 0)
+            fields["text_left"] = _ml_enum(payload.get("text_left_attachment"), _ML_ATTACH)
+            fields["text_right"] = _ml_enum(payload.get("text_right_attachment"), _ML_ATTACH)
+            fields["text_angletype"] = _ml_enum(
+                payload.get("text_angle_type"),
+                {"ParallelToLastLeaderLine": 0, "Horizontal": 1, "Optimized": 2})
+            fields["text_alignment"] = _ml_enum(
+                payload.get("text_alignment"), {"Left": 0, "Center": 1, "Right": 2})
+            fields["text_color"] = normalize_color(payload.get("text_color"))
+            fields["has_text_frame"] = 1 if payload.get("text_frame") else 0
+            fields["block_style"] = normalize_handle_value(payload.get("block_content_handle") or 0)
+            fields["block_color"] = normalize_color(payload.get("block_content_color"))
+            fields["block_scale"] = normalize_value(payload.get("block_scale"))
+            fields["block_rotation"] = normalize_float(payload.get("block_rotation", 0.0))
+            # Slot naming: gold's BS after block_rotation is `style_attachment`
+            # (dwg2.spec 1446); silver's reader stores the same wire slot under
+            # `block_connection_type` (entities.rs:4495).
+            fields["style_attachment"] = _ml_enum(
+                payload.get("block_connection_type"), {"BlockExtents": 0, "BasePoint": 1})
+            fields["is_annotative"] = 1 if payload.get("enable_annotation_scale") else 0
+
+            # -- VERSIONS (R_14, R_2007): arrowheads, blocklabels, tail --
+            if not r2010_plus:
+                ahs = payload.get("arrowhead_overrides") or []
+                if isinstance(ahs, list) and ahs:
+                    fields["num_arrowheads"] = len(ahs)
+                    fields["arrowheads"] = [
+                        {"is_default": 1 if a.get("is_default") else 0,
+                         "arrowhead": normalize_handle_value(a.get("arrowhead_handle") or 0)}
+                        for a in ahs if isinstance(a, dict)]
+                bas = payload.get("block_attributes") or []
+                if isinstance(bas, list) and bas:
+                    fields["num_blocklabels"] = len(bas)
+                    fields["blocklabels"] = [
+                        {"attdef": normalize_handle_value(b.get("attribute_definition_handle") or 0),
+                         "label_text": b.get("text", ""),
+                         "ui_index": b.get("index", 0),
+                         "width": normalize_float(b.get("width", 0.0))}
+                        for b in bas if isinstance(b, dict)]
+                fields["is_neg_textdir"] = 1 if payload.get("text_direction_negative") else 0
+                fields["ipe_alignment"] = payload.get("text_align_in_ipe", 0)
+                # Gold's BS `justification` (179): silver's reader stores the
+                # slot as text_attachment_point (TextAttachmentPointType).
+                fields["justification"] = _ml_enum(
+                    payload.get("text_attachment_point"),
+                    {"Left": 1, "Center": 2, "Right": 3})
+                fields["scale_factor"] = normalize_float(payload.get("scale_factor", 1.0))
+
+            # -- SINCE (R_2010b) / SINCE (R_2013b) --
+            if r2010_plus:
+                fields["class_version"] = payload.get("dwg_version", 2)
+                fields["attach_dir"] = _ml_enum(
+                    payload.get("text_attachment_direction"),
+                    {"Horizontal": 0, "Vertical": 1})
+            if r2013_plus:
+                fields["is_text_extended"] = 1 if payload.get("extend_leader_to_text") else 0
+
+            # -- ctx: MLEADER_CONTEXT_DATA_fields (dwg2.spec 1227) --
+            roots = ctx.get("leader_roots") or []
+            num_leaders = len(roots) if isinstance(roots, list) else 0
+            fields["ctx.num_leaders"] = num_leaders
+            # Gold's REPEAT JSON for ctx.leaders is degenerate ([0]*count —
+            # the same libredwg emission class as MLINESTYLE.lines); silver
+            # stores the real leader-root structs. Project the count-faithful
+            # degenerate form so the differ sees the same array.
+            fields["ctx.leaders"] = [0] * num_leaders
+            fields["ctx.scale_factor"] = normalize_float(ctx.get("scale_factor"))
+            fields["ctx.content_base"] = normalize_value(ctx.get("content_base_point"))
+            fields["ctx.text_height"] = normalize_float(ctx.get("text_height"))
+            fields["ctx.arrow_size"] = normalize_float(ctx.get("arrowhead_size"))
+            fields["ctx.landing_gap"] = normalize_float(ctx.get("landing_gap"))
+            fields["ctx.text_left"] = _ml_enum(ctx.get("text_left_attachment"), _ML_ATTACH)
+            fields["ctx.text_right"] = _ml_enum(ctx.get("text_right_attachment"), _ML_ATTACH)
+            # Slot shift (entities.rs:4683-4686): the wire BS pair is gold's
+            # [ctx.text_angletype, ctx.text_alignment] (dwg2.spec 1234-1235);
+            # silver stores them shifted as [text_alignment, block_connection_type].
+            fields["ctx.text_angletype"] = _ml_enum(
+                ctx.get("text_alignment"), {"Left": 0, "Center": 1, "Right": 2})
+            fields["ctx.text_alignment"] = _ml_enum(
+                ctx.get("block_connection_type"), {"BlockExtents": 0, "BasePoint": 1})
+            has_txt = bool(ctx.get("has_text_contents"))
+            fields["ctx.has_content_txt"] = 1 if has_txt else 0
+            if has_txt:
+                fields["ctx.content.txt.default_text"] = ctx.get("text_string", "")
+                fields["ctx.content.txt.normal"] = normalize_value(ctx.get("text_normal"))
+                fields["ctx.content.txt.style"] = normalize_handle_value(ctx.get("text_style_handle") or 0)
+                fields["ctx.content.txt.location"] = normalize_value(ctx.get("text_location"))
+                fields["ctx.content.txt.direction"] = normalize_value(ctx.get("text_direction"))
+                fields["ctx.content.txt.rotation"] = normalize_float(ctx.get("text_rotation"))
+                fields["ctx.content.txt.width"] = normalize_float(ctx.get("text_width"))
+                fields["ctx.content.txt.height"] = normalize_float(ctx.get("text_boundary_height"))
+                fields["ctx.content.txt.line_spacing_factor"] = normalize_float(
+                    ctx.get("line_spacing_factor"))
+                fields["ctx.content.txt.line_spacing_style"] = _ml_enum(
+                    ctx.get("line_spacing_style"), {"AtLeast": 1, "Exactly": 2})
+                fields["ctx.content.txt.color"] = normalize_color(ctx.get("text_color"))
+                # silver's ctx.text_attachment_point reads gold's
+                # ctx.content.txt.alignment BS slot (entities.rs:4711).
+                fields["ctx.content.txt.alignment"] = _ml_enum(
+                    ctx.get("text_attachment_point"),
+                    {"Left": 1, "Center": 2, "Right": 3})
+                fields["ctx.content.txt.flow"] = _ml_enum(
+                    ctx.get("text_flow_direction"),
+                    {"Horizontal": 1, "Vertical": 3, "ByStyle": 5})
+                fields["ctx.content.txt.bg_color"] = normalize_color(ctx.get("background_fill_color"))
+                fields["ctx.content.txt.bg_scale"] = normalize_float(ctx.get("background_scale_factor"))
+                fields["ctx.content.txt.bg_transparency"] = ctx.get("background_transparency", 0)
+                fields["ctx.content.txt.is_bg_fill"] = 1 if ctx.get("background_fill_enabled") else 0
+                fields["ctx.content.txt.is_bg_mask_fill"] = 1 if ctx.get("background_mask_fill_on") else 0
+                fields["ctx.content.txt.col_type"] = ctx.get("column_type", 0)
+                fields["ctx.content.txt.is_height_auto"] = 1 if ctx.get("text_height_automatic") else 0
+                fields["ctx.content.txt.col_width"] = normalize_float(ctx.get("column_width"))
+                fields["ctx.content.txt.col_gutter"] = normalize_float(ctx.get("column_gutter"))
+                fields["ctx.content.txt.is_col_flow_reversed"] = 1 if ctx.get("column_flow_reversed") else 0
+                cols = ctx.get("column_sizes") or []
+                fields["ctx.content.txt.num_col_sizes"] = len(cols) if isinstance(cols, list) else 0
+                fields["ctx.content.txt.col_sizes"] = (
+                    [normalize_float(c) for c in cols] if isinstance(cols, list) else [])
+                fields["ctx.content.txt.word_break"] = 1 if ctx.get("word_break") else 0
+                fields["ctx.content.txt.unknown"] = 1 if ctx.get("dwg_unknown_text_bit") else 0
+            else:
+                fields["ctx.has_content_blk"] = 1 if ctx.get("has_block_contents") else 0
+                if ctx.get("has_block_contents"):
+                    fields["ctx.content.blk.block_table"] = normalize_handle_value(
+                        ctx.get("block_content_handle") or 0)
+                    fields["ctx.content.blk.normal"] = normalize_value(ctx.get("block_content_normal"))
+                    fields["ctx.content.blk.location"] = normalize_value(ctx.get("block_content_location"))
+                    fields["ctx.content.blk.scale"] = normalize_value(ctx.get("block_content_scale"))
+                    fields["ctx.content.blk.rotation"] = normalize_float(ctx.get("block_rotation", 0.0))
+                    fields["ctx.content.blk.color"] = normalize_color(ctx.get("block_content_color"))
+                    tm = ctx.get("transform_matrix") or []
+                    fields["ctx.content.blk.transform"] = (
+                        [normalize_float(t) for t in tm] if isinstance(tm, list) else [])
+            fields["ctx.base"] = normalize_value(ctx.get("base_point"))
+            fields["ctx.base_dir"] = normalize_value(ctx.get("base_direction"))
+            fields["ctx.base_vert"] = normalize_value(ctx.get("base_vertical"))
+            fields["ctx.is_normal_reversed"] = 1 if ctx.get("normal_reversed") else 0
+            if r2010_plus:
+                fields["ctx.text_top"] = _ml_enum(ctx.get("text_top_attachment"), _ML_ATTACH)
+                fields["ctx.text_bottom"] = _ml_enum(ctx.get("text_bottom_attachment"), _ML_ATTACH)
+
+            # Consume the silver shape so only `common` remains for the
+            # generic loop. path_type has no gold counterpart (gold's BS 170
+            # `type` field is shadowed by the record-type meta key and never
+            # emitted); text_height is silver's own top-level duplicate (gold
+            # keeps the height only in ctx.text_height); graphic_data has no
+            # gold field (gold folds the embedded-graphics binary into
+            # unknown_bits, which stays a gold-only residual row).
+            for sk in ("context", "style_handle", "property_override_flags",
+                       "path_type", "line_color", "line_type_handle", "line_weight",
+                       "enable_landing", "enable_dogleg", "dogleg_length",
+                       "arrowhead_handle", "arrowhead_size", "content_type",
+                       "text_style_handle", "text_left_attachment",
+                       "text_right_attachment", "text_angle_type", "text_alignment",
+                       "text_color", "text_frame", "block_content_handle",
+                       "block_content_color", "block_scale", "block_rotation",
+                       "block_connection_type", "enable_annotation_scale",
+                       "block_attributes", "arrowhead_overrides",
+                       "text_direction_negative", "text_align_in_ipe",
+                       "text_attachment_point", "scale_factor",
+                       "text_attachment_direction", "text_top_attachment",
+                       "text_bottom_attachment", "extend_leader_to_text",
+                       "dwg_version", "text_height", "graphic_data"):
+                payload.pop(sk, None)
+
         field_map = FIELD_NAME_MAP.get(silver_type, {})
         for k, v in payload.items():
             if k == "common":

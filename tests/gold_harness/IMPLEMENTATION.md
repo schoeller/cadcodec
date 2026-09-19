@@ -263,13 +263,16 @@ BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
 LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes + CMC color-method fix + TABLESTYLE/MLINESTYLE/
 MLEADERSTYLE/DICTIONARYWDFLT/IMAGE/ATTDEF/LAYOUT/CONTROL/LEADER/TEXT/HATCH/
-SPLINE/WIPEOUT + INSERT.block_header + UNKNOWN_OBJ naming + MTEXT R2018,
-2026-09-19):** read-fidelity **11 900**, write-fidelity **10 904**, across 125
+SPLINE/WIPEOUT + INSERT.block_header + UNKNOWN_OBJ naming + MTEXT R2018 +
+gold-spec audit + MULTILEADER, 2026-09-19):** read-fidelity **10 684**,
+write-fidelity **9 894**, across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
-each packet lands. Re-verified fresh 2026-09-19 (a clean full rerun reproduced
-11 900/10 904 exactly). **Caution — phantom reports:** a corpus run launched
+each packet lands. **Campaign target: read AND write below 8 000** (raised
+from 12 000 on 2026-09-19). The 11 900/10 904 pre-MULTILEADER baseline was
+re-verified fresh by a clean full rerun before the packet landed.
+**Caution — phantom reports:** a corpus run launched
 WITHOUT the §8.1.0 env (GOLD_DWGREAD unset) still writes a plausible-looking
 report: every per-file run fails instantly and the aggregator re-reads stale
 artifacts on disk (a phantom 11 372/9 953 report from 2026-09-19 17:44 was
@@ -784,17 +787,20 @@ Given a diff `(type, field, kind)`:
    ASSOCDEPENDENCY (36), ASSOCGEOMDEPENDENCY (34), ASSOCVARIABLE (22),
    ASSOCDIMDEPENDENCYBODY (18), ASSOCVALUEDEPENDENCY (18), ASSOCNETWORK (17).
 
-   **Next task (ready to start, 2026-09-19):** the remaining backlog after the
-   DIMASSOC → MTEXT run. Top of the re-ranked queue (read-fidelity, stem-
-   inflated counts): MULTILEADER (1269, ctx.* nested projection — silver stores
-   a full `MultiLeaderAnnotContext`; large), 3DSOLID (1131, ACIS/modeler +
-   unknown_bits — mostly reader/verbatim), UNKNOWN_OBJ (941, the unmodeled
-   class — each unmodeled type is its own reader packet; the DIMASSOC dxf_name
-   pattern is the template), BLOCK_HEADER (698, name/first_entity/last_entity
-   + is_xdic_missing residuals), MTEXT (212 residual: style name→handle,
-   ignore_attachment per-file, text encoding). The cleanest next normalizer
-   packets: BLOCK_HEADER (name/first_entity/last_entity via the block_records
-   map) and the LAYER/LTYPE_CONTROL residuals.
+   **Next task (ready to start, 2026-09-19, post-MULTILEADER):** top of the
+   re-ranked queue (read-fidelity, stem-inflated, from the 10 684/9 894
+   report): 3DSOLID (1131, ACIS/modeler + unknown_bits — mostly
+   reader/verbatim; NOTE dwg_spec_shared.h `COMMON_3DSOLID` carries the
+   common payload, dwg.spec only the shell), UNKNOWN_OBJ (582 `_missing` +
+   UNKNOWN._missing 213 — the unmodeled class; each unmodeled LIVE type is
+   its own reader packet, the DIMASSOC dxf_name pattern is the template;
+   NEVER model a debug-gated type — match gold's UNKNOWN record instead,
+   §8.1.1 liveness rule), BLOCK_HEADER (698: name/first_entity/last_entity +
+   anonymous + is_xdic_missing residuals — cleanest normalizer packets:
+   BLOCK_HEADER via the block_records map and the LAYER/LTYPE_CONTROL
+   residuals), LAYER.visualstyle (212), MTEXT.style (183, name→handle),
+   SOLID.elevation (161), SECTIONVIEWSTYLE/DETAILVIEWSTYLE (~234 combined).
+   Target: read AND write below **8 000** (§7).
 
    Add-on diagnosis from the 2026-09-19 full-libredwg spec audit: the
    `OBJECTCONTEXTDATA.*` rows (6 stems; see e.g.
@@ -806,6 +812,83 @@ Given a diff `(type, field, kind)`:
    both the `OBJECTCONTEXTDATA._missing/_count` and
    `LEADEROBJECTCONTEXTDATA._count/_missing` row families (~24 rows). A small
    standalone packet, suitable before or alongside the UNKNOWN_OBJ backlog.
+
+   ~~MULTILEADER~~ — **DONE (2026-09-19)**: the largest read-side type
+   (was 1269 stem-inflated read rows / 1055 write rows, ~100 real rows on
+   each of the 12 ML-bearing entries: the six Leader.dwg versions + the six
+   `example_2xxx.dwg`; 2-4 residual rows per file after). Normalizer
+   projection `normalize_silver.py` (`silver_type == "MultiLeader"`).
+   Silver's payload keeps the full annot context under `context`
+   (MultiLeaderAnnotContext) plus flat own-named fields; gold's shape is the
+   dwg2.spec 1298 block + the MLEADER_CONTEXT_DATA_fields macro (dwg2.spec
+   1227). Key mappings and subtleties:
+   - All-versions fields: `mleaderstyle`←style_handle, `flags`←
+     property_override_flags (serde bit-name string → u32 via silver's
+     MultiLeaderPropertyOverrideFlags table; CONTENT_TYPE|TEXT_ALIGNMENT|
+     ENABLE_USE_DEFAULT_MTEXT = 0x400|0x4000|0x40000 = 279552 exactly),
+     `line_linewt`←line_weight (**BLd DXF codes: ByLayer −1 / ByBlock −2 —
+     NOT the common-entity linewt RC index `_lineweight_to_gold`**),
+     `has_landing`/`has_dogleg`←enable_landing/enable_dogleg,
+     `landing_dist`←dogleg_length, `arrow_handle` (null → absref-0 dict),
+     `style_content`←content_type (MText=2), `text_left/right`←
+     text_left/right_attachment, enum→discriminant (silver's
+     src/entities/multileader.rs tables: TextAttachmentType 0-10,
+     TextAngleType Horizontal=1, TextAlignmentType Left=0/1/2),
+     `style_attachment`←block_connection_type and
+     `is_annotative`←enable_annotation_scale — **same wire slots, different
+     silver names** (reader entities.rs:4495 names gold's BS-176 slot
+     "block_connection_type").
+   - VERSIONS(R_14,R_2007): `is_neg_textdir`←text_direction_negative,
+     `ipe_alignment`←text_align_in_ipe, `justification`←text_attachment_point
+     (same wire slot; TextAttachmentPointType Left=1/Center=2/Right=3),
+     `scale_factor` passthrough; `num_arrowheads/arrowheads` +
+     `num_blocklabels/blocklabels` projected **only when non-empty** (gold
+     omits zero-count REPEAT data).
+   - SINCE(R_2010b): `class_version`←dwg_version, `attach_dir`←
+     text_attachment_direction, `ctx.text_top/bottom`←context.
+     text_top/bottom_attachment. SINCE(R_2013b): `is_text_extended`←
+     extend_leader_to_text.
+   - ctx: `ctx.num_leaders`←len(leader_roots) and **`ctx.leaders` as gold's
+     degenerate REPEAT emission** `[0]*count` (same libredwg class as
+     MLINESTYLE.lines — silver's real leader-root structs are never emitted
+     by gold's JSON). Slot shifts (entities.rs:4683-4686): silver stores the
+     wire BS pair (`ctx.text_angletype`, `ctx.text_alignment`) shifted as
+     (`text_alignment`, `block_connection_type`); ctx.content.txt.alignment
+     comes from silver's ctx.text_attachment_point; height from
+     text_boundary_height; colors via normalize_color, handles as absref
+     dicts, bools → 0/1. Gold's BS-170 `type` field is shadowed by the
+     record-meta key and never emitted; silver has no counterpart (content_
+     type maps to BS-172 style_content instead). `graphic_data` has no gold
+     field (the embedded-graphics binary folds into unknown_bits) → dropped
+     per the linetype-name precedent.
+   - Residuals (reader/structural, separate packets): `unknown_bits`
+     (gold-only verbatim), `graphic_data` (silver-only), `attach_top`/
+     `attach_bottom` — gold's raw BS values (32 / 178 / 4786) sit outside
+     silver's TextAttachmentType enum whose From collapses to MiddleOfText
+     (multileader.rs:79 builds CenterOfText defaults), so silver's struct
+     cannot express them; PLUS the pre-existing `prev_entity` class.
+   - Write-side: the projection also drives silver_rt normalization, so
+     write rows fell together — the write pipeline compares gold's re-decode
+     of silver's rewrite against silver's own re-parse (both normalized).
+     Silver's ML **writer** still corrupts `flags` (writes 0 where the struct
+     holds 279552) and `arrow_size` (writes 0.0 where the struct holds 4.0)
+     — example_2018 gold_rt shows both — while the attach triplet roundtrips
+     byte-exact through a path the struct does not expose (writer packet
+     queued).
+   Corpus: read **11 900 → 10 684**, write **10 904 → 9 894** (125 files,
+   same two write-side exclusions as before: example_2013/2018 rt — see the
+   REGION-NaN item below). Per-file ML rows: ~103-107 → 2-4 (verified on all
+   six Leader.dwg versions + all six example versions).
+   Gates: `cargo test --features serde` = 1556/0, `gold_roundtrip` ok.
+
+   **REGION-NaN write-side blocker (found in this packet — queue next):**
+   silver's rewrite of `example_2013.dwg` and `example_2018.dwg` contains a
+   `REGION` entity whose `point` gold re-decodes as `[ -nan, 0.0, 0.0 ]` —
+   the `-nan` token is INVALID JSON, so `normalize_gold` dies, and the write
+   side of BOTH files is excluded (-1) from every corpus report
+   (the write totals 10 904 → 9 894 exclude them). ~950 hidden write rows
+   will surface once the NaN is fixed. Root cause likely an unset point in
+   silver's 3DSOLID/REGION writer; fix together with the 3DSOLID packet.
 
    ~~TABLESTYLE~~ — **DONE (2026-09-19)**: the largest single type (was 2 351
    rows, 9 346 stem-inflated). Normalizer packet. The object has two disjoint
@@ -1222,7 +1305,10 @@ deduplicated counts are lower due to the stem-collision inflation noted in §7):
   3580), **STYLE** (~2 805 font/shape, dwg.spec 3479), **3DFACE** (~1 859,
   dwg.spec 2057 — spec name is `_3DFACE`), **SOLID** (~1 699, dwg.spec 2274),
   **ELLIPSE** (~1 523, dwg.spec 2555), **APPID** (~1 272; name=fabricated
-  APPIDs, reader gap), **MULTILEADER** (~1 269, dwg2.spec 1298), **3DSOLID**
+  APPIDs, reader gap), ~~**MULTILEADER** (1 269 → done 2026-09-19, §8.1.6;
+  residual 42 stem-rows: unknown_bits/graphic_data/attach_top/attach_bottom +
+  prev_entity; writer flags/arrow_size corruption queued as write packets)~~,
+  **3DSOLID**
   (~1 077 ACIS/modeler, dwg.spec 2681 — spec name is `_3DSOLID`), **DIMSTYLE**
   (~1 036 residual DIM* vars, dwg.spec 4188).
 - **UNKNOWN.* and `*._missing`/`._count`** (~5 000+ combined): unmodeled object

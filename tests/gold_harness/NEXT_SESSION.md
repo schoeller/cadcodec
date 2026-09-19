@@ -9,8 +9,8 @@
 
 Continue the acadrust gold-vs-silver roundtrip harness. Drive the remaining
 read/write fidelity diffs down. The current target (read AND write) is **below
-12 000**; both are already there (read 11 900, write 10 904), so the goal is to
-keep pushing toward the next milestone or hold the line while landing packets.
+8 000** (raised from 12 000 on 2026-09-19, which read 11 900 / write 10 904
+had already met); land packets until both sides are under 8 000.
 
 ## Read these first (in order)
 
@@ -29,13 +29,20 @@ keep pushing toward the next milestone or hold the line while landing packets.
 
 ## Current state (2026-09-19)
 
-- Baseline: read-fidelity **11 900**, write-fidelity **10 904** (125 corpus
-  files).
+- Baseline: read-fidelity **10 684**, write-fidelity **9 894** (125 corpus
+  files). Target: read AND write **below 8 000**.
 - `cargo test --features serde` = 1556/0; `gold_roundtrip` = ok.
-- The normalizer-only projection work for the common entities/objects is done.
-  The remaining backlog is: MULTILEADER `ctx.*` nested projection, 3DSOLID
-  (ACIS + unknown_bits), the UNKNOWN_OBJ unmodeled-object class, BLOCK_HEADER
-  name/first/last_entity, and the MTEXT/XRECORD residuals (reader-coverage).
+- MULTILEADER `ctx.*` is **DONE** (§8.1.6 DONE entry: 11 900→10 684 read,
+  10 904→9 894 write; residuals unknown_bits/graphic_data/attach_top/bottom).
+  A full libredwg spec re-audit also landed (§8.1.1 liveness rule: never model
+  a debug-gated spec block — gold decodes those as raw UNKNOWN).
+- The remaining backlog is: 3DSOLID (ACIS + unknown_bits; the common payload
+  is in dwg_spec_shared.h COMMON_3DSOLID, with a REGION `point=[ -nan ]`
+  silver-writer bug that excludes example_2013/2018 from the write side),
+  the UNKNOWN_OBJ unmodeled-object class, BLOCK_HEADER
+  name/first/last_entity, the silver ML writer flags/arrow_size corruption,
+  the OBJECTCONTEXTDATA type-name quick-win, LAYER.visualstyle, MTEXT.style,
+  and the MTEXT/XRECORD residuals (reader-coverage).
 - The reusable probes exist: `tests/gold_harness/` — `run_roundtrip.py`,
   `run_corpus.py`, `diff_fields.py`, `normalize_gold.py`, `normalize_silver.py`,
   `type_diff.py` (per-type diff via the frozen pipeline), `audit_type.py`
