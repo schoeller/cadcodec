@@ -266,21 +266,20 @@ MLEADERSTYLE/DICTIONARYWDFLT/IMAGE/ATTDEF/LAYOUT/CONTROL/LEADER/TEXT/HATCH/
 SPLINE/WIPEOUT + INSERT.block_header + UNKNOWN_OBJ naming + MTEXT R2018 +
 gold-spec audit + MULTILEADER + 3DSOLID + ACSH_HISTORY + EVALUATION_GRAPH +
 BLOCK_HEADER/controls + viewstyles + mtext.style + underlays + dimensions +
-ASSOC family + polyline vertex emission, 2026-09-19):** read-fidelity **5 942**,
-write-fidelity **5 562**, across 125
+ASSOC family + polyline vertex emission + xdic family + layer visualstyle +
+mid-rank batch (has_ds_data/SORTENTSTABLE/APPID/DIMASSOC.ref/
+IMAGEDEF_REACTOR) + elevation/linewt projections, 2026-09-19):**
+read-fidelity **4 001**, write-fidelity **3 835**, across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands. **Campaign target: read AND write below 1 000** (raised
 12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19 — at this level every
 normalizer-trackable family plus the structural classes (ASSOC retypes, the
-unmodeled wrappers, the reader-side xdic/visualstyle items via Rust) is
-required).
-12 000 → 8 000 → 5 000 on 2026-09-19 — at this level the whole queue incl.
-the 3DSOLID/REGION ACIS family, the UNKNOWN_OBJ unmodeled-object reader
-class, and BLOCK_HEADER is required, not just normalizer renames). The
-11 900/10 904 pre-MULTILEADER baseline was
-re-verified fresh by a clean full rerun before the packet landed.
+unmodeled wrappers, the SOLID.elevation/LAYOUT.has_ds_data/linewt reader
+items via Rust) is required; the xdic/visualstyle reader items landed in
+`3cff463`). The 5 942/5 562 pre-xdic baseline was re-verified fresh by a
+clean full rerun before the packet landed.
 **Caution — phantom reports:** a corpus run launched
 WITHOUT the §8.1.0 env (GOLD_DWGREAD unset) still writes a plausible-looking
 report: every per-file run fails instantly and the aggregator re-reads stale
@@ -340,7 +339,7 @@ core codec; the gaps were in the dump/normalizer projection:
 | `ACDBSECTIONVIEWSTYLE` / `ACDBDETAILVIEWSTYLE` missing after rewrite | **Fixed** | Same class-table retention fix |
 | `AcDbVisualStyle` "Object improperly read" | **Fixed** (2026-09-17) | `bd2007_45` was read/written unconditionally in the pre-R2010 branch; gold gates it `SINCE R_2007a`. R2000/R2004 rewrites carried 8 extra bytes per VisualStyle, desynchronizing the object stream. Fixed by gating on `r2007_plus()` in both `read_visual_style` and `write_visual_style`. Confirmed: gold `dwgread` now decodes R2000/R2004 rewrites with exit 0 and no VisualStyle errors; R2007 behavior unchanged. |
 | EntityCommon storage-only field gaps | **Fixed** (2026-09-17) | See table above. LINE/CIRCLE entity diffs now zero on all versions. |
-| Uniform table-record storage fields (`ownerhandle`, `is_xref_ref`, `is_xref_resolved`, `is_xref_dep`, `xref`, `unknown`, `is_xdic_missing` R2004+, `has_ds_data` R2013+) | **Fixed** (2026-09-17) | These are uniform across ordinary table records and derived in `normalize_silver.py` from silver state: `ownerhandle` = the table's control-object handle, xref bits = `1/0/0`, `xref` = null handle, `unknown` = 0 (APPID only), `is_xdic_missing` = `xdictionary_handle.is_none()` (R2004+, all objects), `has_ds_data` = 0 (R2013+, objects). No codec changes needed. APPID/TEXTSTYLE/VIEW/UCS table records are now diff-free. |
+| Uniform table-record storage fields (`ownerhandle`, `is_xref_ref`, `is_xref_resolved`, `is_xref_dep`, `xref`, `unknown`, `is_xdic_missing` R2004+, `has_ds_data` R2013+) | **Fixed** (2026-09-17; xdic updated `3cff463` 2026-09-19) | These are uniform across ordinary table records and derived in `normalize_silver.py` from silver state: `ownerhandle` = the table's control-object handle, xref bits = `1/0/0`, `xref` = null handle, `unknown` = 0 (APPID only), `is_xdic_missing`/`xdicobjhandle` = looked up per record in the document-level `xdic_by_handle` map (silver's `xdictionary_handle` storage, `xdicobjhandle` on all versions when present, the R2004+ bit otherwise; under `xdictionary_handle.is_none()` before `3cff463` — wrong for records that own an xdic), `has_ds_data` = 0 (R2013+, objects). No codec changes needed for the read side. APPID/TEXTSTYLE/VIEW/UCS table records are now diff-free. |
 | Table-record payload fields | **Open** | Per-record semantic data, not uniform: DIMSTYLE ~70 `DIM*` vars (largest), LTYPE dash patterns (`dashes`, `numdashes`, `pattern_len`), VPORT view params (`VIEWCTR`, `VIEWDIR`, `BACKZ`, `FRONTZ`, `GRID*`, `SNAP*`, `UCS*`, …), BLOCK_HEADER topology (`xdicobjhandle`, `base_pt`, `xref_pname`, `block_entity`, `entities`, `endblk_entity`, …), LAYER `plotstyle`/`linewt`. These require reader storage and/or per-type normalizer mapping — one packet per table type. |
 | Object representation gaps | **In progress** | VISUALSTYLE, MATERIAL, DIMSTYLE, SCALE, XRECORD, DICTIONARYVAR, and LWPOLYLINE are mapped in `normalize_silver.py`. Corpus totals on `Line.dwg` dropped from ~2500 to ~880; Polyline.dwg from ~995 to ~880. `ownerhandle` handle-code semantics is done (see §8.1.6). Residual: CMC absent-color encoding, `reactors` storage gap. Remaining per-type: LAYOUT, MLEADERSTYLE, BLOCK_HEADER topology, LTYPE dash patterns, VPORT view params. See §8.1.6. |
 | Write-fidelity diff compares silver_rt, not gold_rt | **Open** (found 2026-09-17) | `run_roundtrip.py` builds `diff_rt = diff(gold_rt_norm, silver_rt_norm)` although §3 documents write fidelity as `gold_orig` vs `gold_rt`. Consequences: (a) the differ's two-sided handle-code check is unreachable (silver emits `code=None` on every path), so acadrust's writer flattening all ownerhandle codes to 4 (gold_rt `{4:214}` vs gold_orig `{4:94, 8:40, 12:78, 10:5}`) is invisible to the harness; (b) "write fidelity" currently measures gold-vs-silver on the *rewritten* file, not what the writer changed. Wiring the documented gold_orig-vs-gold_rt diff would activate code comparison and catch code-flattening regressions. |
@@ -691,6 +690,124 @@ Given a diff `(type, field, kind)`:
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Baseline: read 27 019 / write 27 313.
 
+   ~~xdic family + LAYER visualstyle~~ — **DONE (2026-09-19, first reader-PR
+   packet of the campaign)**: the top read rows after the 2026-09-19 session
+   were LAYER/LAYER_CONTROL/BLOCK_HEADER `xdicobjhandle`/`is_xdic_missing`
+   (~576 read / ~556 write) + LAYER `visualstyle` (212 read / 202 write) +
+   the same family on object-variant payloads (TABLESTYLE etc., below the
+   top-40). Diagnosis: **silver already stores everything** — the reader
+   reads the xdic handle in `read_common_non_entity_data` (all versions;
+   R2004+ gated by the `is_xdic_missing` bit) and saves it into the
+   document-level `xdic_by_handle` map (`dwg_document_builder.rs` Pass 1 for
+   table entries/controls, Pass 2 for all other objects), and the writer
+   round-trips it (that's why `gold_rt` showed *real* xdics). The gap was
+   purely projection. Fix (all in `normalize_silver.py`, normalizer-only):
+   look up the record's handle in the top-level `xdic_by_handle` map
+   (decimal-string keys, same pattern as `reactors_by_handle`) and emit
+   `xdicobjhandle` when present (all versions) + `is_xdic_missing: 0/1`
+   (R2004+) for (a) table-entry records, (b) control records (synthesized
+   `_ctrl`), and (c) the objects branch via `_inject_xdic` — a generic
+   fallback for object variants whose struct doesn't serialize
+   `xdictionary_handle` (TableStyle and friends; the named variants like
+   Dictionary/VisualStyle/XRecord dump it). The only true reader gap in the
+   family was LAYER `visualstyle` (gold dwg.spec LAYER tail, `SINCE
+   (R_2013b) FIELD_HANDLE (visualstyle, 5, 348)`): silver read it into
+   `LayerData.unknown_handle` and discarded it — renamed to
+   `visualstyle_handle`, stored on `Layer.visual_style_handle` (serde-visible
+   so the dump carries it), the writer now writes the real value
+   (HardPointer=code 5, null when unset) instead of the hardcoded null, and
+   the normalizer projects `visualstyle` for every R2013+ layer (gold
+   always emits it; unset = null handle `[5,0,0,0]`). Gold shape verified
+   per version on fresh `Line.dwg` runs: pre-R2004 LAYER/CONTROL emit
+   `xdicobjhandle` only when the xdic exists and no `is_xdic_missing` key;
+   R2004+ additionally carry the bit; only R2013+ LAYERs carry
+   `visualstyle`. Corpus: **read 5 942 → 4 722, write 5 562 → 4 402**
+   (−1 220 / −1 160 — bigger than the top-40 estimate because the
+   object-variant xdic rows below the top-40 died too). Committed
+   `3cff463`. Verified: all 6 versions + ex18 family-row zero, `cargo test
+   --features serde` 1556/0, `gold_roundtrip` ok.
+
+   ~~Mid-rank batch (LAYOUT.has_ds_data / SORTENTSTABLE /
+   APPID.AcadAnnotative / DIMASSOC.ref / IMAGEDEF_REACTOR)~~ — **DONE
+   (2026-09-19, `5c75b1d`)**: five one-line-class fixes, all verified
+   per-file before landing. (a) `LAYOUT.has_ds_data` (~97 read / 95
+   write): silver's reader correctly parses the R2013+ AcDs bit for every
+   object (the Model LAYOUT on R2013+ files is the one that carries it) and
+   stores the handles in `document.dwg_data_store_handles` — but that set
+   was `#[serde(skip)]`, so the dump never exposed it. Un-skipped it (now a
+   plain handle list like the other round-trip side channels) and the
+   objects branch derives `has_ds_data` from it instead of the hardcoded 0
+   — the writer already round-trips the bit, so both sides died together.
+   (b) `SORTENTSTABLE.block_owner` (~144/144): silver already reads and
+   stores the owning block record as `block_owner_handle` (and round-trips
+   it); gold's dwg2.spec 149 field is `block_owner` and gold never
+   serializes the DXF-only ent/sort_ent vectors — pure renames plus drops
+   of the silver-only `entries`/`entry_map`. (c) `APPID.name` (~68 read /
+   57 write): `CadDocument::new()` fabricates the AcadAnnotative regapp;
+   the builder's fabricated-APPID removal list had
+   AcCmTransparency/AcAecLayerStandard but omitted AcadAnnotative, leaving
+   a phantom record that shifted every gold APPID pairing. Added it to the
+   removal list (reader fix; gold's APPID_CONTROL on the affected files
+   has no such entry, verified). (d) `DIMASSOC.ref` (~62 orig / 46 rt):
+   out_json's REPEAT_CN emission collapses every AcDbOsnapPointRef struct
+   to a bare 0 — gold emits `[0]*6` for all six slots on every corpus
+   DIMASSOC, even when the wire carries real refs (Dynblocks/example_2004
+   verified). The old per-slot dict projection could never match; emit the
+   degenerate `[0]*6` instead (silver's `references` stay in the dump for
+   the writer). (e) `IMAGEDEF_REACTOR.class_version` (~30/30): silver's
+   reader parses class_version but the builder discarded it, and the writer
+   hardcoded 0 (gold_rt read 0 while the file carried 2). Stored it on the
+   struct (serde-visible), round-tripped it in the writer, and dropped the
+   silver-only `image_handle` from the projection (gold's dwg.spec block
+   serializes class_version only). Corpus: **read 4 722 → 4 304, write
+   4 402 → 4 106**. All five families verified row-zero on fresh
+   Dynblocks/example_2004/example_2013/2018-Constraints runs; both gates
+   pass. Remaining top read rows after this batch: UNKNOWN_OBJ._missing
+   264, SOLID.elevation 161, TABLESTYLE/DIMASSOC/EVALUATION_GRAPH
+   unknown_bits (~240 combined, the floor), BLOCK/APPID write-side
+   is_xref_ref, LAYOUT lines/other smalls.
+
+   ~~SOLID.elevation + linewt index projections~~ — **DONE (2026-09-19,
+   `8653303`)**: (a) SOLID/TRACE `elevation` (161 read / 131 write):
+   silver's model holds the value all along — the reader folds the wire
+   elevation into every corner's z (`data.elevation` → `Vector3::new(x, y,
+   z)`), and the writer round-trips it via `write_bit_double
+   (e.first_corner.z)` — but the dump projection sliced the 2RD corners to
+   [x, y] before an `elevation` field could be emitted. De-duplicated the
+   accidentally-duplicated SOLID/TRACE block in `normalize_silver.py` and
+   project `elevation = corner1.z` before the slice. (b) linewt (155
+   read / 137 write census): silver's `LineWeight` enum serializes concrete
+   weights as `{"Value": <mm*100>}` — a form `_lineweight_to_gold` didn't
+   handle, so the entity-common merge emitted the raw serde dict (the
+   differ shows it as null). Added the dict form plus an mm*100 →
+   lweights[]-index inversion mirroring silver's
+   `LineWeight::INDEXED_VALUES`/`to_dwg_index` (index 0..23 +
+   29/30/31 = ByLayer/ByBlock/Default), and the LAYER table record now
+   emits `linewt` (R2000+ per the dwg.spec LAYER flag word) from its
+   `line_weight` enum through the same mapping. Corpus: **read 4 304 →
+   4 001, write 4 106 → 3 835**. Verified row-zero on fresh
+   example_2004/2004-Donut/2018-Dynblocks runs; gates 1556/0 +
+   `gold_roundtrip` ok.
+
+   **Deferred sub-family — the linewt-28 preservation (~37 orig rows,
+   `LINE/CIRCLE/BLOCK/ENDBLK/LWPOLYLINE`)**: those corpus records carry wire
+   byte **28** (a non-canonical ByLayer alias — silver's
+   `LineWeight::from_dwg_index(28)` ligates it to canonical `ByLayer`, whose
+   `to_dwg_index()` writes **29**). Gold reads and re-emits 28 as-is
+   (plain `FIELD_RC (linewt, 370)`, common_entity_data.spec 545 — no
+   transformation); silver loses the value in the enum, so the projection
+   cannot recover it, and the writer changes the byte (28 → 29). The rt
+   side is already self-consistent (both readers decode silver's rewritten
+   29), so these rows are orig-side only. Fix recipe (reader + writer,
+   small structural): preserve the raw byte — either a private
+   serde-skipped `dwg_linewt_raw` + public accessor on `EntityCommon`
+   (builder `dwg_document_builder.rs:7253` stores it when
+   `to_dwg_index(from_dwg_index(raw)) != raw`), or a document-level
+   `linewt_raw_by_handle` side channel serde-visible like `xdic_by_handle`;
+   writer consults it in `entity_preamble`
+   (`common.rs:643 write_byte(line_weight.to_dwg_index())`); the dump +
+   normalizer prefer it for `fields["linewt"]`.
+
 1. ~~Table-record storage fields~~ — **done** for the uniform set (see §7).
    What remains is per-record **payload**, one packet per table type:
    DIMSTYLE `DIM*` vars (largest), LTYPE dash patterns, VPORT view params,
@@ -861,6 +978,13 @@ Given a diff `(type, field, kind)`:
    LAYER.visualstyle (212), MTEXT.style (183, name→handle),
    SOLID.elevation (161), SECTIONVIEWSTYLE/DETAILVIEWSTYLE (~234 combined),
    and the 3DSOLID R2013+ prologue deep dive (below).
+   *(Superseded 2026-09-19: BLOCK_HEADER, MTEXT.style,
+   SECTIONVIEWSTYLE/DETAILVIEWSTYLE, and LAYER.visualstyle all landed —
+   see the newest DONE entries. The live remaining-reader list is in the
+   xdic-family entry above: SOLID.elevation 161, LAYOUT.has_ds_data 97,
+   LINE/LAYER.linewt raw lweights, SORTENTSTABLE.block_owner 144,
+   APPID.name 68, the MLINE/MLINEm/SEQENDENTSTABLE tails, VERTEX_MESH
+   flag-64, ConstraintGroup nodes.)*
    Target: read AND write below **5 000** (§7) — at that level the cheap
    normalizer tail alone can no longer reach it; the UNKNOWN naming/reader
    class and BLOCK_HEADER are all required.
@@ -1296,10 +1420,11 @@ All are spec-locatable; the work is reader/codec, not normalizer projection.
    endblk_entity, entity_handles→entities, units→insert_units, scale_uniformly→
    block_scaling; R2004+/R2007+ gates; drops flags/preview_data/insert_count_bytes/
    insert_handles/xref_path; emits xref_pname). Corpus: read 124 128 → 112 493,
-   write 113 631 → 102 857. Residuals (separate gaps): `first_entity`/`last_entity`
-   reader gap (silver reads then discards, tables.rs `let _first/_last`; R13–R2000
-   only — needs BlockRecord storage + writer), `BLOCK_HEADER.name` (*Paper_Space
-   ordinal), `xdicobjhandle`/`is_xdic_missing`, `BLOCK_CONTROL.model_space`/
+   write 113 631 → 102 857. Residuals (separate gaps, status updated): 
+   ~~`first_entity`/`last_entity` reader gap~~ (landed 2026-09-19),
+   `BLOCK_HEADER.name` (*Paper_Space
+   ordinal), ~~`xdicobjhandle`/`is_xdic_missing`~~ (landed `3cff463`),
+   `BLOCK_CONTROL.model_space`/
    `paper_space`, and BLOCKVISIBILITY*/`._missing` reader coverage.
 3. Re-run `run_corpus.py` after each landed packet to re-rank the queue.
 
@@ -1424,9 +1549,11 @@ deduplicated counts are lower due to the stem-collision inflation noted in §7):
   1461 `DWG_OBJECT(MLEADERSTYLE)`); silver uses different field names entirely
   (`content_type` vs gold, `class_version`, `mleader_order`, …). Big normalizer
   packet.
-- **BLOCK_HEADER** (~~10 691~~ residual ~700: `first_entity`/`last_entity`
-  reader gap + `name` ordinal + `xdicobjhandle`): **packet DONE** (§8.1.6) —
-  the topology renames/gates landed; only the reader-gap residuals remain.
+- **BLOCK_HEADER** (~~10 691~~ residual ~160: `name` ordinal + write-side
+  `is_xref_ref`): **packet DONE** (§8.1.6 + `3cff463`) — the topology
+  renames/gates, first/last entity, and the `xdicobjhandle`/`is_xdic_missing`
+  family (via the `xdic_by_handle` map) all landed; only the name-ordinal and
+  write-side is_xref_ref residuals remain.
 - **TABLESTYLE** (~9 346): `sty/ovr cellstyle` nested structs + `unknown_bits/
   version/flags/…`. Spec `dwg2.spec` 964.
 - **VPORT** (~8 816, `dwg.spec` 3934 `DWG_TABLE(VPORT)`) and **VIEWPORT**
@@ -1453,12 +1580,13 @@ deduplicated counts are lower due to the stem-collision inflation noted in §7):
 *Complete residual-cluster census* (every type in the current report is in one
 of these — verified 2026-09-17, none unnamed). Beyond the top list above:
 
-- **`*_CONTROL` tables** (~2 684): `APPID/BLOCK/DIMSTYLE/LAYER/LTYPE/STYLE/UCS/
-  VIEW/VPORT_CONTROL` — `has_ds_data`/`is_xdic_missing`/`xdicobjhandle` handle
-  fields + `BLOCK_CONTROL.model_space`/`paper_space`/`LTYPE_CONTROL.byblock`/
-  `bylayer` (the control record's own child handles).
-- **`*_CONTROL`/`*` xdic + ds-data** — same family as above; derivable
-  (`is_xdic_missing` = `xdictionary_handle.is_none()`).
+- **`*_CONTROL` tables** (~~2 684~~ xdic family landed in `3cff463`):
+  `APPID/BLOCK/DIMSTYLE/LAYER/LTYPE/STYLE/UCS/
+  VIEW/VPORT_CONTROL` — ~~`has_ds_data`/`is_xdic_missing`/`xdicobjhandle`
+  handle fields~~ (DONE via the `xdic_by_handle` map projection) +
+  `BLOCK_CONTROL.model_space`/`paper_space`/`LTYPE_CONTROL.byblock`/
+  `bylayer` (the control record's own child handles). Controls lacking an
+  xdic derive `is_xdic_missing`/`has_ds_data` correctly (R2004+/R2013+).
 - **Legacy polyline/mesh variants** (~250): `POLYLINE_2D`, `POLYLINE_3D`,
   `POLYLINE_MESH`, `POLYLINE_PFACE`, `POLYFACE_MESH`, `POLYGON_MESH` — legacy
   (pre-LWPOLYLINE) polyline forms; spec `dwg.spec` (POLYLINE_2D/3D blocks) +
