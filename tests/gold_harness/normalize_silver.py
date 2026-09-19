@@ -1601,6 +1601,88 @@ def normalize_silver(
             for sk in consumed:
                 payload.pop(sk, None)
 
+        # HATCH entity (dwg.spec 4637 DWG path): silver stores
+        # pattern/is_solid/style/pattern_type/pattern_angle/pattern_scale/
+        # is_double/seed_points/elevation/normal + gradient_color (struct).
+        # Gold: name/is_solid_fill/is_associative/style/pattern_type/angle/
+        # scale_spacing/double_flag/paths/seeds/pixel_size/has_derived +
+        # gradient_* (R2004+). Project the scalars + nested gradient.
+        if silver_type == "Hatch":
+            pat = payload.get("pattern")
+            if isinstance(pat, dict):
+                fields["name"] = pat.get("name", "")
+            fields["is_solid_fill"] = 1 if payload.get("is_solid") else 0
+            is_solid_fill = bool(payload.get("is_solid"))
+            if payload.get("is_associative") is not None:
+                fields["is_associative"] = 1 if payload["is_associative"] else 0
+            pt = payload.get("pattern_type")
+            if isinstance(pt, str):
+                fields["pattern_type"] = {"UserDefined": 0, "Predefined": 1, "Custom": 2}.get(pt, 0)
+            elif isinstance(pt, int):
+                fields["pattern_type"] = pt
+            st = payload.get("style")
+            if isinstance(st, str):
+                fields["style"] = {"Normal": 0, "Outer": 1, "Ignore": 2}.get(st, 0)
+            elif isinstance(st, int):
+                fields["style"] = st
+            # angle/scale_spacing/double_flag: only when NOT solid fill
+            # (dwg.spec 4665 `if (!is_solid_fill)`).
+            if not is_solid_fill:
+                if payload.get("pattern_angle") is not None:
+                    fields["angle"] = normalize_float(payload["pattern_angle"])
+                if payload.get("pattern_scale") is not None:
+                    fields["scale_spacing"] = normalize_float(payload["pattern_scale"])
+                fields["double_flag"] = 1 if payload.get("is_double") else 0
+            fields["elevation"] = normalize_float(payload.get("elevation", 0.0))
+            nm = payload.get("normal")
+            if nm is not None:
+                fields["extrusion"] = normalize_value(nm)
+            # seed_points -> seeds (2RD); num_seeds
+            sp = payload.get("seed_points", [])
+            if isinstance(sp, list):
+                fields["num_seeds"] = len(sp)
+                fields["seeds"] = [normalize_value(p) for p in sp]
+            # paths: count only (the full segment projection is a separate
+            # packet); gold emits num_paths.
+            paths = payload.get("paths", [])
+            fields["num_paths"] = len(paths) if isinstance(paths, list) else 0
+            # has_derived (dwg.spec 4880, JSON-only): gold derives it from the
+            # path flag bits (any path.flag & 0x4). Silver stores paths with a
+            # `flag`/`flags` int per path.
+            has_derived = 0
+            if isinstance(paths, list):
+                for p in paths:
+                    if isinstance(p, dict):
+                        pf = p.get("flag", p.get("flags", 0))
+                        if isinstance(pf, dict):
+                            pf = pf.get("bits", 0)
+                        if isinstance(pf, int) and (pf & 0x4):
+                            has_derived = 1
+                            break
+            fields["has_derived"] = has_derived
+            # pixel_size (BD 47): only when has_derived (dwg.spec 4881).
+            if has_derived and payload.get("pixel_size") is not None:
+                fields["pixel_size"] = normalize_float(payload["pixel_size"])
+            # gradient (R2004+): silver gradient_color struct -> gradient_*.
+            gc = payload.get("gradient_color")
+            if isinstance(gc, dict) and r2004_plus:
+                fields["is_gradient_fill"] = 1 if gc.get("enabled") else 0
+                fields["reserved"] = gc.get("reserved", 0)
+                fields["gradient_angle"] = normalize_float(gc.get("angle", 0.0))
+                fields["gradient_shift"] = normalize_float(gc.get("shift", 0.0))
+                fields["single_color_gradient"] = 1 if gc.get("is_single_color") else 0
+                fields["gradient_tint"] = normalize_float(gc.get("color_tint", 0.0))
+                fields["gradient_name"] = gc.get("name", "")
+                cols = gc.get("colors", [])
+                fields["num_colors"] = len(cols) if isinstance(cols, list) else 0
+            # drop all consumed + silver-only keys
+            for sk in ("pattern", "is_solid", "is_associative", "pattern_type",
+                       "pattern_angle", "pattern_scale", "is_double", "style",
+                       "seed_points", "paths", "pixel_size", "gradient_color",
+                       "elevation", "normal", "is_mpolygon", "mpolygon_hatch_color",
+                       "mpolygon_x_direction", "mpolygon_boundary_handle_count"):
+                payload.pop(sk, None)
+
         field_map = FIELD_NAME_MAP.get(silver_type, {})
         for k, v in payload.items():
             if k == "common":
@@ -1917,6 +1999,7 @@ def normalize_silver(
                        "modern_unknown_long2", "modern_cell_style_handle",
                        "modern_style", "modern_overrides", "annotative"):
                 payload.pop(sk, None)
+
         # MLINESTYLE object (dwg.spec 4513): gold emits name/description/flag/
         # fill_color/start_angle/end_angle + num_lines + lines[] (offset/color/
         # lt). Silver stores elements[] (offset/color/linetype-name) + a flags
