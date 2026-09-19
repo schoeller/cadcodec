@@ -105,9 +105,11 @@ def normalize_value(value: Any) -> Any:
         # a present index is the semantic value and is handled above.)
         if "index" not in value and value.get("rgb") in (None, "000000", 0):
             return 0
-        # CMC `rgb` high byte is a flag: c0 = ByBlock, c1 = ByLayer /
-        # true-color black, c2 = true-color RGB, c3 = indexed (real index in
-        # low byte), c8 = "none". Collapse to silver's scalar convention.
+        # CMC `rgb` high byte is the color METHOD (bits.c bit_downconvert_CMC
+        # 4061 / include/dwg.h DWG_COLOR_METHOD): c0 = ByLayer, c1 = ByBlock,
+        # c2 = ACI/entity color (low 24 bits hold the rgb), c3 = truecolor
+        # (indexed variant holds the real index in the low byte), c8 = "none".
+        # Collapse to silver's scalar convention.
         rgb = value.get("rgb")
         if isinstance(rgb, str) and len(rgb) == 8:
             flag = rgb[:2]
@@ -117,9 +119,9 @@ def normalize_value(value: Any) -> Any:
                 except ValueError:
                     pass
             if flag == "c0":
-                return 0        # ByBlock
-            if flag == "c1":
                 return 256      # ByLayer
+            if flag == "c1":
+                return 0        # ByBlock
             if flag == "c8":
                 return 257      # none
         return {k: normalize_value(v) for k, v in value.items()}

@@ -265,10 +265,11 @@ A zero-context agent begins here. Read in order, on demand:
 BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
 LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes (3DFACE has_no_flags, MTEXT value gates, entity-color
-ByBlock-transparency collapse) + TABLESTYLE, 2026-09-19):** read-fidelity
-**19 516**, write-fidelity **20 899**, across 125 corpus files (110 unique
-dirs; counts inflated by the stem-collision issue below). `cargo test
---features serde` = 1556 passed / 0 failed; `cargo test --features
+ByBlock-transparency collapse) + TABLESTYLE + CMC color-method fix (c0/c1
+inversion + c_prop33 hack removal) + DIMSTYLE color indices, 2026-09-19):**
+read-fidelity **19 199**, write-fidelity **17 803**, across 125 corpus files
+(110 unique dirs; counts inflated by the stem-collision issue below). `cargo
+test --features serde` = 1556 passed / 0 failed; `cargo test --features
 gold-harness --test gold_roundtrip` = ok. Update these numbers after each
 packet lands.
 
@@ -764,6 +765,23 @@ Given a diff `(type, field, kind)`:
    `content_color` gold=256 vs silver ByBlock=0 (silver CMC value gap, 50),
    `borders` `[0,0,0,0,0,0]` gold per-border normalization vs silver dicts
    (45), and the entity-common `xdicobjhandle`/`is_xdic_missing`/`reactors`.
+
+   ~~CMC color-method inversion~~ — **DONE (2026-09-19)**: a gold-side
+   normalizer bug, found while auditing DIMSTYLE. Gold's own decoder
+   (`bits.c` `bit_downconvert_CMC` 4061 / `include/dwg.h` DWG_COLOR_METHOD)
+   defines the CMC `rgb` high byte (the method) as **c0 = ByLayer, c1 =
+   ByBlock** — but `normalize_gold.py` had the `c0`/`c1` branches **inverted**
+   (`c0`→0, `c1`→256), contradicting the spec. Silver's `read_cm_color`
+   (bit_reader.rs) reads the bytes correctly (it just doesn't decode the
+   method byte, defaulting ByBlock→0), so silver was right and gold's
+   projection was wrong. Fixed the `c0`→256 / `c1`→0 map in normalize_gold.py.
+   This also invalidated the `c_prop33` silver-side hack (which forced
+   ByLayer→0 to compensate for the inverted gold map) — removed it; silver's
+   256 now matches gold's 256 directly. And the DIMSTYLE `v==0 skip` guard
+   (which dropped ByBlock on R2004+) — removed; the index is always projected.
+   Corpus: read 20 167 → 19 199, write 18 723 → 17 803. **Lesson: when a
+   "silver gap" looks wrong, check the gold normalizer against gold's own
+   spec/decoder — the bug may be on the gold side.**
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). **Follow-up fix

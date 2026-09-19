@@ -652,11 +652,6 @@ def _map_visual_style(payload: Dict[str, Any], fields: Dict[str, Any]) -> None:
             if i >= len(ext):
                 break
             v = _vs_property_value(ext[i])
-            # c_prop33 (edge color): gold's dwg.spec default is 0 (ByBlock);
-            # silver stores Color::ByLayer (256). Gold emits 0 on every
-            # corpus row, so map silver's ByLayer -> 0 here.
-            if name == "c_prop33" and v == 256:
-                v = 0
             fields[name] = v
             fields[name + "_int"] = ext[i].get("enabled", 1)
         if "extended_lighting_model" in payload:
@@ -2322,12 +2317,13 @@ def normalize_silver(
                         continue
                     if ku in ("DIMTXTDIRECTION", "DIMALTMZF", "DIMALTMZS", "DIMMZF", "DIMMZS") and not r2010_plus:
                         continue
-                    # DIMFIT/DIMUNIT are R13-R14 only. DIMCLRD/E/RT: silver
-                    # stores index 0 where gold emits a CMC true-color hash
-                    # (R2004+) or index 0 (R2000); skip index 0 on R2004+.
+                    # DIMFIT/DIMUNIT are R13-R14 only. DIMCLRD/E/RT and
+                    # DIMTFILLCLR are FIELD_CMC (color) — silver reads them via
+                    # read_cm_color into a clean ACI index (0=ByBlock, 256=
+                    # ByLayer) and stores it on the i16 field; gold emits the
+                    # same index. Always project it (the earlier `v==0 skip`
+                    # wrongly dropped ByBlock, producing missing_in_silver).
                     if ku in ("DIMFIT", "DIMUNIT"):
-                        continue
-                    if ku in ("DIMCLRD", "DIMCLRE", "DIMCLRT") and v == 0 and r2004_plus:
                         continue
                     # DIMLDRBLK/DIMBLK/DIMBLK1/DIMBLK2: gold emits these
                     # handles SINCE R_2000b (code 5, dwg.spec); silver stores
