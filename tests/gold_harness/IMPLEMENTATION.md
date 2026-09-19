@@ -264,12 +264,12 @@ LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes (3DFACE has_no_flags, MTEXT value gates, entity-color
 ByBlock-transparency collapse) + TABLESTYLE + CMC color-method fix (c0/c1
 inversion + c_prop33 hack removal) + DIMSTYLE color indices + MLINESTYLE +
-MLEADERSTYLE color/handle/gate fixes + DICTIONARYWDFLT + IMAGE, 2026-09-19):**
-read-fidelity **16 357**, write-fidelity **14 915**, across 125 corpus files
-(110 unique dirs; counts inflated by the stem-collision issue below). `cargo
-test --features serde` = 1556 passed / 0 failed; `cargo test --features
-gold-harness --test gold_roundtrip` = ok. Update these numbers after each
-packet lands.
+MLEADERSTYLE color/handle/gate fixes + DICTIONARYWDFLT + IMAGE + ATTDEF,
+2026-09-19):** read-fidelity **15 891**, write-fidelity **14 557**, across 125
+corpus files (110 unique dirs; counts inflated by the stem-collision issue
+below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
+--features gold-harness --test gold_roundtrip` = ok. Update these numbers after
+each packet lands.
 
 **Things that will look broken but are not (do not "fix" them):**
 - **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing

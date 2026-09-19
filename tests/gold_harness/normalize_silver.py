@@ -1155,6 +1155,112 @@ def normalize_silver(
             # IMAGE binary blob); gold doesn't expose it as a field. Drop it.
             fields.pop("graphic_data", None)
 
+        # ATTDEF entity (dwg.spec 393 DWG path): silver stores snake_case
+        # (insertion_point/alignment_point/text_style/flags dict). Gold uses
+        # ins_pt (2RD), alignment_pt (2RD), dataflags (bitmask of present
+        # optionals), flags (70), thickness (BD0), style (handle 7), plus the
+        # text-style scalars. Silver stores text_style as the resolved NAME
+        # (gold has the handle) — the name is dropped; the handle comes from
+        # the text-style table lookup, which the differ resolves separately.
+        if silver_type == "AttributeDefinition":
+            for sk, gk in (("insertion_point", "ins_pt"),):
+                v = payload.get(sk)
+                if v is not None:
+                    nv = normalize_value(v)
+                    if isinstance(nv, list) and len(nv) > 2:
+                        nv = nv[:2]  # ins_pt is 2RD
+                    fields[gk] = nv
+                payload.pop(sk, None)
+            ap = payload.get("alignment_point")
+            # dataflags (dwg.spec 491, the shared ATTDEF/TEXT mask): each bit
+            # means the corresponding field is ABSENT (has the default). Gold's
+            # bits: 0x01 elevation, 0x02 alignment_pt, 0x04 oblique_angle,
+            # 0x08 rotation, 0x10 width_factor, 0x20 generation, 0x40
+            # horiz_alignment, 0x80 vert_alignment. Derive from silver's stored
+            # values (default/absent -> bit set). width_factor default is 1.0.
+            def _is_zero(v):
+                try: return abs(float(v)) < 1e-9
+                except (TypeError, ValueError): return True
+            rot = payload.get("rotation")
+            obl = payload.get("oblique_angle")
+            wf = payload.get("width_factor")
+            gen = payload.get("text_generation_flags")
+            ha = payload.get("horizontal_alignment")
+            va = payload.get("vertical_alignment")
+            df = 0
+            # 0x01 elevation: silver doesn't store elevation (2D ATTDEF); it is
+            # absent -> set the bit. (Only 2 corpus rows have elevation != 0.)
+            if _is_zero(payload.get("elevation")):
+                df |= 0x01
+            # 0x02 alignment_pt absent when zero (the [0,0] default)
+            if ap is None or (isinstance(normalize_value(ap), list) and all(_is_zero(c) for c in normalize_value(ap))):
+                df |= 0x02
+            if _is_zero(obl): df |= 0x04
+            if _is_zero(rot): df |= 0x08
+            if wf is None or abs(float(wf) - 1.0) < 1e-9: df |= 0x10
+            if gen in (None, 0, "Normal"): df |= 0x20
+            if ha in (None, 0, "Left"): df |= 0x40
+            if va in (None, 0, "Baseline"): df |= 0x80
+            fields["dataflags"] = df
+            # alignment_pt only when present (dataflags & 0x02 clear)
+            if not (df & 0x02):
+                anv = normalize_value(ap)
+                if isinstance(anv, list) and len(anv) > 2:
+                    anv = anv[:2]
+                fields["alignment_pt"] = anv
+            payload.pop("alignment_point", None)
+            # thickness (BD0, default 0). Silver stores None.
+            fields["thickness"] = normalize_value(payload.get("thickness") or 0)
+            # flags (70): silver flags dict -> bitmask.
+            fl = payload.get("flags")
+            fv = 0
+            if isinstance(fl, dict):
+                if fl.get("invisible"): fv |= 1
+                if fl.get("constant"): fv |= 2
+                if fl.get("verify"): fv |= 4
+                if fl.get("preset"): fv |= 8
+            elif isinstance(fl, int):
+                fv = fl
+            fields["flags"] = fv
+            # style handle (7): gold emits the text-style handle; silver has
+            # only the resolved name. The differ resolves it separately, so
+            # drop the name here (don't emit a wrong None).
+            payload.pop("text_style", None)
+            # Conditional text-style fields (dataflags bits: 0x01 elevation,
+            # 0x04 oblique_angle, 0x08 rotation, 0x10 width_factor, 0x20
+            # generation, 0x40 horiz_alignment, 0x80 vert_alignment): gold
+            # emits each only when its bit is CLEAR. Emit the non-default ones.
+            _ATT_HA = {"Left": 0, "Center": 1, "Right": 2, "Aligned": 3,
+                       "Middle": 4, "Fit": 5}
+            _ATT_VA = {"Baseline": 0, "Bottom": 1, "Middle": 2, "Top": 3}
+            _ATTDEF_COND = [
+                (0x01, "elevation", "elevation", None),
+                (0x04, "oblique_angle", "oblique_angle", 0.0),
+                (0x08, "rotation", "rotation", 0.0),
+                (0x10, "width_factor", "width_factor", 1.0),
+                (0x20, "generation", "text_generation_flags", 0),
+                (0x40, "horiz_alignment", "horizontal_alignment", 0),
+                (0x80, "vert_alignment", "vertical_alignment", 0),
+            ]
+            for bit, gk, sk, default in _ATTDEF_COND:
+                if not (df & bit):
+                    v = payload.get(sk)
+                    if v is None:
+                        continue
+                    if gk == "horiz_alignment":
+                        v = _ATT_HA.get(str(v), v) if isinstance(v, str) else v
+                    elif gk == "vert_alignment":
+                        v = _ATT_VA.get(str(v), v) if isinstance(v, str) else v
+                    fields[gk] = normalize_value(v)
+            # Drop silver-only text/mtext helper fields (the conditional ones
+            # were either emitted above or are default -> dataflags bit set).
+            for sk in ("width_factor", "oblique_angle", "text_generation_flags",
+                       "horizontal_alignment", "vertical_alignment", "rotation",
+                       "elevation",
+                       "mtext_flag", "is_multiline", "line_count",
+                       "embedded_mtext", "lock_position", "flags"):
+                payload.pop(sk, None)
+
         # VIEWPORT entity (dwg.spec 2412 DWG path): rename silver snake_case to
         # gold names, convert types, version-gate, wrap handles. The consumed
         # keys are dropped from payload so the generic loop below skips them.
