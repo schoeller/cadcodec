@@ -2122,9 +2122,16 @@ def normalize_silver(
         table_handle = normalize_handle_value(table.get("handle"))
         control_type = CONTROL_GOLD_TYPE.get(table_key)
         if control_type and table_handle is not None:
-            out.append({"type": control_type,
-                        "fields": {"handle": table_handle,
-                                   "ownerhandle": normalize_handle_value(0)}})
+            _ctrl = {"handle": table_handle,
+                     "ownerhandle": normalize_handle_value(0)}
+            # Common object handle-stream bits gold emits on every control
+            # object (common_object_handle_data.spec). is_xdic_missing on
+            # R2004+, has_ds_data on R2013+.
+            if r2004_plus:
+                _ctrl["is_xdic_missing"] = 1  # control objects have no xdict
+            if r2013_plus:
+                _ctrl["has_ds_data"] = 0
+            out.append({"type": control_type, "fields": _ctrl})
         entries = table.get("entries", {})
         for _key, rec in entries.items():
             if not isinstance(rec, dict):
