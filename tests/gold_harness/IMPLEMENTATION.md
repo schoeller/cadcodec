@@ -270,7 +270,11 @@ write-fidelity **8 657**, across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
-each packet lands. **Campaign target: read AND write below 5 000** (raised
+each packet lands. **Campaign target: read AND write below 1 000** (raised
+12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19 — at this level every
+normalizer-trackable family plus the structural classes (ASSOC retypes, the
+unmodeled wrappers, the reader-side xdic/visualstyle items via Rust) is
+required).
 12 000 → 8 000 → 5 000 on 2026-09-19 — at this level the whole queue incl.
 the 3DSOLID/REGION ACIS family, the UNKNOWN_OBJ unmodeled-object reader
 class, and BLOCK_HEADER is required, not just normalizer renames). The

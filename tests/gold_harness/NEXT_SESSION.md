@@ -9,10 +9,11 @@
 
 Continue the acadrust gold-vs-silver roundtrip harness. Drive the remaining
 read/write fidelity diffs down. The current target (read AND write) is **below
-5 000** (raised 12 000 → 8 000 → 5 000 on 2026-09-19; current read 10 684 /
-write 9 894). At that level the target requires the structural classes —
-3DSOLID/REGION ACIS, the UNKNOWN_OBJ unmodeled-object readers, BLOCK_HEADER —
-not only normalizer renames. Land packets until both sides are under 5 000.
+1 000** (raised 12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19; current
+read 6 353 / write 5 843). At that level the target requires every
+normalizer-trackable family plus the structural classes (ASSOC family
+retypes, the remaining UNMODELED wrappers, BLOCK_HEADER/xdic reader-side
+items). Land packets until both sides are under 1 000.
 
 ## Read these first (in order)
 
