@@ -204,7 +204,6 @@ conditions.
 | `src/bin/dwg2json.rs` | Silver JSON dump (re-injects serde-skipped `EntityCommon` fields under `_common_dwg`) |
 | `src/bin/dwgrewrite.rs` | Silver read→write binary |
 | `IMPLEMENTATION.md` | The single source of truth for the plan |
-| `_archiv/` | Superseded planning documents (historical reference only) |
 
 ## Output interpretation
 

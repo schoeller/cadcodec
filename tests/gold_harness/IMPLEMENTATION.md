@@ -1,7 +1,5 @@
 # Gold-vs-Silver Roundtrip Harness — Unified Implementation Plan
 
-Date: 2026-09-17 (consolidated from the original plan, the refinement reports, and
-the interim `_IMPLEMENTATION.md`; supersedes all three)
 Status: Phase 2–5 complete; `AcDbVisualStyle` blocker **fixed** (2026-09-17);
 EntityCommon storage-only field gap **closed** (2026-09-17) — LINE/CIRCLE entity
 diffs are zero on all six versions for read and write fidelity. Phase 6 fix loop
@@ -9,10 +7,8 @@ continues on table-record storage fields and object representation gaps.
 Location: `tests/gold_harness/IMPLEMENTATION.md` — the single source of truth.
 
 > This file is the only authoritative plan for the gold-vs-silver harness.
-> Earlier documents — `1789491909007-cadcodec-gold-silver-roundtrip.md`,
-> `REFINEMENT_REPORT.md`, `REFINEMENT_REPORT_ROOT.md`, and `_IMPLEMENTATION.md` —
-> are superseded and preserved under `tests/gold_harness/_archiv/` for
-> historical reference only.
+> Earlier superseded planning documents have been removed; this file is
+> self-contained.
 
 ---
 
@@ -257,8 +253,9 @@ A zero-context agent begins here. Read in order, on demand:
    recipe → §8.1.6 work queue → §8.1.6a coverage audit → §8.1.7 prohibitions).
 2. **The work queue** §8.1.6 — the next packet is named there with its full
    diagnosis. Per-packet cold-start briefs are written as `NEXT_<PACKET>.md`
-   beside this file when a packet needs one (e.g. `NEXT_OWNERHANDLE.md` — now
-   DONE); if none exists for the current packet, §8.1.6 is sufficient.
+   beside this file when a packet needs one; when a packet completes, the brief
+   is folded back into its §8.1.6 DONE entry and the `NEXT_<PACKET>.md` file is
+   deleted (the queue is the single source of truth).
 3. **Verify the environment** with §8.1.0 before editing.
 
 **Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids/
@@ -803,7 +800,12 @@ Given a diff `(type, field, kind)`:
    on r2010_plus/r2007_plus, but MLEADERSTYLE objects are always read from
    EED/upconverted so gold emits both on EVERY version (R2000 included) —
    made unconditional (class_version defaults to 2). Corpus: read 18 703 →
-   17 344, write 17 315 → 16 554. Residual: xdicobjhandle/is_xdic_missing.
+    17 344, write 17 315 → 16 554. Residual: xdicobjhandle/is_xdic_missing.
+
+   ~~DICTIONARYWDFLT~~ — **DONE (2026-09-19)**: dwg.spec 2804. Gold emits
+   `dxfname` (ACDBDICTIONARYWDFLT) + `defaultid` (handle 340); silver stores
+   `default_handle` (raw int). Projected both, dropped silver-only fields.
+   DICTIONARYWDFLT 117 → 0.
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). **Follow-up fix
@@ -1484,16 +1486,3 @@ which the existing loop covers them with **no harness changes**:
 5. **Loop integration:** drop the new files into the corpus dirs, re-run the
    Phase 4 driver, and the entity types move from "OUT OF LOOP" to covered
    automatically.
-
----
-
-## 18. Plan history
-
-- `_archiv/1789491909007-cadcodec-gold-silver-roundtrip.md` — original Phase 0–6 plan.
-- `_archiv/REFINEMENT_REPORT.md` and `_archiv/REFINEMENT_REPORT_ROOT.md` —
-  Phase 2–5 refinement reports.
-- `_archiv/_IMPLEMENTATION.md` — interim consolidation.
-
-All four are superseded by this file and are preserved under
-`tests/gold_harness/_archiv/` for historical reference only. Do not use them
-to drive work.
