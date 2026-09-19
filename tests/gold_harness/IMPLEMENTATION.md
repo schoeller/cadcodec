@@ -268,10 +268,17 @@ gold-spec audit + MULTILEADER + 3DSOLID + ACSH_HISTORY + EVALUATION_GRAPH +
 BLOCK_HEADER/controls + viewstyles + mtext.style + underlays + dimensions +
 ASSOC family + polyline vertex emission + xdic family + layer visualstyle +
 mid-rank batch (has_ds_data/SORTENTSTABLE/APPID/DIMASSOC.ref/
-IMAGEDEF_REACTOR) + elevation/linewt projections, 2026-09-19):**
-read-fidelity **4 001**, write-fidelity **3 835**, across 125
+IMAGEDEF_REACTOR) + elevation/linewt projections + R2013+ AcDs
+3DSOLID-family writer payload + pre-R2007 is_xref_ref wire bit +
+fabricated-Standard-DIMSTYLE removal, 2026-09-20):**
+read-fidelity **3 917** (the last commit is writer-only except the
+DIMSTYLE-phantom builder removal — 84 phantom rows died),
+write-fidelity **3 431** (example_2013/2018 left write-side exclusion in
+`b40ba42`, +456 rows surfacing, then the is_xref_ref/phantom packets took
+−860), across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
-below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
+below; only gh44-error.dwg remains excluded, rc 1 on both sides).
+`cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands. **Campaign target: read AND write below 1 000** (raised
 12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19 — at this level every
@@ -474,6 +481,21 @@ Repos: silver = `~/work/cadcodec` (Rust crate `acadrust`), gold =
 - **Stem collision**: workdirs are keyed by file stem, so same-named files
   across versions share one dir (last write wins). For a version-specific
   artifact, run `run_roundtrip.py` yourself into a fresh `<out_dir>`.
+- **Raw record bytes (bit-level adjudication)**: when the two decoders
+  disagree and the spec text is not enough, dump the actual decompressed
+  record bytes with `cargo build --bin dump_section_bytes && target/debug/
+  dump_section_bytes "$GOLD_TESTDATA/<f>.dwg" <address> <size>` (default
+  section `AcDb:AcDbObjects`; prints hex + MSB-first bit string) and
+  hand-walk with LibreDWG's bit semantics (`bits.c`: BS `'00'→RS16 '01'→RC8
+  '10'→0 '11'→256`; BL `'00'→RL32 '01'→RC8 '10'→0 '11'→ERR256`; BD
+  `'00'→raw f64 '01'→1.0 '10'→0.0 '11'→nan`; RS/RL/RD are byte-wise
+  little-endian, each byte read MSB-first; object records begin MS size +
+  UMC handlestream-size (R2010+, not counted in size) then BOT type, and
+  gold's trace `@byte.bit` positions are relative to the BOT start). Get
+  the record address/size from `dwgread -v9 <file> 2> trace.log` lines
+  `Object number: … Size: N [MS] … Address: A`. This is how the REGION-NaN
+  packet (§8.1.6, 2026-09-20) proved silver's reader bit-true against
+  gold's misreading spec.
 
 ### 8.1.1 Context budget rules (hard constraints)
 
@@ -688,7 +710,8 @@ Given a diff `(type, field, kind)`:
 > **Reading the counts:** corpus `report.md`/`report.json` counts are
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
-> file before committing to a packet. Baseline: read 27 019 / write 27 313.
+> file before committing to a packet. Current baseline (2026-09-20, after
+> packets `b40ba42` + `ff45453`): read **3 917** / write **3 431**.
 
    ~~xdic family + LAYER visualstyle~~ — **DONE (2026-09-19, first reader-PR
    packet of the campaign)**: the top read rows after the 2026-09-19 session
@@ -1068,14 +1091,124 @@ Given a diff `(type, field, kind)`:
    six Leader.dwg versions + all six example versions).
    Gates: `cargo test --features serde` = 1556/0, `gold_roundtrip` ok.
 
-   **REGION-NaN write-side blocker (found in this packet — queue next):**
-   silver's rewrite of `example_2013.dwg` and `example_2018.dwg` contains a
-   `REGION` entity whose `point` gold re-decodes as `[ -nan, 0.0, 0.0 ]` —
-   the `-nan` token is INVALID JSON, so `normalize_gold` dies, and the write
-   side of BOTH files is excluded (-1) from every corpus report
-   (the write totals 10 904 → 9 894 exclude them). ~950 hidden write rows
-   will surface once the NaN is fixed. Root cause likely an unset point in
-   silver's 3DSOLID/REGION writer; fix together with the 3DSOLID packet.
+   ~~REGION-NaN write-side blocker (`b40ba42`)~~ — **DONE (2026-09-20, first
+   writer-Rust packet of the campaign)**: silver's rewrite of
+   `example_2013.dwg`/`example_2018.dwg` made gold re-decode a REGION
+   `point` as `[ -nan, 0.0, 0.0 ]` (BD bit-code `'11'` = gold's error NaN)
+   — invalid JSON, so `normalize_gold` died and the write side of both
+   files was excluded (-1) from every corpus report. **Bit-level deep dive
+   done FIRST** (new probe: `dump_section_bytes`, §8.1.0; gold `-v9` trace
+   + a hand-walk of the raw records at addresses 7378/40B and 10335/61B):
+   - **Silver's R2013+ AcDs-path reader is BIT-TRUE.** The true wire of an
+     AC1032 ds-backed 3DSOLID-family record is: [common entity data] →
+     `wireframe_data_present` B (NO legacy leading `acis_empty` — the first
+     modeler bit IS wdp) → [if set: `point_present` B, 3BD point, `isolines`
+     BL (RS is little-endian per bytes — RS16 `30 D0` = -12240, my first
+     MSB-first walk "12496" was wrong), `isoline_present` B,
+     (num_wires BL 0, num_silhouettes BL 0)] → `acis_empty_bit` B →
+     the R2007 "unknown" BL(0) → the R2013+ revision block → one sentinel
+     0 bit → handle stream. Silver's stored model matches every value AND
+     lands within that sentinel bit of the handle-stream boundary on both
+     records (verified digit-for-digit: point, isolines=4, revision bytes
+     `A853307CEA64983A`).
+   - **Gold's spec is wrong for these records**: `DECODE_3DSOLID`
+     (dwg_spec_shared.h 175) unconditionally reads the leading `acis_empty`
+     B on ALL versions, so gold misreads wdp as `acis_empty=1`, then derails
+     (`point_present=0`, garbage `isolines=2450870777`, BL `'11'` errors,
+     **"Invalid REGION.wires x 256"** record abort). Gold's JSON for the
+     AREA AFTER the abort is decoder defaults. Verified against Adobe real
+     wires; do NOT "fix" silver's reader to match gold here — the read-side
+     golden shape IS the misparse, and bit-faithful rewriting keeps it
+     identical on both sides of the diff.
+   - **The writer bug**: `write_acis_empty` (writer `object_writer/
+     entities.rs`) emitted ONLY a `false` wireframe bit (it looked at
+     `wires`/`silhouettes` array emptiness, not the stored
+     `wireframe_*` flags), plus a stray `extra_acis_data` gate bit, then
+     the caller's BL(0)+revision — a layout neither decoder expects, which
+     tripped gold into `acis_empty=0 → version=49` garbage and eventually
+     a BD `'11'` = `-nan`. Fix: the AcDs path now writes the full model's
+     wireframe block via the existing `write_acis_wireframe` (proven
+     bit-faithful: its `wireframe_present`/`pp`/`isoline_present`
+     derivations OR the stored flag, and for DWG-origin records the flag
+     and values are exactly what the reader stored) + `acis_empty_bit`
+     gated on wireframe-present, mirroring the reader; the caller keeps
+     emitting the ds-path BL(0) + revision in the right order. No
+     history_id on the ds path (reader/writer agree; true wires carry
+     none).
+   - **Result**: 0 `-nan` in both gold_rt JSONs; silver's internal
+     consistency (silver_orig vs silver_rt) = 0 diff on example_2018;
+     REGION records contribute **0 diff rows** on both sides (gold's
+     misparse garbage roundtrips bit-identically — the whole point of
+     bit-faithful rewriting); both files rc=0, joining the write side:
+     **read 4 001 (unchanged), write 3 835 → 4 291** (+456 = their fresh
+     202/254 rows; the old "~950 hidden rows" estimate included rows that
+     were never hidden: the read-shared families). Gates 1556/0 +
+     `gold_roundtrip` ok; all six versions smoke-verified (write:
+     193/171/151/146/202/254). Note for report.md tables: the per-file
+     `R:` values shown for example_2013/2018 in pre-2026-09-20 reports
+     were STALE pooled artifacts from the crashed runs; fresh per-file
+     numbers (R: 220/234) already were part of the read total.
+   - **The queued "R2013+ prologue divergence (~63 rows)" residual is now
+     fully explained** (and its "needs a bit-level deep dive before ANY
+     fix" is discharged): the rows are gold's desync artifacts (garbage
+     `isolines=205`/`revision_major=2423192302`/hex-string
+     `revision_bytes`) from the SAME misparse, read as wrong_value against
+     silver's bit-true values — now on the read side only 59 rows
+     (example_2018 3DSOLID idx 0: 28 + example_2013: 31, incl. its
+     R2013-only `acis_data`/`history_id` shapes) and, since the files
+     joined the write side, the same rows count on the write diff too
+     (~118 total). They are NOT reducible from silver's model (silver's
+     values are the true wire). Small normalizer packet queued:
+     **3DSOLID prologue-divergence projection** — for R2013+ ds-backed
+     3DSOLID-family records drop the divergent COMMON_3DSOLID-internal
+     fields (`point_present/isolines/isoline_present/acis_empty_bit/
+     has_revision_guid/revision_major/minor1/minor2/revision_bytes/
+     end_marker` on both sides, plus 2013's `acis_data`/`history_id`
+     wrong_value shapes) so the differ sees nothing there (gold's own
+     decode is a spec bug — no real fidelity is lost); keep the fields for
+     non-ds and pre-R2013 records where gold parses sanely.
+
+   ~~Pre-R2007 table `is_xref_ref` wire bit + fabricated Standard
+   DIMSTYLE~~ — **DONE (2026-09-20, `ff45453`)**: second writer packet.
+   (a) Write rows `APPID.is_xref_ref` 103, `BLOCK_HEADER.is_xref_ref` 84,
+   `LTYPE.is_xref_ref` 36, `LAYER.is_xref_ref` 26, `STYLE.is_xref_ref` 21,
+   `DIMSTYLE.is_xref_ref` 2 (272 total, write-side only): the pre-R2007
+   `COMMON_TABLE_FLAGS` (`spec.h` 755: `FIELD_B (is_xref_ref, 0);
+   /* always 1, 70 bit 6 */`) wires an always-set reference bit before the
+   resolved-BS and dependent-B; every corpus original carries 1 (the read
+   side was clean because the silver normalizer derives 1). Silver's
+   `write_xref_dependant_bit_value` hardcoded the reference bit to
+   `false` (the structs store only the dependent bit for the types using
+   the no-arg helper), so every rewritten pre-2007 table record carried 0
+   on the wire and gold's re-decode reported `is_xref_ref: 0` against the
+   normalizer's derived 1. Fix: one line — the helper now passes
+   `xref_ref=true` (the R2007+ branch ignores the bit entirely, so
+   R2007+ files are untouched); the VIEW/UCS/VPORT/DIMSTYLE/VX call sites
+   that pass the stored `xref_reference` needed no change (the builder
+   stores the wire bit for those).
+   (b) The 2 residual DIMSTYLE rows unmasked a **phantom-record** bug:
+   `CadDocument::new()` fabricates a `Standard` DIMSTYLE (document.rs
+   `DimStyle::standard()`); files whose dimstyle table has no Standard
+   (example_2004: just `ISO-25`) kept the fabrication through the load
+   and the rewrite emitted a DIMSTYLE the original never had. Builder now
+   drops it when the file contains no case-insensitive `Standard` entry
+   (the `APPID.AcadAnnotative` precedent from `5c75b1d`).
+   Verified per-file (write rows before → after): TS1 141→110,
+   entities-2d 65→51, HatchG 38→19, Surface 85→62, Underlay 79→61,
+   material 37→18, sample_2000 13→3, example_2004 171→136, Cone 27→9,
+   PolyLine2D 94→58; **xref rows 0 everywhere**. The phantom removal also
+   killed its read-side rows: **read 4 001 → 3 917** (−84) and its
+   write-side family rows (counts/fields of the extra record),
+   **write 4 291 → 3 431** (−860, of which −272 are the is_xref_ref rows
+   themselves). Gates 1556/0 + `gold_roundtrip` ok; corpus integrity
+   checked (125 files, only gh44-error excluded, totals = per-file sums).
+   Remaining write-side writer-fix smalls (queue order):
+   DICTIONARYWDFLT.defaultid 119 (write), MTEXT extents_height/width
+   66/66 (write), the DIMENSION/DIM* block-name ambiguity
+   (silver's table uniquifies `*D` blocks; DIMENSION_LINEAR.block 54 +
+   ALIGNED/ORDINATE tails), INSERT-owned SEQEND entity-common fields,
+   the ML writer flags/arrow_size corruption, and the 3DSOLID
+   prologue-divergence projection above.
 
    ~~3DSOLID/REGION family~~ — **DONE (2026-09-19)**: the largest read-side
    family after MULTILEADER (1 360 read / 1 235 write family rows over the
