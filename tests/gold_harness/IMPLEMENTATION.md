@@ -264,8 +264,9 @@ LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes + CMC color-method fix + TABLESTYLE/MLINESTYLE/
 MLEADERSTYLE/DICTIONARYWDFLT/IMAGE/ATTDEF/LAYOUT/CONTROL/LEADER/TEXT/HATCH/
 SPLINE/WIPEOUT + INSERT.block_header + UNKNOWN_OBJ naming + MTEXT R2018 +
-gold-spec audit + MULTILEADER + 3DSOLID, 2026-09-19):** read-fidelity **9 442**,
-write-fidelity **8 668**, across 125
+gold-spec audit + MULTILEADER + 3DSOLID + ACSH_HISTORY + EVALUATION_GRAPH,
+2026-09-19):** read-fidelity **9 177**,
+write-fidelity **8 657**, across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
@@ -830,15 +831,23 @@ Given a diff `(type, field, kind)`:
    gold_rt vs silver_rt; the rt files' class-table re-encoding side is
    unaffected by the read-side retype). Verified on ATMOS + example
    2007/2010. Gates: 1556/0, `gold_roundtrip` ok.
-   Suggested per-class order by (count × field-cost): EVALUATION_GRAPH
-   next (48 records × 5-8 fields; count parity 0/42 mismatches verified;
-   silver's `data.EvaluationGraph` carries first_node_id/_copy, nodes,
-   edges — gold emits degenerate [0]*n REPEAT arrays + the record-meta
-   dxfname "ACAD_EVALUATION_GRAPH"; owner-target rows of the history
-   class resolve with it), then ACSH_BOX/
-   Cross-reference bonus: retyping also fixes the 44 3DSOLID-family
-   `history_id`/reactors rows (both sides resolve ACSH_HISTORY_CLASS), and
-   more handle-target rows corpus-wide. NEVER model a debug-gated type —
+   ~~EVALUATION_GRAPH~~ — **DONE (2026-09-19, second class)**: same retype
+   pattern — silver `DynamicBlock` wrappers with `dxf_name ==
+   "ACAD_EVALUATION_GRAPH"` emit under the gold type (dwg2.spec 3549;
+   the class dxfname differs from the block name, so the record-meta
+   `dxfname` is emitted too). Payload from `data.EvaluationGraph`:
+   first_nodeid/first_nodeid_copy, nodes/edges as the degenerate
+   `[0]*count` REPEAT emission (zero-size omitted; count parity
+   verified 0/42 mismatches on ATMOS, Dynblocks 6/6). Residual:
+   unknown_bits (gold-only) per record. Bonus: the ACSH_HISTORY_CLASS
+   `owner` targets resolve — the ATMOS history-owner rows died with this
+   class (42 ACSH_HISTORY rows → 0 on ATMOS). Corpus: read **9 327 →
+   9 177**, write 8 668 → **8 657**. Verified on ATMOS,
+   Dynblocks, example_2007/2010. Remaining class order by (count ×
+   field-cost): ACSH_BOX/WEDGE/FILLET/CHAMFER/BOOLEAN/CYLINDER/TORUS/
+   BREP (silver's SolidHistoryNode payload; ~20 gold fields each, mostly
+   evalexpr.*/history_node.*), RENDERGLOBAL/RENDERENTRY, then
+   MENTALRAYRENDERSETTINGS (~57 fields). NEVER model a debug-gated type —
    emit UNKNOWN_OBJ for the in-work region classes instead (§8.1.1
    liveness rule). Then
    BLOCK_HEADER (698: name/first_entity/last_entity + anonymous +

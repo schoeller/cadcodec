@@ -2215,6 +2215,12 @@ def normalize_silver(
         if (silver_type == "DynamicBlock"
                 and payload.get("dxf_name") == "ACSH_HISTORY_CLASS"):
             gold_type = "ACSH_HISTORY_CLASS"
+        elif (silver_type == "DynamicBlock"
+                and payload.get("dxf_name") == "ACAD_EVALUATION_GRAPH"):
+            # dwg2.spec 3549 (comment ACAD_EVALUATION_GRAPH): the class
+            # dxfname differs from the block name, so gold also emits the
+            # record-meta dxfname.
+            gold_type = "EVALUATION_GRAPH"
         _inject_reactors(payload)
         fields = _object_common_fields(payload)
         if r2004_plus:
@@ -2253,6 +2259,27 @@ def normalize_silver(
             fields["h_nodeid"] = sh.get("history_node_id", 0)
             fields["show_history"] = 1 if sh.get("show_history") else 0
             fields["record_history"] = 1 if sh.get("record_history") else 0
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
+        if gold_type == "EVALUATION_GRAPH":
+            # dwg2.spec 3549: HANDLE_UNKNOWN_BITS (gold-only residual),
+            # first_nodeid/first_nodeid_copy (BLd), then num_nodes/num_edges
+            # REPEATs whose JSON emission is degenerate [0]*count (normalize_
+            # gold collapses the node/edge structs the same way; zero-size
+            # arrays are omitted). Count parity silver-vs-gold verified 0/42
+            # mismatches on ATMOS.
+            ev = payload.get("data") or {}
+            ev = ev.get("EvaluationGraph") if isinstance(ev, dict) else None
+            ev = ev if isinstance(ev, dict) else {}
+            fields["dxfname"] = "ACAD_EVALUATION_GRAPH"
+            fields["first_nodeid"] = ev.get("first_node_id", 0)
+            fields["first_nodeid_copy"] = ev.get("first_node_id_copy", 0)
+            nodes = ev.get("nodes") or []
+            if isinstance(nodes, list) and nodes:
+                fields["nodes"] = [0] * len(nodes)
+            edges = ev.get("edges") or []
+            if isinstance(edges, list) and edges:
+                fields["edges"] = [0] * len(edges)
             for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
                 payload.pop(kk, None)
         if silver_type == "Scale":

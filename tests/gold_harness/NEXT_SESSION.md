@@ -31,7 +31,7 @@ not only normalizer renames. Land packets until both sides are under 5 000.
 
 ## Current state (2026-09-19)
 
-- Baseline: read-fidelity **9 442**, write-fidelity **8 668** (125 corpus
+- Baseline: read-fidelity **9 177**, write-fidelity **8 657** (125 corpus
   files). Target: read AND write **below 5 000**.
 - `cargo test --features serde` = 1556/0; `gold_roundtrip` = ok.
 - MULTILEADER `ctx.*` and the 3DSOLID/REGION ACIS family are **DONE**
@@ -39,11 +39,12 @@ not only normalizer renames. Land packets until both sides are under 5 000.
   9 442/8 668). A full libredwg spec re-audit also landed (§8.1.1 liveness
   rule: never model a debug-gated spec block — gold decodes those as raw
   UNKNOWN).
-- The remaining backlog, in order: the **UNKNOWN-class naming packet**
-  (silver names class-registered objects UNKNOWN_OBJ where gold uses
-  ACSH_HISTORY_CLASS etc.; kills the 44 history_id rows, reactors rows, and
-  the 582 UNKNOWN_OBJ._missing class; DIMASSOC dxf_name pattern is the
-  template), then BLOCK_HEADER (name/first_entity/last_entity/anonymous),
+- The remaining backlog, in order: the **unmodeled-class campaign**
+  (ACSH_HISTORY_CLASS and EVALUATION_GRAPH are done — the next classes are
+  the ACSH geometry family from silver's SolidHistoryNode payload, then
+  RENDERGLOBAL/RENDERENTRY/MENTALRAYRENDERSETTINGS; retyping always ships
+  WITH its per-class field projection, §8.1.6), then BLOCK_HEADER
+  (name/first_entity/last_entity/anonymous),
   the 3DSOLID R2013+ prologue deep dive (~63 rows), the REGION `[ -nan ]`
   silver-writer bug that excludes example_2013/2018 from the write side
   (~950 hidden write rows surface once fixed), the silver ML writer
