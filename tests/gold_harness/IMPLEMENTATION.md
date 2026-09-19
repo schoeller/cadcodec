@@ -812,11 +812,30 @@ Given a diff `(type, field, kind)`:
    evalexpr.*/history_node.* families), so EACH class needs its own
    MULTILEADER-style field projection from silver's wrapper payload in the
    same packet, or the rows explode (17 record-rows → 340 field-rows).
-   Suggested per-class order by (count × field-cost): ACSH_HISTORY_CLASS
-   first (42 records × only 9 fields: h_nodeid/major/minor/record_history/
-   show_history + common), then EVALUATION_GRAPH (48 × 5-8), ACSH_BOX/
-   WEDGE/FILLET/CHAMFER/BOOLEAN/CYLINDER/TORUS/BREP (the SolidHistoryNode
-   payload), RENDERGLOBAL/RENDERENTRY, then MENTALRAYRENDERSETTINGS.
+   ~~ACSH_HISTORY_CLASS~~ — **DONE (2026-09-19, first class of the unmodeled
+   campaign)**: retype + projection in `normalize_silver.py` — silver's
+   `DynamicBlock` wrapper records with `dxf_name == "ACSH_HISTORY_CLASS"`
+   now emit under the gold type with the
+   dwg2.spec 3077 payload projected from silver's `data.SolidHistory`:
+   `major`/`minor`/`h_nodeid` (from history_node_id)/`show_history`/
+   `record_history` (bools → 0/1), `owner` → absref handle dict; the
+   wrapper metadata (`data`/`dxf_name`/`cpp_class_name`/`source_version`)
+   is consumed. Cross-reference bonus: every handle-target row into a
+   history object now resolves `ACSH_HISTORY_CLASS` on both sides — the 42
+   ATMOS 3DSOLID-family `history_id` rows and REGION.reactors died with
+   it (gold's residual: the ATMOS history `owner` rows point at
+   EVALUATION_GRAPH records — they resolve fully once that class lands).
+   Silver's 42 wrapper records pair 1:1 (verified count parity). Corpus:
+   read **9 442 → 9 327**, write flat (8 668 — the write compare is
+   gold_rt vs silver_rt; the rt files' class-table re-encoding side is
+   unaffected by the read-side retype). Verified on ATMOS + example
+   2007/2010. Gates: 1556/0, `gold_roundtrip` ok.
+   Suggested per-class order by (count × field-cost): EVALUATION_GRAPH
+   next (48 records × 5-8 fields; count parity 0/42 mismatches verified;
+   silver's `data.EvaluationGraph` carries first_node_id/_copy, nodes,
+   edges — gold emits degenerate [0]*n REPEAT arrays + the record-meta
+   dxfname "ACAD_EVALUATION_GRAPH"; owner-target rows of the history
+   class resolve with it), then ACSH_BOX/
    Cross-reference bonus: retyping also fixes the 44 3DSOLID-family
    `history_id`/reactors rows (both sides resolve ACSH_HISTORY_CLASS), and
    more handle-target rows corpus-wide. NEVER model a debug-gated type —

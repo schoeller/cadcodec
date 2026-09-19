@@ -2206,6 +2206,15 @@ def normalize_silver(
                 gold_type = "UNKNOWN"
         else:
             gold_type = OBJECT_TYPE_MAP.get(silver_type, silver_type.upper())
+        # Wrapper retype (§8.1.6 unmodeled-class campaign): silver's
+        # DynamicBlock/ClassObject-style wrappers parse class-registered
+        # objects they do not model individually, keeping the class-table
+        # dxf_name. Retype + project ONLY classes with a landed field
+        # projection in the same packet — retyping alone explodes field
+        # rows. First landed class: ACSH_HISTORY_CLASS.
+        if (silver_type == "DynamicBlock"
+                and payload.get("dxf_name") == "ACSH_HISTORY_CLASS"):
+            gold_type = "ACSH_HISTORY_CLASS"
         _inject_reactors(payload)
         fields = _object_common_fields(payload)
         if r2004_plus:
@@ -2226,6 +2235,24 @@ def normalize_silver(
             # loop cannot re-emit them as extra_in_silver (this runs for ALL
             # Associative subtypes, including the UNKNOWN-typed ones).
             assoc_data = payload.get("data")
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
+        if gold_type == "ACSH_HISTORY_CLASS":
+            # dwg2.spec 3077 (ungated): major/minor (BL), owner (handle
+            # 2/360), h_nodeid (BL), show_history/record_history (B).
+            # Silver's reader keeps the parsed record under
+            # data.SolidHistory; the retyping also makes every
+            # cross-reference (3DSOLID/REGION history_id, reactors) resolve
+            # the same target type name on both sides.
+            sh = (payload.get("data") or {}).get("SolidHistory")
+            if not isinstance(sh, dict):
+                sh = {}
+            fields["major"] = sh.get("major", 0)
+            fields["minor"] = sh.get("minor", 0)
+            fields["owner"] = normalize_handle_value(sh.get("owner") or 0)
+            fields["h_nodeid"] = sh.get("history_node_id", 0)
+            fields["show_history"] = 1 if sh.get("show_history") else 0
+            fields["record_history"] = 1 if sh.get("record_history") else 0
             for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
                 payload.pop(kk, None)
         if silver_type == "Scale":
