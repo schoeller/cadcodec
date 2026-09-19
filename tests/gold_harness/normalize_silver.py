@@ -1155,6 +1155,66 @@ def normalize_silver(
             # IMAGE binary blob); gold doesn't expose it as a field. Drop it.
             fields.pop("graphic_data", None)
 
+        # LEADER entity (dwg.spec 2983 DWG path): silver uses snake_case names;
+        # gold uses dwg.spec names. Project + version-gate.
+        if silver_type == "Leader":
+            _LDR = {
+                "dimension_style": None,  # gold wants the dimstyle handle, not name
+                "vertices": "points", "horizontal_direction": "x_direction",
+                "block_offset": "inspt_offset", "annotation_offset": "endptproj",
+                "text_height": "box_height", "text_width": "box_width",
+                "origin": "origin", "normal": "extrusion",
+                "dwg_unknown_bit1": "unknown_bit_1",
+                "dwg_unknown_bit4": "unknown_bit_4",
+                "dwg_unknown_bit5": "unknown_bit_5",
+            }
+            for sk, gk in _LDR.items():
+                v = payload.get(sk)
+                if gk is not None and v is not None:
+                    # endptproj is VERSIONS (R_13c3, R_2007) only — not R2010+.
+                    if gk == "endptproj" and not r2007_plus:
+                        fields[gk] = normalize_value(v)
+                    elif gk != "endptproj":
+                        fields[gk] = normalize_value(v)
+            # path_type: 0 straight, 1 spline
+            pt = payload.get("path_type")
+            if isinstance(pt, str):
+                fields["path_type"] = 1 if pt == "Spline" else 0
+            elif isinstance(pt, int):
+                fields["path_type"] = pt
+            # annot_type (73): 0 text, 1 tol, 2 insert, 3 none. Silver
+            # creation_type enum.
+            ct = payload.get("creation_type")
+            if isinstance(ct, str):
+                fields["annot_type"] = {"WithText": 0, "WithTolerance": 1,
+                                        "WithBlock": 2, "None": 3,
+                                        "WithoutAnnotation": 3}.get(ct, 3)
+            # arrowhead_on / hookline_on / hookline_dir booleans
+            if payload.get("arrow_enabled") is not None:
+                fields["arrowhead_on"] = 1 if payload["arrow_enabled"] else 0
+            if payload.get("hookline_enabled") is not None:
+                fields["hookline_on"] = 1 if payload["hookline_enabled"] else 0
+            hd = payload.get("hookline_direction")
+            if isinstance(hd, str):
+                fields["hookline_dir"] = 1 if hd == "Same" else 0
+            # handles: associated_annotation (code 2), dimstyle (code 5)
+            if payload.get("annotation_handle") is not None:
+                fields["associated_annotation"] = normalize_handle_value(payload["annotation_handle"])
+            if payload.get("dimension_style_handle") is not None:
+                fields["dimstyle"] = normalize_handle_value(payload["dimension_style_handle"])
+            # arrowhead_type (FIELD_BSx, R2000+)
+            if r2000_plus and payload.get("arrowhead_type") is not None:
+                fields["arrowhead_type"] = payload["arrowhead_type"]
+            # drop all silver-only keys
+            for sk in list(_LDR) + ["path_type", "creation_type", "arrow_enabled",
+                                    "hookline_enabled", "hookline_direction",
+                                    "annotation_handle", "dimension_style_handle",
+                                    "override_color", "dimension_gap", "arrow_size",
+                                    "byblock_color", "dwg_unknown_bit2",
+                                    "dwg_unknown_bit3", "dwg_unknown_short1",
+                                    "arrowhead_type", "text_height", "text_width"]:
+                payload.pop(sk, None)
+
         # ATTDEF entity (dwg.spec 393 DWG path): silver stores snake_case
         # (insertion_point/alignment_point/text_style/flags dict). Gold uses
         # ins_pt (2RD), alignment_pt (2RD), dataflags (bitmask of present
