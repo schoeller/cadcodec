@@ -2305,6 +2305,94 @@ def normalize_silver(
             # out_json's record-meta rule: the PLACEHOLDER class carries
             # dxfname ACDBPLACEHOLDER (differs from the spec block name).
             fields["dxfname"] = "ACDBPLACEHOLDER"
+        _vw_data = (payload.get("data")
+                    if silver_type == "ClassObject" and isinstance(payload.get("data"), dict)
+                    else None)
+        _vw_kind = next(iter(_vw_data), None) if isinstance(_vw_data, dict) else None
+        if _vw_kind in ("SectionViewStyle", "DetailViewStyle"):
+            # dwg2.spec 4635 (SECTIONVIEWSTYLE) / 4715 (DetailViewStyle) —
+            # live, unconditioned blocks; the class dxfname differs from the
+            # block name so gold also emits the record-meta dxfname. Silver
+            # parses both under the ClassObject wrapper with a typed
+            # data.<Kind> payload. This also makes every handle-target into
+            # these objects resolve the right name on both sides (e.g. the
+            # DICTIONARY.ownerhandle rows). Other ClassObject payloads
+            # (ACSH geometry, ds headers) keep their bucket mapping above.
+            gold_type = ("SECTIONVIEWSTYLE" if _vw_kind == "SectionViewStyle"
+                         else "DETAILVIEWSTYLE")
+            isection = _vw_kind == "SectionViewStyle"
+            vsv = _vw_data.get(_vw_kind) or {}
+            _b = vsv.get("base") if isinstance(vsv.get("base"), dict) else {}
+            fields["dxfname"] = ("ACDBSECTIONVIEWSTYLE" if isection
+                                 else "ACDBDETAILVIEWSTYLE")
+            fields["mdoc_class_version"] = _b.get("class_version", 0)
+            fields["desc"] = _b.get("description", "")
+            fields["is_modified_for_recompute"] = 1 if _b.get("modified_for_recompute") else 0
+            if r2018_plus:
+                # dwg2.spec 4639 SINCE(R_2018): display_name + viewstyle_flags.
+                # Silver's reader leaves display_name empty; the corpus wires
+                # carry the desc string in both (AcDbModelDocViewStyle
+                # convention), so emit desc there.
+                fields["display_name"] = _b.get("description", "")
+                fields["viewstyle_flags"] = _b.get("flags", 0)
+            fields["class_version"] = vsv.get("class_version", 0)
+            fields["flags"] = vsv.get("flags", 0)
+            fields["identifier_style"] = normalize_handle_value(vsv.get("identifier_style") or 0)
+            fields["identifier_color"] = normalize_color(vsv.get("identifier_color"))
+            fields["identifier_height"] = normalize_float(vsv.get("identifier_height"))
+            fields["identifier_exclude_characters"] = vsv.get("identifier_excluded_characters", "")
+            fields["identifier_offset"] = normalize_float(vsv.get("identifier_offset"))
+            fields["viewlabel_text_style"] = normalize_handle_value(vsv.get("view_label_text_style") or 0)
+            fields["viewlabel_text_color"] = normalize_color(vsv.get("view_label_text_color"))
+            fields["viewlabel_text_height"] = normalize_float(vsv.get("view_label_text_height"))
+            fields["viewlabel_attachment"] = vsv.get("view_label_attachment", 0)
+            fields["viewlabel_offset"] = normalize_float(vsv.get("view_label_offset"))
+            fields["viewlabel_alignment"] = vsv.get("view_label_alignment", 0)
+            fields["viewlabel_pattern"] = vsv.get("view_label_pattern", "")
+            if isection:
+                fields["arrow_start_symbol"] = normalize_handle_value(vsv.get("arrow_start_symbol") or 0)
+                fields["arrow_end_symbol"] = normalize_handle_value(vsv.get("arrow_end_symbol") or 0)
+                fields["arrow_symbol_color"] = normalize_color(vsv.get("arrow_symbol_color"))
+                fields["arrow_symbol_size"] = normalize_float(vsv.get("arrow_symbol_size"))
+                fields["arrow_symbol_extension_length"] = normalize_float(
+                    vsv.get("arrow_symbol_extension_length"))
+                fields["plane_ltype"] = normalize_handle_value(vsv.get("plane_linetype") or 0)
+                fields["plane_linewt"] = vsv.get("plane_lineweight", 0)
+                fields["plane_line_color"] = normalize_color(vsv.get("plane_color"))
+                fields["bend_ltype"] = normalize_handle_value(vsv.get("bend_linetype") or 0)
+                fields["bend_linewt"] = vsv.get("bend_lineweight", 0)
+                fields["bend_line_color"] = normalize_color(vsv.get("bend_color"))
+                fields["bend_line_length"] = normalize_float(vsv.get("bend_line_length"))
+                fields["end_line_length"] = normalize_float(vsv.get("end_line_length"))
+                fields["hatch_color"] = normalize_color(vsv.get("hatch_color"))
+                fields["hatch_bg_color"] = normalize_color(vsv.get("hatch_background_color"))
+                fields["hatch_pattern"] = vsv.get("hatch_pattern", "")
+                fields["hatch_scale"] = normalize_float(vsv.get("hatch_scale"))
+                fields["hatch_transparency"] = vsv.get("hatch_transparency", 0)
+                rf = vsv.get("reserved_flags")
+                fields["unknown_b1"] = 1 if (isinstance(rf, list) and rf and rf[0]) else 0
+                fields["unknown_b2"] = 1 if (isinstance(rf, list) and len(rf) > 1 and rf[1]) else 0
+                fields["identifier_position"] = vsv.get("identifier_position", 0)
+                fields["arrow_position"] = vsv.get("arrow_position", 0)
+                fields["end_line_overshoot"] = normalize_float(vsv.get("end_line_overshoot"))
+                fields["hatch_angles"] = normalize_value(vsv.get("hatch_angles"))
+            else:
+                fields["identifier_placement"] = vsv.get("identifier_placement", 0)
+                fields["arrow_symbol"] = normalize_handle_value(vsv.get("arrow_symbol") or 0)
+                fields["arrow_symbol_color"] = normalize_color(vsv.get("arrow_symbol_color"))
+                fields["arrow_symbol_size"] = normalize_float(vsv.get("arrow_symbol_size"))
+                fields["boundary_ltype"] = normalize_handle_value(vsv.get("boundary_linetype") or 0)
+                fields["boundary_linewt"] = vsv.get("boundary_lineweight", 0)
+                fields["boundary_line_color"] = normalize_color(vsv.get("boundary_color"))
+                fields["connection_ltype"] = normalize_handle_value(vsv.get("connection_linetype") or 0)
+                fields["connection_linewt"] = vsv.get("connection_lineweight", 0)
+                fields["connection_line_color"] = normalize_color(vsv.get("connection_color"))
+                fields["borderline_ltype"] = normalize_handle_value(vsv.get("border_linetype") or 0)
+                fields["borderline_linewt"] = vsv.get("border_lineweight", 0)
+                fields["borderline_color"] = normalize_color(vsv.get("border_color"))
+                fields["model_edge"] = vsv.get("model_edge", 0)
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
         if gold_type == "ACSH_HISTORY_CLASS":
             # dwg2.spec 3077 (ungated): major/minor (BL), owner (handle
             # 2/360), h_nodeid (BL), show_history/record_history (B).
