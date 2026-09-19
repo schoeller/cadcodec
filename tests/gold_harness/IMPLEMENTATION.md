@@ -261,11 +261,10 @@ A zero-context agent begins here. Read in order, on demand:
 **Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids/
 BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
 LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
-packets + audit fixes (3DFACE has_no_flags, MTEXT value gates, entity-color
-ByBlock-transparency collapse) + TABLESTYLE + CMC color-method fix (c0/c1
-inversion + c_prop33 hack removal) + DIMSTYLE color indices + MLINESTYLE +
-MLEADERSTYLE color/handle/gate fixes + DICTIONARYWDFLT + IMAGE + ATTDEF,
-2026-09-19):** read-fidelity **15 891**, write-fidelity **14 557**, across 125
+packets + audit fixes + CMC color-method fix + TABLESTYLE/MLINESTYLE/
+MLEADERSTYLE/DICTIONARYWDFLT/IMAGE/ATTDEF/LAYOUT/CONTROL/LEADER/TEXT/HATCH/
+SPLINE/WIPEOUT + INSERT.block_header + UNKNOWN_OBJ naming + MTEXT R2018,
+2026-09-19):** read-fidelity **11 900**, write-fidelity **10 904**, across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
@@ -743,6 +742,18 @@ Given a diff `(type, field, kind)`:
    already-read ASSOC* types. Largest remaining ASSOC clusters in the report:
    ASSOCDEPENDENCY (36), ASSOCGEOMDEPENDENCY (34), ASSOCVARIABLE (22),
    ASSOCDIMDEPENDENCYBODY (18), ASSOCVALUEDEPENDENCY (18), ASSOCNETWORK (17).
+
+   **Next task (ready to start, 2026-09-19):** the remaining backlog after the
+   DIMASSOC → MTEXT run. Top of the re-ranked queue (read-fidelity, stem-
+   inflated counts): MULTILEADER (1269, ctx.* nested projection — silver stores
+   a full `MultiLeaderAnnotContext`; large), 3DSOLID (1131, ACIS/modeler +
+   unknown_bits — mostly reader/verbatim), UNKNOWN_OBJ (941, the unmodeled
+   class — each unmodeled type is its own reader packet; the DIMASSOC dxf_name
+   pattern is the template), BLOCK_HEADER (698, name/first_entity/last_entity
+   + is_xdic_missing residuals), MTEXT (212 residual: style name→handle,
+   ignore_attachment per-file, text encoding). The cleanest next normalizer
+   packets: BLOCK_HEADER (name/first_entity/last_entity via the block_records
+   map) and the LAYER/LTYPE_CONTROL residuals.
 
    ~~TABLESTYLE~~ — **DONE (2026-09-19)**: the largest single type (was 2 351
    rows, 9 346 stem-inflated). Normalizer packet. The object has two disjoint
