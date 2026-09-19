@@ -9,8 +9,10 @@
 
 Continue the acadrust gold-vs-silver roundtrip harness. Drive the remaining
 read/write fidelity diffs down. The current target (read AND write) is **below
-8 000** (raised from 12 000 on 2026-09-19, which read 11 900 / write 10 904
-had already met); land packets until both sides are under 8 000.
+5 000** (raised 12 000 → 8 000 → 5 000 on 2026-09-19; current read 10 684 /
+write 9 894). At that level the target requires the structural classes —
+3DSOLID/REGION ACIS, the UNKNOWN_OBJ unmodeled-object readers, BLOCK_HEADER —
+not only normalizer renames. Land packets until both sides are under 5 000.
 
 ## Read these first (in order)
 
@@ -30,7 +32,7 @@ had already met); land packets until both sides are under 8 000.
 ## Current state (2026-09-19)
 
 - Baseline: read-fidelity **10 684**, write-fidelity **9 894** (125 corpus
-  files). Target: read AND write **below 8 000**.
+  files). Target: read AND write **below 5 000**.
 - `cargo test --features serde` = 1556/0; `gold_roundtrip` = ok.
 - MULTILEADER `ctx.*` is **DONE** (§8.1.6 DONE entry: 11 900→10 684 read,
   10 904→9 894 write; residuals unknown_bits/graphic_data/attach_top/bottom).

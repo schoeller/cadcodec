@@ -269,8 +269,11 @@ write-fidelity **9 894**, across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
-each packet lands. **Campaign target: read AND write below 8 000** (raised
-from 12 000 on 2026-09-19). The 11 900/10 904 pre-MULTILEADER baseline was
+each packet lands. **Campaign target: read AND write below 5 000** (raised
+12 000 → 8 000 → 5 000 on 2026-09-19 — at this level the whole queue incl.
+the 3DSOLID/REGION ACIS family, the UNKNOWN_OBJ unmodeled-object reader
+class, and BLOCK_HEADER is required, not just normalizer renames). The
+11 900/10 904 pre-MULTILEADER baseline was
 re-verified fresh by a clean full rerun before the packet landed.
 **Caution — phantom reports:** a corpus run launched
 WITHOUT the §8.1.0 env (GOLD_DWGREAD unset) still writes a plausible-looking
@@ -800,7 +803,9 @@ Given a diff `(type, field, kind)`:
    BLOCK_HEADER via the block_records map and the LAYER/LTYPE_CONTROL
    residuals), LAYER.visualstyle (212), MTEXT.style (183, name→handle),
    SOLID.elevation (161), SECTIONVIEWSTYLE/DETAILVIEWSTYLE (~234 combined).
-   Target: read AND write below **8 000** (§7).
+   Target: read AND write below **5 000** (§7) — at that level the cheap
+   normalizer tail alone can no longer reach it; the 3DSOLID/REGION ACIS
+   family, the UNKNOWN_OBJ reader class, and BLOCK_HEADER are all required.
 
    Add-on diagnosis from the 2026-09-19 full-libredwg spec audit: the
    `OBJECTCONTEXTDATA.*` rows (6 stems; see e.g.
