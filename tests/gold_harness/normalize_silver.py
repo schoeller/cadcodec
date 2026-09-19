@@ -53,13 +53,20 @@ ENTITY_TYPE_MAP = {
     "Region": "REGION",
     "Body": "BODY",
     "Surface": "SURFACE",
-    "Table": "TABLE",
+    # gold's TABLE entity block (dwg.spec 477) is inside the debug-gated
+    # region (dwg2.spec 297-959, §8.1.1 liveness rule): gold decodes the
+    # class instances as raw UNKNOWN_ENT, so the resolved handle-target
+    # type name must be UNKNOWN_ENT — not TABLE (BLOCK_HEADER.entities /
+    # BLOCK_HEADER.inserts rows resolved to the wrong target type name).
+    "Table": "UNKNOWN_ENT",
     "MultiLeader": "MULTILEADER",
     "RasterImage": "IMAGE",
     "Wipeout": "WIPEOUT",
     "Underlay": "UNDERLAY",
     "Ole2Frame": "OLE2FRAME",
-    "PolyfaceMesh": "POLYFACE_MESH",
+    # gold's spec name for the polyface mesh entity is POLYLINE_PFACE
+    # (dwg.spec), not POLYFACE_MESH.
+    "PolyfaceMesh": "POLYLINE_PFACE",
     "PolygonMesh": "POLYGON_MESH",
     "Mesh": "MESH",
     "Light": "LIGHT",
@@ -1106,6 +1113,57 @@ def normalize_silver(
             # drop silver-only
             for kk in ("has_no_flags", "z_is_zero", "dxfname"):
                 payload.pop(kk, None)
+
+        if silver_type == "PolyfaceMesh":
+            # Gold's entity name is POLYLINE_PFACE (dwg.spec); the record
+            # carries the vertex/face counts, the boundary handles and the
+            # seqend — silver stores the per-vertex/per-face sub-entities
+            # (emitted separately as their own stream records) nested under
+            # vertices/faces.
+            def _pf_handle(e):
+                if isinstance(e, dict):
+                    c = e.get("common") if isinstance(e.get("common"), dict) else e
+                    return c.get("handle")
+                return e
+            vs = payload.get("vertices") or []
+            fs = payload.get("faces") or []
+            if isinstance(vs, list) and vs:
+                fields["numverts"] = len(vs)
+                fields["first_vertex"] = normalize_handle_value(_pf_handle(vs[0]) or 0)
+            if isinstance(fs, list) and fs:
+                fields["numfaces"] = len(fs)
+                fields["last_vertex"] = normalize_handle_value(_pf_handle(fs[-1]) or 0)
+            se = payload.get("seqend_handle")
+            if se is not None:
+                fields["seqend"] = normalize_handle_value(se)
+            for sk in ("vertices", "faces", "seqend_handle", "flags", "normal",
+                       "elevation", "extrusion", "start_width", "end_width",
+                       "smooth_surface", "thickness"):
+                payload.pop(sk, None)
+
+        if silver_type == "Table":
+            # gold's TABLE entity block is debug-gated (dwg2.spec 297-959,
+            # §8.1.1 liveness rule): the class instances decode as raw
+            # UNKNOWN_ENT — common fields + unknown_bits only. Silver parses
+            # a full table; that parse has no gold counterpart (the raw
+            # remainder covers it), so consume the payload per the
+            # graphic_data precedent.
+            for sk in ("base_style", "block_name", "block_record_handle",
+                       "break_data", "break_flow_direction", "break_options",
+                       "break_ranges", "break_spacing", "columns",
+                       "data_version", "description",
+                       "dwg_r2010_unknown_bit", "dwg_unknown_byte",
+                       "dwg_unknown_handle", "dwg_unknown_long1",
+                       "dwg_unknown_long2", "dwg_unknown_short",
+                       "field_handles", "horizontal_direction",
+                       "insertion_point", "legacy_border_colors",
+                       "legacy_border_line_weights", "legacy_border_visibility",
+                       "legacy_style_override", "merged_ranges", "name",
+                       "normal", "override_flag", "override_border_color",
+                       "override_border_line_weight",
+                       "override_border_visibility", "rows",
+                       "table_style_handle", "value_flags", "graphic_data"):
+                payload.pop(sk, None)
 
         # POINT entity (dwg.spec 2030, R13+ DWG path): silver stores
         # `location`/`point` (a 3-vector), gold splits into x/y/z scalars
@@ -2936,6 +2994,16 @@ def normalize_silver(
                 _ctrl["has_ds_data"] = 0
             out.append({"type": control_type, "fields": _ctrl})
         entries = table.get("entries", {})
+        sibling_names = set()
+        if table_key == "block_records":
+            # Silver's name-keyed table resolves gold's duplicate block
+            # names (all dimension-geometry blocks are literally '*D',
+            # every paper-space block '*Paper_Space') by appending digits:
+            # entry '*D', '*D0'..'*D10' / '*Paper_Space', '*Paper_Space0'.
+            # The strip rule below needs the name multiset.
+            for _e in entries.values():
+                if isinstance(_e, dict) and isinstance(_e.get("name"), str):
+                    sibling_names.add(_e["name"])
         for _key, rec in entries.items():
             if not isinstance(rec, dict):
                 continue
@@ -2955,13 +3023,28 @@ def normalize_silver(
             if record_gold_type == "APPID":
                 fields["unknown"] = 0
             if record_gold_type == "BLOCK_HEADER":
-                # BLOCK_RECORD flag bits (dwg.spec): ordinary block records
-                # are neither anonymous nor xref-bound.
-                fields["anonymous"] = 0
-                fields["hasattrs"] = 0
-                fields["blkisxref"] = 0
-                fields["xrefoverlaid"] = 0
-                fields["xref_loaded"] = 0
+                # BLOCK_RECORD flag bits (dwg.spec 3180-3186 + 3204): split
+                # from silver's parsed `flags` dict. The earlier hard-coded
+                # zeros made every anonymous star block (*D dimension
+                # geometry, *U, *T) wrong_value — silver's table has the
+                # correct bit all along.
+                _fl = rec.get("flags") if isinstance(rec.get("flags"), dict) else {}
+                fields["anonymous"] = 1 if _fl.get("anonymous") else 0
+                fields["hasattrs"] = 1 if _fl.get("has_attributes") else 0
+                fields["blkisxref"] = 1 if _fl.get("is_xref") else 0
+                fields["xrefoverlaid"] = 1 if _fl.get("is_xref_overlay") else 0
+                fields["xref_loaded"] = 1 if _fl.get("is_external") else 0
+                # Gold emits the block's real name; silver's name-keyed
+                # table uniquified duplicates by appending digits — strip
+                # the uniquifier only when the digitless base exists as
+                # another entry (verified pairs: '*D3' -> '*D' 81 rows,
+                # '*Paper_Space0' -> '*Paper_Space' 38 rows).
+                _nm = rec.get("name")
+                if isinstance(_nm, str):
+                    _m = re.match(r"^(.*)\d+$", _nm)
+                    if _m and _m.group(1) in sibling_names:
+                        _nm = _m.group(1)
+                    fields["name"] = _nm
                 # Gold always emits xref_pname (FIELD_T, R13b1+); silver stores
                 # no xref_pname, so emit gold's default empty string.
                 fields.setdefault("xref_pname", "")
@@ -3328,6 +3411,18 @@ def normalize_silver(
                     if k == "entity_handles":
                         if r2004_plus and v:
                             fields["entities"] = [normalize_handle_value(h) for h in v]
+                        elif not r2004_plus:
+                            # dwg.spec 3241 VERSIONS(R_13b1, R_2000): the
+                            # first/last_entity pair is emitted (as null
+                            # handles for empty blocks) instead of the
+                            # R2004+ entities vector; derive both from
+                            # silver's entity_handles.
+                            eh = v if isinstance(v, list) else []
+                            fields["first_entity"] = normalize_handle_value(eh[0] if eh else 0)
+                            fields["last_entity"] = normalize_handle_value(eh[-1] if eh else 0)
+                        continue
+                    if k == "name":
+                        # consumed by the flags/name block above
                         continue
                     if k == "units":
                         if r2007_plus:
@@ -3343,10 +3438,18 @@ def normalize_silver(
                         continue
                     # gold never serializes these to binary-DWG JSON:
                     # flags (composite -> split bits done above), preview_data,
-                    # insert_count_bytes, insert_handles, xref_path, is_xdic_missing
+                    # insert_count_bytes, xref_path, is_xdic_missing
                     # (already set above), has_ds_data (set above).
                     if k in ("flags", "preview_data", "insert_count_bytes",
-                             "insert_handles", "xref_path"):
+                             "xref_path"):
+                        continue
+                    if k == "insert_handles":
+                        # dwg.spec 3272 IF_FREE_OR_SINCE(R_2000b): gold
+                        # emits the inserts HANDLE_VECTOR only when
+                        # num_inserts > 0. (The old drop list treated these
+                        # as unserializable — wrong, 79 missing rows.)
+                        if v:
+                            fields["inserts"] = [normalize_handle_value(h) for h in v]
                         continue
                 # DIMSTYLE: silver stores lowercase dim* names; gold uses
                 # uppercase DIM*. Uppercase the dim prefix and drop
