@@ -40,6 +40,13 @@ truth for the harness. Its §7 "How to start cold" block is the entry point;
   normalizers — as faithful projections, never as data-hiding.
 
 ### DWG field work
+- A grep hit for `DWG_ENTITY/DWG_OBJECT/DWG_TABLE (NAME)` is only meaningful
+  if the block is **live**: blocks inside `#if defined (DEBUG_CLASSES) ||
+  defined (IS_FREE)`, inside `#if 0`, or comment-mentioned only are compiled
+  out of the built `dwgread` — gold then decodes such objects as raw
+  `UNKNOWN_ENT`/`UNKNOWN_OBJ` and never emits the typed name. Check the
+  enclosing preprocessor frame before designing a packet (frame map and
+  liveness rule: IMPLEMENTATION.md §8.1.1).
 - Gate every DWG field by the **exact version predicate the gold spec uses**
   (`PRE`/`VERSIONS`/`SINCE`/`UNTIL`/`LATER_VERSIONS`), in both reader and
   writer. Fields guarded by `DXF { … }` in the spec are DXF-only — do **not**

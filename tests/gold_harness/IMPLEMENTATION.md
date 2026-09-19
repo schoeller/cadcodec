@@ -268,7 +268,14 @@ SPLINE/WIPEOUT + INSERT.block_header + UNKNOWN_OBJ naming + MTEXT R2018,
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
-each packet lands.
+each packet lands. Re-verified fresh 2026-09-19 (a clean full rerun reproduced
+11 900/10 904 exactly). **Caution — phantom reports:** a corpus run launched
+WITHOUT the §8.1.0 env (GOLD_DWGREAD unset) still writes a plausible-looking
+report: every per-file run fails instantly and the aggregator re-reads stale
+artifacts on disk (a phantom 11 372/9 953 report from 2026-09-19 17:44 was
+identified and discarded this way — all 125 per-file stdout entries carried the
+`GOLD_DWGREAD env var is not set` traceback). Always export the §8.1.0
+variables in the same shell before `run_corpus.py`.
 
 **Things that will look broken but are not (do not "fix" them):**
 - **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
@@ -460,29 +467,63 @@ Repos: silver = `~/work/cadcodec` (Rust crate `acadrust`), gold =
 ### 8.1.1 Context budget rules (hard constraints)
 
 0. **The gold spec is split across MORE than two files.** Object/entity/table
-   field definitions live in exactly two: `dwg.spec` (88 blocks) and
-   `dwg2.spec` (236 blocks). But three `*_fields` macros were moved out into
-   `~/work/libredwg/src/dwg_spec_shared.h`, and the shared "common" field
-   macros live in their own specs. Full gold source map:
+   field definitions live in `dwg.spec` (88 block starters: 53 entities +
+   25 objects + 10 tables) and `dwg2.spec` (234 real starters: 45 entities +
+   189 objects). Nested `*_fields` macros live in three places, and the
+   built `dwgread` compiles some blocks out (liveness verified 2026-09-19,
+   libredwg 34f02f54 — see the liveness rule below). Full gold source map:
 
    | File | Content | When to consult |
    |---|---|---|
-   | `dwg.spec` | 88 object/entity/table blocks (pre-R2000 + tables + entities) | the outer type block |
-   | `dwg2.spec` | 236 blocks (R2000+ objects: SCALE, XRECORD, VISUALSTYLE, MATERIAL, MLEADERSTYLE, TABLESTYLE, MULTILEADER, …) + most nested `*_fields` macros | the outer type block + nested macros |
-   | `dwg_spec_shared.h` | 3 macros moved out of the specs: `TABLE_value_fields` (FIELD.value / TABLE cell values), `WIRESTRUCT_fields`, `AcDbMTextObjectEmbedded_fields` | nested `value.*`, wireframe structs, embedded MText |
+   | `dwg.spec` | 88 starters (**87 live**) — pre-R2000 objects + tables + entities | the outer type block |
+   | `dwg2.spec` | 234 real starters (**161 live**) — R2000+ objects (SCALE, XRECORD, VISUALSTYLE, MATERIAL, MLEADERSTYLE, TABLESTYLE, MULTILEADER, …) + most nested `*_fields` macros. A plain grep ALSO hits two commented-out mentions: `//DWG_OBJECT (OBJECTCONTEXTDATA)` (3813, "subclass only") and `//DWG_OBJECT (PARTIAL_VIEWING_FILTER)` (6245) — gold never emits those names | the outer type block + nested macros |
+   | `dwg_spec_shared.h` | the 3 `*_fields` macros moved out of the specs (`TABLE_value_fields`, `WIRESTRUCT_fields`, `AcDbMTextObjectEmbedded_fields`) **plus** field-lists WITHOUT the `_fields` suffix: `COMMON_3DSOLID`, `ACTION_3DSOLID` (3DSOLID common ACIS payload), `COMMON_ENTITY_DIMENSION` (DIMENSION common), and the `DECODE_3DSOLID`/`ENCODE_3DSOLID`/`FREE_3DSOLID` per-TU wrappers | nested `value.*`, wireframe structs, embedded MText, **3DSOLID**, **DIMENSION** |
    | `common_entity_data.spec` | entity common *data* fields (entmode, linewt, color, ltype_scale, invisible, …) | entity common fields |
    | `common_entity_handle_data.spec` | entity common *handle-stream* fields (ownerhandle, ltype, plotstyle, visualstyles, material, …) | entity handle refs |
    | `common_object_handle_data.spec` | object common handle-stream fields (ownerhandle, reactors, xdictionary) | object handle refs |
-   | `classes.inc`, `objects.inc` | class-table / object-type registration | class names, type codes |
+   | `include/dwg.h` | **40 ALLCAPS `*_fields` macros** (`CMLContent_fields`, `ASSOCACTION_fields`, …) — generated struct-MEMBER declarations (memory layout, gen-dynapi.pl), NOT spec field sequences. Do not confuse them with the 66 spec `*_fields` macros. Also the struct/enum source of truth (`DWG_COLOR_METHOD`, …) | field presence/types when the spec refs a struct |
+   | `spec.h` + `dec_macros.h`/`enc_macros.h`/`out_json.h` | the `FIELD_*` DSL macro definitions per translation unit (decode/encode/JSON-emit semantics; e.g. the CMC method byte) | token semantics of a FIELD_* |
+   | `objects.inc` | the generated full type-name registration list: 317 names (97 `DWG_ENTITY` + 220 `DWG_OBJECT`), unguarded — exactly the live block set plus the gated ones | name ↔ dispatch checks |
+   | `classes.inc` | dynamic-class dispatcher macros (`WARN_UNHANDLED_CLASS`, per-ACTION dispatch) — not a name list | class-table behavior |
 
-   The remaining `.spec` files (`header.spec`, `header_variables*.spec`,
-   `auxheader.spec`, `2ndheader.spec`, `summaryinfo.spec`, `acds.spec`,
-   `appinfo.spec`, `filedeplist.spec`, `objfreespace.spec`,
-   `r2004_file_header.spec`, `revhistory.spec`, `security.spec`,
-   `template.spec`, `vbaproject.spec`) describe **header/section
-   infrastructure** — out of scope for the OBJECTS field diff (the harness
-   diffs only the object stream, not the header). Do not chase them for
-   field-level work.
+   **Liveness rule (verified 2026-09-19).** The built `dwgread` defines
+   neither `DEBUG_CLASSES` (`config.h`: `#undef`) nor `IS_FREE` in the
+   decode/JSON translation units (decode.c = `IS_DECODER`, decode2.c bare,
+   out_json.c = `IS_JSON`), so every `#if defined (DEBUG_CLASSES) ||
+   defined (IS_FREE)` frame and every `#if 0` region compiles OUT: those
+   classes decode as raw `UNKNOWN_ENT`/`UNKNOWN_OBJ` (with `unknown_bits`)
+   and are **never emitted typed** — empirically confirmed over the whole
+   corpus. Gated regions: dwg2.spec 297–959 (TABLE entity, TABLECONTENT,
+   the TABLECONTENTs_fields macro), 3716–4513 (the "in work area": SURFACE
+   entities EXTRUDED/LOFTED/REVOLVED/SWEPT/NURBS, ASSOC* action bodies,
+   CONTEXTDATAMANAGER, SUNSTUDY, GEOPOSITIONMARKER, the abstract
+   OBJECTCONTEXTDATA, *PARAMETERENTITY/*GRIPENTITY, NAVISWORKS*, the
+   debug-side OBJECTCONTEXTDATA subclasses (MLEADER- / MTEXTATTRIBUTE- /
+   ANNOTSCALE- / *DIM-), …), 4936–5253 (ACME*, MOTIONPATH,
+   CSACDOCUMENTOPTIONS, TVDEVICEPROPERTIES, RTEXT/ARCALIGNEDTEXT, …),
+   6190–6221, 6265–6284 (BREAKDATA, BREAKPOINTREF); `#if 0`: 5168
+   (BLOCKANGULARCONSTRAINTPARAMETERENTITY), 6288 (XREFPANELOBJECT,
+   NPOCOLLECTION, ACDSRECORD, ACDSSCHEMA); dwg.spec 4900–5104 (MPOLYGON).
+   If a target type is in one of those frames, gold can never emit it typed —
+   do NOT write a typed reader packet for it; match gold's UNKNOWN record
+   instead. (`UNKNOWN_ENT`/`UNKNOWN_OBJ`/`DUMMY` sit in `#ifndef IS_DXF` —
+   they ARE live for the JSON path.)
+
+   The remaining `.spec` files describe **header/section infrastructure** —
+   out of scope for the OBJECTS field diff (the harness diffs only the object
+   stream, not the header): `header.spec`, `header_variables.spec`,
+   `header_variables_r11.spec` (pre-R13), `header_variables_dxf.spec` (DXF
+   emitters only — not in the JSON path), `auxheader.spec`,
+   `2ndheader.spec`, `summaryinfo.spec`, `acds.spec`, `appinfo.spec`,
+   `filedeplist.spec`, `objfreespace.spec`, `r2004_file_header.spec`,
+   `revhistory.spec`, `security.spec`, `template.spec`. Status of the
+   odd ones (verified 2026-09-19): `vbaproject.spec` is a dormant 21-line
+   stub — its only include (out_json.c:2408) is commented out, so VBAProject
+   is never emitted; `signature.spec` does not exist in the tree (its
+   include sites — decode.c:3041, out_json.c:2578 — are inside `#if 0`);
+   `appinfohistory.spec` is referenced only from a commented-out include
+   and does not exist. The repo-root `libredwg.spec` is the RPM packaging
+   spec, unrelated. Do not chase any of these for field-level work.
 
 1. **Never read a whole large file.** These files are too big to load:
    - `~/work/libredwg/src/dwg.spec`, `dwg2.spec` (many thousand lines)
@@ -754,6 +795,17 @@ Given a diff `(type, field, kind)`:
    ignore_attachment per-file, text encoding). The cleanest next normalizer
    packets: BLOCK_HEADER (name/first_entity/last_entity via the block_records
    map) and the LAYER/LTYPE_CONTROL residuals.
+
+   Add-on diagnosis from the 2026-09-19 full-libredwg spec audit: the
+   `OBJECTCONTEXTDATA.*` rows (6 stems; see e.g.
+   `target/gold_harness_corpus/Leader/Leader_diff_orig.json`) are a silver
+   **type-name** bug, not a reader gap — silver emits one record named
+   `OBJECTCONTEXTDATA` (the abstract class, whose gold block is commented
+   out, dwg2.spec 3813) where gold emits `LEADEROBJECTCONTEXTDATA` (live
+   block, dwg2.spec 4611; 6 corpus records). Fixing silver's type name kills
+   both the `OBJECTCONTEXTDATA._missing/_count` and
+   `LEADEROBJECTCONTEXTDATA._count/_missing` row families (~24 rows). A small
+   standalone packet, suitable before or alongside the UNKNOWN_OBJ backlog.
 
    ~~TABLESTYLE~~ — **DONE (2026-09-19)**: the largest single type (was 2 351
    rows, 9 346 stem-inflated). Normalizer packet. The object has two disjoint
@@ -1053,33 +1105,61 @@ packets — small, well-scoped, and reproducible):
   or the differ's handle map misresolves — add a targeted probe before
   editing (print both normalized records for the same ordinal).
 
-### 8.1.6a Gold-spec coverage audit (as of commit 4554a0e..HEAD, 2026-09-17)
+### 8.1.6a Gold-spec coverage audit (2026-09-17; re-verified structurally 2026-09-19 at libredwg 34f02f54)
 
 **Answer: gold specs are 100% KNOWN, but NOT 100% COVERED.** Measured
 empirically against the corpus (not just the diff report):
 
-- **Known = 100%.** There are 324 unique spec blocks across `dwg.spec` (88) +
-  `dwg2.spec` (236). Gold emits **160 distinct types** in the corpus. All **85
-  types gold emits that silver never emits** have a locatable spec block
-  (verified: 85/85 found via the §8.1.1 grep recipe). There is no "unknown"
-  spec — every gold-emitted type has a spec block an agent can open.
-- **Covered ≠ 100%.** Silver emits only **84 distinct types**; 75 are shared
-  with gold. On those 75 shared types, **703 gold fields never appear on the
-  silver side** (the field-level backlog). So coverage is roughly
-  75/160 types and a fraction of fields per shared type.
+- **Known = 100% (re-verified structurally 2026-09-19; full-repo audit).**
+  Precise block census: 322 real `DWG_ENTITY/OBJECT/TABLE` starters with
+  unique names — `dwg.spec` 88 (53E/25O/10T) + `dwg2.spec` 234 (45E/189O).
+  (The pre-audit figure "324 (88+236)" had counted the 2 commented-out
+  mentions — `OBJECTCONTEXTDATA`, `PARTIAL_VIEWING_FILTER`.) **248 blocks are
+  live in the built oracle** (dwg.spec 87, dwg2.spec 161); the other 74 are
+  debug/dead-gated (§8.1.1 liveness rule) and can never be emitted typed.
+  Macro census: 66 spec `*_fields` macros confirmed (`1 dwg.spec` is the
+  renamed-dead `TABLE_value_fields_REMOVED`, 62 dwg2.spec, 3
+  dwg_spec_shared.h) — plus dwg2.spec holds ~25 field-list macros WITHOUT
+  the `_fields` suffix (`row/cell/content/…` for TABLESTYLE, `MAT_COLOR/
+  MAT_TEXTURE/MAT_MAPPER/MAP` for MATERIAL, `lnode/lline`, `BlockParam_*`,
+  `ramp`, …) that a nested-root grep must not miss.
+- **Gold emits 159 distinct types in the corpus** (fresh per-file `dwgread
+  -O JSON` census, 2026-09-19; one gold-decode failure: `2013/gh44-error.dwg`;
+  the previous count said 160). **All 159 map to LIVE spec blocks** — the
+  only name differences are the documented aliases `_3DFACE`/`_3DSOLID`/
+  `_3DLINE`. Correction to the 2026-09-17 audit: `OBJECTCONTEXTDATA` is NOT
+  a gold-emitted type (its block is commented out, dwg2.spec 3813) — the
+  `OBJECTCONTEXTDATA.*` diff rows come from **silver** naming a
+  leader-context record with the abstract-class name, while gold emits
+  `LEADEROBJECTCONTEXTDATA` (6 corpus records; live block dwg2.spec 4611).
+  Small packet candidate: fix silver's type name (see §8.1.6).
+- **Covered ≠ 100%.** [2026-09-17 figures; recount pending after the audit:]
+  silver emits **84 distinct types**; 75 shared with gold. On those 75 shared
+  types, **703 gold fields never appear on the silver side** (the
+  field-level backlog). So coverage is roughly 75/159 types and a fraction
+  of fields per shared type.
 
-*Coverage by category (2026-09-18, after 22 packets):*
+*Coverage by category (re-audited 2026-09-19; fix-loop pass count preserved
+from the 2026-09-18 baseline):*
 
 | Category | State | Count |
 |---|---|---|
-| Spec blocks (dwg.spec + dwg2.spec) | all present | 324 |
-| Types gold emits in corpus | — | 160 |
-| Types silver emits | — | 84 (75 shared with gold) |
-| Gold types silver never emits (reader gap) | **uncovered** | 85 |
-| Gold fields missing on the 75 shared types | **uncovered** | 703 |
+| Real spec block starters (dwg.spec + dwg2.spec, unique) | all inventoried | 322 (88 + 234) |
+| …of which live in the built `dwgread` | the emittable set | 248 (87 + 161) |
+| Registered type names (`objects.inc`, generated, unguarded) | = all starters except the 5 `#if 0`-dead; includes the 69 debug-gated | 317 = 97 entities + 220 objects |
+| Types gold emits in corpus (fresh census 2026-09-19) | all map to live blocks | 159 |
+| Types silver emits [2026-09-17 figure] | — | 84 (75 shared with gold) |
+| Gold types silver never emits (reader/naming gap) | **uncovered** | ~84 (recount pending) |
+| Gold fields missing on the 75 shared types [2026-09-17] | **uncovered** | 703 |
 
-*The 85 gold-only types* (silver reader coverage gap — the largest structural
-class): all `ACSH_*` (11), all `ASSOC*` (16), `VERTEX_2D/3D/MESH/PFACE/
+*The gold-only types* (~84; silver reader/naming coverage gap — the largest
+structural class). 2026-09-19 audit corrections: `ACSH_*` is **10
+live-emittable** classes (+`ACSH_BREP_CLASS`) — the SWEEP/EXTRUSION/LOFT/
+REVOLVE history-subclass blocks are debug-gated (dwg2.spec 3716 region) and
+never emitted by gold, and the corpus report carries no rows for them;
+`OBJECTCONTEXTDATA` was mislisted here in the 2026-09-17 audit — it is a
+silver-side naming bug (see above). The members: all `ACSH_*` (10 live,
+incl. `ACSH_BREP_CLASS`), all `ASSOC*` (16), `VERTEX_2D/3D/MESH/PFACE/
 PFACE_FACE` (silver stores vertices inside the parent polyline — §10),
 `DIMENSION_*` subtypes (silver has one `Dimension` variant — §9), `SEQEND`,
 `ATTRIB`, `EVALUATION_GRAPH`, `SECTIONVIEWSTYLE`/`DETAILVIEWSTYLE`,
