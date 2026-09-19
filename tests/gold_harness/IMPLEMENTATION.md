@@ -790,17 +790,38 @@ Given a diff `(type, field, kind)`:
    ASSOCDEPENDENCY (36), ASSOCGEOMDEPENDENCY (34), ASSOCVARIABLE (22),
    ASSOCDIMDEPENDENCYBODY (18), ASSOCVALUEDEPENDENCY (18), ASSOCNETWORK (17).
 
-   **Next task (ready to start, 2026-09-19, post-3DSOLID):** top of the
-   re-ranked queue (read-fidelity, stem-inflated, from the post-3DSOLID
-   report): **the UNKNOWN-class naming packet** — silver parses
-   class-registered gold types (ACSH_HISTORY_CLASS, ASSOCGEOMDEPENDENCY,
-   the DYNAMICBLOCK family, …) as `Unknown` records and the normalizer
-   maps them to `UNKNOWN_OBJ`; the differ resolves handle targets by the
-   record's TYPE NAME, so every cross-reference into an unmodeled object
-   mismatches (the 42 ATMOS `history_id` rows + REGION.reactors + the
-   582 UNKNOWN_OBJ._missing class all die here; the DIMASSOC dxf_name
-   pattern in normalize_silver is the template; NEVER model a debug-gated
-   type — match gold's UNKNOWN record instead, §8.1.1 liveness rule), then
+   **Next task (ready to start, 2026-09-19, post-3DSOLID): the unmodeled
+   class — retyping + per-class field projections.** Anatomy (verified
+   empirically): the `UNKNOWN_OBJ._missing` 582 / `UNKNOWN._missing` 213
+   rows are NOT missing silver records — they are **silver-extra records**
+   (`kind:"missing", side:"silver"`): silver's wrapper variants
+   (`DynamicBlock`, `ClassObject`) parse ~200 class-registered objects per
+   heavy stem (ATMOS-DC22S: 186+17; Dynblocks: 98+ …) which the normalizer
+   bucket-maps to `UNKNOWN_OBJ`, while gold decodes the LIVE classes TYPED
+   (ATMOS: gold's 194 typed = ACSH_FILLET_CLASS 50 + ACSH_HISTORY_CLASS 42
+   + EVALUATION_GRAPH 42 + ACSH_CYLINDER_CLASS 17 + ACSH_WEDGE_CLASS 10 +
+   ACSH_BOX_CLASS 6 + RENDERGLOBAL 6 + MENTALRAYRENDERSETTINGS 6 + ...;
+   the debug-gated ones — ACSH_SWEEP/EXTRUSION/LOFT/REVOLVE, TABLE entity,
+   the SURFACE entities — legitimately pair as UNKNOWN_OBJ today).
+   Silver keeps each wrapper's `dxf_name`; the naming fix is a
+   dxf_name→gold-type resolver for the wrapper variants (the
+   `_associative_gold_name` pattern at normalize_silver.py:115 is the
+   template) — **BUT retyping alone is a NET LOSS**: the newly typed
+   records pair against gold's typed field lists (ACSH_CYLINDER ~20
+   fields, MENTALRAYRENDERSETTINGS ~57, SECTIONVIEWSTYLE ~45 — the
+   evalexpr.*/history_node.* families), so EACH class needs its own
+   MULTILEADER-style field projection from silver's wrapper payload in the
+   same packet, or the rows explode (17 record-rows → 340 field-rows).
+   Suggested per-class order by (count × field-cost): ACSH_HISTORY_CLASS
+   first (42 records × only 9 fields: h_nodeid/major/minor/record_history/
+   show_history + common), then EVALUATION_GRAPH (48 × 5-8), ACSH_BOX/
+   WEDGE/FILLET/CHAMFER/BOOLEAN/CYLINDER/TORUS/BREP (the SolidHistoryNode
+   payload), RENDERGLOBAL/RENDERENTRY, then MENTALRAYRENDERSETTINGS.
+   Cross-reference bonus: retyping also fixes the 44 3DSOLID-family
+   `history_id`/reactors rows (both sides resolve ACSH_HISTORY_CLASS), and
+   more handle-target rows corpus-wide. NEVER model a debug-gated type —
+   emit UNKNOWN_OBJ for the in-work region classes instead (§8.1.1
+   liveness rule). Then
    BLOCK_HEADER (698: name/first_entity/last_entity + anonymous +
    is_xdic_missing residuals — cleanest normalizer packets: BLOCK_HEADER
    via the block_records map and the LAYER/LTYPE_CONTROL residuals),
