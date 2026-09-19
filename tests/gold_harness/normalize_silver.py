@@ -1685,10 +1685,12 @@ def normalize_silver(
                     fields[gk] = 1 if v else 0
                 else:
                     fields[gk] = normalize_value(v)
-            # class_version (R2010+)
-            if r2010_plus:
-                fields["class_version"] = payload.get("class_version", 2)
-                ml_consumed.add("class_version")
+            # class_version (dwg2.spec 1461): the spec gates it SINCE R_2010b,
+            # but MLEADERSTYLE objects are always read from EED/upconverted, so
+            # gold emits class_version (default 2) on EVERY corpus version
+            # (R2000 example_2000 included). Emit unconditionally.
+            fields["class_version"] = payload.get("class_version", 2)
+            ml_consumed.add("class_version")
             # linewt: gold stores the raw BLd lineweight value (negative =
             # ByLayer=-1/ByBlock=-2/Default=-3, else mm*100). Silver stores the
             # enum string. Map to gold's raw value.
@@ -1697,21 +1699,27 @@ def normalize_silver(
                 _LW = {"ByLayer": -1, "ByBlock": -2, "Default": -3, "ByLwDefault": -3}
                 fields["linewt"] = _LW.get(lw, -3)
                 ml_consumed.add("line_weight")
-            # handles
-            fields["line_type"] = normalize_handle_value(payload.get("line_type_handle"))
-            fields["text_style"] = normalize_handle_value(payload.get("text_style_handle"))
-            fields["arrow_head"] = normalize_handle_value(payload.get("arrowhead_handle"))
-            fields["block"] = normalize_handle_value(payload.get("block_content_handle"))
+            # handles: gold emits these as handle dicts even when null (code 5,
+            # absref 0). Silver stores Option<Handle> (None = null). Emit the
+            # null-handle shape so the differ resolves both to target 0.
+            _NULL_HANDLE = {"code": 5, "size": 0, "value": 0, "absref": 0}
+            def _h(name):
+                v = payload.get(name)
+                return normalize_handle_value(v) if v is not None else _NULL_HANDLE
+            fields["line_type"] = _h("line_type_handle")
+            fields["text_style"] = _h("text_style_handle")
+            fields["arrow_head"] = _h("arrowhead_handle")
+            fields["block"] = _h("block_content_handle")
             for kk in ("line_type_handle", "text_style_handle", "arrowhead_handle",
                        "block_content_handle"):
                 ml_consumed.add(kk)
-            # colors: silver "ByBlock" -> gold CMC; silver block_content_color
-            # line_color (CMC), text_color (CMC), block_color (CMC)
+            # colors: silver stores a Color enum; gold emits the ACI index
+            # (ByBlock=0, ByLayer=256). normalize_color handles the string.
             for src, dst in (("line_color", "line_color"), ("text_color", "text_color"),
                              ("block_content_color", "block_color")):
                 v = payload.get(src)
-                if isinstance(v, str):
-                    fields[dst] = normalize_color({"Index": 256 if v == "ByBlock" else 0})
+                if v is not None:
+                    fields[dst] = normalize_color(v)
                 ml_consumed.add(src)
             # block_scale: silver stores x/y/z scalars; gold uses a 3BD
             if r2013_plus or True:  # block_scale is JSON 3BD
@@ -1725,9 +1733,9 @@ def normalize_silver(
             if payload.get("description"):
                 fields["description"] = payload["description"]
             ml_consumed.update(("description", "name", "is_annotative"))
-            # is_annotative (R2008+)
-            if r2007_plus:
-                fields["is_annotative"] = 1 if payload.get("is_annotative") else 0
+            # is_annotative (dwg2.spec 1461 FIELD_B 296): gold emits it on every
+            # version (EED/upconvert); emit unconditionally.
+            fields["is_annotative"] = 1 if payload.get("is_annotative") else 0
             for kk in ml_consumed:
                 payload.pop(kk, None)
 

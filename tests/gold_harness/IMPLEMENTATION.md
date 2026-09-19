@@ -266,12 +266,12 @@ BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
 LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes (3DFACE has_no_flags, MTEXT value gates, entity-color
 ByBlock-transparency collapse) + TABLESTYLE + CMC color-method fix (c0/c1
-inversion + c_prop33 hack removal) + DIMSTYLE color indices + MLINESTYLE,
-2026-09-19):** read-fidelity **18 703**, write-fidelity **17 315**, across 125
-corpus files (110 unique dirs; counts inflated by the stem-collision issue
-below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
---features gold-harness --test gold_roundtrip` = ok. Update these numbers after
-each packet lands.
+inversion + c_prop33 hack removal) + DIMSTYLE color indices + MLINESTYLE +
+MLEADERSTYLE color/handle/gate fixes, 2026-09-19):** read-fidelity **17 344**,
+write-fidelity **16 554**, across 125 corpus files (110 unique dirs; counts
+inflated by the stem-collision issue below). `cargo test --features serde` =
+1556 passed / 0 failed; `cargo test --features gold-harness --test
+gold_roundtrip` = ok. Update these numbers after each packet lands.
 
 **Things that will look broken but are not (do not "fix" them):**
 - **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
@@ -791,6 +791,19 @@ Given a diff `(type, field, kind)`:
    per-line array is degenerate ([0,0]); silver has the real offsets. Matching
    gold's degenerate output would need a bespoke gold-side rule; left as the
    faithful silver value.
+
+   ~~MLEADERSTYLE color/handle/gates~~ — **DONE (2026-09-19)**: three bugs in
+   the existing block. (1) Color inversion: `line_color`/`text_color`/
+   `block_color` mapped silver "ByBlock" → `{"Index":256}` (ByLayer); should be
+   the ACI index (ByBlock=0). Now `normalize_color(v)` directly. (2) Null
+   handles: silver stores `Option<Handle>` (None=null); gold emits a null-handle
+   dict (code 5, absref 0) — the differ resolves None to a non-token mismatch.
+   Now emit the null-handle shape for `line_type`/`text_style`/`arrow_head`/
+   `block`. (3) Version gates: `class_version` and `is_annotative` were gated
+   on r2010_plus/r2007_plus, but MLEADERSTYLE objects are always read from
+   EED/upconverted so gold emits both on EVERY version (R2000 included) —
+   made unconditional (class_version defaults to 2). Corpus: read 18 703 →
+   17 344, write 17 315 → 16 554. Residual: xdicobjhandle/is_xdic_missing.
 
    ~~3DFACE~~ — **DONE (2026-09-18)**: corner1-4 rename, invis_flags (drop when
    0), has_no_flags/z_is_zero/dxfname (R2000b+ defaults). **Follow-up fix
