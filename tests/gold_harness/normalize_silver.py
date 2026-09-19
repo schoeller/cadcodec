@@ -743,6 +743,25 @@ def normalize_silver(
         payload = entity[silver_type]
         if not isinstance(payload, dict):
             continue
+        # DIMENSION entities: silver wraps Dimension.<Kind>.base (common +
+        # dim-common) with the kind specifics beside base. Unwrap before the
+        # common extraction; the per-kind gold block names per dwg.spec's
+        # DIMENSION_* entities.
+        if (silver_type == "Dimension" and isinstance(payload, dict) and payload
+                and isinstance(next(iter(payload.values())), dict)):
+            _dim_kind = next(iter(payload))
+            _dim_inner = payload[_dim_kind]
+            gold_type = {
+                "Aligned": "DIMENSION_ALIGNED", "Arc": "ARC_DIMENSION",
+                "Ordinate": "DIMENSION_ORDINATE", "Angular2Ln": "DIMENSION_ANG2LN",
+                "Linear": "DIMENSION_LINEAR", "Angular3Pt": "DIMENSION_ANG3PT",
+                "Diameter": "DIMENSION_DIAMETER", "Radius": "DIMENSION_RADIUS",
+            }.get(_dim_kind, "DIMENSION")
+            _dim_base = _dim_inner.get("base") if isinstance(_dim_inner.get("base"), dict) else {}
+            _flat = dict(_dim_base)
+            _flat.update({k: v for k, v in _dim_inner.items() if k != "base"})
+            _flat["_dimension_kind"] = _dim_kind
+            payload = _flat
         # Underlay entities: gold's spec blocks are per-kind (PDFUNDERLAY,
         # DWFUNDERLAY, ...); the kind lives on silver's underlay_type.
         if silver_type == "Underlay" and isinstance(payload.get("underlay_type"), str):
@@ -1181,6 +1200,130 @@ def normalize_silver(
                        "override_border_line_weight",
                        "override_border_visibility", "rows",
                        "table_style_handle", "value_flags", "graphic_data"):
+                payload.pop(sk, None)
+
+        if silver_type == "Dimension":
+            # DIMENSION family (dwg.spec DIMENSION_* blocks): the common
+            # fields flowed from the unwrapped base above. Project the
+            # dim-common block, then the per-kind points.
+            kind = payload.get("_dimension_kind", "")
+            dim = payload
+            _vec = normalize_value
+            def_pt_src = dim.get("definition_point")
+            def_pt = _vec(def_pt_src) if def_pt_src is not None else None
+            tmp_pt = _vec(dim.get("text_middle_point"))
+            fields["text_midpt"] = tmp_pt[:2] if isinstance(tmp_pt, list) else tmp_pt
+            if isinstance(def_pt, list) and len(def_pt) > 2:
+                # gold's elevation tracks the definition point's z
+                # (all corpus dims are planar).
+                fields["elevation"] = def_pt[2]
+            # class_version/unknown/flip_arrow1/flip_arrow2 are SINCE
+            # R2007 additions in gold's DIMENSION-common; pre-2007 files
+            # omit them.
+            if r2007_plus:
+                fields["class_version"] = dim.get("version", 0)
+                fields["unknown"] = 1 if dim.get("dwg_unknown_bit") else 0
+                fields["flip_arrow1"] = 1 if dim.get("flip_arrow1") else 0
+                fields["flip_arrow2"] = 1 if dim.get("flip_arrow2") else 0
+            fb = dim.get("dwg_flags_byte", 0)
+            flag = {"Aligned": 1, "Angular2Ln": 2, "Diameter": 3, "Radius": 4,
+                    "Arc": 5, "Angular3Pt": 5, "Ordinate": 6, "Linear": 0}.get(kind, 0)
+            if isinstance(fb, int) and (fb & 2):
+                # verified corpus-wide: the wire's flag1 bit 1 carries the
+                # dimension's 32-flag bit (has-block class records)
+                flag |= 32
+            if kind == "Ordinate":
+                if dim.get("is_ordinate_type_x"):
+                    flag |= 128
+            elif kind in ("Diameter", "Radius"):
+                flag |= 128
+            fields["flag"] = flag
+            fields["flag1"] = fb
+            fields["user_text"] = dim.get("text", "") or ""
+            fields["text_rotation"] = _vec(dim.get("text_rotation"))
+            fields["horiz_dir"] = _vec(dim.get("horizontal_direction"))
+            fields["ins_scale"] = _vec(dim.get("insertion_scale"))
+            fields["ins_rotation"] = _vec(dim.get("insertion_rotation"))
+            fields["attachment"] = {
+                "TopLeft": 1, "TopCenter": 2, "TopRight": 3,
+                "MiddleLeft": 4, "MiddleCenter": 5, "MiddleRight": 6,
+                "BottomLeft": 7, "BottomCenter": 8, "BottomRight": 9,
+            }.get(dim.get("attachment_point"), 5)
+            fields["lspace_style"] = dim.get("line_spacing_style", 0)
+            fields["lspace_factor"] = _vec(dim.get("line_spacing_factor"))
+            fields["act_measurement"] = _vec(dim.get("actual_measurement"))
+            cip = _vec(dim.get("insertion_point"))
+            fields["clone_ins_pt"] = cip[:2] if isinstance(cip, list) else cip
+            fields["extrusion"] = _vec(dim.get("normal"))
+            # dimstyle: resolve the style name through the dim-styles table
+            st = dim.get("style_name")
+            if st is not None:
+                _ds = (data.get("dim_styles") or {}).get("entries") or {}
+                for _e in _ds.values():
+                    if isinstance(_e, dict) and _e.get("name") == st:
+                        fields["dimstyle"] = normalize_handle_value(_e.get("handle"))
+                        break
+            # block: gold emits a null dict for the block-less records
+            # (dwg_flags_byte bit 1); the *D/*U block name is ambiguous after
+            # silver's table uniquification, so leave the handle absent.
+            if isinstance(fb, int) and not (fb & 2):
+                fields["block"] = normalize_handle_value(0)
+            if kind in ("Aligned", "Linear"):
+                fields["xline1_pt"] = _vec(dim.get("first_point"))
+                fields["xline2_pt"] = _vec(dim.get("second_point"))
+                if kind == "Linear":
+                    fields["dim_rotation"] = _vec(dim.get("rotation"))
+                fields["def_pt"] = def_pt
+                fields["oblique_angle"] = _vec(dim.get("ext_line_rotation"))
+            elif kind == "Ordinate":
+                fields["def_pt"] = def_pt
+                fields["feature_location_pt"] = _vec(dim.get("feature_location"))
+                fields["leader_endpt"] = _vec(dim.get("leader_endpoint"))
+                fields["flag2"] = 1 if dim.get("is_ordinate_type_x") else 0
+            elif kind == "Angular2Ln":
+                fields["def_pt"] = _vec(dim.get("dimension_arc"))
+                fields["xline1start_pt"] = _vec(dim.get("first_point"))
+                fields["xline1end_pt"] = _vec(dim.get("second_point"))
+                fields["xline2start_pt"] = _vec(dim.get("angle_vertex"))
+                fields["xline2end_pt"] = _vec(dim.get("first_point"))
+            elif kind == "Angular3Pt":
+                fields["def_pt"] = def_pt
+                fields["xline1_pt"] = _vec(dim.get("first_point"))
+                fields["xline2_pt"] = _vec(dim.get("second_point"))
+                fields["center_pt"] = _vec(dim.get("angle_vertex"))
+            elif kind == "Arc":
+                fields["def_pt"] = def_pt
+                fields["xline1_pt"] = _vec(dim.get("first_extension_point"))
+                fields["xline2_pt"] = _vec(dim.get("second_extension_point"))
+                fields["center_pt"] = _vec(dim.get("center_point"))
+                fields["is_partial"] = 1 if dim.get("is_partial") else 0
+                fields["arc_start_param"] = _vec(dim.get("arc_start_parameter"))
+                fields["arc_end_param"] = _vec(dim.get("arc_end_parameter"))
+                fields["has_leader"] = 1 if dim.get("has_leader") else 0
+                fields["leader1_pt"] = _vec(dim.get("first_leader_point"))
+                fields["leader2_pt"] = _vec(dim.get("second_leader_point"))
+            elif kind == "Diameter":
+                fields["def_pt"] = def_pt
+                fields["first_arc_pt"] = _vec(dim.get("angle_vertex"))
+                fields["leader_len"] = _vec(dim.get("leader_length"))
+            elif kind == "Radius":
+                fields["def_pt"] = _vec(dim.get("angle_vertex"))
+                fields["first_arc_pt"] = _vec(dim.get("definition_point"))
+                fields["leader_len"] = _vec(dim.get("leader_length"))
+            for sk in ("definition_point", "text_middle_point", "insertion_point",
+                       "dimension_type", "attachment_point", "text", "user_text",
+                       "normal", "text_rotation", "horizontal_direction",
+                       "style_name", "actual_measurement", "version", "block_name",
+                       "line_spacing_factor", "line_spacing_style", "insertion_scale",
+                       "insertion_rotation", "dwg_unknown_bit", "flip_arrow1",
+                       "flip_arrow2", "dwg_flags_byte", "text_user_positioned",
+                       "_dimension_kind", "ext_line_rotation", "first_point",
+                       "second_point", "rotation", "feature_location",
+                       "leader_endpoint", "is_ordinate_type_x", "dimension_arc",
+                       "angle_vertex", "is_partial", "arc_start_parameter",
+                       "arc_end_parameter", "has_leader", "first_leader_point",
+                       "second_leader_point", "first_extension_point",
+                       "second_extension_point", "center_point", "leader_length"):
                 payload.pop(sk, None)
 
         # POINT entity (dwg.spec 2030, R13+ DWG path): silver stores
