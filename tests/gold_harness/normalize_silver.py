@@ -63,8 +63,8 @@ ENTITY_TYPE_MAP = {
     "Mesh": "MESH",
     "Light": "LIGHT",
     "Shape": "SHAPE",
-    "Extended": "UNKNOWN",
-    "Unknown": "UNKNOWN",
+    "Extended": "UNKNOWN_ENT",
+    "Unknown": "UNKNOWN_ENT",
 }
 
 # Silver object variant name -> gold type name. Most objects carry the gold
@@ -96,19 +96,19 @@ OBJECT_TYPE_MAP: Dict[str, str] = {
     "DictionaryWithDefault": "DICTIONARYWDFLT",
     "WipeoutVariables": "WIPEOUTVARIABLES",
     "BlockVisibilityParameter": "BLOCKVISIBILITYPARAMETER",
-    "DynamicBlock": "UNKNOWN",
+    "DynamicBlock": "UNKNOWN_OBJ",
     # "Associative" is NOT mapped to a single gold type: the variant wraps many
     # ASSOC*/DIMASSOC/PERSUBENTMGR classes distinguished by payload.dxf_name.
     # The object loop resolves the gold type from dxf_name (see below). Mapping
-    # the whole bucket to UNKNOWN would discard every parsed DIMASSOC.
-    "ClassObject": "UNKNOWN",
-    "DataObject": "UNKNOWN",
+    # the whole bucket to UNKNOWN_OBJ would discard every parsed DIMASSOC.
+    "ClassObject": "UNKNOWN_OBJ",
+    "DataObject": "UNKNOWN_OBJ",
     "Field": "FIELD",
     "FieldList": "FIELDLIST",
-    "RegisteredClass": "UNKNOWN",
-    "DgnLineStyle": "UNKNOWN",
-    "ProxyObject": "UNKNOWN",
-    "Unknown": "UNKNOWN",
+    "RegisteredClass": "UNKNOWN_OBJ",
+    "DgnLineStyle": "UNKNOWN_OBJ",
+    "ProxyObject": "UNKNOWN_OBJ",
+    "Unknown": "UNKNOWN_OBJ",
 }
 
 
