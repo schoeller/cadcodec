@@ -264,9 +264,10 @@ LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes + CMC color-method fix + TABLESTYLE/MLINESTYLE/
 MLEADERSTYLE/DICTIONARYWDFLT/IMAGE/ATTDEF/LAYOUT/CONTROL/LEADER/TEXT/HATCH/
 SPLINE/WIPEOUT + INSERT.block_header + UNKNOWN_OBJ naming + MTEXT R2018 +
-gold-spec audit + MULTILEADER + 3DSOLID + ACSH_HISTORY + EVALUATION_GRAPH,
-2026-09-19):** read-fidelity **9 177**,
-write-fidelity **8 657**, across 125
+gold-spec audit + MULTILEADER + 3DSOLID + ACSH_HISTORY + EVALUATION_GRAPH +
+BLOCK_HEADER/controls + viewstyles + mtext.style + underlays + dimensions +
+ASSOC family + polyline vertex emission, 2026-09-19):** read-fidelity **5 942**,
+write-fidelity **5 562**, across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after

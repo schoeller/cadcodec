@@ -10,10 +10,10 @@
 Continue the acadrust gold-vs-silver roundtrip harness. Drive the remaining
 read/write fidelity diffs down. The current target (read AND write) is **below
 1 000** (raised 12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19; current
-read 6 353 / write 5 843). At that level the target requires every
-normalizer-trackable family plus the structural classes (ASSOC family
-retypes, the remaining UNMODELED wrappers, BLOCK_HEADER/xdic reader-side
-items). Land packets until both sides are under 1 000.
+read 5 942 / write 5 562). At that level the target requires the silver Rust
+reader campaign (the ~55% of rows where silver never stores the data) plus
+the writer-fix batch and the remaining structural classes.
+Land packets until both sides are under 1 000.
 
 ## Read these first (in order)
 
@@ -30,27 +30,49 @@ items). Land packets until both sides are under 1 000.
      the exhaustive cluster census),
    - §8.1.0 (environment verification).
 
-## Current state (2026-09-19)
+## Current state (2026-09-19, session handoff)
 
-- Baseline: read-fidelity **9 177**, write-fidelity **8 657** (125 corpus
-  files). Target: read AND write **below 5 000**.
+- Baseline: read-fidelity **5 942**, write-fidelity **5 562** (125 corpus
+  files). Target: read AND write **below 1 000**.
 - `cargo test --features serde` = 1556/0; `gold_roundtrip` = ok.
-- MULTILEADER `ctx.*` and the 3DSOLID/REGION ACIS family are **DONE**
-  (§8.1.6 DONE entries; MULTILEADER 11 900→10 684/10 904→9 894, then 3DSOLID
-  9 442/8 668). A full libredwg spec re-audit also landed (§8.1.1 liveness
-  rule: never model a debug-gated spec block — gold decodes those as raw
-  UNKNOWN).
-- The remaining backlog, in order: the **unmodeled-class campaign**
-  (ACSH_HISTORY_CLASS and EVALUATION_GRAPH are done — the next classes are
-  the ACSH geometry family from silver's SolidHistoryNode payload, then
-  RENDERGLOBAL/RENDERENTRY/MENTALRAYRENDERSETTINGS; retyping always ships
-  WITH its per-class field projection, §8.1.6), then BLOCK_HEADER
-  (name/first_entity/last_entity/anonymous),
-  the 3DSOLID R2013+ prologue deep dive (~63 rows), the REGION `[ -nan ]`
-  silver-writer bug that excludes example_2013/2018 from the write side
-  (~950 hidden write rows surface once fixed), the silver ML writer
-  flags/arrow_size corruption, the OBJECTCONTEXTDATA type-name quick-win,
-  LAYER.visualstyle, MTEXT.style, and the MTEXT/XRECORD residuals.
+- Session 2026-09-19 landed: audit + MULTILEADER ctx + 3DSOLID ACIS +
+  ACSH_HISTORY + EVALUATION_GRAPH retype + BLOCK_HEADER
+  (flags/name-strip/inserts/first-last) + POLYLINE_PFACE/TABLE renames +
+  control handles (BLOCK/LTYPE_CONTROL) + MLINESTYLE.lines degenerate +
+  PLACEHOLDER.dxfname + SECTION/DETAILVIEWSTYLE retype + MTEXT.style
+  resolve + LTYPE.dashes degenerate + underlay per-kind renames +
+  TABLESTYLE.borders degenerate + DICTIONARYWDFLT.defaultid null-form +
+  the DIMENSION family projection + the ASSOC family retype + the
+  polyline VERTEX/SEQEND emission. All pushed on `gold-vs-silver`.
+- **What the remaining ~4 950 read / ~4 560 write rows are (the next
+  campaign):**
+  1. **Silver Rust reader-side gaps (~55%)** — silver never *stores* the
+     data, so no normalizer can project it: the xdic family on table
+     entries (LAYER.xdicobjhandle/is_xdic_missing 191 + LAYER_CONTROL 235 +
+     BLOCK_HEADER 150), LAYER.visualstyle 212(+202 write), SOLID.elevation
+     161, LAYOUT.has_ds_data 97, LINE.linewt 74 + LAYER.linewt 66 (raw
+     lweights), SORTENTSTABLE.block_owner 144, APPID.name 68 (an
+     AcadAnnotative existence divergence), MLINE/MLINEm/SEQENDENTSTABLE
+     tails, the VERTEX_MESH flag-64 (12), ConstraintGroup node shortfall,
+     BLOCK_HEADER.entities target naming for unmodeled classes. These
+     need src/io/dwg reader work in cadcodec, then their normalizer
+     projections.
+  2. **The unknown_bits floor (~400 rows)** — gold-only raw remainders
+     (TABLESTYLE 121, DIMASSOC 62, EVALUATION_GRAPH 56,
+     ASSOCDEPENDENCY 36, plus per-record unknown_bits/graphic_data of
+     every unmodeled class) — irreducible unless the silver reader starts
+     keeping raw remainders.
+  3. **Smaller writer-side bugs**: the REGION `[ -nan ]` point bug that
+     excludes example_2013/2018 from the write side entirely (~950 hidden
+     rows surface once fixed), the silver ML writer flags/arrow_size
+     corruption, DICTIONARYWDFLT.defaultid value rows, the DIMENSION/DIM*
+     block-name ambiguity (silver's table uniquifies *D blocks),
+     INSERT-owned SEQENDs, the 3DSOLID R2013+ prologue divergence (~63),
+     the ACSH geometry family retype (net-0) + RENDER* classes.
+- Approach for the next session: start with (1) in Rust (one reader PR
+  covering the table-entry xdic/visualstyle storage), re-project, then
+  the writer-fix batch (2) — the mid-rank smalls — then re-evaluate the
+  floor.
 - The reusable probes exist: `tests/gold_harness/` — `run_roundtrip.py`,
   `run_corpus.py`, `diff_fields.py`, `normalize_gold.py`, `normalize_silver.py`,
   `type_diff.py` (per-type diff via the frozen pipeline), `audit_type.py`
