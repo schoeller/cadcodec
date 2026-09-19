@@ -99,6 +99,12 @@ pub struct Layer {
     /// so the gold comparison can emit `ltype` as a handle dict.
     #[cfg_attr(feature = "serde", serde(default))]
     pub linetype_handle: Handle,
+    /// Visual style handle (gold `visualstyle`; the LAYER handle stream's last
+    /// field, SINCE R_2013b). Null (0) when unset — gold serializes a null
+    /// handle dict for those. Stored so the normalizer can emit the field and
+    /// the writer can round-trip it.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub visual_style_handle: Handle,
     /// Gold's flag0: the raw bitmask from the R2000+ BS read (the decomposed
     /// bools above lose it). Stored so the normalizer can emit it.
     #[cfg_attr(feature = "serde", serde(default))]
@@ -125,6 +131,7 @@ impl Layer {
             plotstyle_handle: Handle::NULL,
             xref_block_record_handle: Handle::NULL,
             linetype_handle: Handle::NULL,
+            visual_style_handle: Handle::NULL,
             flag0: 0,
         }
     }
@@ -148,6 +155,7 @@ impl Layer {
             plotstyle_handle: Handle::NULL,
             xref_block_record_handle: Handle::NULL,
             linetype_handle: Handle::NULL,
+            visual_style_handle: Handle::NULL,
             flag0: 0,
         }
     }

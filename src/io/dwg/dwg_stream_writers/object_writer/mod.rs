@@ -872,8 +872,14 @@ impl<'a> DwgObjectWriter<'a> {
         self.writer
             .write_handle(DwgReferenceType::HardPointer, lt_handle.value());
 
+        // Visualstyle handle (dwg.spec LAYER tail, SINCE R_2013b; gold's
+        // FIELD_HANDLE reference code is 5 = hard pointer). Null when unset,
+        // matching gold's always-emitted field on R2013+ layers.
         if self.version.r2013_plus(self.dxf_version) {
-            self.writer.write_handle(DwgReferenceType::HardPointer, 0);
+            self.writer.write_handle(
+                DwgReferenceType::HardPointer,
+                layer.visual_style_handle.value(),
+            );
         }
 
         self.register_object(layer.handle);

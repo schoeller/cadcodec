@@ -701,6 +701,36 @@ def normalize_silver(
     # serde serializes integer map keys) so the existing `reactors` projections
     # in `merge_common`/`_object_common_fields`/table records pick it up.
     reactors_by_handle = data.get("reactors_by_handle", {})
+    # Same side-channel pattern for the xdictionary handle: silver's reader
+    # stores each object's extension-dictionary handle in the document-level
+    # `xdic_by_handle` map (consumed by the DWG writer on round-trip). Objects
+    # surface theirs as `xdictionary_handle`, but table records and control
+    # objects carry no per-record field — project theirs from this map.
+    # Keys are decimal handle strings (serde integer map keys), like
+    # reactors_by_handle.
+    xdic_by_handle = data.get("xdic_by_handle", {})
+
+    def _lookup_xdic(raw_handle: Any) -> Any:
+        if not isinstance(raw_handle, int):
+            return None
+        return xdic_by_handle.get(str(raw_handle))
+
+    def _inject_xdic(payload: Any) -> None:
+        """Set `xdictionary_handle` from the document-level xdic_by_handle
+        map when the payload doesn't carry one. Most object structs serialize
+        the field (null when unset); TableStyle-style structs don't — but the
+        map holds every object's xdictionary handle (the reader stores it,
+        the DWG writer consumes it for round-trip write-back), so project
+        from there. Gold serializes xdicobjhandle whenever the object owns
+        an extension dictionary (all versions), and the R2004+
+        is_xdic_missing bit otherwise."""
+        if not isinstance(payload, dict):
+            return
+        if payload.get("xdictionary_handle") is not None:
+            return
+        xdic = _lookup_xdic(payload.get("handle"))
+        if xdic:
+            payload["xdictionary_handle"] = xdic
 
     def _inject_reactors(payload: Any) -> None:
         if not isinstance(payload, dict) or "reactors" in payload:
@@ -2603,9 +2633,11 @@ def normalize_silver(
             # record-meta dxfname.
             gold_type = "EVALUATION_GRAPH"
         _inject_reactors(payload)
+        _inject_xdic(payload)
         fields = _object_common_fields(payload)
         if r2004_plus:
-            # Gold emits is_xdic_missing on every object's handle stream.
+            # Gold emits is_xdic_missing on every object's handle stream
+            # (and xdicobjhandle when the dictionary exists — all versions).
             fields["is_xdic_missing"] = 1 if payload.get("xdictionary_handle") is None else 0
         if r2013_plus:
             # has_ds_data marks AcDs (SAB) modeler geometry storage; only
@@ -3494,17 +3526,26 @@ def normalize_silver(
         table = data.get(table_key, {})
         if not isinstance(table, dict):
             continue
-        table_handle = normalize_handle_value(table.get("handle"))
+        raw_ctrl_handle = table.get("handle")
+        table_handle = normalize_handle_value(raw_ctrl_handle)
         control_type = CONTROL_GOLD_TYPE.get(table_key)
         entries = table.get("entries", {})
         if control_type and table_handle is not None:
             _ctrl = {"handle": table_handle,
                      "ownerhandle": normalize_handle_value(0)}
             # Common object handle-stream bits gold emits on every control
-            # object (common_object_handle_data.spec). is_xdic_missing on
-            # R2004+, has_ds_data on R2013+.
-            if r2004_plus:
-                _ctrl["is_xdic_missing"] = 1  # control objects have no xdict
+            # object (common_object_handle_data.spec / CONTROL_HANDLE_STREAM,
+            # spec.h): controls read ownerhandle/reactors/xdicobjhandle after
+            # their num_entries data. xdicobjhandle serializes whenever the
+            # control owns an extension dictionary (all versions); the
+            # is_xdic_missing bit only exists on R2004+.
+            _ctrl_xdic = _lookup_xdic(raw_ctrl_handle)
+            if _ctrl_xdic:
+                _ctrl["xdicobjhandle"] = normalize_handle_value(_ctrl_xdic)
+                if r2004_plus:
+                    _ctrl["is_xdic_missing"] = 0
+            elif r2004_plus:
+                _ctrl["is_xdic_missing"] = 1
             if r2013_plus:
                 _ctrl["has_ds_data"] = 0
             if control_type == "BLOCK_CONTROL":
@@ -3817,10 +3858,20 @@ def normalize_silver(
                 # drop silver-only names so the generic loop skips them
                 for kk in ("elements", "pattern_length", "alignment"):
                     rec.pop(kk, None)
-            if r2004_plus:
-                # Gold emits is_xdic_missing on every object's handle stream,
-                # table records included.
-                fields["is_xdic_missing"] = 1 if rec.get("xdictionary_handle") is None else 0
+            # Gold's common_object_handle_data.spec reads the extension
+            # dictionary handle from the record's handle stream (SINCE R_13b1;
+            # pre-R2004 the handle is always present on the wire, R2004+
+            # only when the is_xdic_missing data bit is clear). Gold serializes
+            # xdicobjhandle whenever one exists — all versions — and the
+            # R2004+ is_xdic_missing bit otherwise. Silver stores the handle
+            # in the document-level xdic_by_handle map (see _lookup_xdic).
+            _xdic = _lookup_xdic(rec.get("handle"))
+            if _xdic:
+                fields["xdicobjhandle"] = normalize_handle_value(_xdic)
+                if r2004_plus:
+                    fields["is_xdic_missing"] = 0
+            elif r2004_plus:
+                fields["is_xdic_missing"] = 1
             if r2013_plus:
                 fields["has_ds_data"] = 0
             if record_gold_type == "DIMSTYLE":
@@ -3885,6 +3936,15 @@ def normalize_silver(
                 if r2007_plus and "material" in rec:
                     fields["material"] = normalize_handle_value(rec["material"])
                 rec.pop("material", None)
+                # visualstyle (dwg.spec LAYER tail, SINCE R_2013b — the last
+                # field of the record's handle stream). Gold serializes the
+                # field for EVERY R2013+ layer; unset layers carry a null
+                # handle ([5,0,0,0] → code-5/size-0 in gold's JSON). Silver
+                # stores it as visual_style_handle (0 = unset).
+                if r2013_plus:
+                    fields["visualstyle"] = normalize_handle_value(
+                        rec.get("visual_style_handle") or 0)
+                rec.pop("visual_style_handle", None)
             for k, v in rec.items():
                 if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                     continue

@@ -1139,6 +1139,12 @@ impl DwgDocumentBuilder {
                     if let Some(ph) = data.plotstyle_handle {
                         layer.plotstyle_handle = Handle::from(ph);
                     }
+                    // Visualstyle handle (R2013+; null when unset)
+                    if let Some(vh) = data.visualstyle_handle {
+                        if vh != 0 {
+                            layer.visual_style_handle = Handle::from(vh);
+                        }
+                    }
                     // External reference block record handle
                     if data.xref_handle != 0 {
                         layer.xref_block_record_handle = Handle::from(data.xref_handle);

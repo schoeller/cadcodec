@@ -85,7 +85,10 @@ pub struct LayerData {
     pub plotstyle_handle: Option<u64>,
     pub material_handle: Option<u64>,
     pub linetype_handle: u64,
-    pub unknown_handle: Option<u64>,
+    /// Visual style handle (gold `visualstyle`, dwg.spec LAYER: the last
+    /// field of the record's handle stream, SINCE R_2013b). Gold always
+    /// serializes the field on R2013+ layers — a null handle when unset.
+    pub visualstyle_handle: Option<u64>,
     /// Gold's flag0: the raw bitmask from the R2000+ BS read (discarded by the
     /// decomposed bools above). Stored so the normalizer can emit it.
     pub flag0: i16,
@@ -560,8 +563,8 @@ pub fn read_layer(
     // Linetype handle
     let linetype_handle = reader.read_handle();
 
-    // R2013+: unknown handle
-    let unknown_handle = if version.r2013_plus(dxf_version) {
+    // R2013+: visualstyle handle (dwg.spec LAYER tail, SINCE R_2013b)
+    let visualstyle_handle = if version.r2013_plus(dxf_version) {
         Some(reader.read_handle())
     } else {
         None
@@ -583,7 +586,7 @@ pub fn read_layer(
         plotstyle_handle,
         material_handle,
         linetype_handle,
-        unknown_handle,
+        visualstyle_handle,
         flag0,
     }
 }
