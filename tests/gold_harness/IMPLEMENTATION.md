@@ -264,8 +264,8 @@ LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
 packets + audit fixes + CMC color-method fix + TABLESTYLE/MLINESTYLE/
 MLEADERSTYLE/DICTIONARYWDFLT/IMAGE/ATTDEF/LAYOUT/CONTROL/LEADER/TEXT/HATCH/
 SPLINE/WIPEOUT + INSERT.block_header + UNKNOWN_OBJ naming + MTEXT R2018 +
-gold-spec audit + MULTILEADER, 2026-09-19):** read-fidelity **10 684**,
-write-fidelity **9 894**, across 125
+gold-spec audit + MULTILEADER + 3DSOLID, 2026-09-19):** read-fidelity **9 442**,
+write-fidelity **8 668**, across 125
 corpus files (110 unique dirs; counts inflated by the stem-collision issue
 below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
@@ -790,22 +790,26 @@ Given a diff `(type, field, kind)`:
    ASSOCDEPENDENCY (36), ASSOCGEOMDEPENDENCY (34), ASSOCVARIABLE (22),
    ASSOCDIMDEPENDENCYBODY (18), ASSOCVALUEDEPENDENCY (18), ASSOCNETWORK (17).
 
-   **Next task (ready to start, 2026-09-19, post-MULTILEADER):** top of the
-   re-ranked queue (read-fidelity, stem-inflated, from the 10 684/9 894
-   report): 3DSOLID (1131, ACIS/modeler + unknown_bits — mostly
-   reader/verbatim; NOTE dwg_spec_shared.h `COMMON_3DSOLID` carries the
-   common payload, dwg.spec only the shell), UNKNOWN_OBJ (582 `_missing` +
-   UNKNOWN._missing 213 — the unmodeled class; each unmodeled LIVE type is
-   its own reader packet, the DIMASSOC dxf_name pattern is the template;
-   NEVER model a debug-gated type — match gold's UNKNOWN record instead,
-   §8.1.1 liveness rule), BLOCK_HEADER (698: name/first_entity/last_entity +
-   anonymous + is_xdic_missing residuals — cleanest normalizer packets:
-   BLOCK_HEADER via the block_records map and the LAYER/LTYPE_CONTROL
-   residuals), LAYER.visualstyle (212), MTEXT.style (183, name→handle),
-   SOLID.elevation (161), SECTIONVIEWSTYLE/DETAILVIEWSTYLE (~234 combined).
+   **Next task (ready to start, 2026-09-19, post-3DSOLID):** top of the
+   re-ranked queue (read-fidelity, stem-inflated, from the post-3DSOLID
+   report): **the UNKNOWN-class naming packet** — silver parses
+   class-registered gold types (ACSH_HISTORY_CLASS, ASSOCGEOMDEPENDENCY,
+   the DYNAMICBLOCK family, …) as `Unknown` records and the normalizer
+   maps them to `UNKNOWN_OBJ`; the differ resolves handle targets by the
+   record's TYPE NAME, so every cross-reference into an unmodeled object
+   mismatches (the 42 ATMOS `history_id` rows + REGION.reactors + the
+   582 UNKNOWN_OBJ._missing class all die here; the DIMASSOC dxf_name
+   pattern in normalize_silver is the template; NEVER model a debug-gated
+   type — match gold's UNKNOWN record instead, §8.1.1 liveness rule), then
+   BLOCK_HEADER (698: name/first_entity/last_entity + anonymous +
+   is_xdic_missing residuals — cleanest normalizer packets: BLOCK_HEADER
+   via the block_records map and the LAYER/LTYPE_CONTROL residuals),
+   LAYER.visualstyle (212), MTEXT.style (183, name→handle),
+   SOLID.elevation (161), SECTIONVIEWSTYLE/DETAILVIEWSTYLE (~234 combined),
+   and the 3DSOLID R2013+ prologue deep dive (below).
    Target: read AND write below **5 000** (§7) — at that level the cheap
-   normalizer tail alone can no longer reach it; the 3DSOLID/REGION ACIS
-   family, the UNKNOWN_OBJ reader class, and BLOCK_HEADER are all required.
+   normalizer tail alone can no longer reach it; the UNKNOWN naming/reader
+   class and BLOCK_HEADER are all required.
 
    Add-on diagnosis from the 2026-09-19 full-libredwg spec audit: the
    `OBJECTCONTEXTDATA.*` rows (6 stems; see e.g.
@@ -894,6 +898,76 @@ Given a diff `(type, field, kind)`:
    (the write totals 10 904 → 9 894 exclude them). ~950 hidden write rows
    will surface once the NaN is fixed. Root cause likely an unset point in
    silver's 3DSOLID/REGION writer; fix together with the 3DSOLID packet.
+
+   ~~3DSOLID/REGION family~~ — **DONE (2026-09-19)**: the largest read-side
+   family after MULTILEADER (1 360 read / 1 235 write family rows over the
+   9 solid-bearing stems — ATMOS-DC22S alone carried 986, a 58-record R2007
+   real-world file; after the packet the family residuals are ~120 read
+   rows). Normalizer projections in `normalize_silver.py` (silver variants
+   `Solid3D`/`Region`; `Body` deliberately excluded — gold's corpus BODY
+   records are bare shells with 0 diff rows today) plus one targeted
+   canonicalization in `normalize_gold.py`. Spec grounding: dwg.spec
+   2675-2688 shells (`ACTION_3DSOLID`), out_json.c:1555 `json_3dsolid`
+   (version/acis_data emission), dwg_spec_shared.h `COMMON_3DSOLID` 472
+   (wireframe/materials/R2013b revision/history), `DECODE_3DSOLID`
+   (sat/SAB wire mechanics). Silver keeps everything under
+   `acis_data{version,sat_data,sab_data,is_binary,revision,materials,
+   wireframe_*,acis_empty_bit}` + top-level `uid/point_of_reference/wires/
+   silhouettes/history_handle`. Key mappings:
+   - `acis_data` (v2 SAB): gold's json_3dsolid emits exactly
+     `"%.15s"` — the 15-char "ACIS BinaryFile" ascii prefix — plus
+     `VALUE_BINARY` of the remainder as UPPERCASE hex without separators;
+     verified byte-for-byte against silver's sab_data
+     (prefix = bytes[0:15] utf8, hex = bytes[15:]).
+   - `acis_data` (v1 SAT): split silver's sat_data at `\r/\r\n/\n` cut
+     points, keep interior empties, drop one trailing empty (Cone 30
+     elements, TS1 88/29, example_2000 136/34/29 — all match).
+   - `unknown` B: derived — empirically unknown==1 exactly when the SAT is
+     ASCII version-1 (65/65 corpus records), so emit `1 if version==1`.
+   - `acis_empty`: R2018 moved modeler geometry into the data section —
+     gold reads the inline `acis_empty=1` and emits ONLY the flag + the
+     always-on wireframe/revision COMMON block; silver parses the ds blob
+     into sab_data, which therefore has no gold counterpart — emit the
+     empty flag shape for r2018 files (corpus: example_2018 only).
+   - `history_id`: COMMON_3DSOLID's else-branch emits it for every
+     version>1 record (not SINCE R_2007a only — verified on R2004);
+     gold-side canonicalization: libredwg prints a code-0 null handle as
+     the bare 2-tuple `[0, 0]`, which normalize_gold now maps to the
+     absref-0 null dict (field-name-gated: `history_id` only — 2-tuple
+     points and ATTRIB.style's matching [0, 0] must stay lists).
+   - COMMON block: `wireframe_data_present` gate → `point_present`/`point`
+     (from silver's point_of_reference), `isolines`, `isoline_present`
+     gate → `wires`/`silhouettes` as gold's degenerate `[0]*count` REPEAT
+     emission (normalize_gold collapses the raw wire/silhouette structs
+     the same way), never emitted empty; R2007a+version>1 `materials`
+     (empty in corpus); R2013b `has_revision_guid/revision_major/minor1/
+     minor2/bytes/end_marker` from silver's `acis_data.revision`.
+   - `dxfname`: out_json.c DWG_ENTITY macro emits it only when the class
+     dxfname differs from the spec block name — the `_3DSOLID` underscore
+     alias family; constant "3DSOLID". REGION matches its block name, so
+     it never gets one.
+   - Residuals (read side, ~120 rows): **UNKNOWN-class naming** — the 44
+     `history_id`/reactors rows where both sides hold the SAME absref but
+     gold names the target `ACSH_HISTORY_CLASS` (etc.) and silver
+     `UNKNOWN_OBJ` (the differ compares resolved handle-target type names;
+     dies in the UNKNOWN naming packet, queued next); **R2013+ prologue
+     divergence** (~63 rows in example_2013/2018) — gold reads
+     `point_present=0/isolines=205/revision_major=2423192302/revision_bytes`
+     as an odd hex-string where silver reads sane values from the same
+     records: the two decoders consume the R2013+ has_ds_data-side prologue
+     differently; needs a bit-level deep dive before ANY fix (match-gold
+     may require silver-reader changes — the values are not derivable from
+     silver's model); `encr_sat_data` (6 rows, v1) — gold re-emits the raw
+     obfuscated per-block wire data (159-b transform) but silver merges
+     blocks + strings stream into one text, losing the block layout;
+     the pre-existing `prev/next-entity` family.
+   - Write-side: the projection flows through silver_rt normalization, so
+     the write family fell together (~1 235 → ~100); example_2013/2018's
+     write rows remain excluded (-1) by the REGION NaN bug (queued above).
+   Corpus: read **10 684 → 9 442**, write **9 894 → 8 668**. Per-file verified:
+   ATMOS 986→42, Cone 17→1, TS1 35→4, example_2000 51→5, example_2004
+   50→1, example_2007 50→2, example_2010 50→2 (family rows).
+   Gates: `cargo test --features serde` = 1556/0, `gold_roundtrip` = ok.
 
    ~~TABLESTYLE~~ — **DONE (2026-09-19)**: the largest single type (was 2 351
    rows, 9 346 stem-inflated). Normalizer packet. The object has two disjoint

@@ -158,6 +158,18 @@ def normalize_gold(data: Dict[str, Any], ignore: Optional[Dict[str, Any]] = None
                 continue
             if is_ignored(k, ignore_set, ignore_patterns):
                 continue
+            # LibreDWG prints a code-0 null handle as the bare 2-tuple
+            # [0, 0] (absolute, no offset counter) while code-3 nulls print
+            # as the full 4-tuple. In the corpus only `history_id`
+            # (3DSOLID/REGION, dwg_spec_shared.h COMMON_3DSOLID) hits the
+            # 2-tuple form as a handle; 2-tuple points elsewhere must stay
+            # lists, so gate strictly on the field name. Canonicalize the
+            # null to gold's absref-0 dict so it compares equal against
+            # silver's null dict (its code is None — tolerated by the
+            # differ). ATTRIB.style's matching [0, 0] form is untouched.
+            if k == "history_id" and v == [0, 0]:
+                fields[k] = {"code": 0, "size": 0, "value": 0, "absref": 0}
+                continue
             fields[k] = normalize_value(v)
         out.append({"type": typ, "fields": fields})
     return out

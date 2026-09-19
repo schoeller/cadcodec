@@ -16,6 +16,7 @@ script:
 """
 
 import json
+import re
 import sys
 from typing import Any, Dict, List, Optional
 
@@ -2039,6 +2040,114 @@ def normalize_silver(
                        "text_attachment_direction", "text_top_attachment",
                        "text_bottom_attachment", "extend_leader_to_text",
                        "dwg_version", "text_height", "graphic_data"):
+                payload.pop(sk, None)
+
+        if silver_type in ("Solid3D", "Region"):
+            # 3DSOLID/REGION family (gold dwg.spec 2675/2681 shells; the
+            # payload comes from ACTION_3DSOLID: json_3dsolid out_json.c 1555
+            # emits version/acis_data, then COMMON_3DSOLID in
+            # dwg_spec_shared.h 472 emits the wireframe block, R2007a
+            # materials, R2013b revision set, and history_id). Silver's
+            # payload: point_of_reference, acis_data{version, sat_data,
+            # sab_data, is_binary, revision{...}, materials,
+            # wireframe_*, acis_empty_bit, extra_acis_data}, wires,
+            # silhouettes, history_handle, uid. Body is EXCLUDED: gold's
+            # corpus BODY records are bare shells today (0 diff rows) and this
+            # branch must not perturb them.
+            acis = payload.get("acis_data") if isinstance(payload.get("acis_data"), dict) else {}
+            rev = acis.get("revision") if isinstance(acis.get("revision"), dict) else {}
+            version = {"Version1": 1, "Version2": 2}.get(acis.get("version"))
+            if version is None:
+                version = 2 if acis.get("is_binary") else 1
+
+            # R2018 moved the modeler geometry into the data section: the
+            # inline stream reads acis_empty=1 and gold emits nothing but the
+            # flag + the always-on COMMON block (wireframe/revision). Silver
+            # parses the ds-section blob into sab_data, which therefore has NO
+            # gold counterpart on an R2018 file — emit the flag shape only.
+            is_empty = False
+            if r2018_plus and gold_type in ("3DSOLID", "REGION"):
+                is_empty = True
+            fields["acis_empty"] = 1 if is_empty else 0
+            if not is_empty:
+                # json_3dsolid: unknown is emitted for every non-empty
+                # record. Empirically (65/65 corpus records) unknown==1
+                # exactly when the SAT is the ASCII version-1 format.
+                fields["unknown"] = 1 if version == 1 else 0
+                fields["version"] = version
+                sab = acis.get("sab_data") or []
+                sat = acis.get("sat_data") or ""
+                if version == 2 and isinstance(sab, list) and sab:
+                    # json_3dsolid v2/SAB: ["%.15s", VALUE_BINARY(rest)] —
+                    # the 15-char "ACIS BinaryFile" prefix, then the remainder
+                    # as uppercase hex (verified byte-for-byte vs ATMOS).
+                    fields["acis_data"] = [
+                        bytes(sab[0:15]).decode("utf-8", "replace"),
+                        "".join(f"{b:02X}" for b in sab[15:]),
+                    ]
+                elif version == 1 and isinstance(sat, str) and sat:
+                    # json_3dsolid v1/SAT: split at \r/\r\n/\n cut points
+                    # (json_cquote escapes vanish after the JSON parse), keep
+                    # interior empty segments, drop a single trailing one.
+                    segs = re.split(r"\r\n|\r|\n", sat)
+                    if segs and segs[-1] == "" and (sat.endswith("\n") or sat.endswith("\r")):
+                        segs = segs[:-1]
+                    fields["acis_data"] = segs
+                # encr_sat_data (v1): gold re-emits the raw obfuscated wire
+                # blocks (159-b transform, per-block layout). Silver's reader
+                # merges the blocks + the strings stream into one text, so the
+                # block boundaries are unrecoverable — accepted RESIDUAL.
+                # history_id: COMMON_3DSOLID's else-branch emits it for every
+                # non-SAT record (version>1) whose handle stream has bits
+                # left — not just SINCE R_2007a. Verified on R2004-era
+                # records (gold emits the [0,0] null form pre-2007 too).
+                if version > 1:
+                    fields["history_id"] = normalize_handle_value(payload.get("history_handle") or 0)
+            # COMMON_3DSOLID — always emitted, empty or not.
+            fields["acis_empty_bit"] = 1 if acis.get("acis_empty_bit") else 0
+            wf = bool(acis.get("wireframe_data_present"))
+            fields["wireframe_data_present"] = 1 if wf else 0
+            if wf:
+                pp = bool(acis.get("wireframe_point_present"))
+                fields["point_present"] = 1 if pp else 0
+                if pp:
+                    fields["point"] = normalize_value(payload.get("point_of_reference"))
+                fields["isolines"] = acis.get("wireframe_isolines", 0)
+                ip = bool(acis.get("wireframe_isoline_present"))
+                fields["isoline_present"] = 1 if ip else 0
+                if ip:
+                    wires = payload.get("wires") or []
+                    sils = payload.get("silhouettes") or []
+                    # normalize_gold collapses the wire/silhouette structs to
+                    # gold's degenerate REPEAT emission [0]*count, and a
+                    # zero-count array is omitted entirely.
+                    if isinstance(wires, list) and wires:
+                        fields["wires"] = [0] * len(wires)
+                    if isinstance(sils, list) and sils:
+                        fields["silhouettes"] = [0] * len(sils)
+                    mats = acis.get("materials") or []
+                    if version > 1 and isinstance(mats, list) and mats:
+                        fields["num_materials"] = len(mats)
+                        fields["materials"] = [
+                            {"array_index": m.get("array_index", 0),
+                             "mat_absref": m.get("mat_absref", 0),
+                             "material_handle": normalize_handle_value(m.get("material_handle") or 0)}
+                            for m in mats if isinstance(m, dict)]
+            if r2013_plus:
+                fields["has_revision_guid"] = 1 if rev.get("has_guid") else 0
+                fields["revision_major"] = rev.get("major", 0)
+                fields["revision_minor1"] = rev.get("minor1", 0)
+                fields["revision_minor2"] = rev.get("minor2", 0)
+                fields["revision_bytes"] = rev.get("bytes", [0] * 8)
+                fields["end_marker"] = rev.get("end_marker", 0)
+            # Record-meta rule (out_json.c DWG_ENTITY macro): gold emits
+            # `dxfname` when the class dxfname differs from the spec block
+            # name — the `_3DSOLID` alias family. REGION matches, so it never
+            # gets one.
+            if gold_type == "3DSOLID":
+                fields["dxfname"] = "3DSOLID"
+            for sk in ("uid", "point_of_reference", "acis_data", "wires",
+                       "silhouettes", "history_handle"):
                 payload.pop(sk, None)
 
         field_map = FIELD_NAME_MAP.get(silver_type, {})
