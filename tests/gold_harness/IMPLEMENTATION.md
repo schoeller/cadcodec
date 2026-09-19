@@ -264,11 +264,12 @@ A zero-context agent begins here. Read in order, on demand:
 **Current corpus baseline (post ownerhandle/SCALE/reactors/c_prop33/vertexids/
 BLOCK_HEADER/VPORT/VIEWPORT/VIEW/LTYPE/POINT/LAYOUT/MATERIAL/*_CONTROL/color/
 LINE-POINT color/INSERT/ELLIPSE/MTEXT/SOLID/3DFACE/LAYER-flag0-ltype/DIMASSOC
-packets, 2026-09-18):** read-fidelity **26 115**, write-fidelity **26 633**,
-across 125 corpus files (110 unique dirs; counts inflated by the stem-collision
-issue below). `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
---features gold-harness --test gold_roundtrip` = ok. Update these numbers after
-each packet lands.
+packets + audit fixes (3DFACE has_no_flags, MTEXT value gates, entity-color
+ByBlock-transparency collapse), 2026-09-19):** read-fidelity **25 526**,
+write-fidelity **26 270**, across 125 corpus files (110 unique dirs; counts
+inflated by the stem-collision issue below). `cargo test --features serde` =
+1556 passed / 0 failed; `cargo test --features gold-harness --test
+gold_roundtrip` = ok. Update these numbers after each packet lands.
 
 **Things that will look broken but are not (do not "fix" them):**
 - **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
@@ -830,12 +831,25 @@ Given a diff `(type, field, kind)`:
    mismatches, version gates 0 issues. Residuals (real gaps): arrow_head/block
    reader gap, class_version/is_annotative version gates, color CMC.
 
-   ~~LINE/POINT color~~ — **REVERTED (2026-09-18)**: the `color != 0` drop was
-   a net regression (+404 rows). Gold's field_cmc **always** emits the color
-   index (including 0 for ByBlock); the `null` cases in the diff were the
-   truecolor/alpha dict shape (silver doesn't model it), not an index-0
-   default. Reverted to the pre-fix state (read 39 973, write 38 756). The
-   color dict cases (truecolor with alpha, flag&32) are a real silver gap.
+    ~~LINE/POINT color~~ — **REVERTED (2026-09-18)**: the `color != 0` drop was
+    a net regression (+404 rows). Gold's field_cmc **always** emits the color
+    index (including 0 for ByBlock); the `null` cases in the diff were the
+    truecolor/alpha dict shape (silver doesn't model it), not an index-0
+    default. Reverted to the pre-fix state (read 39 973, write 38 756). The
+    color dict cases (truecolor with alpha, flag&32) are a real silver gap.
+    **RESOLVED (2026-09-19):** the root cause was gold-side. `field_cmc`
+    (out_json.c 595) omits `index` when it resolves to 0 (the `index > 0 &&
+    index < 256` guard), so a ByBlock entity with ByBlock transparency
+    (`alpha_type==1`) serializes as `{"rgb":"000000", flag:32, alpha_raw:…}`
+    with NO `index` key — and the normalizer's collapse required `index`. The
+    value is semantically ByBlock (= silver's 0); the dict is just gold's
+    shape. Fixed in `normalize_gold.py`: a color dict with NO `index` and
+    `rgb in (None,"000000",0)` collapses to `0`. This is the faithful gold-side
+    canonicalization (the earlier `color != 0` drop was the wrong side and the
+    wrong rule). Clears 814 `gold=null silver=0` rows across LINE/POINT/MTEXT/
+    SOLID/INSERT/ARC/CIRCLE/LWPOLYLINE. Corpus: read 26 115 → 25 526, write
+    26 633 → 26 270. Residual: 2× `SOLID.color gold=0 silver=256` (silver reads
+    ByLayer where gold has ByBlock — a genuine reader gap, separate packet).
 
    ~~*_CONTROL/color~~ — **DONE (2026-09-18)**: LAYER color {Index:n}→int,
    flags→flag0, plotstyle_handle→plotstyle, material handle-wrap (R2007a+);

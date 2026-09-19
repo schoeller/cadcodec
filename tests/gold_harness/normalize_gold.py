@@ -96,6 +96,15 @@ def normalize_value(value: Any) -> Any:
             return value["index"]
         if "index" in value and value.get("rgb") in (None, "000000", 0):
             return value["index"]
+        # ByBlock-with-transparency: gold's field_cmc omits `index` when it
+        # resolves to 0 (the `index > 0 && index < 256` check in out_json.c),
+        # leaving {"rgb":"000000", flag:32, alpha_type:1, ...}. alpha_type 1 is
+        # ByBlock transparency; rgb 000000 + no index = ByBlock color. Silver
+        # stores this as Color::ByBlock -> 0. Collapse so the dict doesn't diff
+        # against silver's scalar. (Only when there is no `index` key at all —
+        # a present index is the semantic value and is handled above.)
+        if "index" not in value and value.get("rgb") in (None, "000000", 0):
+            return 0
         # CMC `rgb` high byte is a flag: c0 = ByBlock, c1 = ByLayer /
         # true-color black, c2 = true-color RGB, c3 = indexed (real index in
         # low byte), c8 = "none". Collapse to silver's scalar convention.
