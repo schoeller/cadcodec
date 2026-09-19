@@ -67,7 +67,8 @@ ENTITY_TYPE_MAP = {
     # gold's spec name for the polyface mesh entity is POLYLINE_PFACE
     # (dwg.spec), not POLYFACE_MESH.
     "PolyfaceMesh": "POLYLINE_PFACE",
-    "PolygonMesh": "POLYGON_MESH",
+    # gold's spec name for the polygon-mesh entity is POLYLINE_MESH
+    "PolygonMesh": "POLYLINE_MESH",
     "Mesh": "MESH",
     "Light": "LIGHT",
     "Shape": "SHAPE",
@@ -775,6 +776,15 @@ def normalize_silver(
         handle = common.get("handle")
         common_key = "0x{:X}".format(handle) if isinstance(handle, int) else str(handle)
         common_dwg_entry = common_dwg.get(common_key)
+
+        # Capture the polyline-family child lists BEFORE the per-variant
+        # branches consume them from the payload (e.g. PolyfaceMesh pops
+        # vertices/faces for its own numverts/first_vertex projection).
+        _kid_verts = _kid_faces = None
+        if gold_type in ("POLYLINE_2D", "POLYLINE_3D", "POLYGON_MESH",
+                         "POLYLINE_PFACE"):
+            _kid_verts = payload.get("vertices")
+            _kid_faces = payload.get("faces")
 
         fields = merge_common(common, common_dwg_entry, layer_map)
 
@@ -2386,7 +2396,140 @@ def normalize_silver(
                 continue
             fields[name] = normalize_value(v)
 
+        # Nested polyline-family children: gold decodes the wire's
+        # per-vertex/sub-entity stream records as standalone typed records
+        # (VERTEX_2D/3D/MESH/PFACE/PFACE_FACE + one SEQEND per parent).
+        # Silver nests them inside the parent payload; emit them after the
+        # parent so the differ's per-type ordinals align with gold's
+        # handle-ascending stream order.
+        kid_map = {
+            "POLYLINE_2D": "VERTEX_2D",
+            "POLYLINE_3D": "VERTEX_3D",
+            "POLYLINE_MESH": "VERTEX_MESH",
+            "POLYLINE_PFACE": "VERTEX_PFACE",
+        }
+        _kid_type = kid_map.get(gold_type)
+        _kid_recs = []
+        if _kid_type:
+            _vt = _kid_type
+            _verts = _kid_verts or []
+            _ph = (payload.get("common") or {}).get("handle") or handle
+            _vcommon = {k: v for k, v in fields.items()
+                        if k in ("layer", "is_xdic_missing", "has_ds_data",
+                                 "color", "ltype_scale", "ltype_flags",
+                                 "plotstyle_flags", "material_flags",
+                                 "shadow_flags", "has_full_visualstyle",
+                                 "has_face_visualstyle", "has_edge_visualstyle",
+                                 "invisible", "linewt")}
+            _pre2004 = not r2004_plus
+            _handles = []
+            for i, v in enumerate(_verts):
+                if not isinstance(v, dict):
+                    continue
+                # 2D vertices carry no handles on silver's side: the wire
+                # assigns parent+1..parent+n; the others store real handles
+                # under nested common.
+                _nh = ((v.get("common") or {}).get("handle")
+                       if isinstance(v.get("common"), dict) else None)
+                if _nh is None:
+                    _nh = (_ph or 0) + 1 + len(_handles)
+                _handles.append(_nh)
+            for j, v in enumerate(_verts):
+                if not isinstance(v, dict):
+                    continue
+                rec = dict(_vcommon)
+                rec["handle"] = normalize_handle_value(_handles[j])
+                rec["ownerhandle"] = normalize_handle_value(_ph or 0)
+                _fl = v.get("flags")
+                if isinstance(_fl, str):
+                    # serde prints the vertex-flag bit names "|"-joined; the
+                    # corpus names compose gold's value exactly
+                    # (POLYGON_MESH|POLYFACE_MESH = 64|128 = 192).
+                    _fl = sum({"POLYGON_MESH": 64, "POLYFACE_MESH": 128,
+                               "EXTRA_VERTEX": 32, "MESHSMOOTH": 512}.get(p.strip(), 0)
+                               for p in _fl.split("|"))
+                rec["flag"] = _fl.get("bits", 0) if isinstance(_fl, dict) else (_fl or 0)
+                loc = v.get("location", v.get("position"))
+                rec["point"] = normalize_value(loc)
+                if _vt == "VERTEX_2D":
+                    rec["bulge"] = normalize_float(v.get("bulge", 0.0))
+                    rec["tangent_dir"] = normalize_float(v.get("curve_tangent", 0.0))
+                if _pre2004:
+                    # R13-era chains (empirically verified): the 2D family
+                    # chains every vertex (prev null at the head, next
+                    # forward); the MESH family chains only the FIRST and
+                    # the LAST vertex (the rest carry bare nolinks=1); the
+                    # 3D family carries none. Codes on gold's null/ref
+                    # handles differ (4/6/8) — the differ tolerates our
+                    # code=None forms.
+                    if _vt == "VERTEX_2D":
+                        rec["prev_entity"] = normalize_handle_value(
+                            _handles[j - 1] if j else 0)
+                        rec["next_entity"] = normalize_handle_value(
+                            _handles[j + 1] if j + 1 < len(_handles) else 0)
+                        rec["nolinks"] = 0
+                    elif _vt in ("VERTEX_MESH", "VERTEX_3D"):
+                        if j == 0 or j == len(_handles) - 1:
+                            rec["prev_entity"] = normalize_handle_value(0)
+                            rec["next_entity"] = normalize_handle_value(
+                                _handles[1] if j == 0 and len(_handles) > 1 else 0)
+                            rec["nolinks"] = 0
+                        else:
+                            rec["nolinks"] = 1
+                _kid_recs.append({"type": _vt, "fields": rec})
+            if gold_type == "POLYLINE_PFACE":
+                for fc in (_kid_faces or []):
+                    if not isinstance(fc, dict):
+                        continue
+                    rec = dict(_vcommon)
+                    rec["handle"] = normalize_handle_value(
+                        (fc.get("common") or {}).get("handle") or 0)
+                    rec["ownerhandle"] = normalize_handle_value(_ph or 0)
+                    _fl = fc.get("flags")
+                    rec["flag"] = _fl.get("bits", 0) if isinstance(_fl, dict) else (_fl or 0)
+                    # gold's vertind takes the four face indices through
+                    # normalize_gold's raw 4-tuple->handle interpretation:
+                    # {'code': i1, 'size': i2, 'value': i3, 'absref': i4}
+                    # (verified 1:1 on example_2004's three faces).
+                    _ii = [fc.get(f"index{i}", 0) for i in range(1, 5)]
+                    rec["vertind"] = {"code": _ii[0], "size": _ii[1],
+                                      "value": _ii[2], "absref": _ii[3]}
+                    _kid_recs.append({"type": "VERTEX_PFACE_FACE", "fields": rec})
+        if _kid_type:
+            # SEQEND: the parent's trailing common-only record. Handle
+            # conventions verified per family: POLYLINE_3D is adaptive —
+            # parent+1 when that handle is vacant in the file's layout
+            # ([poly, seqend, verts]) — else last-child+1 ([poly, verts,
+            # seqend]); all other families take last-child+1.
+            _ph = (payload.get("common") or {}).get("handle") or handle
+            if gold_type == "POLYLINE_3D" and _handles:
+                if (_ph or 0) + 1 not in _handles:
+                    _seqend_h = (_ph or 0) + 1
+                else:
+                    _seqend_h = max(_handles) + 1
+            else:
+                _last_kid_h = None
+                for kr in _kid_recs:
+                    h = kr["fields"].get("handle")
+                    if isinstance(h, dict) and h.get("absref"):
+                        _last_kid_h = h["absref"]
+                if _last_kid_h is None:
+                    _n = len([v for v in (_kid_verts or [])
+                              if isinstance(v, dict)])
+                    _last_kid_h = (_ph or 0) + _n
+                _seqend_h = (_last_kid_h or 0) + 1
+            _sf = {**_vcommon,
+                   "handle": normalize_handle_value(_seqend_h),
+                   "ownerhandle": normalize_handle_value(_ph or 0)}
+            if not r2004_plus:
+                # R13-era SEQEND chains: null prev/next pair
+                _sf["prev_entity"] = normalize_handle_value(0)
+                _sf["next_entity"] = normalize_handle_value(0)
+                _sf["nolinks"] = 0
+            _kid_recs.append({"type": "SEQEND", "fields": _sf})
         out.append({"type": gold_type, "fields": fields})
+        for _kr in _kid_recs:
+            out.append(_kr)
 
     # Objects map keyed by handle string. Silver stores objects in a HashMap
     # (unordered), while gold's OBJECTS array is in handle order. The differ
