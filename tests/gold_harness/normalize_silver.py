@@ -2421,14 +2421,25 @@ def normalize_silver(
                 "Png": "PNGDEFINITION", "Jpeg": "JPGDEFINITION",
             }.get(payload["underlay_type"], "PDFDEFINITION")
         if silver_type == "Associative":
-            # Resolve DIMASSOC from the payload's dxf_name; silver's reader
-            # parses it fully, so emit it under its real gold type instead of
-            # flattening to UNKNOWN. The remaining ASSOC*/PERSUBENTMGR classes
-            # are NOT yet field-projected — emitting them under canonical names
-            # would surface many field-level gaps — so keep them as UNKNOWN
-            # until their per-type projection packets land.
-            if _associative_gold_name(payload.get("dxf_name") or "") == "DIMASSOC":
+            # Resolve the class from the payload's dxf_name; the classes with
+            # a landed field projection below emit under their real gold type
+            # (DIMASSOC + the acdbAssoc dependency/action families), the rest
+            # (the debug-gated PersSubentManager/ContextDataManager classes,
+            # §8.1.1 liveness rule) stay UNKNOWN.
+            _assoc_dxf = payload.get("dxf_name") or ""
+            if _associative_gold_name(_assoc_dxf) == "DIMASSOC":
                 gold_type = "DIMASSOC"
+            elif _assoc_dxf in ("ACDBASSOCDEPENDENCY", "ACDBASSOCGEOMDEPENDENCY",
+                                "ACDBASSOCVALUEDEPENDENCY", "ACDBASSOCVARIABLE",
+                                "ACDBASSOCNETWORK", "ACDBASSOC2DCONSTRAINTGROUP",
+                                "ASSOCDIMDEPENDENCYBODY"):
+                gold_type = {"ACDBASSOCDEPENDENCY": "ASSOCDEPENDENCY",
+                             "ACDBASSOCGEOMDEPENDENCY": "ASSOCGEOMDEPENDENCY",
+                             "ACDBASSOCVALUEDEPENDENCY": "ASSOCVALUEDEPENDENCY",
+                             "ACDBASSOCVARIABLE": "ASSOCVARIABLE",
+                             "ACDBASSOCNETWORK": "ASSOCNETWORK",
+                             "ACDBASSOC2DCONSTRAINTGROUP": "ASSOC2DCONSTRAINTGROUP",
+                             "ASSOCDIMDEPENDENCYBODY": "ASSOCDIMDEPENDENCYBODY"}[_assoc_dxf]
             else:
                 gold_type = "UNKNOWN"
         else:
@@ -2560,6 +2571,121 @@ def normalize_silver(
                 fields["borderline_linewt"] = vsv.get("border_lineweight", 0)
                 fields["borderline_color"] = normalize_color(vsv.get("border_color"))
                 fields["model_edge"] = vsv.get("model_edge", 0)
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
+        _ASSOC_TYPES = ("ASSOCDEPENDENCY", "ASSOCGEOMDEPENDENCY",
+                        "ASSOCVALUEDEPENDENCY", "ASSOCVARIABLE",
+                        "ASSOCNETWORK", "ASSOC2DCONSTRAINTGROUP",
+                        "ASSOCDIMDEPENDENCYBODY")
+        if gold_type in _ASSOC_TYPES:
+            # dwg2.spec AcDbAssoc* family. The dependency-side classes share
+            # the AcDbAssocDependency payload (silver's flat dict or the
+            # nested `dependency` member) -> gold's assocdep.* fields; the
+            # action-side classes (NETWORK/VARIABLE/2DCG) share the
+            # AcDbAssocAction payload (silver's `action` member).
+            # the general Associative block above already popped `data` and
+            # captured it in assoc_data — read THAT (payload's copy is gone).
+            _data = assoc_data if isinstance(assoc_data, dict) else {}
+            _kind = next(iter(_data), None)
+            vv = _data.get(_kind) if isinstance(_data.get(_kind), dict) else {}
+
+            def _assocdep(dep, fields, pfx="assocdep."):
+                # AcDbAssocDependency fields (dwg2.spec): the plain
+                # ASSOCDEPENDENCY block emits them FLAT; the classes that
+                # embed the dependency macro (Geom/Value) emit the
+                # assocdep.-prefixed composite names.
+                fields[f"{pfx}class_version"] = dep.get("class_version", 0)
+                fields[f"{pfx}status"] = dep.get("status", 0)
+                fields[f"{pfx}is_read_dep"] = 1 if dep.get("is_read_dependency") else 0
+                fields[f"{pfx}is_write_dep"] = 1 if dep.get("is_write_dependency") else 0
+                fields[f"{pfx}is_attached_to_object"] = 1 if dep.get("is_attached_to_object") else 0
+                fields[f"{pfx}is_delegating_to_owning_action"] = 1 if dep.get("is_delegating_to_owning_action") else 0
+                fields[f"{pfx}order"] = dep.get("order", 0)
+                fields[f"{pfx}dep_on"] = normalize_handle_value(dep.get("dependent_on") or 0)
+                fields[f"{pfx}has_name"] = 1 if dep.get("name") is not None else 0
+                fields[f"{pfx}readdep"] = normalize_handle_value(dep.get("read_dependency") or 0)
+                fields[f"{pfx}node"] = normalize_handle_value(dep.get("node") or 0)
+                fields[f"{pfx}dep_body"] = normalize_handle_value(dep.get("dependency_body") or 0)
+                fields[f"{pfx}depbodyid"] = dep.get("dependency_body_id", 0)
+
+            def _assoc_action(act, fields):
+                # AcDbAssocAction -> gold's shared action-side fields
+                fields["class_version"] = act.get("class_version", 0)
+                fields["geometry_status"] = act.get("geometry_status", 0)
+                fields["owningnetwork"] = normalize_handle_value(act.get("owning_network") or 0)
+                fields["actionbody"] = normalize_handle_value(act.get("action_body") or 0)
+                fields["action_index"] = act.get("action_index", 0)
+                fields["max_assoc_dep_index"] = act.get("max_dependency_index", 0)
+
+            if gold_type == "ASSOCDEPENDENCY":
+                _assocdep(vv, fields, pfx="")
+                fields["dxfname"] = "ACDBASSOCDEPENDENCY"
+            elif gold_type == "ASSOCGEOMDEPENDENCY":
+                _assocdep(vv.get("dependency") or {}, fields)
+                fields["class_version"] = vv.get("class_version", 0)
+                fields["enabled"] = 1 if vv.get("enabled") else 0
+                ps = vv.get("persistent_subent") if isinstance(vv.get("persistent_subent"), dict) else {}
+                fields["classname"] = ps.get("class_name", "")
+                fields["dependent_on_compound_object"] = 1 if ps.get("dependent_on_compound_object") else 0
+                fields["dxfname"] = "ACDBASSOCGEOMDEPENDENCY"
+            elif gold_type == "ASSOCVALUEDEPENDENCY":
+                _assocdep(vv.get("dependency") or {}, fields)
+                fields["dxfname"] = "ACDBASSOCVALUEDEPENDENCY"
+            elif gold_type == "ASSOCDIMDEPENDENCYBODY":
+                fields["adb_version"] = vv.get("dependency_body_version", 0)
+                fields["dimbase_version"] = vv.get("base_version", 0)
+                fields["name"] = vv.get("name", "")
+                fields["class_version"] = vv.get("class_version", 0)
+            elif gold_type == "ASSOCNETWORK":
+                _assoc_action(vv.get("action") or {}, fields)
+                fields["network_version"] = vv.get("network_version", 0)
+                fields["network_action_index"] = vv.get("network_action_index", 0)
+                acts = vv.get("actions") or []
+                if isinstance(acts, list) and acts:
+                    # gold's REPEAT JSON for the action refs is degenerate
+                    # ([0]*count — the standard libredwg emission class)
+                    fields["actions"] = [0] * len(acts)
+                fields["dxfname"] = "ACDBASSOCNETWORK"
+            elif gold_type == "ASSOCVARIABLE":
+                _assoc_action(vv.get("action") or {}, fields)
+                fields["av_class_version"] = vv.get("class_version", 0)
+                fields["name"] = vv.get("name", "")
+                fields["evaluator"] = vv.get("evaluator", "")
+                fields["desc"] = vv.get("description", "")
+                val = vv.get("value") if isinstance(vv.get("value"), dict) else {}
+                fields["code"] = val.get("code", 0)
+                uval = val.get("value")
+                _u_name = {"Long": "u.bl", "Real": "u.bd", "Int16": "u.bs",
+                           "Int32": "u.bl", "Str": "u.t"}
+                if isinstance(uval, dict) and uval:
+                    uk = next(iter(uval))
+                    fields[_u_name.get(uk, "u.bl")] = uval[uk]
+                elif uval is not None:
+                    fields["u.bl"] = uval
+                # gold keeps the expression under t58 as the raw string
+                fields["t58"] = str(vv.get("expression", ""))
+                fields["has_t78"] = 1 if vv.get("cached_value") else 0
+                fields["t78"] = vv.get("cached_value", "")
+                fields["b290"] = vv.get("reserved", 0)
+                fields["dxfname"] = "ACDBASSOCVARIABLE"
+            elif gold_type == "ASSOC2DCONSTRAINTGROUP":
+                _assoc_action(vv.get("action") or {}, fields)
+                fields["version"] = vv.get("version", 0)
+                fields["b1"] = 1 if vv.get("flag") else 0
+                wp = vv.get("work_plane") or []
+                if isinstance(wp, list):
+                    for i in range(min(3, len(wp))):
+                        fields[f"workplane[{i}]"] = normalize_value(wp[i])
+                fields["h1"] = normalize_handle_value(vv.get("dependency") or 0)
+                acts = vv.get("actions") or []
+                if isinstance(acts, list) and acts:
+                    # 2DCG's actions carry REAL handle dicts in gold
+                    fields["actions"] = [normalize_handle_value(a) for a in acts if isinstance(a, int)]
+                nodes = vv.get("nodes") or []
+                if isinstance(nodes, list) and nodes:
+                    # nodes are degenerate [0]*count in gold
+                    fields["nodes"] = [0] * len(nodes)
+                fields["dxfname"] = "ACDBASSOC2DCONSTRAINTGROUP"
             for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
                 payload.pop(kk, None)
         if gold_type == "ACSH_HISTORY_CLASS":
