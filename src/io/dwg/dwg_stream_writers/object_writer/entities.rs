@@ -5373,19 +5373,27 @@ impl<'a> DwgObjectWriter<'a> {
         wires: &[Wire],
         silhouettes: &[Silhouette],
     ) {
-        // R2013+ AcDs-backed records no longer carry the legacy leading
-        // `acis_empty` bit.  Their first modeler-geometry bit is the
-        // wireframe-presence flag.
+        // R2013+ AcDs-backed records carry neither the legacy leading
+        // `acis_empty` bit nor an inline modeler payload. Their entity stream
+        // is exactly COMMON_3DSOLID's wireframe block, then `acis_empty_bit
+        // (only when the wireframe block is present), then the R2007-era
+        // `unknown` BL and the R2013+ revision block — the last two are
+        // written by the caller. Bit-verified against AutoCAD-authored
+        // REGION objects 0x176/0x37D of LibreDWG's example_2018.dwg, whose
+        // wireframe block is present (point, isolines=4, isoline_present,
+        // empty wire/silhouette counts, acis_empty_bit=1) followed by
+        // BL(0) and the revision block, ending one sentinel bit before the
+        // handle stream.
         //
-        // A derived reference point alone is not a display cache. Only emit
-        // this section when the caller supplies actual wire/silhouette data.
-        if wires.is_empty() && silhouettes.is_empty() {
-            self.writer.write_bit(false);
-        } else if self.write_acis_wireframe(point, acis, wires, silhouettes) {
-            // COMMON_3DSOLID has an extra-modeler-data gate only when the
-            // AcDs-backed entity contains a wireframe section.
-            self.writer.write_bit(acis.extra_acis_data.is_none());
-            self.write_extra_acis_data(acis);
+        // LibreDWG's 3DSOLID spec still expects the legacy leading bit and
+        // therefore misreads real AC1032 records (it consumes
+        // `wireframe_data_present` as `acis_empty` and derails into error
+        // paths). A bit-faithful rewrite keeps the gold decoder's stream
+        // identical to the original, so its (already desynced) decode
+        // values match on both sides of the harness diff.
+        let wireframe_present = self.write_acis_wireframe(point, acis, wires, silhouettes);
+        if wireframe_present {
+            self.writer.write_bit(acis.acis_empty_bit);
         }
     }
 
