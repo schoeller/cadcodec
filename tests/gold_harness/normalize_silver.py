@@ -1092,6 +1092,69 @@ def normalize_silver(
             payload.pop("normal", None)
             payload.pop("x_axis_angle", None)
 
+        # IMAGE entity (dwg.spec 5129 DWG path): silver stores RasterImage with
+        # insertion_point/u_vector/v_vector (3-vectors), size (2-vec),
+        # definition_handle/definition_reactor_handle (ints), clip_boundary
+        # (struct). Gold: pt0/uvec/vvec (3BD), image_size (2RD), imagedef/
+        # imagedefreactor (handles), display_props (BS 70), clipping (B 280),
+        # brightness/contrast/fade (RC), clip_mode (B, R2010b+),
+        # clip_boundary_type (BS 71), num_clip_verts (BL 91), clip_verts (2RD
+        # vector). Project + drop silver-only fields.
+        if silver_type == "RasterImage":
+            for sk, gk in (("insertion_point", "pt0"), ("u_vector", "uvec"),
+                           ("v_vector", "vvec"), ("size", "image_size")):
+                v = payload.get(sk)
+                if v is not None:
+                    fields[gk] = normalize_value(v)
+                payload.pop(sk, None)
+            if payload.get("definition_handle") is not None:
+                fields["imagedef"] = normalize_handle_value(payload["definition_handle"])
+            if payload.get("definition_reactor_handle") is not None:
+                fields["imagedefreactor"] = normalize_handle_value(payload["definition_reactor_handle"])
+            # display_props (BS 70): silver stores a flags string
+            # ("SHOW_IMAGE | SHOW_NOT_ALIGNED | ..."). Map to the gold bitmask.
+            fl = payload.get("flags")
+            _IMF = {"SHOW_IMAGE": 1, "SHOW_NOT_ALIGNED": 2, "USE_CLIPPING_BOUNDARY": 4,
+                    "HAS_TRANSPARENT": 8, "USE_TRANSPARENT": 8, "USE_TRANSPARENT_COLOR": 8}
+            if isinstance(fl, str):
+                props = 0
+                for tok in fl.replace("|", " ").split():
+                    props |= _IMF.get(tok, 0)
+                fields["display_props"] = props
+            elif isinstance(fl, int):
+                fields["display_props"] = fl
+            fields["clipping"] = 1 if payload.get("clipping_enabled") else 0
+            for sk, gk in (("brightness", "brightness"), ("contrast", "contrast"),
+                           ("fade", "fade")):
+                if payload.get(sk) is not None:
+                    fields[gk] = normalize_value(payload[sk])
+                payload.pop(sk, None)
+            # clip_boundary struct -> clip_boundary_type/num_clip_verts/clip_verts.
+            cb = payload.get("clip_boundary")
+            if isinstance(cb, dict):
+                ct = cb.get("clip_type")
+                fields["clip_boundary_type"] = 2 if str(ct) == "Polygonal" else 1
+                if r2010_plus:
+                    cm = cb.get("clip_mode")
+                    # clip_mode (FIELD_B, R2010b+): gold 0 = clip Outside, 1 =
+                    # clip Inside (inverted). Silver ClipMode enum.
+                    fields["clip_mode"] = 1 if str(cm) == "Inside" else 0
+                verts = cb.get("vertices", [])
+                if isinstance(verts, list):
+                    if fields["clip_boundary_type"] == 1:
+                        fields["num_clip_verts"] = 2
+                    else:
+                        fields["num_clip_verts"] = len(verts)
+                    fields["clip_verts"] = [normalize_value(v) for v in verts]
+            # drop silver-only fields
+            for sk in ("definition_handle", "definition_reactor_handle", "flags",
+                       "clipping_enabled", "clip_boundary", "file_path",
+                       "graphic_data"):
+                payload.pop(sk, None)
+            # graphic_data leaks in via merge_common's _common_dwg path (the
+            # IMAGE binary blob); gold doesn't expose it as a field. Drop it.
+            fields.pop("graphic_data", None)
+
         # VIEWPORT entity (dwg.spec 2412 DWG path): rename silver snake_case to
         # gold names, convert types, version-gate, wrap handles. The consumed
         # keys are dropped from payload so the generic loop below skips them.
