@@ -854,8 +854,14 @@ impl<'a> DwgObjectWriter<'a> {
     }
 
     /// 64-group "xref dependant" flag with explicit value.
+    ///
+    /// The pre-R2007 `COMMON_TABLE_FLAGS` reference bit is `xref_ref=1`
+    /// on every ordinary table record (gold spec.h: `FIELD_B (is_xref_ref,
+    /// 0); /* always 1, 70 bit 6 */`; all corpus originals carry it, and the
+    /// R2007+ branch below keeps it off the wire entirely). Writing 0 there
+    /// made gold's re-decode report `is_xref_ref: 0` against the true 1.
     pub fn write_xref_dependant_bit_value(&mut self, xref_dep: bool) {
-        self.write_xref_table_flags(false, false, xref_dep);
+        self.write_xref_table_flags(true, false, xref_dep);
     }
 
     pub fn write_xref_table_flags(

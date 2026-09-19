@@ -1567,6 +1567,23 @@ impl DwgDocumentBuilder {
             }
         }
 
+        // Remove the fabricated `Standard` DIMSTYLE when the source file
+        // has no such entry. CadDocument::new() pre-creates it (document.rs
+        // `DimStyle::standard()`), and many real files carry only
+        // different-named styles (e.g. example_2004: just `ISO-25`) — the
+        // fabricated record then survives the load and the rewrite emits a
+        // DIMSTYLE the original never had, whose pre-R2007 xref bits also
+        // default to false.
+        {
+            let file_has_standard_dimstyle = parsed_entries.iter().any(|e| match e {
+                ParsedEntry::DimStyle(_, data) => data.name.eq_ignore_ascii_case("Standard"),
+                _ => false,
+            });
+            if !file_has_standard_dimstyle {
+                let _ = document.dim_styles.remove("Standard");
+            }
+        }
+
         // Build a reverse map: entity_handle → block_record_handle
         // from the canonical entity_handles read from the DWG binary
         // (R2004+).  This is needed because entity_mode=1 only says
