@@ -717,6 +717,15 @@ def normalize_silver(
 
     out: List[Dict[str, Any]] = []
 
+    # Block-record name -> handle map, for resolving INSERT.block_header
+    # (silver stores the block name; gold wants the BLOCK_RECORD handle).
+    block_handle_map: Dict[str, int] = {}
+    br_table = data.get("block_records", {})
+    if isinstance(br_table, dict):
+        for name, rec in br_table.get("entries", {}).items():
+            if isinstance(rec, dict) and isinstance(rec.get("handle"), int):
+                block_handle_map[str(name).upper()] = rec["handle"]
+
     # Entities.
     for entity in entities:
         if not isinstance(entity, dict) or len(entity) != 1:
@@ -845,10 +854,15 @@ def normalize_silver(
                 # handles here — leave attribs missing so the differ reports
                 # the real gap.
                 payload.pop("attributes", None)
-            # block_header: gold has the handle, silver stores the name. The
-            # name resolution is a reader gap (silver drops the handle); leave
-            # block_header missing so the differ reports the real gap.
-            payload.pop("name", None)
+            # block_header (handle 0 / 330): silver stores the block NAME
+            # (`block_name`); gold wants the BLOCK_RECORD handle. Resolve via
+            # the block_records name->handle map built from the dump.
+            bh = payload.get("block_name")
+            if bh is not None:
+                h = block_handle_map.get(str(bh).upper())
+                if h is not None:
+                    fields["block_header"] = normalize_handle_value(h)
+            payload.pop("block_name", None)
             # seqend_handle -> seqend (R13b1+)
             if payload.get("seqend_handle") is not None:
                 fields["seqend"] = normalize_handle_value(payload["seqend_handle"])
