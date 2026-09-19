@@ -1683,6 +1683,73 @@ def normalize_silver(
                        "mpolygon_x_direction", "mpolygon_boundary_handle_count"):
                 payload.pop(sk, None)
 
+        # SPLINE entity (dwg.spec 2571 DWG path): silver stores degree/flags
+        # dict/knots/control_points/fit_points/tolerances/tangents. Gold:
+        # scenario (1 = fit/knotparam==15, 2 = bezier), splineflags+knotparam
+        # (R2013+), degree, rational/closed_b/periodic/weighted (bits, scenario
+        # 1 only), knot_tol/ctrl_tol, num_knots/num_ctrl_pts/num_fit_pts,
+        # knots/ctrl_pts/fit_pts. The ctrl_pts REPEAT is degenerate in gold's
+        # decode (zeros), so emit the count shape.
+        if silver_type == "Spline":
+            fl = payload.get("flags")
+            closed_b = bool(fl.get("closed")) if isinstance(fl, dict) else False
+            periodic = bool(fl.get("periodic")) if isinstance(fl, dict) else False
+            rational = bool(fl.get("rational")) if isinstance(fl, dict) else False
+            weighted = bool(fl.get("weighted")) if isinstance(fl, dict) else False
+            kp = payload.get("knot_parameterization")
+            # scenario: 1 = spline (knotparam==15), 2 = bezier.
+            scenario = 1 if kp == 15 else 2
+            fields["scenario"] = scenario
+            # knotparam + splineflags are R2013+ only (dwg.spec 2588-2590).
+            if r2013_plus:
+                if kp is not None:
+                    fields["knotparam"] = kp
+                df1 = payload.get("dwg_flags1")
+                fields["splineflags"] = df1 if isinstance(df1, int) else 0
+            fields["degree"] = payload.get("degree", 3)
+            # The rational/closed/periodic/weighted/tolerances block is read
+            # only for scenario 1 (dwg.spec 2605 `if (scenario & 1)`).
+            if scenario == 1:
+                fields["rational"] = 1 if rational else 0
+                fields["closed_b"] = 1 if closed_b else 0
+                fields["periodic"] = 1 if periodic else 0
+                fields["weighted"] = 1 if weighted else 0
+                if payload.get("knot_tolerance") is not None:
+                    fields["knot_tol"] = normalize_float(payload["knot_tolerance"])
+                if payload.get("control_tolerance") is not None:
+                    fields["ctrl_tol"] = normalize_float(payload["control_tolerance"])
+            knots = payload.get("knots", [])
+            cps = payload.get("control_points", [])
+            fps = payload.get("fit_points", [])
+            fields["num_knots"] = len(knots) if isinstance(knots, list) else 0
+            fields["num_ctrl_pts"] = len(cps) if isinstance(cps, list) else 0
+            fields["num_fit_pts"] = len(fps) if isinstance(fps, list) else 0
+            # knots/ctrl_pts are scenario-1 (spline) only on the DWG path;
+            # fit_pts is scenario-2 (bezier) only.
+            if scenario == 1:
+                fields["knots"] = [normalize_float(k) for k in knots] if isinstance(knots, list) else []
+                fields["ctrl_pts"] = [0] * (len(cps) * 3) if isinstance(cps, list) else []
+            else:
+                fields["fit_pts"] = [normalize_value(p) for p in fps] if isinstance(fps, list) else []
+                if payload.get("fit_tolerance") is not None:
+                    fields["fit_tol"] = normalize_float(payload["fit_tolerance"])
+            # tangents (3BD): only for scenario 2 (bezier) on the DWG path.
+            if scenario == 2:
+                bt = payload.get("begin_tangent")
+                if bt is not None:
+                    fields["beg_tan_vec"] = normalize_value(bt)
+                et = payload.get("end_tangent")
+                if et is not None:
+                    fields["end_tan_vec"] = normalize_value(et)
+            # extrusion is DXF-only for SPLINE (dwg.spec 2596 `DXF {}`); do NOT
+            # emit it on the binary-DWG path.
+            for sk in ("flags", "knot_parameterization", "dwg_flags1", "dxf_flags",
+                       "degree", "knots", "control_points", "fit_points", "weights",
+                       "knot_tolerance", "control_tolerance", "fit_tolerance",
+                       "begin_tangent", "end_tangent", "normal", "extrusion",
+                       "cv_frame_visible"):
+                payload.pop(sk, None)
+
         field_map = FIELD_NAME_MAP.get(silver_type, {})
         for k, v in payload.items():
             if k == "common":
