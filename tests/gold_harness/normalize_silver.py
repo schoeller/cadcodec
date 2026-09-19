@@ -1317,8 +1317,89 @@ def normalize_silver(
             for sk in ("width_factor", "oblique_angle", "text_generation_flags",
                        "horizontal_alignment", "vertical_alignment", "rotation",
                        "elevation",
-                       "mtext_flag", "is_multiline", "line_count",
-                       "embedded_mtext", "lock_position", "flags"):
+                        "mtext_flag", "is_multiline", "line_count",
+                        "embedded_mtext", "lock_position", "flags"):
+                payload.pop(sk, None)
+
+        # TEXT entity (dwg.spec 29 DWG path): same dataflags mechanism as
+        # ATTDEF. Silver stores insertion_point/alignment_point (3-vec),
+        # generation_flags/horizontal_alignment/vertical_alignment, style
+        # (resolved name). Gold: ins_pt/alignment_pt (2RD), dataflags,
+        # thickness, height, rotation/width_factor/oblique_angle (gated),
+        # generation/horiz_alignment/vert_alignment (gated), style (handle 7).
+        if silver_type == "Text":
+            ip = payload.get("insertion_point")
+            if ip is not None:
+                nv = normalize_value(ip)
+                if isinstance(nv, list) and len(nv) > 2:
+                    nv = nv[:2]
+                fields["ins_pt"] = nv
+            payload.pop("insertion_point", None)
+            ap = payload.get("alignment_point")
+            rot = payload.get("rotation")
+            obl = payload.get("oblique_angle")
+            wf = payload.get("width_factor")
+            gen = payload.get("generation_flags")
+            ha = payload.get("horizontal_alignment")
+            va = payload.get("vertical_alignment")
+            th = payload.get("thickness")
+            el = payload.get("elevation")
+            # dataflags (shared ATTDEF/TEXT mask, dwg.spec 491): bit = absent.
+            df = 0
+            if el is None: df |= 0x01
+            apn = normalize_value(ap)
+            if apn is None or (isinstance(apn, list) and all(abs(float(c))<1e-9 for c in apn)):
+                df |= 0x02
+            try: oblz = abs(float(obl)) < 1e-9
+            except (TypeError, ValueError): oblz = True
+            if oblz: df |= 0x04
+            try: rotz = abs(float(rot)) < 1e-9
+            except (TypeError, ValueError): rotz = True
+            if rotz: df |= 0x08
+            try: wf1 = wf is None or abs(float(wf)-1.0) < 1e-9
+            except (TypeError, ValueError): wf1 = True
+            if wf1: df |= 0x10
+            if gen in (None, 0): df |= 0x20
+            if ha in (None, 0, "Left"): df |= 0x40
+            if va in (None, 0, "Baseline"): df |= 0x80
+            fields["dataflags"] = df
+            # thickness (BD0)
+            if th is not None:
+                fields["thickness"] = normalize_float(th)
+            # alignment_pt only when bit 0x02 clear
+            if not (df & 0x02) and apn is not None:
+                if isinstance(apn, list) and len(apn) > 2:
+                    apn = apn[:2]
+                fields["alignment_pt"] = apn
+            payload.pop("alignment_point", None)
+            payload.pop("style", None)  # name only; handle resolved separately
+            # conditional fields (bit clear -> emit)
+            _TXT_HA = {"Left": 0, "Center": 1, "Right": 2, "Aligned": 3,
+                       "Middle": 4, "Fit": 5}
+            _TXT_VA = {"Baseline": 0, "Bottom": 1, "Middle": 2, "Top": 3}
+            if not (df & 0x08) and rot is not None:
+                fields["rotation"] = normalize_float(rot)
+            if not (df & 0x04) and obl is not None:
+                fields["oblique_angle"] = normalize_float(obl)
+            if not (df & 0x10) and wf is not None:
+                fields["width_factor"] = normalize_float(wf)
+            if not (df & 0x20) and gen is not None:
+                fields["generation"] = gen
+            if not (df & 0x40) and ha is not None:
+                fields["horiz_alignment"] = _TXT_HA.get(str(ha), ha) if isinstance(ha, str) else ha
+            if not (df & 0x80) and va is not None:
+                fields["vert_alignment"] = _TXT_VA.get(str(va), va) if isinstance(va, str) else va
+            if not (df & 0x01) and el is not None:
+                fields["elevation"] = normalize_float(el)
+            # normal -> extrusion
+            nm = payload.get("normal")
+            if nm is not None:
+                fields["extrusion"] = normalize_value(nm)
+            # drop consumed
+            for sk in ("rotation", "width_factor", "oblique_angle",
+                       "generation_flags", "horizontal_alignment",
+                       "vertical_alignment", "thickness", "elevation",
+                       "normal", "insertion_point", "alignment_point"):
                 payload.pop(sk, None)
 
         # VIEWPORT entity (dwg.spec 2412 DWG path): rename silver snake_case to
