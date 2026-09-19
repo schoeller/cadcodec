@@ -167,7 +167,9 @@ def normalize_gold(data: Dict[str, Any], ignore: Optional[Dict[str, Any]] = None
             # null to gold's absref-0 dict so it compares equal against
             # silver's null dict (its code is None — tolerated by the
             # differ). ATTRIB.style's matching [0, 0] form is untouched.
-            if k == "history_id" and v == [0, 0]:
+            # DICTIONARYWDFLT.defaultid hits the same 2-tuple when silver's
+            # rewriter nulls the default (the whole class is list-vs-dict).
+            if k in ("history_id", "defaultid") and v == [0, 0]:
                 fields[k] = {"code": 0, "size": 0, "value": 0, "absref": 0}
                 continue
             fields[k] = normalize_value(v)

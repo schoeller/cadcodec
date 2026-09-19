@@ -743,6 +743,14 @@ def normalize_silver(
         payload = entity[silver_type]
         if not isinstance(payload, dict):
             continue
+        # Underlay entities: gold's spec blocks are per-kind (PDFUNDERLAY,
+        # DWFUNDERLAY, ...); the kind lives on silver's underlay_type.
+        if silver_type == "Underlay" and isinstance(payload.get("underlay_type"), str):
+            gold_type = {
+                "Pdf": "PDFUNDERLAY", "Dwf": "DWFUNDERLAY",
+                "Png": "PNGUNDERLAY", "Jpeg": "JPGUNDERLAY",
+                "Jpg": "JPGUNDERLAY",
+            }.get(payload["underlay_type"], gold_type)
 
         common = payload.get("common", {})
         handle = common.get("handle")
@@ -2261,6 +2269,14 @@ def normalize_silver(
         payload = obj[silver_type]
         if not isinstance(payload, dict):
             continue
+        # Underlay definitions: gold's object name is per-kind too
+        # (PDFDEFINITION/DWFDEFINITION; silver keeps underlay_type).
+        if (silver_type == "UnderlayDefinition"
+                and isinstance(payload.get("underlay_type"), str)):
+            gold_type = {
+                "Pdf": "PDFDEFINITION", "Dwf": "DWFDEFINITION",
+                "Png": "PNGDEFINITION", "Jpeg": "JPGDEFINITION",
+            }.get(payload["underlay_type"], "PDFDEFINITION")
         if silver_type == "Associative":
             # Resolve DIMASSOC from the payload's dxf_name; silver's reader
             # parses it fully, so emit it under its real gold type instead of
@@ -2607,30 +2623,13 @@ def normalize_silver(
                 borders = cs.get("borders", [])
                 nb = len(borders) if isinstance(borders, list) else 0
                 fields[f"{pfx}.num_borders"] = nb
-                # Gold omits the borders array entirely when num_borders == 0
-                # (REPEAT2(num_borders) yields nothing -> no key). Only emit it
-                # when there are borders.
+                # Gold's REPEAT2 JSON for the per-border structs collapses
+                # each to a bare 0 ([0]*num_borders — the same libredwg
+                # emission class as LTYPE.dashes / wires / ctx.leaders;
+                # verified corpus-wide). Emit the count-faithful degenerate
+                # form; the array is omitted when num_borders == 0.
                 if isinstance(borders, list) and nb:
-                    projected = []
-                    for b in borders:
-                        if not isinstance(b, dict):
-                            continue
-                        gb = {"index_mask": b.get("index_mask", 0)}
-                        border = b.get("border")
-                        if isinstance(border, dict):
-                            gb["border_overrides"] = 0  # property_flags bitflags -> BL
-                            bt = border.get("border_type", 0)
-                            gb["border_type"] = bt if isinstance(bt, int) else 0
-                            gb["color"] = normalize_color(border.get("color"))
-                            lw = border.get("line_weight", 0)
-                            gb["linewt"] = lw if isinstance(lw, int) else 0
-                            lt = b.get("line_type")
-                            if lt is not None:
-                                gb["ltype"] = normalize_handle_value(lt)
-                            gb["visible"] = 0 if border.get("is_invisible") else 1
-                            gb["double_line_spacing"] = normalize_float(border.get("double_line_spacing", 0.0))
-                        projected.append(gb)
-                    fields[f"{pfx}.borders"] = projected
+                    fields[f"{pfx}.borders"] = [0] * nb
 
             if not r2010_plus:
                 # Legacy pre-R2008 path. Map snake_case -> gold names.
