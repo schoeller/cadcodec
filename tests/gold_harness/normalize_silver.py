@@ -2011,9 +2011,19 @@ def normalize_silver(
             # plotview handle (R2004a+; gold omits it on R2000/AC1015).
             if r2004_plus and payload.get("plot_view_handle") is not None:
                 fields["plotsettings.plotview"] = normalize_handle_value(payload["plot_view_handle"])
-            # shadeplot handle (R2007a+, code 4)
-            if r2007_plus and payload.get("shade_plot_handle") is not None:
-                fields["plotsettings.shadeplot"] = normalize_handle_value(payload["shade_plot_handle"])
+            # plotview_name (dwg.spec 5254 FIELD_T, UNTIL R_2002 i.e. R2000):
+            # gold always emits the (possibly empty) name; silver omits it when
+            # empty. Emit "" on pre-R2004.
+            if not r2004_plus:
+                fields["plotsettings.plotview_name"] = payload.get("plot_view_name") or ""
+            # shadeplot handle (R2007a+, code 4). Gold emits the null handle
+            # even when there is no shade-plot viewport; silver stores None.
+            # Emit the null-handle shape when absent.
+            if r2007_plus:
+                sp = payload.get("shade_plot_handle")
+                fields["plotsettings.shadeplot"] = (
+                    normalize_handle_value(sp) if sp is not None
+                    else {"code": 4, "size": 0, "value": 0, "absref": 0})
             # --- non-plotsettings LAYOUT fields ---
             _LAY = {
                 "min_extents": "EXTMIN", "max_extents": "EXTMAX",
