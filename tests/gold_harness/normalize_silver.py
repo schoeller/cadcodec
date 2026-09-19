@@ -1409,6 +1409,19 @@ def normalize_silver(
                 fields["strvalue"] = normalize_value(payload["value"])
             for sk in ("schema_number", "value", "name"):
                 payload.pop(sk, None)
+        # DICTIONARYWDFLT object (dwg.spec 2804): gold emits dxfname
+        # (ACDBDICTIONARYWDFLT) + defaultid (handle 340). Silver stores
+        # default_handle (raw int). The numitems/cloning/is_hardowner/items are
+        # dropped by the JSON path (gold's IS_JSON uses the `items` map, which
+        # the differ ignores). Project the two gold fields.
+        if silver_type == "DictionaryWithDefault":
+            fields["dxfname"] = "ACDBDICTIONARYWDFLT"
+            dh = payload.get("default_handle")
+            if dh is not None:
+                fields["defaultid"] = normalize_handle_value(dh)
+            for sk in ("default_handle", "entries", "duplicate_cloning",
+                       "hard_owner", "name"):
+                payload.pop(sk, None)
         # TABLESTYLE object (dwg2.spec 964). Two disjoint shapes:
         #  - legacy (pre-R2008, UNTIL R_2007): name/flow_direction/flags/
         #    horiz_cell_margin/vert_cell_margin/is_title_suppressed/
