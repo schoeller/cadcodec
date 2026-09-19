@@ -1155,6 +1155,64 @@ def normalize_silver(
             # IMAGE binary blob); gold doesn't expose it as a field. Drop it.
             fields.pop("graphic_data", None)
 
+        # WIPEOUT entity (dwg2.spec 1561): same AcDbRasterImage-derived shape as
+        # IMAGE. Silver stores insertion_point/u_vector/v_vector (3-vec), size
+        # (2-vec), clip_boundary_vertices (flat 2-vec list), clip_type/clip_mode
+        # (enums), flags (bitflags string), definition_handle. Gold: pt0/uvec/
+        # vvec (3BD), image_size (2RD), imagedef/imagedefreactor (handles),
+        # display_props (BS 70), clipping (B 280), brightness/contrast/fade (RC),
+        # clip_mode (B, R2010b+), clip_boundary_type (BS 71), num_clip_verts
+        # (BL 91), clip_verts (2RD vector).
+        if silver_type == "Wipeout":
+            for sk, gk in (("insertion_point", "pt0"), ("u_vector", "uvec"),
+                           ("v_vector", "vvec"), ("size", "image_size")):
+                v = payload.get(sk)
+                if v is not None:
+                    fields[gk] = normalize_value(v)
+                payload.pop(sk, None)
+            if payload.get("definition_handle") is not None:
+                fields["imagedef"] = normalize_handle_value(payload["definition_handle"])
+            else:
+                fields["imagedef"] = {"code": 5, "size": 0, "value": 0, "absref": 0}
+            if payload.get("definition_reactor_handle") is not None:
+                fields["imagedefreactor"] = normalize_handle_value(payload["definition_reactor_handle"])
+            else:
+                fields["imagedefreactor"] = {"code": 3, "size": 0, "value": 0, "absref": 0}
+            # class_version (FIELD_BL 90, R2000+): gold emits it; silver stores it.
+            if r2000_plus:
+                fields["class_version"] = payload.get("class_version", 0)
+            fl = payload.get("flags")
+            _WF = {"SHOW_IMAGE": 1, "SHOW_NOT_ALIGNED": 2, "USE_CLIPPING_BOUNDARY": 4,
+                   "HAS_TRANSPARENT": 8, "USE_TRANSPARENT": 8, "USE_TRANSPARENT_COLOR": 8}
+            if isinstance(fl, str):
+                props = 0
+                for tok in fl.replace("|", " ").split():
+                    props |= _WF.get(tok, 0)
+                fields["display_props"] = props
+            elif isinstance(fl, int):
+                fields["display_props"] = fl
+            fields["clipping"] = 1 if payload.get("clipping_enabled") else 0
+            for sk in ("brightness", "contrast", "fade"):
+                if payload.get(sk) is not None:
+                    fields[sk] = normalize_value(payload[sk])
+            ct = payload.get("clip_type")
+            fields["clip_boundary_type"] = 2 if str(ct) == "Polygonal" else 1
+            if r2010_plus:
+                cm = payload.get("clip_mode")
+                fields["clip_mode"] = 1 if str(cm) == "Inside" else 0
+            verts = payload.get("clip_boundary_vertices", [])
+            if isinstance(verts, list):
+                if fields["clip_boundary_type"] == 1:
+                    fields["num_clip_verts"] = 2
+                else:
+                    fields["num_clip_verts"] = len(verts)
+                fields["clip_verts"] = [normalize_value(v) for v in verts]
+            for sk in ("definition_handle", "definition_reactor_handle", "flags",
+                       "clipping_enabled", "clip_type", "clip_mode",
+                       "clip_boundary_vertices", "class_version"):
+                payload.pop(sk, None)
+            fields.pop("graphic_data", None)
+
         # LEADER entity (dwg.spec 2983 DWG path): silver uses snake_case names;
         # gold uses dwg.spec names. Project + version-gate.
         if silver_type == "Leader":
