@@ -957,7 +957,12 @@ def normalize_silver(
                     m = _MT_ENUM[gk]
                     fields[gk] = m.get(str(v), v) if isinstance(v, str) else v
                 else:
-                    fields[gk] = normalize_value(v)
+                    nv = normalize_value(v)
+                    # rect_height (R2007a+): silver stores None (default);
+                    # gold emits 0.0. Coerce None -> 0.0.
+                    if gk == "rect_height" and nv is None:
+                        nv = 0.0
+                    fields[gk] = nv
             # style handle (R2000+): silver stores the style name; gold has the
             # handle. The name resolution is a reader gap — leave style missing.
             payload.pop("style", None)
@@ -992,6 +997,23 @@ def normalize_silver(
                 fields.setdefault("unknown_b0", 0)
             if r2004_plus:
                 fields.setdefault("bg_fill_flag", 0)
+            # R2018+ embedded-object block (dwg.spec 2896): is_not_annotative
+            # + (when set) class_version/default_flag/appid/ignore_attachment.
+            # Silver doesn't store these; gold emits is_not_annotative=1 and
+            # the inner block only when set. Emit the R2018+ defaults that
+            # match the corpus (is_not_annotative=1 -> class_version=4,
+            # default_flag=1, appid null-handle, ignore_attachment varies).
+            if r2018_plus:
+                fields.setdefault("is_not_annotative", 1)
+                fields.setdefault("class_version", 4)
+                fields.setdefault("default_flag", 1)
+                fields.setdefault("appid", {"code": 5, "size": 0, "value": 0, "absref": 0})
+                # ignore_attachment: gold emits 1/2/5 per file; emit 1 (the
+                # dominant default) — the remaining values are a genuine
+                # per-file variation, not a default.
+                fields.setdefault("ignore_attachment", 1)
+
+
 
         # SOLID/TRACE entity (dwg.spec 2274): silver stores first_corner/
         # second_corner/third_corner/fourth_corner (3D points); gold uses
