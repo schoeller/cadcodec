@@ -971,9 +971,19 @@ def normalize_silver(
                     if gk == "rect_height" and nv is None:
                         nv = 0.0
                     fields[gk] = nv
-            # style handle (R2000+): silver stores the style name; gold has the
-            # handle. The name resolution is a reader gap — leave style missing.
-            payload.pop("style", None)
+            # style handle (dwg.spec 2881, R2000b+): silver stores the
+            # resolved style NAME; resolve it through silver's own
+            # text-styles table to the handle gold emits.
+            st = payload.pop("style", None)
+            if st is not None:
+                _ts = (data.get("text_styles") or {}).get("entries") or {}
+                _ts_h = None
+                for _e in _ts.values():
+                    if isinstance(_e, dict) and _e.get("name") == st:
+                        _ts_h = _e.get("handle")
+                        break
+                if _ts_h is not None:
+                    fields["style"] = normalize_handle_value(_ts_h)
             # drop silver-only / gold-omitted fields
             for kk in ("is_annotative", "dwg_x_direction", "rotation",
                        "attachment_point", "drawing_direction", "line_spacing_factor",
@@ -3379,29 +3389,12 @@ def normalize_silver(
                 elems = rec.get("elements") or []
                 fields["numdashes"] = len(elems)
                 if elems:
-                    dashes = []
-                    for e in elems:
-                        cx = e.get("complex")
-                        if isinstance(cx, dict):
-                            dashes.append({
-                                "length": e.get("length", 0.0),
-                                "complex_shapecode": cx.get("shapecode", 0),
-                                "style": normalize_handle_value(cx.get("style_handle", 0)),
-                                "x_offset": cx.get("x_offset", 0.0),
-                                "y_offset": cx.get("y_offset", 0.0),
-                                "scale": cx.get("scale", 1.0),
-                                "rotation": cx.get("rotation", 0.0),
-                                "shape_flag": cx.get("flags", 0),
-                            })
-                        else:
-                            dashes.append({
-                                "length": e.get("length", 0.0),
-                                "complex_shapecode": 0,
-                                "style": normalize_handle_value(0),
-                                "x_offset": 0.0, "y_offset": 0.0,
-                                "scale": 1.0, "rotation": 0.0, "shape_flag": 0,
-                            })
-                    fields["dashes"] = dashes
+                    # Gold's REPEAT JSON for dashes collapses each dash
+                    # struct to a bare 0 ([0]*count — verified corpus-wide;
+                    # the same libredwg emission class as wires/silhouettes/
+                    # ctx.leaders). Emit the count-faithful degenerate form;
+                    # silver's real per-dash data has no gold counterpart.
+                    fields["dashes"] = [0] * len(elems)
                 # strings_area: gold emits a TF binary field. UNTIL R_2004 it's
                 # always 256 bytes; R2007+ only when has_strings_area (any dash
                 # with shape_flag & 2). All-zero in the corpus. Silver stores
