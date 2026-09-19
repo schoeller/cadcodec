@@ -286,16 +286,41 @@ def normalize_handle_value(value: Any) -> Any:
     return value
 
 
+# libredwg lweights[] table: gold's raw linewt byte (COMMON_ENTITY_DATA's
+# FIELD_RC linewt 370, and the LAYER table flag's 5-bit index) indexes this
+# (0..23), with 29=ByLayer, 30=ByBlock, 31=Default. Mirrors silver's
+# LineWeight::INDEXED_VALUES (src/types/line_weight.rs) and to_dwg_index.
+_LWEIGHT_INDEXED = [0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53,
+                    60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211]
+
+
+def _lweight_index(mm100: int) -> Any:
+    """Map a mm*100 weight value back to gold's raw table index."""
+    try:
+        return _LWEIGHT_INDEXED.index(mm100)
+    except ValueError:
+        return 0
+
+
 def _lineweight_to_gold(value: Any) -> Any:
-    """Map silver's Lineweight enum (string) to gold's raw linewt byte.
+    """Map silver's LineWeight enum to gold's raw linewt byte.
 
     Gold (common_entity_data.spec FIELD_RC linewt, 370) stores the *index* into
     libredwg's lweights[] table: 0..23 = mm*100, 29 (0x1D) = ByLayer,
     30 (0x1E) = ByBlock, 31 (0x1F) = ByLwDefault. Silver serializes the enum
-    as a string ("ByLayer"/"ByBlock"/"Default") or an integer mm*100 value.
+    as a string ("ByLayer"/"ByBlock"/"Default") for the named variants and as
+    {"Value": <mm*100>} for concrete weights — invert both to the index.
     """
-    if isinstance(value, int):
+    if isinstance(value, bool):
         return value
+    if isinstance(value, dict) and "Value" in value:
+        v = value["Value"]
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            return value
+        return _lweight_index(int(v))
+    if isinstance(value, int):
+        # mm*100 value (LayerData stores the enum's as_i16)
+        return _lweight_index(value)
     if isinstance(value, str):
         if value == "ByLayer":
             return 29
@@ -306,7 +331,7 @@ def _lineweight_to_gold(value: Any) -> Any:
         # "W0_05" style mm*100 names
         if value.startswith("W") and "_" in value:
             try:
-                return int(value[1:].replace("_", ""))
+                return _lweight_index(int(value[1:].replace("_", "")))
             except ValueError:
                 return value
     return value
@@ -1107,42 +1132,30 @@ def normalize_silver(
 
         # SOLID/TRACE entity (dwg.spec 2274): silver stores first_corner/
         # second_corner/third_corner/fourth_corner (3D points); gold uses
-        # corner1/corner2/corner3/corner4 (2RD). Silver doesn't store elevation
-        # (gold emits 0.0). thickness matches.
+        # corner1/corner2/corner3/corner4 (2RD) plus a separate elevation
+        # (FIELD_BD (elevation, 38)). Silver's reader folds the elevation
+        # into every corner's z (the writer round-trips it from
+        # first_corner.z) — project it back out of the corner before the 2RD
+        # slice drops z. thickness matches.
         if silver_type in ("Solid", "Trace"):
             _SOL = {"first_corner": "corner1", "second_corner": "corner2",
                     "third_corner": "corner3", "fourth_corner": "corner4"}
+            _elev = None
             for sk, gk in _SOL.items():
                 v = payload.get(sk)
                 if v is not None:
+                    if _elev is None:
+                        if isinstance(v, dict):
+                            _elev = v.get("z")
+                        elif isinstance(v, list) and len(v) > 2:
+                            _elev = v[2]
                     nv = normalize_value(v)
                     if isinstance(nv, list):
                         nv = nv[:2]  # gold 2RD
                     fields[gk] = nv
                     payload.pop(sk, None)
-            # elevation: silver doesn't store it (reader gap); gold emits the
-            # real value. Leave it missing so the differ reports the real gap.
-            # drop silver-only
-            for kk in ("is_trace",):
-                payload.pop(kk, None)
-
-        # SOLID/TRACE entity (dwg.spec 2274): silver stores first_corner/
-        # second_corner/third_corner/fourth_corner (3D points); gold uses
-        # corner1/corner2/corner3/corner4 (2RD). Silver doesn't store elevation
-        # (gold emits 0.0). thickness matches.
-        if silver_type in ("Solid", "Trace"):
-            _SOL = {"first_corner": "corner1", "second_corner": "corner2",
-                    "third_corner": "corner3", "fourth_corner": "corner4"}
-            for sk, gk in _SOL.items():
-                v = payload.get(sk)
-                if v is not None:
-                    nv = normalize_value(v)
-                    if isinstance(nv, list):
-                        nv = nv[:2]  # gold 2RD
-                    fields[gk] = nv
-                    payload.pop(sk, None)
-            # elevation: silver doesn't store it (reader gap); gold emits the
-            # real value. Leave it missing so the differ reports the real gap.
+            if _elev is not None:
+                fields["elevation"] = _elev
             # drop silver-only
             for kk in ("is_trace",):
                 payload.pop(kk, None)
@@ -3956,6 +3969,12 @@ def normalize_silver(
                     fields["visualstyle"] = normalize_handle_value(
                         rec.get("visual_style_handle") or 0)
                 rec.pop("visual_style_handle", None)
+                # linewt (dwg.spec LAYER: the R2000+ 5-bit table index packed
+                # in the flag word): gold emits the raw index; silver stores
+                # the LineWeight enum. Invert via the lweights[] table.
+                if r2000_plus:
+                    fields["linewt"] = _lineweight_to_gold(rec.get("line_weight"))
+                rec.pop("line_weight", None)
             for k, v in rec.items():
                 if k in ("handle", "owner", "owner_handle", "reactors", "xdictionary_handle"):
                     continue
