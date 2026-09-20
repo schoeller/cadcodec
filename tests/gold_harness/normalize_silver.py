@@ -1909,10 +1909,20 @@ def normalize_silver(
                 if v is not None:
                     fields[gk] = normalize_value(v)
                 payload.pop(sk, None)
+            # imagedef/imagedefreactor: silver stores values only (the wire
+            # handle codes are not retained in the structs). Absent handles
+            # keep the NULL form with code=None — the differ tolerates a
+            # missing code (identity = the null target); NEVER fabricate
+            # constant gold codes (the old {code:3} stamp mismatched gold's
+            # raw nibble after the writer fix made the rt wire carry 3).
             if payload.get("definition_handle") is not None:
                 fields["imagedef"] = normalize_handle_value(payload["definition_handle"])
+            else:
+                fields["imagedef"] = normalize_handle_value(0)
             if payload.get("definition_reactor_handle") is not None:
                 fields["imagedefreactor"] = normalize_handle_value(payload["definition_reactor_handle"])
+            else:
+                fields["imagedefreactor"] = normalize_handle_value(0)
             # display_props (BS 70): silver stores a flags string
             # ("SHOW_IMAGE | SHOW_NOT_ALIGNED | ..."). Map to the gold bitmask.
             fl = payload.get("flags")
@@ -1972,14 +1982,16 @@ def normalize_silver(
                 if v is not None:
                     fields[gk] = normalize_value(v)
                 payload.pop(sk, None)
+            # Same as the IMAGE branch: values only, no fabricated codes —
+            # absent handles use the tolerable NULL form (code=None).
             if payload.get("definition_handle") is not None:
                 fields["imagedef"] = normalize_handle_value(payload["definition_handle"])
             else:
-                fields["imagedef"] = {"code": 5, "size": 0, "value": 0, "absref": 0}
+                fields["imagedef"] = normalize_handle_value(0)
             if payload.get("definition_reactor_handle") is not None:
                 fields["imagedefreactor"] = normalize_handle_value(payload["definition_reactor_handle"])
             else:
-                fields["imagedefreactor"] = {"code": 3, "size": 0, "value": 0, "absref": 0}
+                fields["imagedefreactor"] = normalize_handle_value(0)
             # class_version (FIELD_BL 90, R2000+): gold emits it; silver stores it.
             if r2000_plus:
                 fields["class_version"] = payload.get("class_version", 0)

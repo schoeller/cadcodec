@@ -3973,15 +3973,15 @@ impl<'a> DwgObjectWriter<'a> {
         // Clip boundary
         self.write_clip_boundary(&e.clip_boundary);
 
-        // Image def handle
+        // Image def + reactor handles — wire nibbles follow gold's
+        // AcDbRasterImage block (dwg.spec 5129): imagedef 5, imagedefreactor 3.
         let def = e.definition_handle.unwrap_or(Handle::NULL);
         self.writer
             .write_handle(DwgReferenceType::HardPointer, def.value());
 
-        // Image def reactor handle
         let reactor = e.definition_reactor_handle.unwrap_or(Handle::NULL);
         self.writer
-            .write_handle(DwgReferenceType::HardPointer, reactor.value());
+            .write_handle(DwgReferenceType::HardOwnership, reactor.value());
 
         self.register_object(e.common.handle);
     }
@@ -4058,18 +4058,22 @@ impl<'a> DwgObjectWriter<'a> {
             }
         }
 
-        // Definition + reactor handles
+        // Definition + reactor handles. The wire codes follow gold's
+        // AcDbRasterImage/Wipeout family (dwg2.spec 1561, dwg.spec 5129):
+        // imagedef carries header nibble 5 (hard pointer; the original
+        // files print [5,0,0,0]) and imagedefreactor nibble 3 ([3,0,0,0]
+        // in every original record).
         let def = e.definition_handle.unwrap_or(Handle::NULL);
         self.writer
             .write_handle(DwgReferenceType::HardPointer, def.value());
         let reactor = e.definition_reactor_handle.unwrap_or(Handle::NULL);
         self.writer
-            .write_handle(DwgReferenceType::HardPointer, reactor.value());
+            .write_handle(DwgReferenceType::HardOwnership, reactor.value());
 
         self.register_object(e.common.handle);
     }
 
-    // â”€â”€ OLE2Frame â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â”€â”€ OLE2Frame â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     fn write_ole2frame(&mut self, e: &Ole2Frame) {
         self.entity_preamble(common::OBJ_OLE2FRAME, &e.common);
