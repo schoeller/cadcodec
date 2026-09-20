@@ -274,12 +274,14 @@ fabricated-Standard-DIMSTYLE removal + 3DSOLID prologue-divergence
 projection + MTEXT R2018 redundant extents/ignore_attachment + DIMENSION
 family block handle + pre-R2013 classes-verbatim roundtrip +
 unmodeled-class (UNKNOWN_OBJ/ENT) projections + UNKNOWN_ENT
-_common_dwg graphic-data strip + U2 dynamic-block-class retype map,
+_common_dwg graphic-data strip + U2 dynamic-block-class retype map +
+unknown_bits raw-remainder side channel,
 2026-09-20):**
-read-fidelity **2 706**, write-fidelity **2 572** — both sides MIRROR
+read-fidelity **2 258**, write-fidelity **2 124** — both sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
 used to be cancelled by symmetric counterfeit garbage; the UNKNOWN
-projections then took −308/−324; U2 then took −719/−720). gh44-error.dwg
+projections then took −308/−324; U2 then took −719/−720; the unknown_bits
+side channel then took −448/−448). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -287,24 +289,38 @@ it, inflating totals to 7689/7559).
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20 halt after U2, tops mirrored read/write):**
-1. **unknown_bits floor** (~400/side in tops: TABLESTYLE 121, DIMASSOC 62,
-   EVALUATION_GRAPH 56, ACSH_FILLET_CLASS 50, ASSOCDEPENDENCY 36,
-   ASSOCVARIABLE 22, ASSOCDIMDEPENDENCYBODY 18, ASSOCVALUEDEPENDENCY 18,
-   plus PROXY_OBJECT data/data_numbits 60 and the U2 residuals
-   BLOCKSTRETCHACTION 9/BLOCKREPRESENTATION 7/DYNAMICBLOCKPURGEPREVENTER 6):
-   needs the raw-remainder side channel in silver's reader (keep undecoded
-   bit ranges verbatim per record, like the xdic_by_handle precedent) so the
-   normalizer can emit gold's unknown_bits hex.
-2. **Small mixed families** (~250/side): UNKNOWN_OBJ._missing 53 +
-   UNKNOWN_OBJ.ownerhandle 44 (wrapper owner codes), VIEWPORT.named_ucs 29,
-   ATTDEF.style 26 / TEXT.style 21 (style-handle resolution), PROXY_OBJECT
-   .objids 18 (trailing-null count divergence — gold stops at
-   `hdl_dat->byte < size - 1`; silver's loop reads 1-2 terminator handles
-   more; needs exact byte-geometry work), INSERT.seqend/SEQEND._missing 36,
-   ATTRIB._missing 18, VERTEX_PFACE_FACE.flag 18, VIEWPORT.status_flag 17,
-   HATCH.paths 15, ATTDEF.lock_position_flag 14, CIRCLE.linewt 14,
-   GROUP.* 13×4, DIMSTYLE_CONTROL.morehandles 19.
+**Next packets (2026-09-20 halt after the unknown_bits side channel,
+tops mirrored read/write; ranking from the fresh post-`2cb2eaa` corpus):**
+1. **UNKNOWN_OBJ residue** (_missing 53 + ownerhandle 44 read / 27 write):
+   (a) records silver still types UNKNOWN that gold types by live class —
+   ASSOCACTION (Associative dxf_name ACDBASSOCACTION), SUN (ClassObject
+   data.Sun), TABLEGEOMETRY (DataObject data.TableGeometry),
+   ASSOCOSNAPPOINTREFACTIONPARAM / ASSOCVERTEXACTIONPARAM (ACDBASSOC*
+   dxf_names); the latter three sit in `_UNKNOWN_BITS_TYPES` so the retype
+   also kills their missing `unknown_bits` rows; (b) surviving wrappers
+   emit pipeline-default owner code 4 where gold emits the wire-relative
+   6/8; (c) example_2010 3140: gold UNKNOWN_OBJ record silver drops
+   entirely (reader gap).
+2. **PROXY_OBJECT data/data_numbits 60 + objids 18** (the §8.1.1 objids
+   trailing-null byte-geometry lesson: gold stops at `hdl_dat->byte <
+   size - 1`).
+3. **Style-handle maps** (ATTDEF.style 26 / TEXT.style 21): silver stores
+   the text_style NAME (text_styles entries carry name→handle); project
+   like the layer_map precedent (ATTDEF.lock_position_flag 14 rides the
+   same records). IMAGEDEF.image_size/file_path on ATMOS: gold wants a
+   path string + BD size pair where silver emits file_name only.
+4. **VIEWPORT.named_ucs 29 / status_flag 17**, then the chain/seqend half
+   (INSERT.seqend 18 + SEQEND._missing 18 + ATTRIB._missing 18),
+   VERTEX_PFACE_FACE.flag 18, HATCH.paths 15, CIRCLE.linewt 14 (Dynblocks
+   R2018, off-by-one on the last ~14 records, gold 28 vs silver 29 —
+   adjudicate the wire with dump_section_bytes),
+   DIMSTYLE_CONTROL.morehandles 19.
+5. **GROUP.\* 4×13 and MLINE eleven fields ×13** (stem-inflated — get the
+   per-file verdict with a fresh Multiline/Group roundtrip before believing
+   the 13s).
+6. **ASSOCDEPENDENCY.ownerhandle/dep_on + ASSOCNETWORK.owned_actions +
+   ASSOCACTION count rows** (Surface/ex2010): mostly resolved-target names
+   that die with the ASSOCACTION retype in packet 1.
 
    Liveness discipline reminder (the SECTIONVIEWSTYLE/DETAILVIEWSTYLE
    incident, verified `0be4d76`): the UNKNOWN-family payload-clear runs
@@ -741,14 +757,62 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> packets `b40ba42`…`d584521`): read **3 425** / write **3 292** — and the
+> packets `b40ba42`…`2cb2eaa`): read **2 258** / write **2 124** — and the
 > two sides now MIRROR family-for-family (the phantom-class un-masking made
-> the write diff honest; the UNKNOWN projections then took −308/−324).
+> the write diff honest; the UNKNOWN projections took −308/−324; the U2
+> retype map −719/−720; the unknown_bits side channel −448/−448).
 > Next-packet handoff: the "Next packets" block in §7. Remaining mass:
-> UNKNOWN_OBJ._missing 296, TABLESTYLE.unknown_bits 121,
-> DIMASSOC.unknown_bits 62, EVALUATION_GRAPH 56, ACSH_FILLET 50,
-> BLOCKGRIPLOCATIONCOMPONENT 34, PROXY_OBJECT 30, VIEWPORT.named_ucs 29,
-> ATTDEF/TEXT.style ~47, plus the unknown_bits floor needing raw remainders).
+> UNKNOWN_OBJ._missing 53 + UNKNOWN_OBJ.ownerhandle 44, PROXY_OBJECT
+> data/data_numbits 60 + objids 18, VIEWPORT.named_ucs 29, ATTDEF/TEXT
+> style ~47, the SEQEND/ATTRIB/VERTEX_PFACE_FACE chains 54, MLINE ~11×13,
+> GROUP 4×13, HATCH.paths 15, CIRCLE.linewt 14, and the ASSOCACTION-family
+> retype residue (Surface/ex2010 probes `ub2_*`).
+
+   ~~unknown_bits floor — raw-remainder side channel~~ — **DONE
+   (2026-09-20, `2cb2eaa`; read 2 706 → 2 258 / write 2 572 → 2 124,
+   −448/−448)**: silver's reader now snapshots gold's HANDLE_UNKNOWN_BITS
+   window verbatim, so the normalizer emits gold's `unknown_bits` hex.
+   Groundwork: the 2026-09-20 full-libredwg-src parse (probes
+   `p01`–`p04`, JSON dump `out_spec_blocks.json`, block bodies in
+   `out_u2_blocks.txt`/`out_smallfam_blocks.txt`) re-validated the §8.1.1
+   census structurally (88/234 starters, 87/161 live; frame classifier:
+   `#if 0` + `defined(DEBUG_CLASSES)||defined(IS_FREE)` + IS_DXF variants
+   are the only dead-wrappers) and located 149 HANDLE_UNKNOWN_BITS sites
+   (147 dwg2.spec + dwg.spec 5581 live, 5630/5754 commented). Mechanics:
+   the macro (spec.h 578) expands in the decode TU to
+   `dwg_decode_unknown_bits` (decode.c 5924): `bit_read_bits` from the
+   CURRENT position — every spec block places the macro directly after the
+   common entity/object prologue — to `8 * obj->size`, i.e. a FULL
+   snapshot of the class-payload (not leftover bytes: that is why
+   fully-modeled classes like WIPEOUT/MULTILEADER also carry nonzero hex),
+   then the position is RESTORED so decoding continues. Silver:
+   `unknown_bits_by_handle` (document.rs; serde-transparent Handle →
+   decimal-string keys, the reactors/xdic precedent) filled by
+   `capture_unknown_bits` (dwg_document_builder.rs) right after
+   read_common_entity_data / read_common_non_entity_data in both pass-2
+   loops; the writer does NOT consume it (on rewrite both oracles re-read
+   the written bytes). THE decisive subtlety: `bit_read_bits` (bits.c
+   1733) MSB-aligns only the full bytes (bit_read_fixed); the trailing
+   partial byte accumulates `chain[bytes] |= last << i` — read-order bit
+   i lands at the LOW position i, zero-padded on the left. An MSB-aligned
+   tail produced hexes differing in EXACTLY the final byte family-wide
+   (gold 03/01 vs silver C0/80); fixed in capture_unknown_bits.
+   Normalizer (normalize_silver.py): `_UNKNOWN_BITS_TYPES` = the
+   corpus-observed nonzero emitters (pooled gold census, probe
+   `ub_full_set.py`) of the 149 macro classes, minus UNKNOWN_OBJ/ENT
+   (their hex is dropped symmetrically in normalize_gold);
+   `_emit_unknown_bits` runs at BOTH record appends (entity loop:
+   common.handle; object loop: payload.handle) AFTER every retype
+   branch. Emitting for a type gold does not would create
+   extra_in_silver rows — never broaden the set without a fresh corpus
+   census (records of the set always have a nonzero window; classes with
+   zero windows are not gold emitters). Verified per-file on Dynblocks
+   2018 / ATMOS-DC22S 2007 / Surface 2004 / example_2010 / example_2000
+   (probes `ub2_*`): zero unknown_bits rows remain on both sides, every
+   `_UNKNOWN_BITS_TYPES` record hex-equal; follow-on diagnosis for the
+   next packets (ASSOCACTION/SUN/TABLEGEOMETRY retype gaps,
+   UNKNOWN_OBJ-owner codes, the ex2010 3140 dropped record) came from
+   the same probes.
 
    ~~U2 — dynamic-block-class retype map~~ — **DONE (2026-09-20, `6a97535`;
    read 3 425 → 2 706 / write 3 292 → 2 572, −719/−720)**: retyped +
