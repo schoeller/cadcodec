@@ -294,8 +294,10 @@ retype (2026-09-20 thirteenth batch, `fad3042`) + WIPEOUT/IMAGE
 imagedefreactor wire codes (2026-09-20 fourteenth batch, `543f877`) +
 SEQEND real-handle retention (2026-09-20 fifteenth batch, `689b14d`) +
 VIEWPORT.status_flag raw retention (2026-09-20 sixteenth batch,
-`263ab5f`), 2026-09-20):**
-read-fidelity **662**, write-fidelity **685** — the 1 000 milestone was
+`263ab5f`) + LEADEROBJECTCONTEXTDATA retype (2026-09-20 seventeenth
+batch, `9f06d89`) + TOLERANCE field-name set (2026-09-20 eighteenth
+batch, `a7e451b`), 2026-09-20):**
+read-fidelity **575**, write-fidelity **598** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -315,7 +317,8 @@ dropped-records batch then took −12/−12; the ACSH_CONE_CLASS retype
 then took −4/−4; the WIPEOUT/IMAGE imagedefreactor code fix then took
 −12 write rows; the SEQEND real-handle retention then took −18 write
 rows; the VIEWPORT.status_flag raw retention then took −17 read
-rows). gh44-error.dwg
+rows; the LEADEROBJECTCONTEXTDATA retype then took −24/−24; the
+TOLERANCE field-name batch then took −63/−63). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -325,12 +328,13 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`263ab5f` corpus;
+mirrored read/write; ranking from the fresh post-`a7e451b` corpus;
 PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
 MULTILEADER attach trio + TABLECONTENT retype + VERTEX_MESH dropped
 records + ACSH_CONE_CLASS retype + WIPEOUT imagedefreactor codes +
-SEQEND real handles + VIEWPORT.status_flag raw landed as batches seven
-through sixteen — see §8.1.6):**
+SEQEND real handles + VIEWPORT.status_flag raw + LEADEROBJECTCONTEXTDATA
+retype + TOLERANCE field names landed as batches seven through
+eighteen — see §8.1.6):**
 1. **UNKNOWN-family retyping pockets** (ranked from the post-`543f877`
    corpus: UNKNOWN_OBJ._missing 8, _count 0 — the Cone pocket landed as
    batch thirteen; the queued ownerhandle 37 family self-resolved — its
@@ -353,11 +357,10 @@ through sixteen — see §8.1.6):**
    the same SURFACE-typing divergence in silver's reader.
 2. **Reader captures**: SORTENTSTABLE.ents (R2000 entries lost),
    MLINE.flags closed-bit,
-   the poly-SEQEND shadow pairs, LEADEROBJECTCONTEXTDATA/
-   OBJECTCONTEXTDATA typing (~24: silver types the AcDbAnnotScaleObject
-   contexts as generic OBJECTCONTEXTDATA where gold decodes
-   LEADEROBJECTCONTEXTDATA — count_mismatch + missing pairs on every
-   version-folder Leader carrier).
+   the poly-SEQEND shadow pairs. DONE: the LEADEROBJECTCONTEXTDATA/
+   OBJECTCONTEXTDATA typing pair landed as the seventeenth batch
+   (`9f06d89`, silver's ObjectContextData kind.Leader retype — the
+   count/missing pairs on every version-folder Leader carrier).
    DONE: CIRCLE/LINE.linewt (the entity-common RC 370 is the RAW code —
    reader keeps 24..28 as Value(raw) at builder match, writer echoes
    irreversible table codes, normalizer `_lweight_index` echoes
@@ -823,8 +826,8 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> the VIEWPORT.status_flag batch `263ab5f`): read **662** /
-> write **685** — below the 1 000 milestone, closing on the below-100
+> the TOLERANCE field-name batch `a7e451b`): read **575** /
+> write **598** — below the 1 000 milestone, closing on the below-100
 > campaign target — and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
@@ -849,9 +852,47 @@ Given a diff `(type, field, kind)`:
 >   the ACSH_CONE_CLASS retype landed (2026-09-20 thirteenth batch,
 >   `fad3042`), the WIPEOUT/IMAGE imagedefreactor wire codes landed
 >   (2026-09-20 fourteenth batch, `543f877`), the SEQEND real-handle
->   retention landed (2026-09-20 fifteenth batch, `689b14d`) and the
+>   retention landed (2026-09-20 fifteenth batch, `689b14d`), the
 >   VIEWPORT.status_flag raw retention landed (2026-09-20 sixteenth
->   batch, `263ab5f`) — see their DONE entries below.
+>   batch, `263ab5f`), the LEADEROBJECTCONTEXTDATA retype landed
+>   (2026-09-20 seventeenth batch, `9f06d89`) and the TOLERANCE
+>   field-name projection landed (2026-09-20 eighteenth batch,
+>   `a7e451b`) — see their DONE entries below.
+
+  ~~TOLERANCE field-name set~~ — **DONE (2026-09-20 eighteenth batch,
+  `a7e451b`; read 638 → 575 / write 661 → 598, −63/−63 — far more
+  carriers than the queue's "2010/Leader" note: example_2000, TS1 and
+  the Leader files all carry TOLERANCE entities)**. gold dwg.spec 3058:
+  the R2000+ wire carries only 3BD ins_pt, 3BD x_direction, extrusion,
+  T text_value (the unknown_short/height/dimgap trio is
+  VERSIONS (R_13b1, R_14)-only). Silver's Tolerance struct uses
+  insertion_point/direction/text with IDENTICAL values plus
+  text_height/dimension_gap/dwg_unknown_short unconditionally — every
+  record produced 3 missing_in_silver + up to 6 extra_in_silver rows
+  (name mismatches with equal values — pure projection). Fix: the
+  Tolerance branch projects the three names (normalize_value for 3BD)
+  and pops the R13/R14-only trio on R2000+ (faithful pre-R2000 emission
+  kept behind the version gate).
+
+  ~~LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA typing~~ — **DONE
+  (2026-09-20 seventeenth batch, `9f06d89`; read 662 → 638 / write
+  685 → 661, −24/−24, the typing pair on every version-folder
+  Leader.dwg)**: gold decodes the class-519 ACDB_LEADEROBJECTCONTEXTDATA_
+  CLASS records (dwg2.spec 4611, live; AcDbAnnotScaleObjectContextData_
+  fields + points vector + x_direction + b290 + inspt_offset +
+  endptproj, HANDLE_UNKNOWN_BITS tail) as typed LEADEROBJECTCONTEXTDATA;
+  silver parses the same wire into its generic ObjectContextData wrapper
+  (kind.Leader) with a 1:1 field correspondence (endpoint_projection→
+  endptproj, insertion_offset→inspt_offset, annotation_enabled→b290).
+  Fix: the objects-loop branch retypes kind.Leader payloads to
+  LEADEROBJECTCONTEXTDATA (constant dxfname per the established typed-
+  retype practice), projects all fields, pops the payload; the
+  R2018b unknown-bits tail comes from the reader side channel
+  byte-identical (LEADEROBJECTCONTEXTDATA was already registered in
+  _UNKNOWN_BITS_TYPES from an earlier survey — the loop-end emission
+  covers it). Non-Leader kinds keep the generic projection — the
+  FCFOBJECTCONTEXTDATA subclass (dwg2.spec right after) stays generic
+  until a carrier shows it.
 
   ~~VIEWPORT.status_flag raw retention~~ — **DONE (2026-09-20 sixteenth
   batch, `263ab5f`; read 679 → 662 / write 685 stays, −17 read rows,

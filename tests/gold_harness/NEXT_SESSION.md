@@ -9,7 +9,7 @@
 
 Continue the acadrust gold-vs-silver roundtrip harness. The campaign target is
 read AND write below **100** on BOTH sides. Current baseline (2026-09-20,
-after fix commit `263ab5f` + its docs commit): read **662** / write **685**
+after fix commit `a7e451b` + its docs commit): read **575** / write **598**
 (124 corpus files; gh44-error.dwg explicitly out of scope via
 `run_corpus.in_scope_files`). The two sides MIRROR family-for-family — every
 wire-family you fix pays double. All remaining mass is reader/writer-side
@@ -28,10 +28,17 @@ class" records; UNKNOWN_OBJ._count zero, _missing 9), `fca5367`
 `fad3042` (ACSH_CONE_CLASS retype, Cone.dwg), `543f877`
 (WIPEOUT/IMAGE imagedefreactor wire codes; WIPEOUT rows zero on the
 write side), `689b14d` (SEQEND real-handle retention; the poly chains
-carry the wire SEQEND handles; SEQEND.ownerhandle rows zero) and
+carry the wire SEQEND handles; SEQEND.ownerhandle rows zero),
 `263ab5f` (VIEWPORT.status_flag raw retention; status_flag rows zero;
 Dynblocks.dwg is 2018-ONLY — the old "Dynblocks R2000/R2018" names were
-wrong; also removed a stray Cone.json from the read-only gold tree).
+wrong; also removed a stray Cone.json from the read-only gold tree),
+`9f06d89` (LEADEROBJECTCONTEXTDATA retype — silver's ObjectContextData
+kind.Leader payloads, Ø1:1 field map incl. the R2018b unknown-bits tail
+via the side channel; CONTEXTDATA rows zero) and `a7e451b` (TOLERANCE
+field-name set — ins_pt/x_direction/text_value projection + the
+R13/R14-only trio popped on R2000+; −63/−63: the family had far more
+carriers than the queue suggested — example_2000, TS1 and the Leader
+files).
 
 **Staleness rule:** always re-read the by-type table from the FRESH
 `target/gold_harness_corpus/report.json` before starting a packet — queue
@@ -62,16 +69,16 @@ with `45382ec` without any packet touching it).
 
 ## Current state (2026-09-20, session handoff)
 
-- HEAD is past fix `263ab5f` on `gold-vs-silver`, pushed; the docs commit
+- HEAD is past fix `a7e451b` on `gold-vs-silver`, pushed; the docs commit
   that carries this file follows it. `cargo test --features serde` = all
   segments ok (roundtrip suite 97/0); `gold_roundtrip` = ok. Working tree
   clean apart from untracked `examples/cylinder_dwg.rs`.
-- Fresh corpus (post-`263ab5f`): read **662** / write **685**. Top rows:
+- Fresh corpus (post-`a7e451b`): read **575** / write **598**. Top rows:
   UNKNOWN_OBJ._missing 8 (LiveSection [SECTION trio]/Surface typing
-  pockets), LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA _count/_missing
-  6 each (typing pair), GROUP.name 6, SORTENTSTABLE.ents 6,
-  MTEXT column trio (width/heights/count/width) 6 each,
-  UNKNOWN_ENT._missing 6, VISUALSTYLE.edge_silhouette_width 9 (write),
+  pockets), GROUP.name 6, SORTENTSTABLE.ents 6,
+  MTEXT columns (width/heights/count/heights) 6 each,
+  SOLID.corner1/2/3 6 each (TS1 ord-shift residue), UNKNOWN_ENT._missing
+  6, VISUALSTYLE.edge_silhouette_width 9 (write),
   3DFACE.z_is_zero 8 (write).
 - Session history 2026-09-20 (all folded into §7/§8.1.6):
   - **PROXY_OBJECT data/data_numbits/objids** (`fa2cb0a`, −13/−13), notes
@@ -119,7 +126,7 @@ with `45382ec` without any packet touching it).
     stores, writer echoes raw-with-typed-fallback, normalizer prefers
     raw, deep-comparer arm normalized per the precedent.
 
-## Packet queue (sizes from the 679/703 report)
+## Packet queue (sizes from the 575/598 report)
 
 1. **UNKNOWN-family retyping pockets** (UNKNOWN_OBJ._missing 8 + LiveSection/
    Surface rows, both sides mirrored; Cone landed as `fad3042`):
@@ -136,17 +143,10 @@ with `45382ec` without any packet touching it).
    REMEMBER: ASSOCSWEPTSURFACEACTIONBODY must STAY UNKNOWN_OBJ (dead
    block); retype by dxf_name only for LIVE blocks; retype must come WITH
    the field projection or it explodes rows.
-   SEQEND.ownerhandle + VIEWPORT.status_flag LANDED (`689b14d`,
-   `263ab5f`); WIPEOUT LANDED (`543f877`) — do NOT re-diagnose.
-2. **LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA typing (~24)** — silver
-   types the object-context records as generic OBJECTCONTEXTDATA where
-   gold decodes LEADEROBJECTCONTEXTDATA (dwg2.spec 4611, live);
-   shows as count_mismatch + missing pairs on every Leader carrier.
-   Retype via dxf_name in normalize (liveness rule §8.1.1) or reader.
-3. **TOLERANCE field-name set (~10 on 2010/Leader)** — gold keys
-   ins_pt/x_direction/text_value vs silver insertion_point/direction —
-   normalize projection, value-gated (dwg.spec TOLERANCE block).
-4. **Small write-side batch**: GROUP.name 6 (wire name T is ALWAYS "",
+   CONTEXTDATA typing LANDED (`9f06d89`); TOLERANCE field names LANDED
+   (`a7e451b`); SEQEND/VIEWPORT/WIPEOUT LANDED (`689b14d`, `263ab5f`,
+   `543f877`) — do NOT re-diagnose.
+2. **Small write-side batch**: GROUP.name 6 (wire name T is ALWAYS "",
    writer writes the model name), MLINE.flags closed-bit (MLINE enum
    HAS_VERTEX=1 | CLOSED=2, dwg.h), 3DFACE.z_is_zero 8 (gold: has_no_
    flags B + z_is_zero B, omits z RDs when zero — silver writes them),
@@ -157,8 +157,9 @@ with `45382ec` without any packet touching it).
    over — spec windows all live in fullsrc/pkt_smalls.txt +
    fullsrc/findings_notes.md. Also TS1's SOLID._count 3 / TRACE._count
    3 ord-shift rows (NOT mesh fallout — they survived `fca5367`;
-   adjudicate separately).
-5. **Residue** — everything below the top-N tables: use
+   adjudicate separately; the SOLID.corner1/2/3 6-each rows are the
+   same TS1 residue now visible in the top-N).
+3. **Residue** — everything below the top-N tables: use
    report.json `*_fidelity_by_type_field` dicts (they are TRUNCATED —
    per-file truth only) and per-file probes.
 
@@ -311,12 +312,13 @@ pattern); a bare launch died once.)
 - Branch `gold-vs-silver`, tracks `origin/gold-vs-silver`.
 - `fix(harness): <packet> — <gold spec ref> + before→after counts`, then a
   separate `docs(harness): …` commit once §7/§8.1.6 are updated; push
-  after each. Landed on 2026-09-20: batches 7–16 = `fa2cb0a` (PROXY),
+  after each. Landed on 2026-09-20: batches 7–18 = `fa2cb0a` (PROXY),
   `b08d346` (DIMSTYLE_CONTROL), `b6e6e92` (LEADER family), `45382ec`
   (MULTILEADER attach trio), `b123b4c` (TABLECONTENT dropped records),
   `fca5367` (VERTEX_MESH dropped records), `fad3042` (ACSH_CONE_CLASS
-  retype), `543f877` (WIPEOUT/IMAGE imagedefreactor codes), `689b14d`
+  retype),   `543f877` (WIPEOUT/IMAGE imagedefreactor codes), `689b14d`
   (SEQEND real-handle retention), `263ab5f` (VIEWPORT.status_flag raw
-  retention), each followed by a docs commit (`8c49887`, `a9031a5`,
-  `9bece22`, `444f4aa`, `3065f74`, `0a79f98`, `bfe7b0d`, `34fd247`,
-  and the one carrying this file).
+  retention), `9f06d89` (LEADEROBJECTCONTEXTDATA retype), `a7e451b`
+  (TOLERANCE field names), each followed by a docs commit (`8c49887`,
+  `a9031a5`, `9bece22`, `444f4aa`, `3065f74`, `0a79f98`, `bfe7b0d`,
+  `34fd247`, `b5e77c0`, and the one carrying this file).
