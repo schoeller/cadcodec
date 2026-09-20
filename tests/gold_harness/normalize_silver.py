@@ -857,6 +857,11 @@ def _map_material(payload: Dict[str, Any], fields: Dict[str, Any], r2007: bool, 
             sub = payload[c]
             for sk, sv in sub.items():
                 if sk == "rgb":
+                    # gold stores the color word as the UNSIGNED 32-bit
+                    # int (0xC2FFFFFF == 3271557119); silver serializes
+                    # the same i32 SIGNED (-1023410177) — emit unsigned.
+                    if isinstance(sv, int):
+                        fields[f"{c}.rgb"] = sv & 0xFFFFFFFF
                     continue
                 fields[f"{c}.{sk}"] = normalize_value(sv)
             consumed.add(c)
@@ -2014,6 +2019,15 @@ def normalize_silver(
                         fields[gk] = normalize_value(v)
                     elif gk != "endptproj":
                         fields[gk] = normalize_value(v)
+            # dimstyle: resolve silver's dimension_style NAME through the
+            # dim-styles table (the DIMENSION branch precedent; gold emits
+            # the handle, code 5).
+            _stl = payload.pop("dimension_style", None)
+            if isinstance(_stl, str):
+                for _e in ((data.get("dim_styles") or {}).get("entries") or {}).values():
+                    if isinstance(_e, dict) and _e.get("name") == _stl:
+                        fields["dimstyle"] = normalize_handle_value(_e.get("handle"))
+                        break
             # path_type: 0 straight, 1 spline
             pt = payload.get("path_type")
             if isinstance(pt, str):
@@ -2270,6 +2284,47 @@ def normalize_silver(
             # share the "Dimension" wrapper — key on the mapped gold type.
             fields.pop("graphic_data", None)
 
+        if silver_type == "Helix":
+            # gold HELIX (dwg2.spec HELIX): flat renames plus the embedded
+            # spline's values. Silver nests the wire spline under `spline`
+            # (its control_points list is EMPTY — silver's reader keeps the
+            # knots only); gold's ctrl_pts is the degenerate REPEAT whose
+            # count derives as len(knots) - degree - 1 (clamped B-spline;
+            # the corpus helix: 30 knots / degree 3 -> 26 zeros). The
+            # entity-common graphic_data never appears in gold's record.
+            fields.pop("graphic_data", None)
+            _sp = payload.pop("spline") if isinstance(payload.get("spline"), dict) else {}
+            bp = payload.pop("axis_base_point", None)
+            if bp is not None:
+                fields["axis_base_pt"] = normalize_value(bp)
+            sp_pt = payload.pop("start_point", None)
+            if sp_pt is not None:
+                fields["start_pt"] = normalize_value(sp_pt)
+            if payload.get("maintenance_version") is not None:
+                fields["maint_version"] = payload.pop("maintenance_version")
+            _ct = payload.pop("constraint", None)
+            fields["constraint_type"] = {"Distance": 0, "Turns": 1, "Height": 2,
+                                          "TurnHeight": 3}.get(_ct, 0)
+            if isinstance(_sp, dict) and _sp:
+                fields["degree"] = _sp.get("degree", 0)
+                fields["knotparam"] = _sp.get("knot_parameterization", 0)
+                fields["knot_tol"] = normalize_float(_sp.get("knot_tolerance", 0.0))
+                fields["ctrl_tol"] = normalize_float(_sp.get("control_tolerance", 0.0))
+                _fl = _sp.get("flags") if isinstance(_sp.get("flags"), dict) else {}
+                fields["closed_b"] = 1 if _fl.get("closed") else 0
+                fields["periodic"] = 1 if _fl.get("periodic") else 0
+                fields["rational"] = 1 if _fl.get("rational") else 0
+                fields["splineflags"] = ((1 if _fl.get("planar") else 0)
+                                         | (2 if _fl.get("linear") else 0))
+                _kn = _sp.get("knots")
+                if isinstance(_kn, list) and _kn:
+                    fields["knots"] = [normalize_float(x) for x in _kn]
+                    _nc = len(_kn) - (_sp.get("degree") or 0) - 1
+                    if _nc > 0:
+                        fields["ctrl_pts"] = [0] * _nc
+                fields["scenario"] = 1
+                fields["weighted"] = 0
+
         # LIGHT entity (dwg2.spec LIGHT, live): gold never serializes
         # light_type/photometric_mode/photometric_data (not even R2018)
         # nor the entity-common graphic_data (census: gold LIGHT records
@@ -2282,6 +2337,15 @@ def normalize_silver(
                 fields["light_color"] = _lc["Index"]
             for _lk in ("light_type", "photometric_mode", "photometric_data"):
                 payload.pop(_lk, None)
+
+        if silver_type == "Tolerance":
+            # gold TOLERANCE dimstyle (FIELD_HANDLE 5): silver keeps the
+            # raw handle under dimension_style_handle; wrap it and consume
+            # the name twin.
+            _ds_h = payload.pop("dimension_style_handle", None)
+            if isinstance(_ds_h, int) and _ds_h:
+                fields["dimstyle"] = normalize_handle_value(_ds_h)
+            payload.pop("dimension_style_name", None)
 
         # MLINE entity (dwg.spec 1569 DWG path): gold emits scale/
         # justification (RC enum)/base_point/extrusion/flags (BS bits)/
