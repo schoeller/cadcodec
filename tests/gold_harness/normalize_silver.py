@@ -832,6 +832,20 @@ def normalize_silver(
                 "Jpg": "JPGUNDERLAY",
             }.get(payload["underlay_type"], gold_type)
 
+        if gold_type == "UNKNOWN_ENT":
+            # Gold's unmodeled-class ENTITIES (UNKNOWN_ENT, the §8.1.1
+            # liveness fallout) serialize with the common fields plus the
+            # raw bits its spec could not decode (unknown_bits/graphic_data
+            # dropped symmetrically in normalize_gold). Silver's
+            # Extended/Unknown variants carry class metadata and the parsed
+            # payloads that would otherwise leak through the generic loop
+            # as extra_in_silver — the Table-entity pop-list precedent.
+            for sk in ("dxf_name", "cpp_class_name", "type_name",
+                       "dwg_type_code", "dwg_handle_bits", "graphic_data",
+                       "raw_dwg_data", "raw_dwg_handle_bits",
+                       "raw_dwg_version", "source_version"):
+                payload.pop(sk, None)
+
         common = payload.get("common", {})
         handle = common.get("handle")
         common_key = "0x{:X}".format(handle) if isinstance(handle, int) else str(handle)
@@ -847,6 +861,13 @@ def normalize_silver(
             _kid_faces = payload.get("faces")
 
         fields = merge_common(common, common_dwg_entry, layer_map)
+        if gold_type == "UNKNOWN_ENT" and "graphic_data" in fields:
+            # Silver's raw passthrough entities keep their graphic-data bytes
+            # in the serde-skipped EntityCommon map (_common_dwg), which
+            # merge_common just folded into `fields` — the payload pop list
+            # above cannot see them. Gold's UNKNOWN_ENT never emits a
+            # graphic-data array.
+            fields.pop("graphic_data", None)
 
         if silver_type == "LwPolyline":
             # Gold LWPOLYLINE: flag (bitfield), points (2D array), bulges,
