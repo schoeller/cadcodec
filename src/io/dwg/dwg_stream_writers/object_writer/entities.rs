@@ -4275,42 +4275,46 @@ impl<'a> DwgObjectWriter<'a> {
             }
         }
 
-        // All MLeader versions carry block labels and this common tail. For
-        // pre-R2007 records it follows the arrowhead override list.
-        self.writer.write_bit_long(e.block_attributes.len() as i32);
-        for ba in &e.block_attributes {
-            // 330 Block Attribute definition handle (hard pointer)
-            let def = ba.attribute_definition_handle.unwrap_or(Handle::NULL);
-            self.writer
-                .write_handle(DwgReferenceType::HardPointer, def.value());
-            // 302 Block Attribute Text String
-            self.writer.write_variable_text(&ba.text);
-            // 177 Block Attribute Index
-            self.writer.write_bit_short(ba.index);
-            // 44 Block Attribute Width
-            self.writer.write_bit_double(ba.width);
+        // dwg2.spec 1418-1445: num_blocklabels + the labels list and the
+        // is_neg_textdir / ipe_alignment / justification / scale_factor
+        // tail are VERSIONS (R_14, R_2007) — on R2010+ none of these bits
+        // are written and the attach trio (dwg2.spec 1449-1451) follows
+        // is_annotative directly. On R2010+ silver's reads store the
+        // MultiLeader::new() defaults, but the wire must not carry them.
+        if !self.version.r2010_plus() {
+            self.writer.write_bit_long(e.block_attributes.len() as i32);
+            for ba in &e.block_attributes {
+                // 330 Block Attribute definition handle (hard pointer)
+                let def = ba.attribute_definition_handle.unwrap_or(Handle::NULL);
+                self.writer
+                    .write_handle(DwgReferenceType::HardPointer, def.value());
+                // 302 Block Attribute Text String
+                self.writer.write_variable_text(&ba.text);
+                // 177 Block Attribute Index
+                self.writer.write_bit_short(ba.index);
+                // 44 Block Attribute Width
+                self.writer.write_bit_double(ba.width);
+            }
+
+            // 294 Text Direction Negative (B)
+            self.writer.write_bit(e.text_direction_negative);
+            // 178 Text Align in IPE (BS)
+            self.writer.write_bit_short(e.text_align_in_ipe);
+            // 179 Text Attachment Point (BS)
+            self.writer.write_bit_short(e.text_attachment_point as i16);
+            // 45 ScaleFactor (BD)
+            self.writer.write_bit_double(e.scale_factor);
         }
 
-        // 294 Text Direction Negative (B)
-        self.writer.write_bit(e.text_direction_negative);
-        // 178 Text Align in IPE (BS)
-        self.writer.write_bit_short(e.text_align_in_ipe);
-        // 179 Text Attachment Point (BS)
-        self.writer.write_bit_short(e.text_attachment_point as i16);
-        // 45 ScaleFactor (BD)
-        self.writer.write_bit_double(e.scale_factor);
-
-        // R2010+: attachment directions — order is dir(271), bottom(272),
-        // top(273) per AutoCAD, NOT the dir/top/bottom of the
-        // public libredwg spec.
+        // R2010+: dwg2.spec 1449-1451 — wire order is dir (271), top
+        // (273), bottom (272); the raws are retained verbatim.
         if self.version.r2010_plus() {
             // 271 Text attachment direction (BS)
-            self.writer
-                .write_bit_short(e.text_attachment_direction as i16);
-            // 272 Bottom text attachment direction (BS)
-            self.writer.write_bit_short(e.text_bottom_attachment as i16);
+            self.writer.write_bit_short(e.dwg_attach_dir);
             // 273 Top text attachment direction (BS)
-            self.writer.write_bit_short(e.text_top_attachment as i16);
+            self.writer.write_bit_short(e.dwg_attach_top);
+            // 272 Bottom text attachment direction (BS)
+            self.writer.write_bit_short(e.dwg_attach_bottom);
         }
 
         // R2013+ field

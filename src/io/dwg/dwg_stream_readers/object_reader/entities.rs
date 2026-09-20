@@ -4559,41 +4559,53 @@ pub fn read_multileader(
         }
     }
 
-    // All MLeader versions carry num_blocklabels (BL) + block labels, then
-    // text-direction / alignment / attachment-point / scale. These fields
-    // immediately follow the pre-R2007 arrowhead override list when present.
+    // dwg2.spec 1418-1445: num_blocklabels + the labels list and the
+    // is_neg_textdir / ipe_alignment / justification / scale_factor tail
+    // are VERSIONS (R_14, R_2007) — on R2010+ none of these bits exist on
+    // the wire and the attach trio (dwg2.spec 1449-1451) follows
+    // is_annotative directly. Keep the MultiLeader::new() defaults for
+    // the absent fields so nothing else changes.
     let mut block_attributes = Vec::new();
-    let ba_count = safe_count(reader.read_bit_long());
-    block_attributes.reserve(ba_count as usize);
-    for _ in 0..ba_count {
-        let def_handle = reader.read_handle();
-        let text = reader.read_variable_text();
-        let index = reader.read_bit_short();
-        let width = reader.read_bit_double();
-        block_attributes.push(BlockAttribute {
-            attribute_definition_handle: if def_handle != 0 {
-                Some(Handle::from(def_handle))
-            } else {
-                None
-            },
-            text,
-            index,
-            width,
-        });
+    let mut text_direction_negative = false;
+    let mut text_align_in_ipe = 0;
+    let mut text_attachment_point = 0;
+    let mut scale_factor = 1.0; // MultiLeader::new() default
+    if !version.r2010_plus() {
+        let ba_count = safe_count(reader.read_bit_long());
+        block_attributes.reserve(ba_count as usize);
+        for _ in 0..ba_count {
+            let def_handle = reader.read_handle();
+            let text = reader.read_variable_text();
+            let index = reader.read_bit_short();
+            let width = reader.read_bit_double();
+            block_attributes.push(BlockAttribute {
+                attribute_definition_handle: if def_handle != 0 {
+                    Some(Handle::from(def_handle))
+                } else {
+                    None
+                },
+                text,
+                index,
+                width,
+            });
+        }
+        text_direction_negative = reader.read_bit();
+        text_align_in_ipe = reader.read_bit_short();
+        text_attachment_point = reader.read_bit_short();
+        scale_factor = reader.read_bit_double();
     }
-    let text_direction_negative = reader.read_bit();
-    let text_align_in_ipe = reader.read_bit_short();
-    let text_attachment_point = reader.read_bit_short();
-    let scale_factor = reader.read_bit_double();
 
     let mut text_attachment_direction: i16 = 0;
     let mut text_bottom_attachment: i16 = 9; // CenterOfText — matches MultiLeader::new() default
     let mut text_top_attachment: i16 = 9; // CenterOfText — matches MultiLeader::new() default
     if version.r2010_plus() {
-        // Order: dir (271), bottom (272), top (273) — per AutoCAD.
+        // dwg2.spec 1449-1451: the wire order is attach_dir (271),
+        // attach_top (273), attach_bottom (272) — the DXF codes are not
+        // in wire order (the former dir/bottom/top read swapped top and
+        // bottom).
         text_attachment_direction = reader.read_bit_short();
-        text_bottom_attachment = reader.read_bit_short();
         text_top_attachment = reader.read_bit_short();
+        text_bottom_attachment = reader.read_bit_short();
     }
 
     let mut extend_leader_to_text = false;

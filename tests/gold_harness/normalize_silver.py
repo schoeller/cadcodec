@@ -2723,11 +2723,11 @@ def normalize_silver(
             # per the spec: R14-R2007 carries arrowheads/blocklabels and the
             # neg/ipe/just/scale tail, SINCE R_2010b class_version, attach_dir
             # and ctx.text_top/bottom, SINCE R_2013b is_text_extended.
-            # Residuals (kept): gold-only `unknown_bits` (silver stores no raw
-            # remainder) and gold's attach_top/attach_bottom BS values (32 /
-            # 4786-style raw codes outside silver's TextAttachmentType enum:
-            # structs/multileader.rs:79 collapses them, so silver's record
-            # cannot express them — see the §8.1.6 DONE entry).
+            # Residuals (kept): gold-only `unknown_bits` (silver stores no
+            # raw remainder). gold's attach_dir/attach_top/attach_bottom BS
+            # raws (dwg2.spec 1449-1451) are retained by silver as the
+            # dwg_attach_* fields since the 2026-09-20 tenth batch and are
+            # projected below.
             _ML_ATTACH = {
                 "TopOfTopLine": 0, "MiddleOfTopLine": 1, "MiddleOfText": 2,
                 "MiddleOfBottomLine": 3, "BottomOfBottomLine": 4, "BottomLine": 5,
@@ -2854,9 +2854,12 @@ def normalize_silver(
             # -- SINCE (R_2010b) / SINCE (R_2013b) --
             if r2010_plus:
                 fields["class_version"] = payload.get("dwg_version", 2)
-                fields["attach_dir"] = _ml_enum(
-                    payload.get("text_attachment_direction"),
-                    {"Horizontal": 0, "Vertical": 1})
+                # dwg2.spec 1449-1451: attach_dir/top/bottom are raw wire
+                # BS values (271/273/272) outside silver's typed enums —
+                # the reader retains them as dwg_attach_*; emit verbatim.
+                fields["attach_dir"] = payload.get("dwg_attach_dir", 0)
+                fields["attach_top"] = payload.get("dwg_attach_top", 0)
+                fields["attach_bottom"] = payload.get("dwg_attach_bottom", 0)
             if r2013_plus:
                 fields["is_text_extended"] = 1 if payload.get("extend_leader_to_text") else 0
 
@@ -2965,7 +2968,8 @@ def normalize_silver(
                        "text_attachment_point", "scale_factor",
                        "text_attachment_direction", "text_top_attachment",
                        "text_bottom_attachment", "extend_leader_to_text",
-                       "dwg_version", "text_height", "graphic_data"):
+                       "dwg_version", "text_height", "graphic_data",
+                       "dwg_attach_dir", "dwg_attach_top", "dwg_attach_bottom"):
                 payload.pop(sk, None)
 
         if silver_type in ("Solid3D", "Region"):

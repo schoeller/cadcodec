@@ -4222,6 +4222,9 @@ impl DwgDocumentBuilder {
                     e.scale_factor = data.scale_factor;
                     e.text_attachment_direction =
                         TextAttachmentDirectionType::from(data.text_attachment_direction);
+                    e.dwg_attach_dir = data.text_attachment_direction;
+                    e.dwg_attach_top = data.text_top_attachment;
+                    e.dwg_attach_bottom = data.text_bottom_attachment;
                     e.text_bottom_attachment =
                         TextAttachmentType::from(data.text_bottom_attachment);
                     e.text_top_attachment = TextAttachmentType::from(data.text_top_attachment);

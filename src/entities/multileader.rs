@@ -949,6 +949,13 @@ pub struct MultiLeader {
     pub text_bottom_attachment: TextAttachmentType,
     /// Text attachment direction.
     pub text_attachment_direction: TextAttachmentDirectionType,
+    /// Raw wire attaches (dwg2.spec 1449-1452, SINCE R_2010b): the BS
+    /// values carry attachment-mode codes outside the typed enums, so the
+    /// raw ints are retained for lossless DWG round-trips and the harness
+    /// (wire order dir 271, top 273, bottom 272).
+    pub dwg_attach_dir: i16,
+    pub dwg_attach_top: i16,
+    pub dwg_attach_bottom: i16,
     /// Text attachment point.
     pub text_attachment_point: TextAttachmentPointType,
     /// Text alignment.
@@ -1012,6 +1019,12 @@ impl MultiLeader {
             text_top_attachment: TextAttachmentType::CenterOfText,
             text_bottom_attachment: TextAttachmentType::CenterOfText,
             text_attachment_direction: TextAttachmentDirectionType::Horizontal,
+            // The raws mirror the typed defaults (Horizontal=0,
+            // CenterOfText=9) so freshly constructed entities and DWG
+            // round-trips agree on both representations.
+            dwg_attach_dir: 0,
+            dwg_attach_top: TextAttachmentType::CenterOfText as i16,
+            dwg_attach_bottom: TextAttachmentType::CenterOfText as i16,
             text_attachment_point: TextAttachmentPointType::Center,
             text_alignment: TextAlignmentType::Left,
             text_angle_type: TextAngleType::Horizontal,
