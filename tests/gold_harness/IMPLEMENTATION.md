@@ -287,8 +287,9 @@ seventh batch, `fa2cb0a`) + DIMSTYLE_CONTROL.morehandles reader capture
 + writer echo (2026-09-20 eighth batch, `b08d346`) + LEADER R2000-pair
 family fix (2026-09-20 ninth batch, `b6e6e92`) + MULTILEADER attach
 trio — R2010 tail gate + raw retention (2026-09-20 tenth batch,
-`45382ec`), 2026-09-20):**
-read-fidelity **707**, write-fidelity **743** — the 1 000 milestone was
+`45382ec`) + UNKNOWN-family dropped-records/typing fixes (TABLECONTENT
+retype, 2026-09-20 eleventh batch, `b123b4c`), 2026-09-20):**
+read-fidelity **695**, write-fidelity **731** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -302,7 +303,8 @@ handle-code unstamp then took −37/−3; the raw-linewt + LAYOUT.viewports
 batch then took −46/−9; the PROXY_OBJECT raw-window/objids batch then took
 −13/−13; the DIMSTYLE_CONTROL.morehandles capture then took −104/0; the
 LEADER R2000-pair family then took −24/−24; the MULTILEADER attach-trio
-batch then took −12/−12 — MULTILEADER rows zero on both sides). gh44-error.dwg
+batch then took −12/−12 — MULTILEADER rows zero on both sides; the
+UNKNOWN-family dropped-records batch then took −12/−12). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -312,16 +314,25 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`45382ec` corpus;
+mirrored read/write; ranking from the fresh post-`b123b4c` corpus;
 PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
-MULTILEADER attach trio landed as batches seven through ten — see
-§8.1.6):**
-1. **UNKNOWN_OBJ.ownerhandle 37 + _missing 15 + _count 9**: the reader
-   ownercode side channel (pipeline-default code 4 vs gold's
-   wire-relative 6/8 — the unknown_bits precedent) + the 3140-class
-   dropped records; ASSOCSWEPTSURFACEACTIONBODY must STAY UNKNOWN_OBJ
-   (dead block) and the Surface dep_on rows ride the SURFACE-typing
-   divergence in silver's reader.
+MULTILEADER attach trio + TABLECONTENT retype landed as batches seven
+through eleven — see §8.1.6):**
+1. **UNKNOWN-family retyping pockets** (ranked from the post-`b123b4c`
+   corpus: UNKNOWN_OBJ._missing 9, _count 0; the queued ownerhandle 37
+   family self-resolved — its rows were downstream desync of the
+   unbated R2010+ MULTILEADER reader, killed by `45382ec`; the 3140-class
+   dropped records were the TABLECONTENT objects, landed as `b123b4c`):
+   (a) Cone.dwg — gold's ACSH_CONE_CLASS record retypes silver's
+   DynamicBlock wrapper (add ACSH_CONE_CLASS to _DYNBLOCK_RETYPE +
+   land the field projection, mirroring the other ACSH classes);
+   (b) LiveSection1.dwg — gold's SECTIONOBJECT/SECTION_MANAGER/
+   SECTION_SETTINGS trio vs silver's UNKNOWN_OBJ/ENT decodes (model or
+   retype via the side channel); (c) Surface.dwg — silver types 5
+   SURFACE records where gold decodes UNKNOWN_ENT (dead frame) + 1
+   PLANESURFACE gold record silver lacks; ASSOCSWEPTSURFACEACTIONBODY
+   must STAY UNKNOWN_OBJ (dead block) and the Surface dep_on rows ride
+   the same SURFACE-typing divergence in silver's reader.
 2. **Reader captures**: VERTEX_MESH._missing 12 (TS1 mesh parse gap),
    SORTENTSTABLE.ents (R2000 entries lost), MLINE.flags closed-bit,
    the poly-SEQEND shadow pairs, LEADEROBJECTCONTEXTDATA/
@@ -793,9 +804,9 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> the MULTILEADER attach-trio batch `45382ec`): read **707** / write
-> **743** — below the 1 000 milestone, closing on the below-100 campaign
-> target — and the two sides MIRROR family-for-family (the
+> the UNKNOWN-family dropped-records batch `b123b4c`): read **695** /
+> write **731** — below the 1 000 milestone, closing on the below-100
+> campaign target — and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
 > unknown_bits side channel −448/−448; the style-map/chain/MLINE batch
@@ -811,9 +822,52 @@ Given a diff `(type, field, kind)`:
 >   evidence in `target/probes/fullsrc/` — see the DONE entry below).
 >   DIMSTYLE_CONTROL.morehandles landed (2026-09-20 eighth batch,
 >   `b08d346`), the LEADER R2000-pair family landed (2026-09-20
->   ninth batch, `b6e6e92`) and the MULTILEADER attach trio landed
+>   ninth batch, `b6e6e92`), the MULTILEADER attach trio landed
 >   (2026-09-20 tenth batch, `45382ec`; MULTILEADER rows zero on both
->   sides) — see their DONE entries below.
+>   sides) and the UNKNOWN-family dropped-records/TABLECONTENT retype
+>   landed (2026-09-20 eleventh batch, `b123b4c`) — see their DONE
+>   entries below.
+
+  ~~UNKNOWN-family dropped records (the "ex-* handle-3140 class")~~ —
+  **DONE (2026-09-20 eleventh batch, `b123b4c`; read 707 → 695 / write
+  743 → 731, −12/−12, mirrored; UNKNOWN_OBJ._missing 15 → 9, _count
+  9 → 0; the residual rows are the separate Cone/LiveSection/Surface
+  typing pockets — re-queued as §7 item 1)**. The family the cold-start
+  queue called "ex2010's handle-3140 class" was TABLECONTENT: one gold
+  UNKNOWN_OBJ record per example_*.dwg — class 529 (dwg2.spec 466),
+  handles 2492 (2000) / 2779 (2004) / 3058 (2007) / 3140 (2010) /
+  3220 (2013) / 2206 (2018), a ~8-14.5 KB record whose 116 089-bit
+  payload gold dumps raw (gold's DWG_OBJECT(TABLECONTENT) block sits
+  inside the `#if defined (DEBUG_CLASSES) || defined (IS_FREE)` frame
+  opened at dwg2.spec 297 — the built dwgread decodes it as UNKNOWN_OBJ
+  with only the common fields; TABLESTYLE at 965 and TABLEGEOMETRY are
+  outside the frame and live, which is why silver projects those
+  two). Silver models the record as the typed `TableContent` object
+  and its raw wire bits ALREADY sit in the reader's
+  `unknown_bits_by_handle` side channel — the record was dropped by the
+  normalizer: the handleless-wrapper guard keyed on
+  `payload["handle"]`, which silver's TableContent objects never carry
+  (their common fields nest under `payload["common"]`), so EVERY
+  handled record was skipped as a phantom — and the stale
+  `OBJECT_TYPE_MAP["TableContent"] = "ACAD_TABLE"` was dead code
+  (gold never emits that name). Fix (normalize_silver.py only):
+  (a) `OBJECT_TYPE_MAP["TableContent"] = "UNKNOWN_OBJ"` — mirroring
+  the landed TABLE-entity UNKNOWN_ENT rule (dwg.spec 477, same dead
+  frame); (b) the guard now resolves the handle from
+  `payload["common"]` (falling back to top level) so only truly
+  handleless wrappers are skipped, and hoists
+  handle/owner/owner_handle/reactors/xdictionary_handle to the top
+  level so `_inject_reactors`/`_inject_xdic`/`_object_common_fields`
+  and the is_xdic_missing/has_ds_data gates see them; the UNKNOWN
+  payload-clear then drops the typed tables payload automatically.
+  Verified: all six example carriers −2 read/−2 write each; the
+  projected records match gold's normalized UNKNOWN_OBJ field-for-field
+  (tolerated `code:null` handle codes; correct per-version gates — no
+  is_xdic_missing on 2000, has_ds_data on 2013+). CAUTION for future
+  packets: the queued ownerhandle-37 family SELF-RESOLVED — those rows
+  were downstream desync of the unbated R2010+ MULTILEADER reader and
+  died with `45382ec`; always re-read the by-type table from the FRESH
+  report before starting a packet, the queue's numbers go stale.
 
   ~~MULTILEADER attach trio~~ — **DONE (2026-09-20 tenth batch,
   `45382ec`; read 719 → 707 / write 755 → 743, −12/−12, mirrored;
