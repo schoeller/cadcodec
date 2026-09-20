@@ -288,8 +288,9 @@ seventh batch, `fa2cb0a`) + DIMSTYLE_CONTROL.morehandles reader capture
 family fix (2026-09-20 ninth batch, `b6e6e92`) + MULTILEADER attach
 trio — R2010 tail gate + raw retention (2026-09-20 tenth batch,
 `45382ec`) + UNKNOWN-family dropped-records/typing fixes (TABLECONTENT
-retype, 2026-09-20 eleventh batch, `b123b4c`), 2026-09-20):**
-read-fidelity **695**, write-fidelity **731** — the 1 000 milestone was
+retype, 2026-09-20 eleventh batch, `b123b4c`) + VERTEX_MESH dropped
+records (TS1, 2026-09-20 twelfth batch, `fca5367`), 2026-09-20):**
+read-fidelity **683**, write-fidelity **719** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -304,7 +305,8 @@ batch then took −46/−9; the PROXY_OBJECT raw-window/objids batch then took
 −13/−13; the DIMSTYLE_CONTROL.morehandles capture then took −104/0; the
 LEADER R2000-pair family then took −24/−24; the MULTILEADER attach-trio
 batch then took −12/−12 — MULTILEADER rows zero on both sides; the
-UNKNOWN-family dropped-records batch then took −12/−12). gh44-error.dwg
+UNKNOWN-family dropped-records batch then took −12/−12; the VERTEX_MESH
+dropped-records batch then took −12/−12). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -314,10 +316,10 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`b123b4c` corpus;
+mirrored read/write; ranking from the fresh post-`fca5367` corpus;
 PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
-MULTILEADER attach trio + TABLECONTENT retype landed as batches seven
-through eleven — see §8.1.6):**
+MULTILEADER attach trio + TABLECONTENT retype + VERTEX_MESH dropped
+records landed as batches seven through twelve — see §8.1.6):**
 1. **UNKNOWN-family retyping pockets** (ranked from the post-`b123b4c`
    corpus: UNKNOWN_OBJ._missing 9, _count 0; the queued ownerhandle 37
    family self-resolved — its rows were downstream desync of the
@@ -333,8 +335,8 @@ through eleven — see §8.1.6):**
    PLANESURFACE gold record silver lacks; ASSOCSWEPTSURFACEACTIONBODY
    must STAY UNKNOWN_OBJ (dead block) and the Surface dep_on rows ride
    the same SURFACE-typing divergence in silver's reader.
-2. **Reader captures**: VERTEX_MESH._missing 12 (TS1 mesh parse gap),
-   SORTENTSTABLE.ents (R2000 entries lost), MLINE.flags closed-bit,
+2. **Reader captures**: SORTENTSTABLE.ents (R2000 entries lost),
+   MLINE.flags closed-bit,
    the poly-SEQEND shadow pairs, LEADEROBJECTCONTEXTDATA/
    OBJECTCONTEXTDATA typing (~24: silver types the AcDbAnnotScaleObject
    contexts as generic OBJECTCONTEXTDATA where gold decodes
@@ -804,8 +806,8 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> the UNKNOWN-family dropped-records batch `b123b4c`): read **695** /
-> write **731** — below the 1 000 milestone, closing on the below-100
+> the VERTEX_MESH dropped-records batch `fca5367`): read **683** /
+> write **719** — below the 1 000 milestone, closing on the below-100
 > campaign target — and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
@@ -824,9 +826,36 @@ Given a diff `(type, field, kind)`:
 >   `b08d346`), the LEADER R2000-pair family landed (2026-09-20
 >   ninth batch, `b6e6e92`), the MULTILEADER attach trio landed
 >   (2026-09-20 tenth batch, `45382ec`; MULTILEADER rows zero on both
->   sides) and the UNKNOWN-family dropped-records/TABLECONTENT retype
->   landed (2026-09-20 eleventh batch, `b123b4c`) — see their DONE
->   entries below.
+>   sides), the UNKNOWN-family dropped-records/TABLECONTENT retype
+>   landed (2026-09-20 eleventh batch, `b123b4c`) and the VERTEX_MESH
+>   dropped records landed (2026-09-20 twelfth batch, `fca5367`) —
+>   see their DONE entries below.
+
+  ~~VERTEX_MESH dropped records (TS1 mesh parse gap)~~ — **DONE
+  (2026-09-20 twelfth batch, `fca5367`; read 695 → 683 / write 731 →
+  719, −12/−12, mirrored; sole carrier 2000/TS1.dwg)**: gold has 12
+  standalone VERTEX_MESH records (handles 528-539, wire flag 64 =
+  POLYGON_MESH, dwg.spec 1199-1220 post-R13b1 order flag RC then point
+  3BD). Silver read them all along — the builder dispatches
+  `OBJ_VERTEX_3D | OBJ_VERTEX_MESH` to `read_vertex3d` — but the
+  normalizer never synthesized the child records: the polyline-family
+  kid-capture tuple listed `"POLYGON_MESH"` (the silver struct name)
+  where the parent's GOLD record name is `POLYLINE_MESH` (per
+  OBJECT/ENTITY_TYPE_MAP), so the capture never fired and `_kid_verts`
+  stayed None. One-word tuple fix + one builder fix — the PolygonMesh
+  assembly stored `flags: 0`, discarding the wire flag the reader had
+  already parsed; retaining `d.flags` makes the synthesized records
+  carry gold's 64 AND keeps the writer echo wire-faithful (the writer
+  already wrote `v.flags` as RC before the 3BD point, so unfaithful
+  zeros were also flowing to the rewrite). Zero new rows: chains/
+  point/flag fields all match gold (the pre-2004 first/last chain
+  model landed with the other vertex families); entities-2d/3d,
+  PolyLine2D, Polyline ×2, PolyLine3D ×2, Polygon, example_2000 row-
+  identical to the pre-fix fresh runs (A/B on entities-2d: zero row
+  changes). TS1's SOLID._count 3 / TRACE._count 3 ord-shift rows did
+  NOT move — separate residue, not mesh fallout. LESSON: the
+  kid-capture/synthesis machinery keys on GOLD record names; a silver
+  struct name in a tuple is silently dead (no crash, no rows).
 
   ~~UNKNOWN-family dropped records (the "ex-* handle-3140 class")~~ —
   **DONE (2026-09-20 eleventh batch, `b123b4c`; read 707 → 695 / write

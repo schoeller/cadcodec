@@ -9,7 +9,7 @@
 
 Continue the acadrust gold-vs-silver roundtrip harness. The campaign target is
 read AND write below **100** on BOTH sides. Current baseline (2026-09-20,
-after fix commit `b123b4c` + its docs commit): read **695** / write **731**
+after fix commit `fca5367` + its docs commit): read **683** / write **719**
 (124 corpus files; gh44-error.dwg explicitly out of scope via
 `run_corpus.in_scope_files`). The two sides MIRROR family-for-family — every
 wire-family you fix pays double. All remaining mass is reader/writer-side
@@ -23,7 +23,8 @@ tree is clean (only the unrelated, campaign-predating untracked
 on 2026-09-20 and are fully closed — do NOT re-diagnose them:
 `45382ec` (MULTILEADER attach trio; MULTILEADER rows zero on both sides) and
 `b123b4c` (TABLECONTENT→UNKNOWN_OBJ retype; the example_* "handle-3140
-class" records; UNKNOWN_OBJ._count zero, _missing 9).
+class" records; UNKNOWN_OBJ._count zero, _missing 9) and `fca5367`
+(VERTEX_MESH dropped records; TS1; VERTEX_MESH rows zero on both sides).
 
 **Staleness rule:** always re-read the by-type table from the FRESH
 `target/gold_harness_corpus/report.json` before starting a packet — queue
@@ -54,17 +55,18 @@ with `45382ec` without any packet touching it).
 
 ## Current state (2026-09-20, session handoff)
 
-- HEAD is past fix `b123b4c` on `gold-vs-silver`, pushed; the docs commit
+- HEAD is past fix `fca5367` on `gold-vs-silver`, pushed; the docs commit
   that carries this file follows it. `cargo test --features serde` = all
   segments ok (roundtrip suite 97/0); `gold_roundtrip` = ok. Working tree
   clean apart from untracked `examples/cylinder_dwg.rs`.
-- Fresh corpus (post-`b123b4c`): read **695** / write **731**. Top rows:
+- Fresh corpus (post-`fca5367`): read **683** / write **719**. Top rows:
   SEQEND.ownerhandle 18 (write), VIEWPORT.status_flag 17 (read),
-  VERTEX_MESH._missing 12 (both), WIPEOUT.imagedefreactor 12 (write),
-  UNKNOWN_OBJ._missing 9, LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA
-  _count/_missing 6 each (typing pair), VISUALSTYLE.edge_silhouette_width 9,
-  3DFACE.z_is_zero 8, SORTENTSTABLE.ents 6, GROUP.name 6, MTEXT
-  column residue 6, UNKNOWN_ENT._missing 6.
+  UNKNOWN_OBJ._missing 9 (Cone/LiveSection/Surface typing pockets),
+  LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA _count/_missing 6 each
+  (typing pair), WIPEOUT.imagedefreactor 12 (write),
+  VISUALSTYLE.edge_silhouette_width 9, 3DFACE.z_is_zero 8,
+  SORTENTSTABLE.ents 6, GROUP.name 6, MTEXT column residue 6,
+  UNKNOWN_ENT._missing 6, RAPIDRTRENDERSETTINGS._missing 6.
 - Session history 2026-09-20 (all folded into §7/§8.1.6):
   - **PROXY_OBJECT data/data_numbits/objids** (`fa2cb0a`, −13/−13), notes
     in its DONE entry.
@@ -81,8 +83,15 @@ with `45382ec` without any packet touching it).
     handleless-wrapper guard skipped EVERY handled record; retype to
     UNKNOWN_OBJ + common-aware guard + common hoist (DONE entry has the
     full recipe).
+  - **VERTEX_MESH dropped records** (`fca5367`, −12/−12): gold's TS1 mesh
+    vertices decode fine in silver (flag 64, point 3BD, dwg.spec
+    1199-1220) — the vanish was normalizer-side: the kid-capture tuple had
+    the silver struct name POLYGON_MESH where the gold record name is
+    POLYLINE_MESH (silently dead), plus the builder zeroed the parsed
+    wire flag. LESSON: kid-capture tuples key on GOLD record names; a
+    silver struct name is silently dead.
 
-## Packet queue (sizes from the 695/731 report)
+## Packet queue (sizes from the 683/719 report)
 
 1. **UNKNOWN-family retyping pockets** (UNKNOWN_OBJ._missing 9 + Cone/
    LiveSection/Surface rows, both sides mirrored): (a) 2000/Cone.dwg —
@@ -115,20 +124,15 @@ with `45382ec` without any packet touching it).
    copy): imagedef(code 5) between image_size 2RD and display_props BS,
    imagedefreactor(code 3) after fade RC. Fix writer order/codes; verify
    the stray `{3,0}` disappears via dump_section_bytes on the rt record.
-5. **VERTEX_MESH._missing 12 (TS1 mesh parse gap)** — silver drops
-   VERTEX_MESH records; gold spec is trivial (flag RC + point 3BD).
-   NOTE: TS1 also shows SOLID._count 3 / TRACE._count 3 (ord-shifts) —
-   likely the same reader gap shifting downstream records; fix one,
-   re-check the other.
-6. **LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA typing (~24)** — silver
+5. **LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA typing (~24)** — silver
    types the object-context records as generic OBJECTCONTEXTDATA where
    gold decodes LEADEROBJECTCONTEXTDATA (dwg2.spec 4611, live);
    shows as count_mismatch + missing pairs on every Leader carrier.
    Retype via dxf_name in normalize (liveness rule §8.1.1) or reader.
-7. **TOLERANCE field-name set (~10 on 2010/Leader)** — gold keys
+6. **TOLERANCE field-name set (~10 on 2010/Leader)** — gold keys
    ins_pt/x_direction/text_value vs silver insertion_point/direction —
    normalize projection, value-gated (dwg.spec TOLERANCE block).
-8. **Small write-side batch**: GROUP.name 6 (wire name T is ALWAYS "",
+7. **Small write-side batch**: GROUP.name 6 (wire name T is ALWAYS "",
    writer writes the model name), MLINE.flags closed-bit (MLINE enum
    HAS_VERTEX=1 | CLOSED=2, dwg.h), 3DFACE.z_is_zero 8 (gold: has_no_
    flags B + z_is_zero B, omits z RDs when zero — silver writes them),
@@ -136,8 +140,10 @@ with `45382ec` without any packet touching it).
    (0xFFCE) vs silver -50 — check the BL vs BS sign handling),
    SORTENTSTABLE.ents (R2000 entries lost), MTEXT column residue,
    LEADER boxes at 6 each carry over — spec windows all live in
-   fullsrc/pkt_smalls.txt + fullsrc/findings_notes.md.
-9. **Residue** — everything below the top-N tables: use
+   fullsrc/pkt_smalls.txt + fullsrc/findings_notes.md. Also TS1's
+   SOLID._count 3 / TRACE._count 3 ord-shift rows (NOT mesh fallout —
+   they survived `fca5367`; adjudicate separately).
+8. **Residue** — everything below the top-N tables: use
    report.json `*_fidelity_by_type_field` dicts (they are TRUNCATED —
    per-file truth only) and per-file probes.
 
@@ -290,8 +296,9 @@ pattern); a bare launch died once.)
 - Branch `gold-vs-silver`, tracks `origin/gold-vs-silver`.
 - `fix(harness): <packet> — <gold spec ref> + before→after counts`, then a
   separate `docs(harness): …` commit once §7/§8.1.6 are updated; push
-  after each. Landed on 2026-09-20: batches 7–11 = `fa2cb0a` (PROXY),
+  after each. Landed on 2026-09-20: batches 7–12 = `fa2cb0a` (PROXY),
   `b08d346` (DIMSTYLE_CONTROL), `b6e6e92` (LEADER family), `45382ec`
   (MULTILEADER attach trio), `b123b4c` (TABLECONTENT dropped records),
-  each followed by a docs commit (`8c49887`, `a9031a5`, `9bece22`,
-  `444f4aa` + `3065f74`, and the one carrying this file).
+  `fca5367` (VERTEX_MESH dropped records), each followed by a docs commit
+  (`8c49887`, `a9031a5`, `9bece22`, `444f4aa`, `3065f74`, `0a79f98`,
+  and the one carrying this file).
