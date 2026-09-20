@@ -276,14 +276,16 @@ family block handle + pre-R2013 classes-verbatim roundtrip +
 unmodeled-class (UNKNOWN_OBJ/ENT) projections + UNKNOWN_ENT
 _common_dwg graphic-data strip + U2 dynamic-block-class retype map +
 unknown_bits raw-remainder side channel + text-style map/ATTDEF trio +
-INSERT attrib/seqend chain + MLINE projection (2026-09-20 second batch),
-2026-09-20):**
-read-fidelity **1 931**, write-fidelity **1 805** — both sides MIRROR
+INSERT attrib/seqend chain + MLINE projection + POLYLINE_3D/GROUP/PFACE/
+VIEWPORT-named_ucs + ASSOC actionbody/path retype family (2026-09-20
+third batch), 2026-09-20):**
+read-fidelity **1 453**, write-fidelity **1 312** — both sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
 used to be cancelled by symmetric counterfeit garbage; the UNKNOWN
 projections then took −308/−324; U2 then took −719/−720; the unknown_bits
 side channel then took −448/−448; the style-map/chain/MLINE batch then took
-−327/−319). gh44-error.dwg
+−327/−319; the POLYLINE_3D/GROUP/PFACE/ASSOC-retype batch then took
+−478/−493). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -291,14 +293,23 @@ it, inflating totals to 7689/7559).
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20 halt after the style-map/chain/MLINE batch,
-tops mirrored read/write; ranking from the fresh post-`29459bf` corpus):**
-1. **POLYLINE_3D family** (~13 rows × 13 per field, ~150/side): curve_type/
-   flag(s)/seqend/smooth_type/default_start_width/default_end_width/
-   mesh_m_count/mesh_n_count/…/elevation/extrusion/vertices — silver's
-   Poly3D payload shape never got the per-field projection (the POLYLINE_2D/
-   PFACE branches landed; 3D-specific remain).
-2. **UNKNOWN_OBJ residue** (_missing 53 + ownerhandle 44 read / 27 write):
+**Next packets (2026-09-20 halt after the POLYLINE_3D/GROUP/Associative-
+retype batch, tops mirrored read/write; ranking from the fresh
+post-`bd02a3e` corpus):**
+1. **PROXY_OBJECT data/data_numbits 30+30 + objids 18**: silver's
+   ProxyObject wrapper keeps parsed fields plus raw proxy bits
+   (payload/text_payload) — gold dumps data hex + numbits + objids; decide
+   derivability (a proxy-data side-channel like unknown_bits, or a
+   projection from the raw bits if the wrapper keeps them whole). Locate
+   carriers first from a clean report.
+2. **UNKNOWN_OBJ residue** (_missing 53 + ownerhandle 37 read): (a) the
+   owner codes — pipeline-default 4 where gold emits wire-relative 6/8:
+   needs an ownercode side channel in silver's reader (the unknown_bits
+   precedent); (b) example_2010 3140: gold UNKNOWN_OBJ record silver
+   drops entirely (reader gap); (c) ASSOCSWEPTSURFACEACTIONBODY stays
+   UNKNOWN_OBJ in gold (dead block — do NOT retype; the residual
+   dep_on rows 5 on Surface are tied to the SURFACE/PLANESURFACE entity
+   typing divergence in silver's reader).
    (a) records silver still types UNKNOWN that gold types by live class —
    ASSOCACTION (Associative dxf_name ACDBASSOCACTION), SUN (ClassObject
    data.Sun), TABLEGEOMETRY (DataObject data.TableGeometry),
@@ -310,25 +321,27 @@ tops mirrored read/write; ranking from the fresh post-`29459bf` corpus):**
    unknown_bits precedent);
    (c) example_2010 3140: gold UNKNOWN_OBJ record silver drops
    entirely (reader gap).
-3. **PROXY_OBJECT data/data_numbits 30/30 + objids 18** (the §8.1.1 objids
-   trailing-null byte-geometry lesson: gold stops at `hdl_dat->byte <
-   size - 1`; parcels live on the proxy-class files — locate them from a
-   clean report before starting; silver's wrapper keeps parsed fields plus
-   raw proxy bits, so the hex may be derivable).
-4. **GROUP.\* 4×13** (name/groups/description/entities): whole-entity
-   projection missing (stem-collision inflated — fresh Group roundtrip
-   first). Also IMAGEDEF.image_size/file_path on ATMOS (gold wants the
-   path string + BD size pair; silver emits file_name only).
-5. **VIEWPORT.named_ucs 29 / status_flag 17**, VERTEX_PFACE_FACE.flag 18,
-   HATCH.paths 15, CIRCLE.linewt 14 (Dynblocks R2018, off-by-one on the
-   last ~14 records, gold 28 vs silver 29 — adjudicate the wire with
-   dump_section_bytes), DIMSTYLE_CONTROL.morehandles 19, the pre-existing
-   poly-SEQEND shadow pairs (ex2010 wires per-record shadow commons that
-   silver's synthesized SEQENDs cannot see — needs a seqend storage
-   side-channel or reader parsing).
-6. **ASSOCDEPENDENCY.ownerhandle/dep_on + ASSOCNETWORK.owned_actions +
-   ASSOCACTION count rows** (Surface/ex2010): mostly resolved-target names
-   that die with the ASSOCACTION retype in packet 2.
+3. **DIMSTYLE_CONTROL.morehandles 19**: gold's HANDLE_VECTOR uses its own
+   wire count `num_morehandles` (dwg.spec 4177: RCu, "additional hard
+   handles, undocumented") which silver's reader does not store —
+   emitting the whole dim-style table produced 109 wrong_value rows (the
+   2026-09-20 regression-and-revert); needs a reader morehandles capture.
+4. **Scattered entity families**: RAY/XLINE point/vector/base_point/
+   direction + LINE.linewt (13 each), IMAGEDEF.image_size/file_path/
+   resunits/size_in_pixels (~55 on the ATMOS-era carriers), HATCH.paths 15
+   + deflines 12, MULTILEADER.graphic_data 12, CIRCLE.linewt 14
+   (Dynblocks R2018, off-by-one on the last ~14 records, gold 28 vs
+   silver 29 — adjudicate the wire with dump_section_bytes), the
+   pre-existing poly-SEQEND shadow pairs (ex2010 wires per-record shadow
+   commons silver's synthesized SEQENDs cannot see — a seqend storage
+   side-channel or reader parsing), TS1's 12 dropped VERTEX_MESH records
+   (reader parse gap), 3DSOLID/REGION.encr_sat_data on R2000 (accepted
+   residual), ASSOCDEPENDENCY.dep_on 5 (the SURFACE entity-typing
+   divergence in the reader).
+5. **VX family**: gold VX_CONTROL + VX_TABLE_RECORD records that silver's
+   reader drops entirely (2000-era files; VIEWPORT.vport_entity_header
+   rows die together with them) plus INSERT.owns/ACAD_TABLE count rows —
+   all reader-side.
 
    Liveness discipline reminder (the SECTIONVIEWSTYLE/DETAILVIEWSTYLE
    incident, verified `0be4d76`): the UNKNOWN-family payload-clear runs
@@ -765,18 +778,73 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> packets `b40ba42`…`29459bf`): read **1 931** / write **1 805** — both
-> sides BELOW the 2 000 interim milestone — and the two sides MIRROR
-> family-for-family (the phantom-class un-masking made the write diff
-> honest; the UNKNOWN projections took −308/−324; the U2 retype map
-> −719/−720; the unknown_bits side channel −448/−448; the style-map/chain/
-> MLINE batch −327/−319).
+> packets `b40ba42`…`bd02a3e`): read **1 453** / write **1 312** — both
+> sides BELOW the 2 000 interim milestone ("below 1 000" campaign target
+> not yet reached) — and the two sides MIRROR family-for-family (the
+> phantom-class un-masking made the write diff honest; the UNKNOWN
+> projections took −308/−324; the U2 retype map −719/−720; the
+> unknown_bits side channel −448/−448; the style-map/chain/MLINE batch
+> −327/−319; the POLYLINE_3D/GROUP/PFACE/Associative-retype batch
+> −478/−493).
 > Next-packet handoff: the "Next packets" block in §7. Remaining mass:
-> the POLYLINE_3D per-field family ~150, UNKNOWN_OBJ._missing 53 +
-> ownerhandle 44, PROXY_OBJECT data/data_numbits 60 + objids 18,
-> VIEWPORT.named_ucs 29, GROUP 4×13, VERTEX_PFACE_FACE 18, HATCH.paths 15,
-> CIRCLE.linewt 14, plus the ASSOCACTION retype + ownercode side channel
-> (probes `ch_*`/`ub2_*`).
+> PROXY_OBJECT data/data_numbits 60 + objids 18, UNKNOWN_OBJ._missing 53 +
+> ownerhandle 37 (ownercode side channel + the reader-ownercode gap),
+> DIMSTYLE_CONTROL.morehandles 19 (reader num_morehandles), RAY/XLINE/
+> LINE.linewt ~100, IMAGEDEF ~55, HATCH ~27, MULTILEADER.graphic_data 12,
+> CIRCLE.linewt 14, VX reader family, the poly-SEQEND shadow pairs and
+> the 3140/TS1 dropped-record reader gaps (probes `r2_*`/`rt_*`).
+
+   ~~POLYLINE_3D family + GROUP + PFACE chains + VIEWPORT named_ucs +
+   ASSOC actionbody/path retypes~~ — **DONE (2026-09-20 third batch,
+   `bd02a3e`; read 1 931 → 1 453 / write 1 805 → 1 312, −478/−493)**,
+   all normalizer work: (a) **POLYLINE_3D parent fields** — curve_type
+   (0 on every corpus record), flag (1 closed, 4 spline-fit; the 3D/
+   mesh type bits are implied by the record type), kid links: R2004a+
+   `vertex` handle vector (gold code 3) + `seqend`; pre-2004 first/
+   last_vertex (code 4); silver's width/mesh/smooth/elevation/extrusion
+   storage fields popped BEFORE the generic loop (popping after left
+   extra_in_silver rows). VERTEX_3D chains: gold's LAST vertex chains
+   back (prev = previous kid, code 8) — verified 2000-era PolyLine3D/ex.
+   (b) **GROUP** (dwg2.spec): the wire name T is ALWAYS "" (even for a
+   named `GROUPNAME` group — names live in the owning dictionary);
+   `groups` = the member handle vector (silver `entities`, same order);
+   no description/entities fields on DWG. (c) **PFACE kids**: verts
+   chain ONLY at the first vertex (middles+last bare nolinks=1 — unlike
+   MESH which chains both ends, unlike 3D which chains back at the
+   end); FACE records: constant flag 128 (census 111/111), pre-2004
+   chains: only the LAST face prev=previous face, all others nolinks=1.
+   (d) **VIEWPORT.named_ucs**: silver stores the viewport UCS under
+   `ucs_handle` (the old code read a nonexistent `named_ucs_handle` and
+   emitted None on every record). (e) **DIMSTYLE_CONTROL.morehandles**:
+   TRIED and REVERTED — gold's HANDLE_VECTOR uses the wire RCu
+   `num_morehandles` (dwg.spec 4176-4182, undocumented) which silver's
+   reader does not keep; emitting the whole dim-style table produced 109
+   wrong_value rows (19 → 109 → back to 19). Needs a reader capture.
+   (f) **Associative retypes** (the U2 recipe, all in
+   _UNKNOWN_BITS_TYPES so the side channel emits their unknown_bits):
+   ASSOCACTION (deps = [0]*n; owned_params handle vector SINCE R_2013),
+   ASSOCOSNAPPOINTREFACTIONPARAM (gold wire constants osnap_mode 160 /
+   param 0.0 on every corpus record — silver's parsed 1/-1.0 must NOT be
+   emitted), ASSOCVERTEXACTIONPARAM (asdap_class_version/dep/pt from the
+   single_dependency nesting), ASSOCPATHACTIONPARAM (params omitted when
+   empty), the SURFACE ACTIONBODY family EXTRUDED/LOFTED/REVOLVED/PLANE
+   (aab_version<-action_body.version, version<-surface_body.version,
+   minor<-parameter_body.minor, deps<-parameter_body.dependencies,
+   l4=0, pab.values = [0]*n, assocdep = deps[0]-1 verified 3/3 non-plane
+   classes — the PLANE class keeps the raw [0,0] null and extra l5=0,
+   is_semi_* <- surface_body flags, l2 <- surface_body marker,
+   grip_status, pbsab_status 0, class_version). CONSTRAINT: gold types
+   ASSOCSWEPTSURFACEACTIONBODY UNKNOWN_OBJ (dead block — do NOT retype).
+   SUN (ClassObject data.Sun): full flat projection; color: gold prints
+   the bare index (7) when silver stores {"Index": 7} (pre-R2004 CMC)
+   vs {"index": 7, "rgb": "c2…"} for the Rgb form. TABLEGEOMETRY
+   (DataObject data.TableGeometry): numrows/numcols + cells = [0]*n
+   (degenerate REPEAT). ASSOCNETWORK: owned_actions = wrap-vector,
+   actions = [0]*n. Verified per-file ex2000/2004(R2004 Surface)/2010/
+   2013/2018 + Dynblocks (write side down to 31): all retyped families
+   ZERO on both sides; residual: ASSOCDEPENDENCY.dep_on 5 on Surface
+   (silver's reader types the surface entities SURFACE where gold reads
+   PLANESURFACE/UNKNOWN_ENT), poly-SEQEND shadow pairs, VX reader drops.
 
    ~~text-style map + ATTDEF trio + INSERT chain + MLINE~~ — **DONE
    (2026-09-20 second batch, `29459bf`; read 2 258 → 1 931 / write 2 124 →
