@@ -274,37 +274,37 @@ fabricated-Standard-DIMSTYLE removal + 3DSOLID prologue-divergence
 projection + MTEXT R2018 redundant extents/ignore_attachment + DIMENSION
 family block handle + pre-R2013 classes-verbatim roundtrip +
 unmodeled-class (UNKNOWN_OBJ/ENT) projections + UNKNOWN_ENT
-_common_dwg graphic-data strip, 2026-09-20):**
-read-fidelity **3 425**, write-fidelity **3 292** — both sides MIRROR
+_common_dwg graphic-data strip + U2 dynamic-block-class retype map,
+2026-09-20):**
+read-fidelity **2 706**, write-fidelity **2 572** — both sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
 used to be cancelled by symmetric counterfeit garbage; the UNKNOWN
-projections then took −308/−324). gh44-error.dwg stays out of scope
-(explicit guard in `run_corpus.in_scope_files`, `246e60a`; the new `-nan`
-shim in normalize_gold had briefly re-included it, inflating totals to
-7689/7559).
+projections then took −308/−324; U2 then took −719/−720). gh44-error.dwg
+stays out of scope (explicit guard in `run_corpus.in_scope_files`,
+`246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
+it, inflating totals to 7689/7559).
 `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20 halt, tops mirrored read/write):**
-1. **U2 — dynamic-block-class retype map** (largest single family left,
-   ~380/side): silver's `DynamicBlock` wrapper bucket swallows records
-   gold types BY LIVE CLASS NAME — Dynblocks census: gold
-   BLOCKGRIPLOCATIONCOMPONENT 34 / BLOCKSTRETCHACTION 9 /
-   BLOCKREPRESENTATION 7 / DYNAMICBLOCKPURGEPREVENTER 6 / BLOCK*GRIP/
-   *PARAMETER/*ACTION classes ≈ 92 records vs silver's 92 UNKNOWN_OBJ
-   (gold has only 1 true UNKNOWN_OBJ there); ATMOS carries 112 the same
-   way. Retype by `payload.dxf_name` → the gold class block name (all
-   live in dwg2.spec — the ACSH_HISTORY_CLASS precedent at the
-   DynamicBlock retype site), then land per-class field projections from
-   silver's `data.<Kind>` payloads. PROXY_OBJECT (30) is the same retype
-   class: silver maps ProxyObject→UNKNOWN_OBJ but gold emits
-   PROXY_OBJECT (dwg.spec 5752, live).
-2. **unknown_bits floor** (~260/side in tops: TABLESTYLE 121, DIMASSOC 62,
-   EVALUATION_GRAPH 56, ASSOCDEPENDENCY 36, ASSOCVARIABLE 22): needs the
-   raw-remainder reader feature (keep undecoded bit ranges verbatim).
-3. Small mixed: VIEWPORT.named_ucs 29, ATTDEF.style 26 / TEXT.style 21,
-   UNKNOWN_OBJ.ownerhandle 28-44, ATTRIB._missing 18, MTEXT column shapes.
+**Next packets (2026-09-20 halt after U2, tops mirrored read/write):**
+1. **unknown_bits floor** (~400/side in tops: TABLESTYLE 121, DIMASSOC 62,
+   EVALUATION_GRAPH 56, ACSH_FILLET_CLASS 50, ASSOCDEPENDENCY 36,
+   ASSOCVARIABLE 22, ASSOCDIMDEPENDENCYBODY 18, ASSOCVALUEDEPENDENCY 18,
+   plus PROXY_OBJECT data/data_numbits 60 and the U2 residuals
+   BLOCKSTRETCHACTION 9/BLOCKREPRESENTATION 7/DYNAMICBLOCKPURGEPREVENTER 6):
+   needs the raw-remainder side channel in silver's reader (keep undecoded
+   bit ranges verbatim per record, like the xdic_by_handle precedent) so the
+   normalizer can emit gold's unknown_bits hex.
+2. **Small mixed families** (~250/side): UNKNOWN_OBJ._missing 53 +
+   UNKNOWN_OBJ.ownerhandle 44 (wrapper owner codes), VIEWPORT.named_ucs 29,
+   ATTDEF.style 26 / TEXT.style 21 (style-handle resolution), PROXY_OBJECT
+   .objids 18 (trailing-null count divergence — gold stops at
+   `hdl_dat->byte < size - 1`; silver's loop reads 1-2 terminator handles
+   more; needs exact byte-geometry work), INSERT.seqend/SEQEND._missing 36,
+   ATTRIB._missing 18, VERTEX_PFACE_FACE.flag 18, VIEWPORT.status_flag 17,
+   HATCH.paths 15, ATTDEF.lock_position_flag 14, CIRCLE.linewt 14,
+   GROUP.* 13×4, DIMSTYLE_CONTROL.morehandles 19.
 
    Liveness discipline reminder (the SECTIONVIEWSTYLE/DETAILVIEWSTYLE
    incident, verified `0be4d76`): the UNKNOWN-family payload-clear runs
@@ -749,6 +749,67 @@ Given a diff `(type, field, kind)`:
 > DIMASSOC.unknown_bits 62, EVALUATION_GRAPH 56, ACSH_FILLET 50,
 > BLOCKGRIPLOCATIONCOMPONENT 34, PROXY_OBJECT 30, VIEWPORT.named_ucs 29,
 > ATTDEF/TEXT.style ~47, plus the unknown_bits floor needing raw remainders).
+
+   ~~U2 — dynamic-block-class retype map~~ — **DONE (2026-09-20, `6a97535`;
+   read 3 425 → 2 706 / write 3 292 → 2 572, −719/−720)**: retyped +
+   projected the whole dynamic-block family out of silver's wrappers.
+   Recipe (the spec-parse groundwork lives in
+   `target/probes/spec_parse.py` — a reusable LibreDWG spec parser with
+   preprocessor-frame liveness tracking; `classes_census.py` cross-checks
+   classes.inc dispatch verdicts): (a) the retype dispatch at the
+   DynamicBlock site keys `payload.dxf_name` (upper-cased) through
+   `_DYNBLOCK_RETYPE`; deliberately absent: BLOCKPROPERTIESTABLE(+GRIP) +
+   DYNAMICBLOCKPROXYNODE (DEBUGGING_CLASS_DXF → gold emits UNKNOWN_OBJ —
+   they must stay UNKNOWN) and the classes without landed projections
+   (lookup/array/polar-stretch actions, user/XY parameters, constraint
+   parameters, ACSH sphere/cone). (b) render classes are ClassObject
+   wrappers keeping NO dxf_name — dispatch on `data.<Kind>`
+   (RenderGlobal/RenderEntry/MentalRayRenderSettings); CELLSTYLEMAP is a
+   DataObject → cells `[0]*n` (the degenerate REPEAT class); ProxyObject
+   wrapper → PROXY_OBJECT (dxfname "ACAD_PROXY_OBJECT", proxy_id ←
+   class_id — silver's own `proxy_id` is the constant 499 the spec
+   comment mentions; gold's `proxy_id` is the wire class number).
+   (c) out_json emission model (all bit-verified on fresh Dynblocks/ATMOS
+   runs, `target/probe_u2/`): `_path_field` strips `x[i].` prefixes so
+   BlockAction connections emit PLAIN duplicate `code`/`name` keys that
+   collapse **last-wins** in the parsed JSON (the surviving name belongs
+   to the LAST connection, not the element — element.name is emitted
+   first and overwritten); REPEAT2 sub-fields emit `<prop><n>.connections`
+   only when non-empty; `prop_states` (FIELD_VECTOR_N BL×4) lands as
+   gold's 4-int array → the int-array→handle-dict heuristic
+   {code:s0,size:s1,value:s2,absref:s3}; `num_propinfos` is never emitted;
+   value_set SUB_FIELDs emit plain `desc/flags/minimum/maximum/increment/
+   valuelist` with valuelist present even when `[]`; the element
+   be_major/be_minor pair is DECODER-only (silver's element.major/minor
+   have no gold counterpart). (d) silver payload nesting is DOUBLE for
+   parameters (`data.LinearParameter.parameter.parameter.element`) and
+   WithBasePoint actions (`data.RotateAction.action.action.element` +
+   offset/dependent/base_point on `.action`) — the flat BlockAction/
+   StretchAction shapes are single-nested. (e) silver's StretchAction
+   stores gold-compatible pts/handles/codes (hdls/codes collapse to
+   `[0]*n` in the norm via the dict-collapse heuristic) and offsets —
+   the angle_offset denormal-vs-0.0 divergence is a non-issue
+   (normalize rounds to 14 decimals → both 0.0). (f) normalize_gold
+   gained symmetric divergent-field drops for gold-decoded-derailed
+   records (the 3DSOLID-prologue precedent): RENDERENTRY (zombie 256s,
+   render_time reading the BD '01' 1.0 special, minute/second swapped,
+   display_index/light/material/memory/triangle garbage) and
+   ACSH_BREP_CLASS (major 3528495168, acis_data [""]; silver's own
+   operation_major/minor store the same derailed bits differently).
+   Residuals kept for the raw-remainder packet: unknown_bits on
+   BLOCKSTRETCHACTION(9)/BLOCKREPRESENTATION(7)/DYNAMICBLOCKPURGEPREVENTER
+   (6)/ACSH_FILLET_CLASS(50), PROXY_OBJECT data/data_numbits (60 pooled).
+   NOT fixed: PROXY_OBJECT.objids (18 pooled) — gold's objid loop stops at
+   `hdl_dat->byte < hdl_dat->size - 1` (hdl_dat->size = the record's MS
+   size, byte from bitsize/8); silver's `handle_remaining_bits() >= 8`
+   reads 1-2 trailing terminator null-handles more (Constraints 2018:
+   gold 8/3/3/3/3 vs silver 10/4/4/3/3); neither a `> 8` loop bound nor
+   bit-geometry arithmetic reproduced gold's exact stop — needs the real
+   byte-geometry instrumentation before touching. Per-file verified:
+   Dynblocks 480→194/441→154, ATMOS 335→147/325→135, Constraints-2018
+   15→14, Constraints-2013 4→4; corpus re-run WITH §8.1.0 env (a corpus
+   run without GOLD_DWGREAD silently re-reads stale per-stem artifacts —
+   caught this time by Dynblocks showing the pre-packet 480).
 
    ~~xdic family + LAYER visualstyle~~ — **DONE (2026-09-19, first reader-PR
    packet of the campaign)**: the top read rows after the 2026-09-19 session
