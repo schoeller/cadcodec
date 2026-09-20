@@ -3730,8 +3730,16 @@ def normalize_silver(
             payload.pop("entry_map", None)
             if isinstance(_ents, list) and _ents:
                 fields["num_ents"] = len(_ents)
+                # gold dumps BOTH DXF-only handle vectors on DWG too
+                # (verified: sort_ents code-0 vector + ents code-4
+                # vector, zipped pair-in-order — silver's entries carry
+                # exactly gold's (entity, sort) pairing).
                 fields["sort_ents"] = [
                     normalize_handle_value(e.get("sort_handle"))
+                    for e in _ents if isinstance(e, dict)
+                ]
+                fields["ents"] = [
+                    normalize_handle_value(e.get("entity_handle"))
                     for e in _ents if isinstance(e, dict)
                 ]
         _vw_data = (payload.get("data")
