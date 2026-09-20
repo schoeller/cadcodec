@@ -277,15 +277,19 @@ unmodeled-class (UNKNOWN_OBJ/ENT) projections + UNKNOWN_ENT
 _common_dwg graphic-data strip + U2 dynamic-block-class retype map +
 unknown_bits raw-remainder side channel + text-style map/ATTDEF trio +
 INSERT attrib/seqend chain + MLINE projection + POLYLINE_3D/GROUP/PFACE/
-VIEWPORT-named_ucs + ASSOC actionbody/path retype family (2026-09-20
-third batch), 2026-09-20):**
-read-fidelity **1 453**, write-fidelity **1 312** — both sides MIRROR
+VIEWPORT-named_ucs + ASSOC actionbody/path retype family + RAY/XLINE/
+IMAGEDEF/HATCH degenerates/VX family/LIGHT/RASTERVARIABLES/MULTILEADER +
+ARC_DIMENSION graphic + HELIX family/LEADER/TOLERANCE dimstyle/MATERIAL
+rgb (2026-09-20 fourth + fifth batches), 2026-09-20):**
+read-fidelity **943**, write-fidelity **804** — **BOTH SIDES BELOW THE
+1 000 CAMPAIGN TARGET** — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
 used to be cancelled by symmetric counterfeit garbage; the UNKNOWN
 projections then took −308/−324; U2 then took −719/−720; the unknown_bits
 side channel then took −448/−448; the style-map/chain/MLINE batch then took
-−327/−319; the POLYLINE_3D/GROUP/PFACE/ASSOC-retype batch then took
-−478/−493). gh44-error.dwg
+−327/−319; the POLYLINE_3D/GROUP/PFACE/Associative-retype batch then took
+−478/−493; the RAY/XLINE/IMAGEDEF/HATCH/VX/LIGHT batch then took −338/−336;
+the HELIX/dimstyle/MATERIAL-rgb batch then took −172/−172). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -293,34 +297,35 @@ it, inflating totals to 7689/7559).
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20 halt after the POLYLINE_3D/GROUP/Associative-
-retype batch, tops mirrored read/write; ranking from the fresh
-post-`bd02a3e` corpus):**
-1. **PROXY_OBJECT data/data_numbits 30+30 + objids 18**: silver's
-   ProxyObject wrapper keeps parsed fields plus raw proxy bits
-   (payload/text_payload) — gold dumps data hex + numbits + objids; decide
-   derivability (a proxy-data side-channel like unknown_bits, or a
-   projection from the raw bits if the wrapper keeps them whole). Locate
-   carriers first from a clean report.
-2. **UNKNOWN_OBJ residue** (_missing 53 + ownerhandle 37 read): (a) the
-   owner codes — pipeline-default 4 where gold emits wire-relative 6/8:
-   needs an ownercode side channel in silver's reader (the unknown_bits
-   precedent); (b) example_2010 3140: gold UNKNOWN_OBJ record silver
-   drops entirely (reader gap); (c) ASSOCSWEPTSURFACEACTIONBODY stays
-   UNKNOWN_OBJ in gold (dead block — do NOT retype; the residual
-   dep_on rows 5 on Surface are tied to the SURFACE/PLANESURFACE entity
-   typing divergence in silver's reader).
-   (a) records silver still types UNKNOWN that gold types by live class —
-   ASSOCACTION (Associative dxf_name ACDBASSOCACTION), SUN (ClassObject
-   data.Sun), TABLEGEOMETRY (DataObject data.TableGeometry),
-   ASSOCOSNAPPOINTREFACTIONPARAM / ASSOCVERTEXACTIONPARAM (ACDBASSOC*
-   dxf_names); the latter three sit in `_UNKNOWN_BITS_TYPES` so the retype
-   also kills their missing `unknown_bits` rows; (b) surviving wrappers
-   emit pipeline-default owner code 4 where gold emits the wire-relative
-   6/8 — needs an ownercode side channel in silver's reader (the
-   unknown_bits precedent);
-   (c) example_2010 3140: gold UNKNOWN_OBJ record silver drops
-   entirely (reader gap).
+**Next packets (2026-09-20, campaign target RAISED to below 100 on both
+sides after reaching the 1 000 milestone at read 943 / write 804; tops
+mirrored read/write; ranking from the fresh post-`4ce1db8` corpus):**
+1. **PROXY_OBJECT data/data_numbits 30+30 + objids 18** — DERIVABLE: the
+   2026-09-20 investigation found silver's ProxyObject wrapper keeps the
+   raw proxy bits under `payload`/`text_payload` as
+   {"encoding": "Bits", bit_count, records: [{bit_offset, bit_count,
+   data: [bytes]}]} — gold's `data` is the hex of the flattened bytes and
+   `data_numbits` the bit count (dwg.spec 5752 DECODER: window = after
+   the proxy prologue to hdlpos). Pair the right candidate per carrier
+   (Cons-era files; both candidates exist per record) and emit. objids:
+   still the §8.1.1 trailing-null byte-geometry lesson.
+2. **UNKNOWN_OBJ.ownerhandle 37 + _missing 15 + _count 9**: the reader
+   ownercode side channel (pipeline-default code 4 vs gold's
+   wire-relative 6/8 — the unknown_bits precedent) + the 3140-class
+   dropped records; ASSOCSWEPTSURFACEACTIONBODY must STAY UNKNOWN_OBJ
+   (dead block) and the Surface dep_on rows ride the SURFACE-typing
+   divergence in silver's reader.
+3. **Reader captures**: DIMSTYLE_CONTROL.morehandles 19 (RCu
+   num_morehandles, dwg.spec 4177), CIRCLE/LINE.linewt 27 (silver folds
+   the INVALID code 28 to ByLayer; gold echoes the raw byte — keep the
+   raw index in the reader), VERTEX_MESH._missing 12 (TS1 mesh parse
+   gap), SORTENTSTABLE.ents (R2000 entries lost), MLINE.flags closed-bit,
+   the poly-SEQEND shadow pairs, LEADER.arrowhead_type/box_* R2000 pairs.
+4. **Value-dependent remaining**: MULTILEADER.attach_top/bottom 18 (gold
+   BS values 32/4786/178 per record — spec forensics on the MLEADER
+   dock/context fields), VIEWPORT.status_flag 17 (Dynblocks R2018:
+   gold 819232 vs silver 32800), LAYOUT.viewports 9 (owner-graph
+   derivation of the layout's viewport list).
 3. **DIMSTYLE_CONTROL.morehandles 19**: gold's HANDLE_VECTOR uses its own
    wire count `num_morehandles` (dwg.spec 4177: RCu, "additional hard
    handles, undocumented") which silver's reader does not store —
@@ -347,7 +352,9 @@ post-`bd02a3e` corpus):**
    incident, verified `0be4d76`): the UNKNOWN-family payload-clear runs
    LAST — after every payload-keyed retype branch (viewstyles/assoc) — and
    only on records still UNKNOWN-typed; retyping by dxf_name requires the
-   class block to be live (check preprocessor frames first). **Campaign target: read AND write below 1 000** (raised
+   class block to be live (check preprocessor frames first). **Campaign
+   target (2026-09-20, RAISED to 100 after the 1 000 target was reached):
+   read AND write below 1 0 0** — the milestones so far ran
 12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19 — at this level every
 normalizer-trackable family plus the structural classes (ASSOC retypes, the
 unmodeled wrappers, the SOLID.elevation/LAYOUT.has_ds_data/linewt reader
