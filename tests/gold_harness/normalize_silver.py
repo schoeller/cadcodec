@@ -3638,21 +3638,15 @@ def normalize_silver(
             # Runs AFTER every payload-keyed retype above (the viewstyle and
             # assoc families read payload["data"]/["dxf_name"] to project
             # their gold types) so only records that are still UNKNOWN-typed
-            # at this point collapse to the common-fields-only shape. Stamp
-            # the wire-constant handle codes gold actually read (object
-            # common: ownerhandle + reactors = soft pointer code 4,
-            # xdicobjhandle = hard pointer code 3; silver's wrapper dumps
-            # keep bare ints for these and lose the codes).
+            # at this point collapse to the common-fields-only shape (the
+            # handle codes remain None — see the note below payload.clear).
             payload.clear()
-            for key, code in (("ownerhandle", 4), ("reactors", 4),
-                              ("xdicobjhandle", 3)):
-                v = fields.get(key)
-                if isinstance(v, dict) and not v.get("code"):
-                    v["code"] = code
-                elif isinstance(v, list):
-                    for h in v:
-                        if isinstance(h, dict) and not h.get("code"):
-                            h["code"] = code
+            # The handle CODES stay None (the normalize_handle_value
+            # default): gold's object-common reads the RAW wire-relative
+            # form, which for close owners emits codes 6/8/12 (relative
+            # +4/−4/... offsets) — a fabricated constant code 4 mismatches
+            # those rows while the differ TOLERATES a missing code on every
+            # record (2026-09-20: unstamping killed the 37 ownerhandle rows).
         _ASSOC_TYPES = ("ASSOCDEPENDENCY", "ASSOCGEOMDEPENDENCY",
                         "ASSOCVALUEDEPENDENCY", "ASSOCVARIABLE",
                         "ASSOCNETWORK", "ASSOC2DCONSTRAINTGROUP",
