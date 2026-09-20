@@ -406,10 +406,51 @@ and Extended wrappers); the constraint-flat-nodes + Helix era gates
 (batch 40, `c20e6fe`: ASSOC2DCONSTRAINTGROUP mirrored gold's flat
 per-node REPEAT in reader AND writer — the root-node/class-registry
 shape was a misparse that lost the node count and produced garbage
-signed BLs; HELIX knotparam/splineflags gated SINCE(R_2013b)) — read
-**53 → 38**, write **41 → 30**, **116 of 124 files at 0/0**. Batches
-seven through forty each carry their full recipes in their commit
-messages and §8.1.6).
+signed BLs; HELIX knotparam/splineflags gated SINCE(R_2013b)); the
+2026-09-20 late-night session then took **−38/−28** across three
+committed waves to the campaign floor — read **38 → 0**, write
+**30 → 2**, **123 of 124 files at 0/0** — the gh109_1 zero-out
+(batch 41, `707e7a8`: the RAPIDRT rapid-order gold shadow — gold reads
+the base has_predefined bit at AC1027 BEFORE the rapid seven, so its
+cursor enters the rapid block one bit late and every rapid value is a
+deterministic misparse; the reader re-walks the just-read bits in
+gold's order and retains RapidRtGoldShadow with u32 BL fields (gold
+prints FORMAT_BL %u), normalize_silver types ClassObject data.
+RapidRtRenderSettings and projects base+shadow — the parallel
+UNKNOWN_OBJ count rows re-balance with the retype; plus add_wire_entry:
+SortEntitiesTable.add_entry deduped wire pairs by entity handle which
+folded the four dead slots (ent 0, sort 919/1219/928/1027) of gh109_1's
+39-pair SORTENTSTABLE into one entry with the LAST duplicate's sort
+kept — 39 pairs append verbatim now); the chain-ordinal wave (batch 42,
+`604f956`: Vertex2D.wire_handle reader retention — the parent+1+i kid
+synthesis guess mispaired whenever a foreign block-chain record
+interleaves the kid run (2000/PolyLine2D's LINE@512 between poly@511
+and kids 513/514 poisoned BLOCK_HEADER.last_entity, LINE.handle and
+POLYLINE_2D.next_entity from one root), Vertex3DPolyline.reactor_
+handles retention + writer kid echo (assoc networks register individual
+vertices — the single-registered-kid rows across example_2000..2018),
+rebuild_block_membership keeps the raw owner for class entities owned
+by non-block objects (CAcLayoutPrintConfig → DICTIONARY 856 with the
+NULL model-space chain gold has), VIEW/VPORT VIEWMODE composed from
+the wire's FIELD_4BITS nibble (bits.c composes MSB-first: first-read
+bit is value 8) instead of the ucs bools, VIEW.is_camera_plottable
+gated R2007+, DIMENSION_ANG2LN.xline2end_pt mapping fix (the arm
+sourced first_point instead of definition_point — dwg.spec
+DWG_ENTITY(DIMENSION_ANG2LN) wire order), INSERT-kid ATTRIB xdicobj_
+handle threading, the synthesized VERTEX_MESH last-vertex prev =
+previous kid (gold 2000/TS1 539: prev {8→538}), VIEWPORT.vport_entity_
+handle end-to-end retention of the pre-R2004 wire slot replacing the
+vx-table-lookup fabrication, R2013+ table-entry has_ds_data projected
+from dwg_data_store_handles (Pass 1 captures the NonEntityCommonData
+bit)); plus the deep-gate arms (batch 43, `e0c6f93`:
+normalize_entity_for_comparison clears the new vertex raw-retention
+fields on both sides — writer-allocated kid handles on constructed
+documents are bookkeeping, not payload semantics). **The only
+remaining rows: 2004/Surface.dwg 0/2 (rt) — the
+ASSOCPLANESURFACEACTIONBODY embedded PAB/SAB handle-pull pair
+(assocdep/pbsab_status) — time-boxed as a documented residual**; its
+blocks are in the §8.1.6a entry. Batches seven through forty-three
+each carry their full recipes in their commit messages and §8.1.6).
 gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
@@ -419,72 +460,30 @@ it, inflating totals to 7689/7559).
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20 post-`c20e6fe` halt, second fold; campaign
-target is **0 on both sides**; current read **38** / write **30**, 116
-of 124 files at 0/0; every remaining row lives in NINE files, full
-values dumped to target/probes/pk18_residues_full.txt — regenerate
-any time with target/probes/pk18a_all_rows.py):**
-1. **gh109_1.dwg — 16 read / 14 write** (the biggest pocket):
-   (a) RAPIDRTRENDERSETTINGS count_mismatch + _missing i0-i5, BOTH
-   pairs — 7 gold records (handles 2574-2580, the "低/中/高" presets)
-   vs silver's 1 emitted record. Gold MIS-DECODES the seven rapid
-   fields past display_index+has_predefined: render_target 849379356
-   and render_time 1107296256 are IEEE-754 bit patterns of doubles
-   read as BLs in gold's order (dwg2.spec 2659 after
-   AcDbRenderSettings_fields). Silver decodes the same wire CLEANLY —
-   zero rows require reproducing gold's garbage: first find why silver
-   emits 1 of 7 records (check the 537-class dispatch + ClassObject/
-   RegisteredClassObject wrappers in dwg_document_builder.rs — the
-   same root likely feeds the UNKNOWN_OBJ pocket), then Port gold's
-   miss-read order as a per-record shadow (gold's rapid fields start
-   at its has_predefined-bit position).
-   (b) UNKNOWN_OBJ count_mismatch + _missing i1-i6 — gold 7 vs
-   silver 1: diagnose after (a) (likely the same dropped wrappers).
-   (c) SORTENTSTABLE.sort_ents + .ents (orig only): gold num_ents=39
-   with sort handles read from the SWAPPED stream (dwg2.spec 149:
-   str_dat = hdl_dat; hdl_dat = dat;HANDLE_VECTOR sort_ents;START_
-   OBJECT_HANDLE_STREAM; block_owner; HANDLE_VECTOR_N ents) vs
-   silver's 36 whose [3] is {entity 0, sort 1027} vs gold's
-   [0,2,919,919] — silver's read_sort_entities_table
-   (objects.rs:1369, the #146-order design) diverges in count AND
-   mid-list pairing.
-2. **PolyLine2D.dwg — 7 read / 6 write (the chain-ordinal cluster)**:
-   BLOCK_HEADER.first/last_entity (gold {4, target 0-null or LINE} vs
-   silver's resolved LAYOUTPRINTCONFIG/VERTEX_2D — the R2000 chain
-   ordinals), LINE.handle ({0, LINE} vs {None, VERTEX_2D} pairing
-   shift), POLYLINE_2D.next_entity ({6, LINE} — the R2000 chain
-   slot), LAYOUTPRINTCONFIG.ownerhandle (gold DICTIONARY-owner 856
-   vs silver BLOCK_HEADER 31 — silver's CAcLayoutPrintConfig class
-   path reads the owner slot wrong), VPORT.VIEWMODE (gold 0 vs
-   silver 1: the VPORT reader's 4BITS/RS-vs-BIT sequence vs dwg.spec
-   3952-3995), VIEWPORT.vport_entity_header rt null (gold_rt {5,
-   0-null} vs silver's resolved VX).
-3. **TS1.dwg — 3/3**: ATTRIB.xdicobjhandle (gold {3, 355} on a
-   synthesized insert-kid — the xdic slot is dropped in the kid path),
-   DIMENSION_ANG2LN.xline2end_pt (gold [28.389, 46.635, 0] vs silver
-   [24.131, 44.463, 0] — a value pair, compare the two def-points),
-   VERTEX_MESH.prev_entity (gold {8, VERTEX_MESH} chain slot on the
-   synthesized mesh kids — orig code 8, rt code 4).
-4. **LiveSection1.dwg — 4/2**: VIEW.has_ds_data (gold 1 vs silver 0,
-   orig only) + VIEW.VIEWMODE (gold 1 vs silver 0, both pairs) — the
-   R2013+ ds-data common bit and the VIEW-entity view_mode bits
-   (silver's composite builds from ucs bools — verify against gold's
-   VIEW entity spec block).
-5. **example_2000.dwg — 3/3**: VERTEX_3D.reactors (gold [1071] on the
-   THIRD kid 1054 specifically — not derivable from silver's payload;
-   either the assoc-network wire reference or accept-as-residual),
-   VIEW.VIEWMODE + VIEW.camera_plottable (extra false — gold omits).
-6. **example_2004/2007/2010/2013/2018 — 1/0 each**: the single
-   VERTEX_3D.reactors row per file (same binding as 5).
-7. **2004/Surface.dwg — 0/2 (rt only)**:
+**Campaign state (2026-09-20 post-`e0c6f93` halt, third fold; campaign
+target IS 0 on both sides; current read 0 / write 2, 123 of 124 files
+at 0/0):** the single remaining pocket is
+1. **2004/Surface.dwg — 0/2 (rt only)**:
    ASSOCPLANESURFACEACTIONBODY.assocdep + .pbsab_status: gold_rt
-   resolves {5, 1291} from silver's rewrite while silver_rt
-   synthesizes the [0,0]/0 null form (the batch-23 fabrication passes
-   orig but flips rt). The rt-side payload's surface_body.dependency
-   needs the same retention the orig read has.
+   resolves {5, 1291}/128 from silver's rewrite while silver_rt holds
+   the [0,0]/0 null form. TIME-BOXED and left as a documented
+   residual. The root: the embedded AcDbAssocParamBasedActionBody's
+   conditional tail (`PRE (R_2013b) { ... if (!num_values) {
+   SUB_FIELD_BL (pab, l5); SUB_FIELD_HANDLE (pab, assocdep, 5, 330); }`
+   vs AcDbAssocSurfaceActionBody_fields `SUB_FIELD_HANDLE (sab,
+   assocdep, 5, 330)` — two same-named slots flattened to one JSON key)
+   diverges between silver's parse and gold's on the REWRITE (the
+   orig pair passes: gold_orig prints [0,0]/0 and silver_orig's
+   fabrication matches). A future packet needs the same raw-bit
+   hand-walk treatment the LAYOUTPRINTCONFIG preview block got: dump
+   the orig + rt record bits, walk gold's SUB_FIELD_HANDLE order
+   (pab-deps vector first, then pab.assocdep, then sab.assocdep) and
+   silver's handle-pull sequence slot-by-slot, then retain/reproject
+   whichever embedded slot gold prints and the writer echoes the
+   value gold_rt reads.
 
-Done-packet recipes for batches 7-40 live in §8.1.6 below and in the
-commit messages of `fa2cb0a..c20e6fe`.
+Done-packet recipes for batches 7-43 live in §8.1.6 below and in the
+commit messages of `fa2cb0a..e0c6f93`.
 ### Baseline after EntityCommon closure (2026-09-17)
 
 - **LINE entity diffs: 0** on all six versions (2000–2018), both read fidelity
@@ -2573,6 +2572,131 @@ packets — small, well-scoped, and reproducible):
   to flat DWG expectations (DXF assertions unchanged); (b)
   HELIX.knotparam/splineflags are SINCE(R_2013b) only (dwg.spec
   2588-2590): emit gated, pre-2013 records omit both.
+
+**gh109_1 zero (RAPIDRT rapid-order gold shadow + SORTENTSTABLE wire
+  entries)** — **DONE (2026-09-20 forty-first batch, `707e7a8`; read
+  38 → 22 / write 30 → 16, −16/−14; gh109_1 16/14 → 0/0)**:
+  (a) RAPIDRTRENDERSETTINGS gold mistyping root: at exactly AC1027
+  gold's AcDbRenderSettings_fields reads the base `has_predefined` bit
+  via `VERSION (R_2013) { FIELD_B (has_predefined) }` BEFORE the rapid
+  seven while the wire carries the entire rapid block first (the spec
+  block's own tail `VERSION (R_2013) {} else FIELD_B` — spec.h
+  VERSION(v) is an EQUALITY check, so at R2018 gold parses cleanly;
+  gold also `VALUE_BL`s class_version read-and-discard with no JSON
+  emissions — out_json.h has no VALUE_BL). Gold's cursor therefore
+  enters the rapid block ONE BIT LATE: every rapid value is a
+  deterministic misparse (BL codes: bit1 of the true BL code reads as
+  has_predefined 0, then RL32s whose IEEE-shaped bytes spill across
+  the following BD fields — verified bit-for-bit by a python
+  re-encode+walk against all six records, 40/54 values matching before
+  the tail-bits were synthesized; the Rust walk reads the real record
+  tail so all match). Fix: the RAPIDRTRENDERSETTINGS arm repositions
+  the merged reader (set_position_in_bits) and re-walks the just-read
+  bits in gold's order via the same READ primitives, storing
+  `RapidRtGoldShadow {has_predefined i32, six u32 BLs, two f64 BDs}`
+  on the object (u32 because gold prints BL through FORMAT_BL "%u":
+  2709520922 etc. print UNSIGNED); normalize_silver types ClassObject
+  data.RapidRtRenderSettings → RAPIDRTRENDERSETTINGS and projects
+  base fields (class_version omitted at AC1027) + the shadow rapid
+  fields; the UNKNOWN_OBJ count_mismatch rows re-balanced with the
+  retype (silver was KEEPING all six 537-class records as UNKNOWN_OBJ;
+  the "dropped wrappers" theory was wrong — nothing was dropped).
+  (b) SORTENTSTABLE: `SortEntitiesTable::add_entry` deduped wire pairs
+  BY ENTITY HANDLE, so gh109_1's four dead pairs (ent 0, sort
+  919/1219/928/1027) collapsed into one entry with each later slot
+  OVERWRITING the first slot's sort (final: 1027) and shrank the
+  table 39 → 36, mispairing mid-list. New `add_wire_entry` appends
+  DWG-wire entries verbatim (entry_map keeps the first occurrence);
+  the DWG read path uses it, the writer already serialized entries
+  verbatim. Readers take note: gold's dwg2.spec 133-146 reads
+  sort_ents as code-0 handles from the MAIN stream swap, ents as
+  code-4 from the handle stream.
+
+**Chain-ordinal wave (kid wire handles, class-entity owners, VIEWMODE
+  nibble, vertex reactors, ANG2LN mapping, mesh chain, vport header,
+  table has_ds)** — **DONE (2026-09-20 forty-second batch, `604f956`;
+  read 22 → 0 / write 16 → 2, −22/−14; PolyLine2D 7/6 → 0/0, TS1
+  3/3 → 0/0, LiveSection1 4/2 → 0/0, example_2000 3/3 → 0/0,
+  example_2004/2007/2010/2013/2018 1/0 each → 0/0)**:
+  (a) Vertex2D.wire_handle reader retention (kid handle synthesis):
+  the normalizer's `parent+1+i` guess produced THE WRONG HANDLE
+  whenever a foreign block-chain record interleaves the kid run —
+  2000/PolyLine2D's LINE@512 sits between POLYLINE_2D@511 and its
+  true kids 513/514, so the synthesized "VERTEX_2D@512" stole the
+  LINE's handle and poisoned handle resolution for BLOCK_HEADER.
+  last_entity, LINE.handle and POLYLINE_2D.next_entity in one root
+  (three rows, one bug). The withheld wire handle is now retained
+  through PendingVertex and serialized; the synth prefers it.
+  (b) assoc-network vertex registration: Vertex3DPolyline.reactor_
+  handles retained from the held EntityCommon and echoed by the
+  kid-record writer (write_vertex3d) — gold prints the reactors only
+  on the ONE registered kid (example_2000 kid 1054 → net 1071); the
+  synthesis emits non-empty lists only (gold's no-reactor kids carry
+  no key).
+  (c) rebuild_block_membership no longer forces non-block owners to
+  model space when the owner resolves to a real object: the
+  CAcLayoutPrintConfig (dwg2.spec 4929, an entity-typed CLASS record)
+  is owned by its DICTIONARY (856) with a NULL model-space chain —
+  gold keeps the raw owner and prints nothing in the chain. One
+  mechanism cleared LAYOUTPRINTCONFIG.ownerhandle (orig+rt) AND
+  BLOCK_HEADER.first/last_entity for Model_Space.
+  (d) VIEW/VPORT VIEWMODE: gold reads ONE FIELD_4BITS nibble (bits.c
+  bit_read_4BITS composes MSB-first — FIRST-read bit is value 8) from
+  the wire order perspective, front_clipping, back_clipping,
+  front_clip_at_eye. The old ucs-bool compose fabricated every record;
+  both the VPORT and the VIEW branches now compose from the four wire
+  bits. VIEW.is_camera_plottable is SINCE(R_2007a): gated, and the
+  silver key is consumed on every era so it never leaks extra.
+  (e) DIMENSION_ANG2LN.xline2end_pt: the arm sourced `first_point`
+  for xline2end; dwg.spec DWG_ENTITY(DIMENSION_ANG2LN) LATER_VERSIONS
+  wire order (2RD def_pt, 3BD xline1start/xline1end/xline2start/
+  xline2end) maps silver's dimension_arc/first_point/second_point/
+  angle_vertex/definition_point 1:1 — one-word fix.
+  (f) INSERT-kid ATTRIB xdicobjhandle: thread the kid common's
+  xdictionary_handle (silver's kid synthesis had no xdic emission;
+  gold prints [3,2,355,355] on 2000/TS1's kid 354).
+  (g) VERTEX_MESH chain (2000/TS1'S 12-vertex grid): the FIRST kid
+  chains forward (prev null/next second kid), the LAST kid chains
+  back to the PREVIOUS kid (gold 539: prev {8 → 538} — a code-8
+  zero-offset ref), the middles carry bare nolinks=1. The old arm
+  printed the null form for every edge vertex.
+  (h) VIEWPORT.vport_entity_header: the pre-R2004 wire slot itself
+  (dwg.spec VIEWPORT FIELD_HANDLE @ VERSIONS (R_13b1, R_14) before
+  the frozen layers / (R_2000b, R_2002) after the clip boundary) is
+  retained on the model (vport_entity_handle), echoed by the writer,
+  and emitted verbatim by the normalizer INSTEAD OF the vx-table
+  lookup fabrication (2000/PolyLine2D: first viewport → VX 875, the
+  rest the null form — gold reads exactly that from silver's rewrite
+  once the echo is in place).
+  (i) R2013+ table-entry has_ds_data: Pass 1 captures the
+  NonEntityCommonData bit into dwg_data_store_handles (the same set
+  the object branch and the writer's bit echo use); the table section
+  projects has_ds_data from the set instead of hardcoding 0 —
+  2018/LiveSection1's VIEW records carry the AcDs bit on the wire.
+
+**Deep-gate arms for the new raw-retention vertex fields** — DONE
+  (2026-09-20 forty-third batch, `e0c6f93`): normalize_entity_for_
+  comparison clears Polyline2D vertex wire_handle and Polyline3D
+  vertex reactor_handles on both sides — the writer allocates fresh
+  kid handles on constructed documents, so the retained wire values
+  are fidelity bookkeeping (gold-harness kid synthesis), not payload
+  semantics (the Polyline3D zeroed-vertex-handles precedent). The
+  r2000/r2013/r2018 deep tests improved past their 1-known-Shape
+  budget once these cleared: roundtrip 97/0, 47 segments ok.
+
+**ASSOCPLANESURFACEACTIONBODY assocdep/pbsab_status** — RESIDUAL,
+  TIME-BOXED (2026-09-20): 2004/Surface 0/2 (rt). The embedded
+  AcDbAssocParamBasedActionBody conditional tail has TWO same-named
+  `assocdep` slots (pab's read when num_values==0, sab's read after
+  the surface fields; both flatten to one gold JSON key) and the
+  `pbsab_status` BL follows the sab block. Silver's embedded-struct
+  handle pulls don't line up with gold's on the REWRITE: gold_orig
+  prints [0,0]/0 while gold_rt prints {5,1291}/128 from silver's own
+  rewrite, so the orig-side fabrication passes but rt flips. The
+  next session needs the full bit-walk treatment (dump both records'
+  bits, walk gold's SUB_FIELD_HANDLE order vs silver's handle-pull
+  sequence slot by slot, retain the printed slot + echo in writer).
+  Everything else in the corpus is at 0/0.
 
 **Answer: gold specs are 100% KNOWN, but NOT 100% COVERED.** Measured
 empirically against the corpus (not just the diff report):
