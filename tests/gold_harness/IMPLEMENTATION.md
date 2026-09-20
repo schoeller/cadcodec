@@ -280,9 +280,10 @@ INSERT attrib/seqend chain + MLINE projection + POLYLINE_3D/GROUP/PFACE/
 VIEWPORT-named_ucs + ASSOC actionbody/path retype family + RAY/XLINE/
 IMAGEDEF/HATCH degenerates/VX family/LIGHT/RASTERVARIABLES/MULTILEADER +
 ARC_DIMENSION graphic + HELIX family/LEADER/TOLERANCE dimstyle/MATERIAL
-rgb + UNKNOWN-family handle-code unstamp (2026-09-20 fourth + fifth
-batches), 2026-09-20):**
-read-fidelity **906**, write-fidelity **801** — the 1 000 milestone was
+rgb + UNKNOWN-family handle-code unstamp + raw-linewt fidelity
+reader/writer/normalizer + LAYOUT.viewports (2026-09-20 fourth + fifth +
+sixth batches), 2026-09-20):**
+read-fidelity **860**, write-fidelity **792** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -292,7 +293,8 @@ side channel then took −448/−448; the style-map/chain/MLINE batch then took
 −327/−319; the POLYLINE_3D/GROUP/PFACE/Associative-retype batch then took
 −478/−493; the RAY/XLINE/IMAGEDEF/HATCH/VX/LIGHT batch then took −338/−336;
 the HELIX/dimstyle/MATERIAL-rgb batch then took −172/−172; the UNKNOWN
-handle-code unstamp then took −37/−3). gh44-error.dwg
+handle-code unstamp then took −37/−3; the raw-linewt + LAYOUT.viewports
+batch then took −46/−9). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -319,11 +321,16 @@ mirrored read/write; ranking from the fresh post-`4ce1db8` corpus):**
    (dead block) and the Surface dep_on rows ride the SURFACE-typing
    divergence in silver's reader.
 3. **Reader captures**: DIMSTYLE_CONTROL.morehandles 19 (RCu
-   num_morehandles, dwg.spec 4177), CIRCLE/LINE.linewt 27 (silver folds
-   the INVALID code 28 to ByLayer; gold echoes the raw byte — keep the
-   raw index in the reader), VERTEX_MESH._missing 12 (TS1 mesh parse
+   num_morehandles, dwg.spec 4177; capture point = pass1 right after
+   common non-entity data at builder:767, select OBJ_DIMSTYLE_CONTROL;
+   remember per-type CONTROL data shapes differ), VERTEX_MESH._missing 12
+   (TS1 mesh parse
    gap), SORTENTSTABLE.ents (R2000 entries lost), MLINE.flags closed-bit,
    the poly-SEQEND shadow pairs, LEADER.arrowhead_type/box_* R2000 pairs.
+   DONE: CIRCLE/LINE.linewt (the entity-common RC 370 is the RAW code —
+   reader keeps 24..28 as Value(raw) at builder match, writer echoes
+   irreversible table codes, normalizer `_lweight_index` echoes
+   out-of-table mm values; `6fd5a10`).
 4. **Value-dependent remaining**: MULTILEADER.attach_top/bottom 18 (gold
    BS values 32/4786/178 per record — spec forensics on the MLEADER
    dock/context fields), VIEWPORT.status_flag 17 (Dynblocks R2018:
