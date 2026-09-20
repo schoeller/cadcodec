@@ -915,7 +915,14 @@ def _vs_property_value(prop: Dict[str, Any]) -> Any:
         inner = v[kind]
         if kind == "Color":
             return normalize_color(inner)
-        return normalize_value(inner)
+        nv = normalize_value(inner)
+        # gold casts BS wire values to BL ZERO-EXTENDED (dwg2.spec 2152
+        # FIELD_CAST (edge_silhouette_width, BS, BL)): the corpus records
+        # carry 0xFFCE where silver's i16 read is -50 (gold 65486).
+        # Positive Short values are unchanged by the mask.
+        if kind == "Short" and isinstance(nv, int):
+            nv &= 0xFFFF
+        return nv
     return normalize_value(v)
 
 
@@ -1522,8 +1529,17 @@ def normalize_silver(
                 if gk is None:
                 # column_data nested struct -> column fields (R2018+)
                     if k == "column_data" and isinstance(v, dict):
+                        # dwg.spec 2965-2974 (MTEXT columns, inside
+                        # SINCE (R_2018)): gold's flat names differ from
+                        # silver's nested struct — width→column_width,
+                        # heights→column_heights; column_count is
+                        # silver-only bookkeeping gold never emits.
+                        _CGOLD = {"width": "column_width",
+                                  "heights": "column_heights"}
                         for ck, cv in v.items():
-                            cgk = "column_type" if ck == "column_type" else ck
+                            if ck == "column_count":
+                                continue
+                            cgk = _CGOLD.get(ck, ck)
                             if cgk in _MT_R2018 and not r2018_plus:
                                 continue
                             # Detail column fields only when column_type != 0.
@@ -2433,7 +2449,10 @@ def normalize_silver(
                 fields["extrusion"] = normalize_value(_nm)
             _fl = payload.pop("flags", None)
             if isinstance(_fl, str):
-                _fl = [_fl]
+                # bitflags' serde joins multiple set bits with " | "
+                # (e.g. "HAS_VERTICES | CLOSED" once the builder retains
+                # the wire CLOSED bit) — split into single names.
+                _fl = [p.strip() for p in _fl.split("|")]
             if isinstance(_fl, list):
                 _fv = 0
                 for _n in _fl:
@@ -3617,13 +3636,16 @@ def normalize_silver(
             # non-Leader ObjectContextData payloads keep the generic
             # OBJECTCONTEXTDATA projection.
         if silver_type == "Group":
-            # gold GROUP (dwg2.spec 2917): the wire name T is always
-            # empty — record names live in the owning dictionary only
-            # (verified on the named `GROUPNAME` group too); no
-            # description/entities fields on DWG; `groups` is the member
-            # handle vector (gold code 5, same order as silver's
-            # `entities`).
-            fields["name"] = ""
+            # gold GROUP (dwg.spec 4498): FIELD_T (name, 300) then
+            # unnamed BS / selectable BS / the member handle vector —
+            # the wire DOES carry group names (2018/Leader.dwg's group
+            # is "Superhatch"), they are just mostly empty in the
+            # corpus. Silver's reader stores the wire name under the
+            # misnomered `description` key (GroupData.description; the
+            # writer writes it back, so the rt stays faithful) — project
+            # it to gold's `name`. `groups` is the member handle vector
+            # (gold code 5, same order as silver's `entities`).
+            fields["name"] = payload.get("description") or ""
             fields["unnamed"] = 1 if payload.get("unnamed") else 0
             fields["selectable"] = 1 if payload.get("selectable") else 0
             _ents = payload.get("entities")

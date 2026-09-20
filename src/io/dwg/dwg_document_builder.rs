@@ -4100,6 +4100,14 @@ impl DwgDocumentBuilder {
                     e.start_point = data.start_point;
                     e.normal = data.normal;
                     e.style_element_count = data.lines_in_style as usize;
+                    // The wire openclosed BS carries the CLOSED bit (2;
+                    // dwg.h MLINE: HAS_VERTEX=1 | CLOSED=2 — the corpus
+                    // files carry 3 on the closed multilines) — retain it
+                    // (the writer already derives its wire value from
+                    // MLineFlags::CLOSED, so the rt stays faithful).
+                    if data.openclosed & 2 != 0 {
+                        e.flags |= crate::entities::mline::MLineFlags::CLOSED;
+                    }
                     // Link the entity to its MLINESTYLE via the hard-pointer handle
                     // read from the handle stream. Without this the entity keeps the
                     // `MLine::new()` default ("Standard" / no handle), so a drawing's

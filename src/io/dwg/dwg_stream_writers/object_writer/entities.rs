@@ -997,10 +997,14 @@ impl<'a> DwgObjectWriter<'a> {
             let has_no_flags = e.invisible_edges.bits() == 0;
             self.writer.write_bit(has_no_flags);
 
-            let z_is_zero = e.first_corner.z == 0.0
-                && e.second_corner.z == 0.0
-                && e.third_corner.z == 0.0
-                && e.fourth_corner.z == 0.0;
+            // dwg.spec 2125-2126: gold's ENCODER derives z_is_zero from
+            // corner1.z ALONE — `FIELD_VALUE (z_is_zero) = (corner1.z ==
+            // 0)` — and only corner1's z RD is omitted when set. The old
+            // AND-of-four-corners rule wrote z_is_zero=0 for faces with
+            // corner1 at z=0 but raised corners 2-4, disagreeing with
+            // gold's (and the normalizer's) corner1-only derive on the
+            // rt pair (gh109_1: 8 wrong_value rows).
+            let z_is_zero = e.first_corner.z == 0.0;
             self.writer.write_bit(z_is_zero);
 
             self.writer.write_raw_double(e.first_corner.x);
