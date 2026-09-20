@@ -332,7 +332,17 @@ nineteenth batch, `257895a`) + TRACE/SOLID wire-type split (twentieth
 batch, `91e72a3`) + MESH/PDFUNDERLAY graphic_data pops (twenty-first
 batch, `e90fb77`) + SORTENTSTABLE.ents emission (twenty-second batch,
 `ab0e02f`) + SURFACE family retypes + PLANESURFACE projection
-(twenty-third batch, `b2955a7`), 2026-09-20):**
+(twenty-third batch, `b2955a7`) + the big-family projection wave
+(FIELD/FIELDLIST, PLOTSETTINGS, GEODATA, Underlay PDFUNDERLAY+
+PDFDEFINITION, MESH, PLANESURFACE reader tail, SHAPE/TEXT-family raw
+dataflags, OLE2FRAME raw blob, encr_sat_data per-block retention,
+seqend-flag truth + common plotstyle-order — batches 24-32,
+`82f0225`) + the Dynblocks/PolyLine2D/LWPOLYLINE/SEQEND/LAYOUTPRINTCONFIG
+wave (raw LwPolyline flag + vertexids, SPLINE ctrl_pts collapse shape,
+BLOCK_HEADER xref_pname + lazy dupe strip, POLYLINE_2D parent projection,
+LAYOUTPRINTCONFIG retype, kid linetype inheritance — batches 33-38,
+`078c119`) + the SECTION trio retype (SECTIONOBJECT/SECTION_MANAGER/
+SECTION_SETTINGS — thirty-ninth batch, `5a25bf9`), 2026-09-20):**
 read-fidelity **479**, write-fidelity **455** — the 1 000 milestone was
 passed at 943/804, the below-100 interim milestone was reached on
 2026-09-20, and the **campaign target is now 0 on both sides**
@@ -361,116 +371,103 @@ TOLERANCE field-name batch then took −63/−63; the smalls batch
 MLINE CLOSED) then took −17/−62; the TRACE/SOLID wire-type split
 then took −53/−53; the MESH/PDFUNDERLAY graphic_data pops then took
 −5/−5; the SORTENTSTABLE.ents emission then took −4/−5; the SURFACE
-family retypes + PLANESURFACE projection then took −17/−18).
+family retypes + PLANESURFACE projection then took −17/−18; the
+2026-09-20 evening session then took **−426/−414** across three
+committed waves — read **479 → 53**, write **455 → 41**, **103 of 124
+files at 0/0** — the big-family projection wave (batches 24-32,
+`82f0225`: FIELD/FIELDLIST name+dotted-value union + [0]*n childval,
+PLOTSETTINGS full 33-field map + plot_flags bits + enum inversion,
+GEODATA R2010 projection with obsolete/civil pops, PDFUNDERLAY field
+map + the UnderlayDefinition retype-order fix + reactor retention,
+MESH unknown_b1/b2 raw trailing bits + [0]*n edges + per-edge crease,
+PLANESURFACE modeler/u/v reader alignment + fixed-15 banner split +
+acis_empty_bit/isolines from retained wire data, SHAPE slot-map (size=
+scale, relative_x_scale=width_factor), the TEXT/ATTRIB/ATTDEF raw
+dataflags byte retained end-to-end with the dwg_set_dataflags
+alignment==insertion semantics, OLE2FRAME raw 315 KB blob retention,
+encr_sat_data per-block raw retention + verbatim echo, the
+entity-common plotstyle/material pair-order truth (common_entity_data
+.spec 507-522: the old reader mislabeled them inside an isochronous
+12-bit window), the per-SEQEND wire flag retention (the flags-3-null
+families are LibreDWG-authored data, DWG-native chains 0), POLYLINE_3D
+flag from the captured bit dict, POLYLINE_PFACE vertex vector SINCE
+R2004a, DIMENSION class_version SINCE(R_2010b), MTEXT \U+XXXX decode);
+the Dynblocks/PolyLine2D wave (batches 33-38, `078c119`: LwPolyline
+raw wire flag retention with VERTEXIDCOUNT emission including the
+normalize_gold 4-int raw-handle-tuple mirror, SPLINE ctrl_pts [0]*n
+per-point collapse, BLOCK_HEADER xref_pname from xref_path + lazy
+anonymous dupe strip, POLYLINE_2D parent projection + chain fields,
+LAYOUTPRINTCONFIG retype of the Extended wrapper, kid/SEQEND writer
+linetype inheritance); the SECTION trio retype (batch 39, `5a25bf9`:
+SECTION_MANAGER/SECTION_SETTINGS/SECTIONOBJECT from the ClassObject
+and Extended wrappers). Batches seven through thirty-nine each carry
+their full recipes in their commit messages and §8.1.6).
 gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
-`cargo test --features serde` = 1556 passed / 0 failed; `cargo test
+`cargo test --features serde` = 47 ok test segments (roundtrip 97/0,
+1312 units) on 2026-09-20; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20, campaign target RAISED to **0 on both sides**
-(after passing the 1 000 milestone at read 943 / write 804 and the
-below-100 interim milestone the same day; land every remaining family,
-heavy pockets included); tops
-mirrored read/write; ranking from the fresh post-`257895a` corpus;
-PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
-MULTILEADER attach trio + TABLECONTENT retype + VERTEX_MESH dropped
-records + ACSH_CONE_CLASS retype + WIPEOUT imagedefreactor codes +
-SEQEND real handles + VIEWPORT.status_flag raw + LEADEROBJECTCONTEXTDATA
-retype + TOLERANCE field names + the smalls batch landed as batches
-seven through nineteen — see §8.1.6):**
-1. **UNKNOWN-family retyping pockets** (ranked from the post-`543f877`
-   corpus: UNKNOWN_OBJ._missing 8, _count 0 — the Cone pocket landed as
-   batch thirteen; the queued ownerhandle 37 family self-resolved — its
-   rows were downstream desync of the unbated R2010+ MULTILEADER reader,
-   killed by `45382ec`; the 3140-class dropped records were the
-   TABLECONTENT objects, landed as `b123b4c`):
-   (a) LiveSection1.dwg — gold's SECTIONOBJECT/SECTION_MANAGER/
-   SECTION_SETTINGS records vs silver's UNKNOWN_OBJ/ENT decodes —
-   silver PARSES the latter two via ClassObject wrappers
-   (data.SectionManager is a 2-field trivial projection;
-   data.SectionSettings carries a large settings REPEAT + a 2320-bit
-   handle-stream remainder gold dumps via HANDLE_UNKNOWN_BITS;
-   SECTION_SETTINGS is already in _UNKNOWN_BITS_TYPES) while the
-   SECTIONOBJECT ENTITY is a heavy unmodeled family (full AcDbSection
-   wire + a 188-byte preview blob) — model or retype per-pocket;
-   (b) Surface.dwg — silver types 5
-   SURFACE records where gold decodes UNKNOWN_ENT (dead frame) + 1
-   PLANESURFACE gold record silver lacks; ASSOCSWEPTSURFACEACTIONBODY
-   must STAY UNKNOWN_OBJ (dead block) and the Surface dep_on rows ride
-   the same SURFACE-typing divergence in silver's reader.
-2. **Reader captures**: SORTENTSTABLE.ents (R2000 entries lost),
-   MLINE.flags closed-bit,
-   the poly-SEQEND shadow pairs. DONE: the LEADEROBJECTCONTEXTDATA/
-   OBJECTCONTEXTDATA typing pair landed as the seventeenth batch
-   (`9f06d89`, silver's ObjectContextData kind.Leader retype — the
-   count/missing pairs on every version-folder Leader carrier).
-   DONE: CIRCLE/LINE.linewt (the entity-common RC 370 is the RAW code —
-   reader keeps 24..28 as Value(raw) at builder match, writer echoes
-   irreversible table codes, normalizer `_lweight_index` echoes
-   out-of-table mm values; `6fd5a10`); LEADER R2000 pairs (ninth batch,
-   `b6e6e92`).
-3. **Value-dependent remaining**: the VIEWPORT.status_flag family
-   landed as batch sixteen (`263ab5f`, −17 read rows); the residue
-   below the current top-N is the MTEXT column trio and per-era
-   count/status leftovers per the fresh by-type census.
-4. **Scattered entity families**: RAY/XLINE point/vector/base_point/
-   direction + LINE.linewt (13 each), IMAGEDEF.image_size/file_path/
-   resunits/size_in_pixels (~55 on the ATMOS-era carriers; gold wire
-   order = image_size 2RD FIRST, then file_path T, is_loaded B,
-   resunits RC, pixel_size 2RD — dwg.spec 5163-5182), HATCH.paths 15
-   + deflines 12, MULTILEADER.graphic_data 12, CIRCLE.linewt 14
-   (Dynblocks R2018, off-by-one on the last ~14 records, gold 28 vs
-   silver 29 — adjudicate the wire with dump_section_bytes), the
-   pre-existing poly-SEQEND shadow pairs (ex2010 wires per-record shadow
-   commons silver's synthesized SEQENDs cannot see — a seqend storage
-   side-channel or reader parsing), TS1's 12 dropped VERTEX_MESH records
-   (reader parse gap), 3DSOLID/REGION.encr_sat_data on R2000 (accepted
-   residual), ASSOCDEPENDENCY.dep_on 5 (the SURFACE entity-typing
-   divergence in the reader).
-5. **VX family**: gold VX_CONTROL + VX_TABLE_RECORD records that silver's
-   reader drops entirely (2000-era files; VIEWPORT.vport_entity_header
-   rows die together with them) plus INSERT.owns/ACAD_TABLE count rows —
-   all reader-side.
+**Next packets (2026-09-20 evening halt; campaign target is **0 on both
+sides**; current read **53** / write **41**, 103 of 124 files at 0/0;
+all remaining rows live in 21 files; ranking from the fresh
+post-`5a25bf9` corpus):**
+1. **RAPIDRT gold-bug port** (gh109_1, 7+7 rows: RAPIDRTRENDERSETTINGS
+   count 1 + missing i0-i5, both pairs; plus the UNKNOWN_OBJ._missing 6
+   + _count 1 pocket on the same file): gold MIS-DECODES the seven
+   rapid fields past display_index — its render_target 849379356 and
+   render_time 1107296256 are IEEE-754 bit patterns of doubles read as
+   BL/BD in gold's spec order (dwg2.spec 2659: after
+   AcDbRenderSettings_fields + has_predefined B come rapidrt_version
+   BL / render_target BL / render_level BL / render_time BL /
+   lighting_model BL / filter_type BL / filter_width BD /
+   filter_height BD / has_predefined B per the else-branch), while
+   silver's reader decodes the same wire CLEANLY. Zero rows here
+   require silver to reproduce gold's garbage — either port gold's
+   read order (the wrapper keeps its clean model AND a gold-parity
+   shadow) or re-derive gold's offsets per record. The 7 gold records
+   vs silver's 1 emitted record also points at dropped wrappers.
+2. **SORTENTSTABLE wire考古** (gh109_1, 1+1 rows: sort_ents + ents):
+   gold num_ents=39 with sort handles read from the swapped stream
+   (dwg2.spec 149: str_dat=hdl_dat swap then HANDLE_VECTOR sort_ents,
+   START_OBJECT_HANDLE_STREAM, block_owner, HANDLE_VECTOR_N ents);
+   silver reads 36 entries and its entries[3] {entity 0, sort 1027}
+   diverges from gold's [0,2,919,919] — both counts and the per-entry
+   pairing must be reconciled in silver's read_sort_entities_table
+   (#146-order reader).
+3. **The chain-ordinal cluster** (PolyLine2D.dwg + example_2000, ~9/8
+   rows): BLOCK_HEADER.first/last_entity (gold null/0-target vs
+   silver's resolved handles; the last=LINE-vs-VERTEX_2D ordinals),
+   LINE.handle, POLYLINE_2D.next_entity (gold {6, LINE} — the R2000
+   chain slot), LAYOUTPRINTCONFIG.ownerhandle (gold DICTIONARY-owner
+   vs silver BLOCK_HEADER — a reader owner-slot issue on the
+   CAcLayoutPrintConfig class path), VIEWPORT.vport_entity_header rt
+   null, VPORT.VIEWMODE 4BITS sequence (gold 0 vs silver 1 — the VPORT
+   reader's 4BITS/RS-vs-B read order needs comparing against dwg.spec
+   3952-3995).
+4. **VERTEX_3D.reactors** (6 read rows, six example files): gold binds
+   the assoc-network reactor [1071] to ONE specific vertex (1054 on
+   example_2000 — the third kid, not all kids); silver binds nothing.
+   The binding is not derivable from silver's payload — needs either
+   the network wire data or an accept-as-residual decision.
+5. **Assorted singles**: VIEW.VIEWMODE/has_ds_data/camera_plottable
+   (LiveSection1 + example_2000; composition from the wrong bool set),
+   ASSOC2DCONSTRAINTGROUP.nodes (gold 129 vs silver 113 entries —
+   read count source), Helix x4 (2/2 each — the ctrl_pts count
+   derivation len(knots)-degree-1 vs gold's per-record shape),
+   Constraints x5 (1/1), TS1 ATTRIB.xdicobjhandle,
+   DIMENSION_ANG2LN.xline2end_pt, VERTEX_MESH.prev_entity,
+   Dynblocks ASSOC nodes (above), Surface rt
+   ASSOCPLANESURFACEACTIONBODY.assocdep/pbsab_status (the rt-side
+   null-vs-resolved handle pair — orig passes with the null emission,
+   rt flips: gold_rt resolves 1291 from silver's write while silver_rt
+   synthesizes [0,0]).
 
-   Liveness discipline reminder (the SECTIONVIEWSTYLE/DETAILVIEWSTYLE
-   incident, verified `0be4d76`): the UNKNOWN-family payload-clear runs
-   LAST — after every payload-keyed retype branch (viewstyles/assoc) — and
-   only on records still UNKNOWN-typed; retyping by dxf_name requires the
-   class block to be live (check preprocessor frames first). **Campaign
-   target (2026-09-20, RAISED to 0 after the 1 000 target and the
-   below-100 interim milestone were both reached): read AND write
-   0 — land every remaining family, heavy pockets included; do not halt
-   at interim milestones** — the milestones so far ran
-12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19 — at this level every
-normalizer-trackable family plus the structural classes (ASSOC retypes, the
-unmodeled wrappers, the SOLID.elevation/LAYOUT.has_ds_data/linewt reader
-items via Rust) is required; the xdic/visualstyle reader items landed in
-`3cff463`). The 5 942/5 562 pre-xdic baseline was re-verified fresh by a
-clean full rerun before the packet landed.
-**Caution — phantom reports:** a corpus run launched
-WITHOUT the §8.1.0 env (GOLD_DWGREAD unset) still writes a plausible-looking
-report: every per-file run fails instantly and the aggregator re-reads stale
-artifacts on disk (a phantom 11 372/9 953 report from 2026-09-19 17:44 was
-identified and discarded this way — all 125 per-file stdout entries carried the
-`GOLD_DWGREAD env var is not set` traceback). Always export the §8.1.0
-variables in the same shell before `run_corpus.py`.
-
-**Things that will look broken but are not (do not "fix" them):**
-- **Plain `cargo test` fails to compile `examples/entity_atlas.rs`** (missing
-  `serde_json` under default features) — **pre-existing**, reproduced on the
-  pre-packet commit `6d375d1`. Use `cargo test --features serde` as the gate;
-  §8.1.4 step 6's `cargo test | tail -3` will show this error. Do not chase it.
-- **Corpus counts are stem-collision inflated**: `run_corpus.py` keys workdirs
-  by file stem, so same-named files across versions (e.g. six `Line.dwg`)
-  overwrite one dir and the report re-counts the survivor once per version.
-  The `BLOCK_HEADER`/`LAYOUT`/`VPORT` counts (~576/~376/~231) are inflated
-  (true unique counts ~350/~?/…); the *ranking* is unaffected. See §7 table.
-- **`-nan` in gold JSON**: `diff_fields.py`/`run_roundtrip.py` parse with a
-  `parse_constant` shim — expected, not an error.
-
+Done-packet recipes for batches 7-39 live in §8.1.6 below and in the
+commit messages of `fa2cb0a..5a25bf9`.
 ### Baseline after EntityCommon closure (2026-09-17)
 
 - **LINE entity diffs: 0** on all six versions (2000–2018), both read fidelity
@@ -914,6 +911,143 @@ Given a diff `(type, field, kind)`:
 >   `ab0e02f`) and the SURFACE family retypes + PLANESURFACE
 >   projection landed (twenty-third batch, `b2955a7`) — see their
 >   DONE entries below.
+
+  The evening session then landed the big-family projection wave
+  (2026-09-20 batches 24-32, `82f0225`), the Dynblocks/PolyLine2D wave
+  (batches 33-38, `078c119`) and the SECTION trio retype (batch 39,
+  `5a25bf9`) — see the entries below.
+
+**FIELD/FIELDLIST projection** — **DONE (2026-09-20 twenty-fourth
+  batch; TS1 89/89 → 34/34)**: pure name projection in the objects
+  loop — id ← evaluator_id, field_state ← state, evaluation_error_msg
+  ← evaluation_error_message, value → the dotted TABLE_value_fields
+  union (value.data_type/data_long, BLEND of the ~0x200 mask pre-2007),
+  childval [0]*len(child_values) (the normalize_gold dict-collapse
+  rule), childs the code-3 handles only when num_childs > 0,
+  referenced_objects popped; FIELDLIST.fields as the code-4 handle
+  list.
+
+**PLOTSETTINGS projection** — **DONE (twenty-fifth batch; gh109_1
+  66/64 → 19/17)**: printer_cfg_file = the page-setup NAME, paper_size
+  = the DEVICE name, canonical_media_name = the media (the LAYOUT
+  transposition), four-margin split from the dict, plot_flags from
+  PlotFlags::to_bits (identical layout to the Layout branch), the
+  enum strings inverted to gold's BS codes, plotview/popname-era
+  gating, shadeplot = silver's visual_style_handle (objects.rs reads
+  the R2007+ handle there), cached_scale popped.
+
+**GEODATA R2010+ projection** — **DONE (twenty-sixth batch; gh209_1
+  48/48 → 0/0)**: the full rename set (class_version/coord_type/
+  design_pt/ref_pt/unit pairs/up_dir/north_dir/scale_est/corrections/
+  radius/definition), the obsolete pair + datum/wkt + civil_* popped
+  (the UNTIL(R_2007) branch never runs on the corpus's R2010 record),
+  mesh REPEATs [0]*n when non-empty.
+
+**Underlay PDFUNDERLAY/PDFDEFINITION** — **DONE (twenty-seventh batch;
+  2004/Underlay 52/52 → 0/0)**: the per-kind UnderlayDefinition retype
+  must run AFTER the Associative if/else (OBJECT_TYPE_MAP's
+  PDFDEF default previously overwrote it — the count_mismatch pocket);
+  PDFDEFINITION filename ← file_path, name ← page_name, silver's
+  `name` twin popped; reactors retained on the struct (the Dictionary
+  precedent — the builder had dropped the parsed common data);
+  PDFUNDERLAY: definition_id, ins_pt, angle, the [x,y,z] scale triple
+  (3BD_1), flag RC from the bitflags string (CLIPPING=1/ON=2/
+  MONOCHROME=4/ADJUST_FOR_BACKGROUND=8/CLIP_INSIDE=16 — verified
+  30/31/27), clip_verts 2RD pairs, clip_inverted popped (the
+  CLIP_INSIDE bit already counted).
+
+**MESH raw trailing bits + PLANESURFACE reader tail** — **DONE
+  (twenty-eighth batch; 2004/Surface 62/62 → 0/2)**: unknown_b1/b2
+  read as the two FIELD_Bs after the crease vector (the BL read
+  mis-shaped the tail; writer echoes), dlevel = the BS 71 version,
+  is_watertight = blend_crease per the spec comments, faces the flat
+  [n, *indices] vector, edges the [0]*num_edges collapse (the REPEAT
+  struct entries collapse per the normalize_value dict rule — verified
+  19 and 31), crease the per-edge BDs. PLANESURFACE: modeler_format_
+  version/u_isolines/v_isolines read as the three BS after the
+  COMMON_3DSOLID tail (silver read the counts two fields early, its
+  constant-1 modeler lost gold's 6 — 2004/Surface 4→0 read), the SAB
+  banners split at the fixed 15-byte prefix (json_3dsolid "%.*s"),
+  acis_empty_bit from the retained wire bit, isolines from
+  acis_data.wireframe_isolines (not u+v).
+
+**SHAPE + TEXT-family raw dataflags** — **DONE (twenty-ninth batch;
+  entities-2d/3d 19/17 each → 0/0)**: silver's read_shape slot map is
+  size = the wire scale (40) and relative_x_scale = the wire
+  WIDTH FACTOR (41) — the R13+ DWG order ins/scale/rotation/
+  width_factor/oblique/thickness/style_id/extrusion; the normalizer
+  emits gold's names, style from style_handle, the shape_name/
+  style_name twins popped. The TEXT/ATTRIB/ATTDEF absence mask:
+  retain the raw RC dataflags byte (the wire bits beat any value
+  recomposition — an explicit width_factor 1.0 keeps bit 4 clear),
+  alignment bit per LibreDWG dwg_set_dataflags (alignment == insertion,
+  NOT merely zero — entities-2d carries a real all-zero [0,0] pair),
+  elevation from insertion_point.z, the writer writes the retained
+  byte, deep-gate arms clear it on all three child types.
+
+**OLE2FRAME raw blob** — **DONE (thirtieth batch; TS1 16/16 → 5/5,
+  removing the OLE2FRAME 11-row family)**: retain the raw wire bytes
+  (Ole2Frame.raw_data; the decoded CFB re-encode is not byte-identical
+  and gold prints the 315 KB blob as the `data` hex string), writer
+  echoes raw over re-encode, type from the ole_object_type variant,
+  mode ← dwg_mode, the structured envelope/storage twins popped,
+  deep-gate arm clears the vec.
+
+**encr_sat_data per-block retention** — **DONE (thirty-first batch;
+  TS1 and 2000/Cone to 0/0, example_2000 encr rows dead)**: the
+  pre-2004 SAT blocks are BL-sized; capture each raw block before the
+  159-cipher decode (the decode is lossy), keep Vec<Vec<u8>> on
+  AcisData, writer echoes the blocks verbatim, normalizer emits one
+  uppercase-hex string per block (out_json json_3dsolid shape).
+
+**Entity-common pair order + SEQEND flag truth** — **DONE
+  (thirty-second batch)**: plotstyle_flags reads IMMEDIATELY after
+  ltype_flags (common_entity_data.spec 507-511) — the old
+  material-first order mislabeled the pairs inside an isochronous
+  12-bit window (no desync, wrong names — the example_2007 LWPOLYLINE
+  read its plotstyle 1893 under `material`); the shadow handle slot
+  between material and plotstyle is consumed on flags==3; the writer
+  pair order mirrors the wire. The SEQEND common flags are the WIRE's
+  per-record data, not a convention: retain plotstyle/shadow flags
+  per SEQEND entity in the builder (pending.seqend_flags keyed by
+  owner), stash early in the normalizer (no generic-loop leak) and
+  emit verbatim — LibreDWG-authored example files carry flags-3-with-
+  the-[5,0,0,0]-null, DWG-native chains (PolyLine3D.dwg etc.) carry 0.
+  The poly-SEQEND writer sites emit era flags (plotstyle 3 in the
+  R2004 band, shadow 3 R2007-R2013) so gold_rt decodes the rewrite.
+  Also POLYLINE_3D.flag from the early-captured bit dict (the pop ran
+  before the kid block read it), POLYLINE_PFACE vertex vector SINCE
+  R2004a (BL num_owned + code-4 vector of ALL owned kids), DIMENSION
+  class_version gated SINCE(R_2010b), MTEXT \U+XXXX escape decode
+  WITH the payload `value` pop (the FIELD_NAME_MAP re-map overwrote
+  the decoded text otherwise).
+
+**Dynblocks/PolyLine2D wave** — **DONE (2026-09-20 batches 33-38,
+  `078c119`)**: (33) LwPolyline raw wire flag retained end-to-end
+  (dwg_raw_flag; the composition loses VERTEXIDCOUNT 0x400 and the
+  presence bits), vertexids emitted from the retained 0x400 with the
+  4-int raw-handle-tuple mirror; (34) SPLINE ctrl_pts = [0]*len
+  (per-point collapse, not the x/y/z triple expansion); (35)
+  BLOCK_HEADER xref_pname ← the table record's xref_path and the
+  anonymous dupe-name strip made lazy (greedy kept *D1 for *D10);
+  (36) POLYLINE_2D parent projection (flag from the bit dict,
+  curve_type from the smooth enum, first/last vertex + seqend from the
+  kid-handle derivation; the pop branch must sit BEFORE the generic
+  loop — a first attempt landed in the kid area and leaked); (37)
+  LAYOUTPRINTCONFIG retype of the Extended/LayoutPrintConfig wrapper
+  (class_version/flag + the R2000 null chain trio + graphic_data
+  pop); (38) the child VERTEX and poly-SEQEND writers inherit the
+  parent's linetype (the wire kids carry the parent pair — the
+  ByLayer hardcode flipped 6 rt rows).
+
+**SECTION trio retype** — **DONE (thirty-ninth batch, `5a25bf9`;
+  LiveSection1 16/14 → 4/2)**: SECTION_MANAGER (is_live + sections
+  handles) and SECTION_SETTINGS (curr_type + types [0]*n per the
+  collapse rule) from the ClassObject wrapper, SECTIONOBJECT from the
+  Extended wrapper (state/flags/name/vert_dir/top+bottom_height/
+  indicator pair/verts/section_settings handle/back_line_verts;
+  preview* ignore-listed). The 426/428 SectionViewStyle/
+  DetailViewStyle stay silver-side UNKNOWN_OBJ per the liveness map.
 
   ~~SURFACE family retypes + PLANESURFACE projection~~ — **DONE
   (2026-09-20 twenty-third batch, `b2955a7`; read 496 → 479 / write
