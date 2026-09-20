@@ -1518,6 +1518,13 @@ impl<'a> DwgObjectWriter<'a> {
         // Default entry handle
         self.writer
             .write_handle(DwgReferenceType::HardPointer, dict.default_handle.value());
+        // Queue the default's TARGET for writing like the entry targets
+        // above: gold resolves this handle to a real record; leaving the
+        // target unwritten left a dangling handle that both decoders could
+        // only show as null (the 119-row DICTIONARYWDFLT.defaultid family).
+        if !dict.default_handle.is_null() {
+            self.object_queue.push_back(dict.default_handle);
+        }
 
         self.register_object(dict.handle);
     }

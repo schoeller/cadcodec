@@ -14,6 +14,75 @@ import re
 import sys
 from typing import Any, Dict, List, Optional
 
+
+def _sanitize_gold_acis(raw: bytes) -> bytes:
+    """Re-escape gold's raw first acis_data element when it carries binary.
+
+    Gold pretty-prints `acis_data` as ["<raw SAB slice>", "hex…"]. The raw
+    slice may contain ANY byte — control chars, non-UTF-8, quotes, backslashes
+    — making the output invalid JSON. A scanner (not a regex: slice bytes can
+    mimic any anchor) re-escapes the first element in place when it is a raw
+    slice: the element must be followed by `,` (a second/hex element exists).
+    `[""]`-style empty arrays are two adjacent quotes and pass through
+    verbatim. If a scan finds no proper element end it leaves the whole span
+    untouched (never corrupts).
+    """
+    need = b'"acis_data": ['
+    out = bytearray()
+    pos = 0
+    n = len(raw)
+    while True:
+        j = raw.find(need, pos)
+        if j < 0:
+            out += raw[pos:]
+            return bytes(out)
+        out += raw[pos : j + len(need)]
+        k = j + len(need)
+        while k < n and raw[k] in b"\n\r \t":
+            out.append(raw[k])
+            k += 1
+        if k >= n or raw[k] != 0x22:
+            pos = k
+            continue
+        open_q = k
+        if raw[open_q + 1 : open_q + 2] == b'"':
+            # [""] — the only element is an empty string; emit verbatim.
+            out += b'""'
+            pos = open_q + 2
+            continue
+        k = open_q + 1
+        esc = bytearray()
+        closed = -1
+        while k < n:
+            b = raw[k]
+            if b == 0x22 and raw[k + 1 : k + 2] == b",":
+                closed = k  # position of the closing quote
+                break
+            if b == 0x22:
+                esc += b'\\"'
+            elif b == 0x5C:
+                esc += b'\\\\'
+            elif b == 0x0A:
+                esc += b'\\n'
+            elif b == 0x0D:
+                esc += b'\\r'
+            elif b == 0x09:
+                esc += b'\\t'
+            elif 0x20 <= b <= 0x7E:
+                esc.append(b)
+            else:
+                esc += b"\\u%04x" % b
+            k += 1
+        if closed < 0:
+            # No element end found; leave the opening quote verbatim and
+            # continue scanning after it (never corrupt).
+            out += b'"'
+            pos = open_q + 1
+            continue
+        out += b'"' + bytes(esc) + b'"'
+        pos = closed + 1  # the comma and the rest are copied verbatim next round
+
+
 HEADER_KEYS = {
     "created_by",
     "FILEHEADER",
@@ -217,8 +286,24 @@ def main() -> None:
     ignore: Optional[Dict[str, Any]] = None
     if len(sys.argv) >= 3:
         ignore = load_ignore_fields(sys.argv[2])
-    with open(sys.argv[1], "r", encoding="utf-8") as f:
-        data = json.load(f)
+    # Gold's dwgread prints raw modeler SAB slices as JSON strings that can
+    # contain arbitrary binary bytes: control characters, non-UTF-8 bytes,
+    # and even double quotes and backslashes, producing INVALID JSON. This
+    # only surfaces once silver rewrites class-indirected 3DSOLID-family
+    # records faithfully (classes-verbatim fix, 2026-09-20) — gold's own
+    # decode of those wires derails (its 3DSOLID spec reads a phantom
+    # leading acis_empty bit) and it dumps raw wire bytes. Sanitize the
+    # first acis_data element by scanning the byte stream (a regex anchor
+    # is ambiguous when the slice itself contains quote-comma-newline
+    # sequences); `[""]`-style empty arrays are two adjacent quotes and are
+    # left verbatim. Everything else is tolerated via strict=False on load.
+    raw_bytes = _sanitize_gold_acis(open(sys.argv[1], "rb").read())
+    raw = raw_bytes.decode("utf-8", errors="replace")
+    # Gold prints invalid doubles as -nan (bit-double error code '11'),
+    # which is not a JSON/python literal; make it parseable. Its rows then
+    # compare as ordinary wrong_value diffs.
+    raw = raw.replace("-nan", "NaN")
+    data = json.loads(raw, strict=False)
     norm = normalize_gold(data, ignore)
     json.dump(norm, sys.stdout, indent=2, ensure_ascii=False)
 

@@ -54,6 +54,27 @@ pub fn write_classes_with_encoding(
     maintenance_version: u8,
     encoding: &'static encoding_rs::Encoding,
 ) -> Vec<u8> {
+    if std::env::var_os("ACADEBUG_CLASSES").is_some() {
+        eprintln!(
+            "[classes-writer] version={} len={} max={} first={:?} last={:?}",
+            version,
+            classes.len(),
+            classes.iter().map(|c| c.class_number).max().unwrap_or(0),
+            classes.first().map(|c| (&c.dxf_name, c.class_number, c.was_zombie)),
+            classes.last().map(|c| (&c.dxf_name, c.class_number, c.was_zombie)),
+        );
+        for c in classes.iter().take(45) {
+            eprintln!(
+                "  [{}] {} #{} zombie={} inst={} names={:?}",
+                classes.iter().position(|x| std::ptr::eq(x, c)).unwrap_or(0),
+                c.dxf_name,
+                c.class_number,
+                c.was_zombie,
+                c.instance_count,
+                c.cpp_class_name
+            );
+        }
+    }
     let dwg_version = DwgVersion::from_dxf_version(version).unwrap_or(DwgVersion::AC15);
 
     // R2007+: Use DwgMergedWriter with three-stream merge.

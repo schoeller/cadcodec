@@ -87,6 +87,23 @@ impl DwgWriter {
                 owned.assign_table_entry_handles();
             }
             if owned.version < DxfVersion::AC1027 {
+                // A same-version DWG→DWG round trip must keep the source
+                // file's class table VERBATIM: document.classes was read
+                // from that very file and every class-indirected object
+                // (ACSH_* shells, evaluation graphs, render entries,
+                // dynamic-block evaluation nodes, …) resolves by its
+                // ORIGINAL class number. The legacy-table prune below
+                // renumbers survivors via add_or_update and leaves the
+                // pruned classes' records falling back to type 500
+                // (ACDBDICTIONARYWDFLT), re-typing every such object in
+                // the re-read file (harness class: DYB→WDFLT counterfeits,
+                // 186 records on ATMOS-DC22S alone).
+                let same_version_roundtrip =
+                    owned.dwg_source_version == Some(owned.version);
+                if same_version_roundtrip {
+                    // The file's own dictionaries are all legal in this
+                    // version; nothing here may be stripped or renumbered.
+                } else {
                 let required: Vec<_> = owned
                     .entities()
                     .filter_map(|entity| {
@@ -129,6 +146,7 @@ impl DwgWriter {
                     }
                 }
                 prepare_legacy_document(&mut owned);
+                }
             }
             &owned
         } else {
