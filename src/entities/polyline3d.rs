@@ -189,6 +189,10 @@ pub struct Polyline3D {
     pub normal: Vector3,
     /// Vertex list
     pub vertices: Vec<Vertex3DPolyline>,
+    /// Handle of the trailing SEQEND record of the wire chain
+    /// (retained from the read; keeps the dump/normalizer and the
+    /// rewrite faithful to gold's record layout).
+    pub seqend_handle: Option<Handle>,
 }
 
 impl Polyline3D {
@@ -207,6 +211,7 @@ impl Polyline3D {
             elevation: 0.0,
             normal: Vector3::UNIT_Z,
             vertices: Vec::new(),
+            seqend_handle: None,
         }
     }
 

@@ -1898,6 +1898,10 @@ impl DwgDocumentBuilder {
                                 }
                             })
                             .collect();
+                        // Preserve the wire's SEQEND handle for this chain.
+                        if let Some(sh) = pending.seqends.get(&poly_handle).copied() {
+                            e.seqend_handle = Some(sh);
+                        }
                     }
                     EntityType::Polyline3D(ref mut e) => {
                         e.vertices = verts
@@ -1915,6 +1919,10 @@ impl DwgDocumentBuilder {
                                 }
                             })
                             .collect();
+                        // Preserve the wire's SEQEND handle for this chain.
+                        if let Some(sh) = pending.seqends.get(&poly_handle).copied() {
+                            e.seqend_handle = Some(sh);
+                        }
                     }
                     EntityType::PolyfaceMesh(ref mut e) => {
                         for v in verts {
@@ -1972,6 +1980,10 @@ impl DwgDocumentBuilder {
                                 }
                             })
                             .collect();
+                        // Preserve the wire's SEQEND handle for this chain.
+                        if let Some(sh) = pending.seqends.get(&poly_handle).copied() {
+                            e.seqend_handle = Some(sh);
+                        }
                     }
                     _ => {}
                 }

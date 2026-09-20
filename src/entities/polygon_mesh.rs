@@ -114,6 +114,10 @@ pub struct PolygonMesh {
     pub normal: Vector3,
     /// Mesh vertices (M × N grid)
     pub vertices: Vec<PolygonMeshVertex>,
+    /// Handle of the trailing SEQEND record of the wire chain
+    /// (retained from the read; keeps the dump/normalizer and the
+    /// rewrite faithful to gold's record layout).
+    pub seqend_handle: Option<Handle>,
 }
 
 impl PolygonMesh {
@@ -130,6 +134,7 @@ impl PolygonMesh {
             elevation: 0.0,
             normal: Vector3::UNIT_Z,
             vertices: Vec::new(),
+            seqend_handle: None,
         }
     }
 

@@ -223,6 +223,10 @@ pub struct Polyline2D {
     pub normal: Vector3,
     /// Vertices
     pub vertices: Vec<Vertex2D>,
+    /// Handle of the trailing SEQEND record of the wire chain
+    /// (retained from the read; keeps the dump/normalizer and the
+    /// rewrite faithful to gold's record layout).
+    pub seqend_handle: Option<Handle>,
 }
 
 impl Polyline2D {
@@ -237,6 +241,7 @@ impl Polyline2D {
             elevation: 0.0,
             normal: Vector3::new(0.0, 0.0, 1.0),
             vertices: Vec::new(),
+            seqend_handle: None,
         }
     }
 

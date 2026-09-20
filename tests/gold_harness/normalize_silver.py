@@ -1165,10 +1165,18 @@ def normalize_silver(
         # the old tuple string never matched so no VERTEX_MESH kids were
         # synthesized for TS1 (12 dropped records).
         _kid_verts = _kid_faces = None
+        _seq_h_parent = None
         if gold_type in ("POLYLINE_2D", "POLYLINE_3D", "POLYLINE_MESH",
                          "POLYLINE_PFACE"):
             _kid_verts = payload.get("vertices")
             _kid_faces = payload.get("faces")
+            # The wire's trailing SEQEND handle is retained on the parent
+            # (the builder restores it for every polyline family). Capture
+            # and pop it here, BEFORE the generic field loop emits it as
+            # an extra_in_silver row — the synthesized SEQEND below uses
+            # the real handle; gold's parent records carry no seqend
+            # handle field.
+            _seq_h_parent = payload.pop("seqend_handle", None)
 
         fields = merge_common(common, common_dwg_entry, layer_map)
         if gold_type == "UNKNOWN_ENT" and "graphic_data" in fields:
@@ -1708,9 +1716,10 @@ def normalize_silver(
             if isinstance(fs, list) and fs:
                 fields["numfaces"] = len(fs)
                 fields["last_vertex"] = normalize_handle_value(_pf_handle(fs[-1]) or 0)
-            se = payload.get("seqend_handle")
-            if se is not None:
-                fields["seqend"] = normalize_handle_value(se)
+            # The early poly-family capture popped seqend_handle from the
+            # payload — use the captured real wire handle.
+            if _seq_h_parent is not None:
+                fields["seqend"] = normalize_handle_value(_seq_h_parent)
             for sk in ("vertices", "faces", "seqend_handle", "flags", "normal",
                        "elevation", "extrusion", "start_width", "end_width",
                        "smooth_surface", "thickness"):
@@ -3187,8 +3196,15 @@ def normalize_silver(
                 # 2D vertices carry no handles on silver's side: the wire
                 # assigns parent+1..parent+n; the others store real handles
                 # under nested common.
-                _nh = ((v.get("common") or {}).get("handle")
-                       if isinstance(v.get("common"), dict) else None)
+                _nh = None
+                if isinstance(v.get("common"), dict):
+                    _nh = v["common"].get("handle")
+                # silver's 3D-family Vertex3DPolyline serializes the wire
+                # handle as a FLAT field (e.g. 1052 after the poly@1050 +
+                # seqend@1051) — use it; the parent+1..parent+n fallback
+                # would synthesize 1051 and CLASH with the real SEQEND.
+                if _nh is None and isinstance(v.get("handle"), int):
+                    _nh = v["handle"]
                 if _nh is None:
                     _nh = (_ph or 0) + 1 + len(_handles)
                 _handles.append(_nh)
@@ -3296,13 +3312,23 @@ def normalize_silver(
                                       "value": _ii[2], "absref": _ii[3]}
                     _kid_recs.append({"type": "VERTEX_PFACE_FACE", "fields": rec})
         if _kid_type:
-            # SEQEND: the parent's trailing common-only record. Handle
-            # conventions verified per family: POLYLINE_3D is adaptive —
+            # SEQEND: the parent's trailing common-only record. The wire's
+            # SEQEND entities are real records with real handles — silver's
+            # reader retains them on the parent (seqend_handle, restored by
+            # the builder for every polyline family) and the writer echoes
+            # them, so prefer the REAL handle; a wrong synthesized ordinal
+            # rotates the (type, ordinal) pairing of every SEQEND in the
+            # file. Fall back to the old conventions (POLYLINE_3D adaptive —
             # parent+1 when that handle is vacant in the file's layout
-            # ([poly, seqend, verts]) — else last-child+1 ([poly, verts,
-            # seqend]); all other families take last-child+1.
+            # ([poly, seqend, verts]) — else last-child+1) only when the
+            # reader stored none.
             _ph = (payload.get("common") or {}).get("handle") or handle
-            if gold_type == "POLYLINE_3D" and _handles:
+            _seq_h_real = (_seq_h_parent
+                           if isinstance(_seq_h_parent, int)
+                           else None)
+            if _seq_h_real:
+                _seqend_h = _seq_h_real
+            elif gold_type == "POLYLINE_3D" and _handles:
                 if (_ph or 0) + 1 not in _handles:
                     _seqend_h = (_ph or 0) + 1
                 else:

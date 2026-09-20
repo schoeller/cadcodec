@@ -642,13 +642,26 @@ fn normalize_entity_for_comparison(entity: &mut EntityType) {
 
     // ── Entity-specific handles & computed fields ──────────────
     match entity {
-        // Polyline3D: vertex handles and layers
+        // Polyline3D: vertex handles and layers; the seqend handle is
+        // writer-allocated on constructed documents (the read stores the
+        // wire's real record handle), so it is not part of semantic
+        // roundtrip equality — same treatment as PolyfaceMesh below.
         EntityType::Polyline3D(p) => {
             for v in &mut p.vertices {
                 v.handle = Handle::NULL;
                 // Layer may be inherited from the polyline after write/read
                 v.layer = String::new();
             }
+            p.seqend_handle = None;
+        }
+        // Polyline2D: writer-allocated seqend handle (write allocates,
+        // read stores the wire record's handle).
+        EntityType::Polyline2D(p) => {
+            p.seqend_handle = None;
+        }
+        // PolygonMesh: writer-allocated seqend handle, same as above.
+        EntityType::PolygonMesh(pm) => {
+            pm.seqend_handle = None;
         }
         // PolyfaceMesh: seqend handle + nested vertex/face EntityCommon
         EntityType::PolyfaceMesh(pf) => {

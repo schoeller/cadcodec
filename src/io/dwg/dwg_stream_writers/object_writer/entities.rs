@@ -2454,10 +2454,14 @@ impl<'a> DwgObjectWriter<'a> {
         self.writer.write_bit_double(e.elevation);
         self.writer.write_bit_extrusion(e.normal);
 
-        // Allocate handles for vertices and seqend
+        // Allocate handles for vertices; the seqend keeps its wire handle
+        // when the read retained one, else gets a fresh allocation.
         let vertex_handles: Vec<Handle> =
             (0..e.vertices.len()).map(|_| self.alloc_handle()).collect();
-        let seqend_handle = self.alloc_handle();
+        let seqend_handle = e
+            .seqend_handle
+            .filter(|h| !h.is_null())
+            .unwrap_or_else(|| self.alloc_handle());
 
         if self.version.r2004_plus() {
             self.writer.write_bit_long(e.vertices.len() as i32);
@@ -2620,7 +2624,8 @@ impl<'a> DwgObjectWriter<'a> {
         let closed_flag = if e.flags.closed { 1u8 } else { 0u8 };
         self.writer.write_byte(closed_flag);
 
-        // Allocate handles for any vertex that doesn't have one
+        // Allocate handles for any vertex that doesn't have one; the
+        // seqend keeps its wire handle when the read retained one.
         let vertex_handles: Vec<Handle> = e
             .vertices
             .iter()
@@ -2632,7 +2637,10 @@ impl<'a> DwgObjectWriter<'a> {
                 }
             })
             .collect();
-        let seqend_handle = self.alloc_handle();
+        let seqend_handle = e
+            .seqend_handle
+            .filter(|h| !h.is_null())
+            .unwrap_or_else(|| self.alloc_handle());
 
         if self.version.r2004_plus() {
             self.writer.write_bit_long(e.vertices.len() as i32);
@@ -2941,7 +2949,8 @@ impl<'a> DwgObjectWriter<'a> {
         self.writer.write_bit_short(e.m_smooth_density);
         self.writer.write_bit_short(e.n_smooth_density);
 
-        // Allocate handles for vertices that don't have one
+        // Allocate handles for vertices that don't have one; the seqend
+        // keeps its wire handle when the read retained one.
         let vertex_handles: Vec<Handle> = e
             .vertices
             .iter()
@@ -2953,7 +2962,10 @@ impl<'a> DwgObjectWriter<'a> {
                 }
             })
             .collect();
-        let seqend_handle = self.alloc_handle();
+        let seqend_handle = e
+            .seqend_handle
+            .filter(|h| !h.is_null())
+            .unwrap_or_else(|| self.alloc_handle());
 
         if self.version.r2004_plus() {
             self.writer.write_bit_long(e.vertices.len() as i32);
