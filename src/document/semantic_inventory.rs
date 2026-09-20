@@ -194,6 +194,7 @@ impl<'a> SemanticInventoryV1<'a> {
             eed_by_handle,
             xdic_by_handle,
             reactors_by_handle,
+            unknown_bits_by_handle: _,
             block_entity_handles: _,
             dwg_source_version,
             preview,

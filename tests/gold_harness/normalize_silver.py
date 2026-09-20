@@ -488,7 +488,30 @@ def _object_common_fields(payload: Dict[str, Any]) -> Dict[str, Any]:
     return fields
 
 
+# ── Raw-remainder (unknown_bits) emitter types ────────────────────────────
+# Gold emits `unknown_bits` exactly for the spec blocks carrying
+# HANDLE_UNKNOWN_BITS (149 blocks in dwg.spec/dwg2.spec, extracted via
+# target/probes/ub_spec_set.py). This is the subset observed with a
+# non-zero remainder on the corpus (target/probes/ub_full_set.py) minus
+# UNKNOWN_OBJ/UNKNOWN_ENT (their hex is dropped symmetrically in
+# normalize_gold). A type outside this set must NOT get an emitted
+# unknown_bits or the differ would show extra_in_silver rows.
+_UNKNOWN_BITS_TYPES = frozenset({
+    "DIMASSOC", "EVALUATION_GRAPH", "ACSH_FILLET_CLASS", "TABLESTYLE",
+    "ASSOCDEPENDENCY", "ASSOCVARIABLE", "ASSOCVALUEDEPENDENCY",
+    "ASSOCDIMDEPENDENCYBODY", "WIPEOUT", "BLOCKSTRETCHACTION",
+    "ASSOCPATHACTIONPARAM", "MULTILEADER", "BLOCKREPRESENTATION",
+    "ASSOCOSNAPPOINTREFACTIONPARAM", "ASSOCVERTEXACTIONPARAM",
+    "ARC_DIMENSION", "TABLEGEOMETRY", "DYNAMICBLOCKPURGEPREVENTER",
+    "ASSOC2DCONSTRAINTGROUP", "SECTION_SETTINGS", "HELIX",
+    "ASSOCEXTRUDEDSURFACEACTIONBODY", "ASSOCLOFTEDSURFACEACTIONBODY",
+    "ASSOCREVOLVEDSURFACEACTIONBODY", "PLANESURFACE",
+    "ASSOCPLANESURFACEACTIONBODY", "LEADEROBJECTCONTEXTDATA",
+})
+
+
 # ── Dynamic-block family retype map (U2, 2026-09-20) ──────────────────────
+
 # dxf_name (upper-cased; silver keeps the class-table dxfname on its
 # DynamicBlock wrapper) -> gold object name. Every class here has a LIVE
 # gold spec block (dwg2.spec; verified against the §8.1.1 frame map) and a
@@ -960,6 +983,28 @@ def normalize_silver(
     # `dwg_data_store_handles` set (round-tripped by the DWG writer).
     # Serialized as a plain list of handle ints.
     dwg_ds_handles = {str(h) for h in data.get("dwg_data_store_handles", [])}
+    # Raw-remainder side channel (gold's HANDLE_UNKNOWN_BITS window, spec.h
+    # 578): silver's reader peeks the bits from the end of the common
+    # prologue to the record end and stores the uppercase hex keyed by
+    # handle. Emit for the classes whose gold spec block carries the macro
+    # AND was observed to emit a non-zero remainder on the corpus — emitting
+    # for a class gold does not would create extra_in_silver rows.
+    # UNKNOWN_OBJ/UNKNOWN_ENT are excluded: their hex is dropped
+    # symmetrically in normalize_gold (the landed UNKNOWN projections).
+    unknown_bits_map = data.get("unknown_bits_by_handle", {})
+
+    def _emit_unknown_bits(gold_type: str, handle: Any,
+                           fields: Dict[str, Any]) -> None:
+        """Emit gold's raw-remainder hex for the HANDLE_UNKNOWN_BITS
+        classes from the reader side channel. `handle` is the record's
+        silver handle (entities: payload common; objects: payload)."""
+        if gold_type not in _UNKNOWN_BITS_TYPES:
+            return
+        if not isinstance(handle, int):
+            return
+        ub = unknown_bits_map.get(str(handle))
+        if isinstance(ub, str) and ub:
+            fields["unknown_bits"] = ub
 
     def _lookup_xdic(raw_handle: Any) -> Any:
         if not isinstance(raw_handle, int):
@@ -2845,6 +2890,7 @@ def normalize_silver(
                 _sf["next_entity"] = normalize_handle_value(0)
                 _sf["nolinks"] = 0
             _kid_recs.append({"type": "SEQEND", "fields": _sf})
+        _emit_unknown_bits(gold_type, handle, fields)
         out.append({"type": gold_type, "fields": fields})
         for _kr in _kid_recs:
             out.append(_kr)
@@ -4141,6 +4187,7 @@ def normalize_silver(
             if is_ignored(k, ignore_set, ignore_patterns):
                 continue
             fields[k] = normalize_value(v)
+        _emit_unknown_bits(gold_type, payload.get("handle"), fields)
         out.append({"type": gold_type, "fields": fields})
 
     # Table records.

@@ -1209,6 +1209,17 @@ pub struct CadDocument {
     /// Non-entity object reactors — populated during DWG read, consumed during DWG write.
     pub(crate) reactors_by_handle: HashMap<Handle, Vec<Handle>>,
 
+    /// Raw undecoded record remainders, keyed by handle — gold's
+    /// `HANDLE_UNKNOWN_BITS` window (LibreDWG decode.c `dwg_decode_unknown_bits`):
+    /// the bits from the end of the common prologue (after type code, size
+    /// placeholder, handle, EED and the common entity/object data) to the
+    /// record end, kept verbatim as uppercase hex so the harness can emit
+    /// gold's `unknown_bits`. Populated during DWG read; the writer does not
+    /// consume it (on rewrite both oracles re-read the written bytes, so the
+    /// window is recomputed from the file, not carried over).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub unknown_bits_by_handle: HashMap<Handle, String>,
+
     /// Original BLOCK_HEADER entity handles from the DWG binary — includes sub-entity handles
     /// (vertices, faces, SEQENDs). Keyed by BlockRecord handle. Used by the writer to produce
     /// correct owned_object_count without re-expanding from the document model.
@@ -1419,6 +1430,7 @@ impl CadDocument {
             eed_by_handle: HashMap::new(),
             xdic_by_handle: HashMap::new(),
             reactors_by_handle: HashMap::new(),
+            unknown_bits_by_handle: HashMap::new(),
             block_entity_handles: HashMap::new(),
             dwg_source_version: None,
             preview: None,

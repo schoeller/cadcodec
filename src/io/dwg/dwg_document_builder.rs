@@ -176,6 +176,7 @@ struct Pass2Output {
     eed_by_handle: HashMap<Handle, Vec<(u64, Vec<u8>)>>,
     xdic_by_handle: HashMap<Handle, Handle>,
     reactors_by_handle: HashMap<Handle, Vec<Handle>>,
+    unknown_bits_by_handle: HashMap<Handle, String>,
     dwg_data_store_handles: HashSet<Handle>,
     context_scales: HashMap<Handle, Handle>,
     block_visibility_params: HashMap<Handle, crate::objects::BlockVisibilityParameter>,
@@ -206,6 +207,7 @@ impl Pass2Output {
             eed_by_handle: HashMap::new(),
             xdic_by_handle: HashMap::new(),
             reactors_by_handle: HashMap::new(),
+            unknown_bits_by_handle: HashMap::new(),
             dwg_data_store_handles: HashSet::new(),
             context_scales: HashMap::new(),
             block_visibility_params: HashMap::new(),
@@ -1760,6 +1762,9 @@ impl DwgDocumentBuilder {
                     .reactors_by_handle
                     .extend(chunk.output.reactors_by_handle.drain());
                 document
+                    .unknown_bits_by_handle
+                    .extend(chunk.output.unknown_bits_by_handle.drain());
+                document
                     .dwg_data_store_handles
                     .extend(chunk.output.dwg_data_store_handles.drain());
                 document
@@ -3114,6 +3119,63 @@ impl DwgDocumentBuilder {
         }
     }
 
+    /// Gold's `HANDLE_UNKNOWN_BITS` window (LibreDWG decode.c
+    /// `dwg_decode_unknown_bits`): peek the bits from the current main-stream
+    /// position — right after the common entity/object prologue, the same
+    /// point gold's spec-body `HANDLE_UNKNOWN_BITS` macro runs at, since both
+    /// readers consume the identical prologue (type code, size placeholder,
+    /// handle, EED, common entity/object data) — to the record end, without
+    /// consuming. Stored as uppercase hex keyed by handle; the harness
+    /// normalizer emits it only for the classes whose gold spec carries the
+    /// macro (the differ would otherwise show extra rows). A trailing
+    /// partial byte is LSB-packed (bits.c 1733 `chain[bytes] |= last << i`).
+    fn capture_unknown_bits(
+        document: &mut Pass2Output,
+        reader: &crate::io::dwg::dwg_stream_readers::merged_reader::DwgMergedReader,
+        handle: u64,
+    ) {
+        const HEX: &[u8; 16] = b"0123456789ABCDEF";
+        let pos = reader.main().position_in_bits();
+        let data = reader.raw_merged_data();
+        let end = (data.len() as i64) * 8;
+        if pos < 0 || end <= pos {
+            return;
+        }
+        let num_bits = end - pos;
+        // Gold's bit_read_bits (bits.c 1733): full bytes come from
+        // bit_read_fixed (MSB-first), but the trailing partial byte
+        // accumulates `chain[bytes] |= last << i` — the read-order bit i
+        // sits at the LOW position i, zero-padded on the left. Mirror
+        // that exactly or the hex differs in the final byte everywhere.
+        let full = (num_bits / 8) as usize;
+        let rest = (num_bits % 8) as usize;
+        let mut bytes = vec![0u8; full + usize::from(rest != 0)];
+        for i in 0..(full * 8) {
+            let abs = pos as usize + i;
+            if (data[abs >> 3] >> (7 - (abs & 7))) & 1 == 1 {
+                bytes[i >> 3] |= 0x80 >> (i & 7);
+            }
+        }
+        if rest != 0 {
+            let mut tail = 0u8;
+            for j in 0..rest {
+                let abs = pos as usize + full * 8 + j;
+                if (data[abs >> 3] >> (7 - (abs & 7))) & 1 == 1 {
+                    tail |= 1 << j;
+                }
+            }
+            bytes[full] = tail;
+        }
+        let mut hex = String::with_capacity(bytes.len() * 2);
+        for &b in &bytes {
+            hex.push(HEX[(b >> 4) as usize] as char);
+            hex.push(HEX[(b & 0xf) as usize] as char);
+        }
+        document
+            .unknown_bits_by_handle
+            .insert(Handle::from(handle), hex);
+    }
+
     /// Process a single object record in Pass 2.
     fn process_pass2_record(
         &self,
@@ -3141,6 +3203,7 @@ impl DwgDocumentBuilder {
             let entity_data = self
                 .obj_reader
                 .read_common_entity_data(&mut reader, type_code);
+            Self::capture_unknown_bits(document, &reader, handle);
             let entity_common = map_entity_common(
                 &entity_data,
                 maps,
@@ -4860,6 +4923,7 @@ impl DwgDocumentBuilder {
             let non_entity_data = self
                 .obj_reader
                 .read_common_non_entity_data(&mut reader, type_code);
+            Self::capture_unknown_bits(document, &reader, handle);
             let owner_handle = Handle::from(non_entity_data.owner_handle);
             if non_entity_data.has_ds_data {
                 document
