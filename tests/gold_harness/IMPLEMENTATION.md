@@ -272,18 +272,45 @@ IMAGEDEF_REACTOR) + elevation/linewt projections + R2013+ AcDs
 3DSOLID-family writer payload + pre-R2007 is_xref_ref wire bit +
 fabricated-Standard-DIMSTYLE removal + 3DSOLID prologue-divergence
 projection + MTEXT R2018 redundant extents/ignore_attachment + DIMENSION
-family block handle + pre-R2013 classes-verbatim roundtrip, 2026-09-20):**
-read-fidelity **3 733**, write-fidelity **3 616** — the write side now
-MIRRORS the read side family-for-family: the classes-verbatim fix
-un-masked real writer gaps whose rows used to be cancelled by symmetric
-counterfeit garbage (write went 3 372 → 3 616 while killing the entire
-phantom-class phenomenon: 186 re-typed DynamicBlock/ACSH nodes on ATMOS
-alone). gh44-error.dwg stays out of scope (explicit guard in
-`run_corpus.in_scope_files`, `246e60a`; the new `-nan` shim in
-normalize_gold had briefly re-included it, inflating totals to 7689/7559).
+family block handle + pre-R2013 classes-verbatim roundtrip +
+unmodeled-class (UNKNOWN_OBJ/ENT) projections + UNKNOWN_ENT
+_common_dwg graphic-data strip, 2026-09-20):**
+read-fidelity **3 425**, write-fidelity **3 292** — both sides MIRROR
+family-for-family (the classes-verbatim fix un-masked real gaps whose rows
+used to be cancelled by symmetric counterfeit garbage; the UNKNOWN
+projections then took −308/−324). gh44-error.dwg stays out of scope
+(explicit guard in `run_corpus.in_scope_files`, `246e60a`; the new `-nan`
+shim in normalize_gold had briefly re-included it, inflating totals to
+7689/7559).
 `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
-each packet lands. **Campaign target: read AND write below 1 000** (raised
+each packet lands.
+
+**Next packets (2026-09-20 halt, tops mirrored read/write):**
+1. **U2 — dynamic-block-class retype map** (largest single family left,
+   ~380/side): silver's `DynamicBlock` wrapper bucket swallows records
+   gold types BY LIVE CLASS NAME — Dynblocks census: gold
+   BLOCKGRIPLOCATIONCOMPONENT 34 / BLOCKSTRETCHACTION 9 /
+   BLOCKREPRESENTATION 7 / DYNAMICBLOCKPURGEPREVENTER 6 / BLOCK*GRIP/
+   *PARAMETER/*ACTION classes ≈ 92 records vs silver's 92 UNKNOWN_OBJ
+   (gold has only 1 true UNKNOWN_OBJ there); ATMOS carries 112 the same
+   way. Retype by `payload.dxf_name` → the gold class block name (all
+   live in dwg2.spec — the ACSH_HISTORY_CLASS precedent at the
+   DynamicBlock retype site), then land per-class field projections from
+   silver's `data.<Kind>` payloads. PROXY_OBJECT (30) is the same retype
+   class: silver maps ProxyObject→UNKNOWN_OBJ but gold emits
+   PROXY_OBJECT (dwg.spec 5752, live).
+2. **unknown_bits floor** (~260/side in tops: TABLESTYLE 121, DIMASSOC 62,
+   EVALUATION_GRAPH 56, ASSOCDEPENDENCY 36, ASSOCVARIABLE 22): needs the
+   raw-remainder reader feature (keep undecoded bit ranges verbatim).
+3. Small mixed: VIEWPORT.named_ucs 29, ATTDEF.style 26 / TEXT.style 21,
+   UNKNOWN_OBJ.ownerhandle 28-44, ATTRIB._missing 18, MTEXT column shapes.
+
+   Liveness discipline reminder (the SECTIONVIEWSTYLE/DETAILVIEWSTYLE
+   incident, verified `0be4d76`): the UNKNOWN-family payload-clear runs
+   LAST — after every payload-keyed retype branch (viewstyles/assoc) — and
+   only on records still UNKNOWN-typed; retyping by dxf_name requires the
+   class block to be live (check preprocessor frames first). **Campaign target: read AND write below 1 000** (raised
 12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19 — at this level every
 normalizer-trackable family plus the structural classes (ASSOC retypes, the
 unmodeled wrappers, the SOLID.elevation/LAYOUT.has_ds_data/linewt reader
