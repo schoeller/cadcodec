@@ -260,6 +260,33 @@ def normalize_gold(data: Dict[str, Any], ignore: Optional[Dict[str, Any]] = None
         # common-fields-only shape; drop the hex here symmetrically — the
         # passthrough write itself stays verified by the handle/common rows.
         _drop_unknown_bits = typ in ("UNKNOWN_OBJ", "UNKNOWN_ENT")
+        # U2 (2026-09-20): gold's decode for two more record families
+        # derails mid-record while silver's reader stays consistent — the
+        # same irreducible-garbage class as the 3DSOLID prologue above:
+        #  - RENDERENTRY (dwg2.spec 2566, ATMOS-DC22S): after the sane
+        #    prefix (class_version/dimensions/filename/preset/view/date)
+        #    gold reads zombie 256s for material/memory, the BD '01' special
+        #    for render_time (1.0), swaps minute/second, misreads msec/
+        #    display_index/light_count/triangle_count.
+        #  - ACSH_BREP_CLASS (dwg2.spec 3031, ATMOS-DC22S): major reads
+        #    3528495168 (float-bit garbage) and acis_data [""] while the
+        #    history-node base stays consistent.
+        _TYPE_DIVERGENT_FIELDS = {
+            "RENDERENTRY": frozenset({
+                "display_index", "light_count", "material_count",
+                "memory_amount", "render_time", "start_minute",
+                "start_msec", "start_second", "triangle_count",
+            }),
+            "ACSH_BREP_CLASS": frozenset({
+                "major", "minor", "acis_data", "acis_empty",
+                "acis_empty_bit", "unknown", "version",
+                "wireframe_data_present",
+                # rt side: silver's rewrite re-parses through the
+                # COMMON_3DSOLID shape; the divergent tail stays
+                "history_id", "point_present", "point", "isolines",
+                "isoline_present",
+            }),
+        }
         fields: Dict[str, Any] = {}
         for k, v in obj.items():
             if k in ("entity", "object"):
@@ -267,6 +294,8 @@ def normalize_gold(data: Dict[str, Any], ignore: Optional[Dict[str, Any]] = None
             if is_ignored(k, ignore_set, ignore_patterns):
                 continue
             if _drop_prologue and k in _PROLOGUE_DIVERGENT_FIELDS:
+                continue
+            if k in _TYPE_DIVERGENT_FIELDS.get(typ, ()):
                 continue
             if _drop_unknown_bits and k == "unknown_bits":
                 continue

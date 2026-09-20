@@ -488,6 +488,227 @@ def _object_common_fields(payload: Dict[str, Any]) -> Dict[str, Any]:
     return fields
 
 
+# ── Dynamic-block family retype map (U2, 2026-09-20) ──────────────────────
+# dxf_name (upper-cased; silver keeps the class-table dxfname on its
+# DynamicBlock wrapper) -> gold object name. Every class here has a LIVE
+# gold spec block (dwg2.spec; verified against the §8.1.1 frame map) and a
+# landed field projection in the object loop below.
+_DYNBLOCK_RETYPE = {
+    "BLOCKGRIPLOCATIONCOMPONENT": "BLOCKGRIPLOCATIONCOMPONENT",
+    "BLOCKSTRETCHACTION": "BLOCKSTRETCHACTION",
+    "BLOCKREPRESENTATION": "BLOCKREPRESENTATION",
+    "ACDB_BLOCKREPRESENTATION_DATA": "BLOCKREPRESENTATION",
+    "DYNAMICBLOCKPURGEPREVENTER": "DYNAMICBLOCKPURGEPREVENTER",
+    "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION": "DYNAMICBLOCKPURGEPREVENTER",
+    "BLOCKVISIBILITYGRIP": "BLOCKVISIBILITYGRIP",
+    "BLOCKALIGNMENTGRIP": "BLOCKALIGNMENTGRIP",
+    "BLOCKFLIPGRIP": "BLOCKFLIPGRIP",
+    "BLOCKLINEARGRIP": "BLOCKLINEARGRIP",
+    "BLOCKROTATIONGRIP": "BLOCKROTATIONGRIP",
+    "BLOCKALIGNMENTPARAMETER": "BLOCKALIGNMENTPARAMETER",
+    "BLOCKLINEARPARAMETER": "BLOCKLINEARPARAMETER",
+    "BLOCKBASEPOINTPARAMETER": "BLOCKBASEPOINTPARAMETER",
+    "BLOCKFLIPPARAMETER": "BLOCKFLIPPARAMETER",
+    "BLOCKROTATIONPARAMETER": "BLOCKROTATIONPARAMETER",
+    "BLOCKMOVEACTION": "BLOCKMOVEACTION",
+    "BLOCKFLIPACTION": "BLOCKFLIPACTION",
+    "BLOCKROTATEACTION": "BLOCKROTATEACTION",
+    "BLOCKSCALEACTION": "BLOCKSCALEACTION",
+    "ACSH_FILLET_CLASS": "ACSH_FILLET_CLASS",
+    "ACSH_CYLINDER_CLASS": "ACSH_CYLINDER_CLASS",
+    "ACSH_WEDGE_CLASS": "ACSH_WEDGE_CLASS",
+    "ACSH_BOX_CLASS": "ACSH_BOX_CLASS",
+    "ACSH_CHAMFER_CLASS": "ACSH_CHAMFER_CLASS",
+    "ACSH_BOOLEAN_CLASS": "ACSH_BOOLEAN_CLASS",
+    "ACSH_TORUS_CLASS": "ACSH_TORUS_CLASS",
+    "ACSH_BREP_CLASS": "ACSH_BREP_CLASS",
+}
+
+
+def _dyn_eval_fields(ev, fields):
+    """AcDbEvalExpr_fields (dwg2.spec 2860) -> evalexpr.* JSON fields."""
+    if not isinstance(ev, dict):
+        return
+    fields["evalexpr.parentid"] = ev.get("parent_id", 0)
+    fields["evalexpr.major"] = ev.get("major", 0)
+    fields["evalexpr.minor"] = ev.get("minor", 0)
+    fields["evalexpr.value_code"] = ev.get("value_code", 0)
+    # BlockEvalValue is externally tagged; gold emits evalexpr.value.<key>
+    # for the variant matching value_code (spec switch).
+    v = ev.get("value")
+    if isinstance(v, dict) and len(v) == 1:
+        vkind, vval = next(iter(v.items()))
+        _spec = {"Real": ("num40", normalize_float),
+                 "Point": ("pt2d", normalize_value),
+                 "Text": ("text1", None),
+                 "Long": ("long90", None),
+                 "Handle": ("handle91", normalize_handle_value),
+                 "Short": ("short70", None)}.get(vkind)
+        if _spec:
+            gname, conv = _spec
+            if vkind == "Point" and ev.get("value_code") == 11:
+                gname = "pt3d"
+            fields["evalexpr.value." + gname] = conv(vval) if conv else vval
+    fields["evalexpr.nodeid"] = ev.get("node_id", 0)
+
+
+def _dyn_element_fields(el, fields):
+    """AcDbBlockElement_fields (dwg2.spec 3208): name + eed1071. The
+    be_major/be_minor pair is DECODER-only (else-branch constants 33/29) —
+    silver's element.major/minor have no gold counterpart."""
+    if not isinstance(el, dict):
+        return
+    _dyn_eval_fields(el.get("eval"), fields)
+    fields["name"] = el.get("name", "")
+    fields["eed1071"] = el.get("eed_1071", 0)
+
+
+def _dyn_grip_fields(g, fields):
+    """AcDbBlockGrip_fields (dwg2.spec 3226)."""
+    if not isinstance(g, dict):
+        return
+    _dyn_element_fields(g.get("element"), fields)
+    fields["bg_bl91"] = g.get("flags_91", 0)
+    fields["bg_bl92"] = g.get("flags_92", 0)
+    fields["bg_location"] = normalize_value(g.get("location"))
+    fields["bg_insert_cycling"] = 1 if g.get("insert_cycling") else 0
+    fields["bg_insert_cycling_weight"] = g.get("insert_cycling_weight", 0)
+
+
+def _dyn_parameter_fields(p, fields):
+    """AcDbBlockParameter_fields (dwg2.spec 3235)."""
+    if not isinstance(p, dict):
+        return
+    _dyn_element_fields(p.get("element"), fields)
+    fields["show_properties"] = 1 if p.get("show_properties") else 0
+    fields["chain_actions"] = 1 if p.get("chain_actions") else 0
+
+
+def _dyn_propinfo(prefix, props, fields):
+    """BlockParam_PropInfo: gold emits <prefix><n>.connections only when the
+    REPEAT is non-empty; normalize_gold collapses the per-connection dicts
+    to 0s (the no-index/no-rgb dict heuristic)."""
+    if not isinstance(props, list):
+        return
+    for i, pr in enumerate(props):
+        conns = pr.get("connections") if isinstance(pr, dict) else None
+        if isinstance(conns, list) and conns:
+            fields[f"{prefix}{i + 1}.connections"] = [0] * len(conns)
+
+
+def _dyn_1pt_fields(p, fields):
+    """AcDbBlock1PtParameter_fields (dwg2.spec 3308). `p` is silver's
+    BlockOnePointParameter (the `parameter` member of the wrapping class).
+    Gold does not emit num_propinfos (empirically absent on every corpus
+    BLOCKVISIBILITYPARAMETER and BLOCKBASEPOINTPARAMETER)."""
+    if not isinstance(p, dict):
+        return
+    _dyn_parameter_fields(p.get("parameter"), fields)
+    fields["def_pt"] = normalize_value(p.get("definition_point"))
+    _dyn_propinfo("prop", p.get("properties"), fields)
+
+
+def _dyn_2pt_fields(p, fields):
+    """AcDbBlock2PtParameter_fields (dwg2.spec 3317). `p` is silver's
+    BlockTwoPointParameter (the `parameter` member of the wrapping class —
+    the payload nests parameter.parameter.element)."""
+    if not isinstance(p, dict):
+        return
+    _dyn_parameter_fields(p.get("parameter"), fields)
+    fields["def_basept"] = normalize_value(p.get("definition_base_point"))
+    fields["def_endpt"] = normalize_value(p.get("definition_end_point"))
+    _dyn_propinfo("prop", p.get("properties"), fields)
+    # FIELD_VECTOR_N (prop_states, BL, 4): gold's raw 4-int array takes
+    # normalize_gold's int-array->handle shape
+    # {code:s0, size:s1, value:s2, absref:s3}.
+    st = p.get("property_states")
+    if isinstance(st, list) and len(st) >= 3:
+        fields["prop_states"] = {"code": st[0], "size": st[1],
+                                 "value": st[2],
+                                 "absref": st[3] if len(st) > 3 else st[2]}
+    fields["parameter_base_location"] = p.get("parameter_base_location", 0)
+
+
+def _dyn_valueset_fields(vs, fields):
+    """AcDbBlockParamValueSet_fields (dwg2.spec 3289) — the SUB_FIELD names
+    are emitted plainly (verified on BLOCKLINEARPARAMETER/BLOCKROTATIONPARAMETER
+    census). num_valuelist follows the num_* absence rule."""
+    if not isinstance(vs, dict):
+        return
+    fields["desc"] = vs.get("description", "")
+    fields["flags"] = vs.get("flags", 0)
+    fields["minimum"] = normalize_float(vs.get("minimum", 0.0))
+    fields["maximum"] = normalize_float(vs.get("maximum", 0.0))
+    fields["increment"] = normalize_float(vs.get("increment", 0.0))
+    vals = vs.get("values")
+    if isinstance(vals, list):
+        # gold emits the valuelist array even when empty (verified on
+        # BLOCKROTATIONPARAMETER: flags 3, valuelist [])
+        fields["valuelist"] = [normalize_float(v) for v in vals]
+
+
+def _dyn_action_fields(a, fields):
+    """AcDbBlockAction_fields (dwg2.spec 3241)."""
+    if not isinstance(a, dict):
+        return
+    _dyn_element_fields(a.get("element"), fields)
+    fields["display_location"] = normalize_value(a.get("display_location"))
+    fields["deps"] = [normalize_handle_value(d)
+                      for d in (a.get("dependencies") or [])]
+    fields["actions"] = list(a.get("action_ids") or [])
+
+
+def _dyn_conn_last(conns, fields):
+    """BlockAction_ConnectionPt(s): out_json keys every connection's
+    code/name plainly, so duplicate keys collapse last-wins in the parsed
+    JSON object — the surviving name/code belong to the LAST connection.
+    When the class carries no connections the element's name survives."""
+    if isinstance(conns, list) and conns:
+        last = conns[-1]
+        if isinstance(last, dict):
+            fields["code"] = last.get("code", 0)
+            fields["name"] = last.get("name", "")
+
+
+def _dyn_offsets_fields(off, fields):
+    """AcDbBlockAction_doubles_fields (dwg2.spec 3351)."""
+    if not isinstance(off, dict):
+        return
+    fields["action_offset_x"] = normalize_float(off.get("offset_x", 0.0))
+    fields["action_offset_y"] = normalize_float(off.get("offset_y", 0.0))
+    fields["angle_offset"] = normalize_float(off.get("angle_offset", 0.0))
+
+
+def _acsh_node_fields(base, fields):
+    """SolidHistoryNodeBase -> AcDbShHistoryNode_fields (dwg2.spec 2896)."""
+    if not isinstance(base, dict):
+        return
+    _dyn_eval_fields(base.get("eval"), fields)
+    fields["history_node.major"] = base.get("major", 0)
+    fields["history_node.minor"] = base.get("minor", 0)
+    fields["history_node.step_id"] = base.get("step_id", 0)
+    fields["history_node.color"] = normalize_color(base.get("color"))
+    mat = base.get("material")
+    fields["history_node.material"] = normalize_handle_value(
+        mat if isinstance(mat, int) else 0)
+    trans = base.get("transform")
+    if isinstance(trans, list):
+        fields["history_node.trans"] = [normalize_float(t) for t in trans]
+
+
+def _unwrap_dyn_data(payload):
+    """DynamicBlock wrapper -> (kind, data-dict); SolidHistoryNode shapes
+    are double-wrapped (SolidHistoryNode -> <Shape>)."""
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    if len(data) != 1:
+        return None, {}
+    kind, inner = next(iter(data.items()))
+    if kind == "SolidHistoryNode" and isinstance(inner, dict) and len(inner) == 1:
+        shape, shp = next(iter(inner.items()))
+        return shape, shp if isinstance(shp, dict) else {}
+    return kind, inner if isinstance(inner, dict) else {}
+
+
 # ── VisualStyle property-bag mapping ──────────────────────────────────────
 # Silver stores VisualStyle properties as a positional bag of
 # {value: {Double|Long|Short|Bool|Color|Text: …}, enabled: int}. Gold names
@@ -2693,15 +2914,46 @@ def normalize_silver(
         # dxf_name. Retype + project ONLY classes with a landed field
         # projection in the same packet — retyping alone explodes field
         # rows. First landed class: ACSH_HISTORY_CLASS.
-        if (silver_type == "DynamicBlock"
-                and payload.get("dxf_name") == "ACSH_HISTORY_CLASS"):
-            gold_type = "ACSH_HISTORY_CLASS"
-        elif (silver_type == "DynamicBlock"
-                and payload.get("dxf_name") == "ACAD_EVALUATION_GRAPH"):
-            # dwg2.spec 3549 (comment ACAD_EVALUATION_GRAPH): the class
-            # dxfname differs from the block name, so gold also emits the
-            # record-meta dxfname.
-            gold_type = "EVALUATION_GRAPH"
+        if silver_type == "DynamicBlock" and payload.get("dxf_name") in ("ACSH_HISTORY_CLASS", "ACAD_EVALUATION_GRAPH"):
+            gold_type = ("ACSH_HISTORY_CLASS" if payload["dxf_name"] == "ACSH_HISTORY_CLASS"
+                         else "EVALUATION_GRAPH")
+        elif silver_type == "DynamicBlock":
+            # U2 (2026-09-20): the dynamic-block family — silver's
+            # DynamicBlock wrapper parses the BLOCK* classes
+            # (dwg2.spec 3371-3544) and the ACSH geometry nodes under
+            # data.<Kind> while keeping dxf_name. Retype by dxf_name; the
+            # per-class field projection below follows in the same packet.
+            # Deliberately NOT here (§8.1.1 liveness rule — gold compiles
+            # them out as DEBUGGING_CLASS_DXF and decodes UNKNOWN_OBJ):
+            # BLOCKPROPERTIESTABLE, BLOCKPROPERTIESTABLEGRIP,
+            # DYNAMICBLOCKPROXYNODE. Classes without a landed projection
+            # (lookup/array/polar-stretch actions, user/XY parameters,
+            # constraint parameters, ACSH sphere/cone) stay UNKNOWN until
+            # their own packets.
+            _dyn_dxf = payload.get("dxf_name")
+            if isinstance(_dyn_dxf, str):
+                gold_type = _DYNBLOCK_RETYPE.get(_dyn_dxf.upper(), gold_type)
+        elif silver_type == "ClassObject":
+            # Render classes (dwg2.spec 2527/2546/2566): silver's ClassObject
+            # wrapper keeps no dxf_name for them — dispatch on data.<Kind>.
+            _co_kind = next(iter(payload.get("data") or {}), None) \
+                if isinstance(payload.get("data"), dict) else None
+            gold_type = {"RenderGlobal": "RENDERGLOBAL",
+                         "RenderEntry": "RENDERENTRY",
+                         "MentalRayRenderSettings": "MENTALRAYRENDERSETTINGS"}.get(_co_kind, gold_type)
+        elif silver_type == "DataObject":
+            _do_kind = next(iter(payload.get("data") or {}), None) \
+                if isinstance(payload.get("data"), dict) else None
+            if _do_kind == "CellStyleMap":
+                # dwg2.spec 4220 (CELLSTYLEMAP): live, and gold's REPEAT
+                # emission collapses every cell struct to a bare 0.
+                gold_type = "CELLSTYLEMAP"
+        elif silver_type == "ProxyObject":
+            # dwg.spec 5752 (PROXY_OBJECT, live): dxfname ACAD_PROXY_OBJECT.
+            # Silver's ProxyObject wrapper keeps the parsed fields plus the
+            # raw proxy bits (payload/text_payload) gold dumps as data hex —
+            # not derivable (raw-remainder class), left missing.
+            gold_type = "PROXY_OBJECT"
         _inject_reactors(payload)
         _inject_xdic(payload)
         fields = _object_common_fields(payload)
@@ -3028,6 +3280,308 @@ def normalize_silver(
                 fields["edges"] = [0] * len(edges)
             for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
                 payload.pop(kk, None)
+        # ── U2: dynamic-block family field projections (2026-09-20) ──
+        # Every branch reads the wrapper payload, emits gold's flattened
+        # shape, and pops the raw keys so the generic loop cannot re-emit
+        # them as extra_in_silver. unknown_bits/data hex stay missing —
+        # the raw-remainder side channel does not exist yet (queue item 2).
+        if gold_type in _DYNBLOCK_RETYPE.values():
+            _kind, _vv = _unwrap_dyn_data(payload)
+            if gold_type == "BLOCKGRIPLOCATIONCOMPONENT":
+                # dwg2.spec 3377: AcDbEvalExpr + AcDbBlockGripExpr.
+                _dyn_eval_fields(_vv.get("eval"), fields)
+                fields["grip_type"] = _vv.get("grip_type", 0)
+                fields["grip_expr"] = _vv.get("expression", "")
+            elif gold_type in ("BLOCKREPRESENTATION", "DYNAMICBLOCKPURGEPREVENTER"):
+                # dwg2.spec 2384/2394: flag (BS) + block (handle 3).
+                fields["flag"] = _vv.get("flags", 0)
+                fields["block"] = normalize_handle_value(_vv.get("block") or 0)
+                fields["dxfname"] = payload.get("dxf_name") or (
+                    "ACDB_BLOCKREPRESENTATION_DATA"
+                    if gold_type == "BLOCKREPRESENTATION"
+                    else "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION")
+            elif gold_type in ("BLOCKVISIBILITYGRIP", "BLOCKROTATIONGRIP"):
+                _dyn_grip_fields(_vv, fields)
+            elif gold_type in ("BLOCKALIGNMENTGRIP", "BLOCKLINEARGRIP"):
+                # AcDbBlockGrip + orientation (3BD).
+                _dyn_grip_fields(_vv.get("grip"), fields)
+                fields["orientation"] = normalize_value(_vv.get("orientation"))
+            elif gold_type == "BLOCKFLIPGRIP":
+                # AcDbBlockGrip + combined_state (BL) + orientation.
+                _dyn_grip_fields(_vv.get("grip"), fields)
+                fields["combined_state"] = _vv.get("combined_state", 0)
+                fields["orientation"] = normalize_value(_vv.get("orientation"))
+            elif gold_type == "BLOCKBASEPOINTPARAMETER":
+                # dwg2.spec 3407: AcDbBlock1PtParameter + pt + base_pt (3BD).
+                # Silver nests BlockOnePointParameter under `parameter`.
+                _dyn_1pt_fields(_vv.get("parameter"), fields)
+                fields["pt"] = normalize_value(_vv.get("point"))
+                fields["base_pt"] = normalize_value(_vv.get("base_point"))
+            elif gold_type == "BLOCKALIGNMENTPARAMETER":
+                # dwg2.spec 3390: AcDbBlock2PtParameter + align_perpendicular.
+                _dyn_2pt_fields(_vv.get("parameter"), fields)
+                fields["align_perpendicular"] = 1 if _vv.get("align_perpendicular") else 0
+            elif gold_type == "BLOCKLINEARPARAMETER":
+                _dyn_2pt_fields(_vv.get("parameter"), fields)
+                fields["distance_name"] = _vv.get("distance_name", "")
+                fields["distance_desc"] = _vv.get("distance_description", "")
+                fields["distance"] = normalize_float(_vv.get("distance", 0.0))
+                _dyn_valueset_fields(_vv.get("value_set"), fields)
+            elif gold_type == "BLOCKROTATIONPARAMETER":
+                _dyn_2pt_fields(_vv.get("parameter"), fields)
+                fields["def_base_angle_pt"] = normalize_value(
+                    _vv.get("definition_base_angle_point"))
+                fields["angle_name"] = _vv.get("angle_name", "")
+                fields["angle_desc"] = _vv.get("angle_description", "")
+                fields["angle"] = normalize_float(_vv.get("angle", 0.0))
+                _dyn_valueset_fields(_vv.get("value_set"), fields)
+            elif gold_type == "BLOCKFLIPPARAMETER":
+                # dwg2.spec 3415: AcDbBlock2PtParameter + labels + bl96.
+                _dyn_2pt_fields(_vv.get("parameter"), fields)
+                fields["flip_label"] = _vv.get("flip_label", "")
+                fields["flip_label_desc"] = _vv.get("flip_label_description", "")
+                fields["base_state_label"] = _vv.get("base_state_label", "")
+                fields["flipped_state_label"] = _vv.get("flipped_state_label", "")
+                fields["def_label_pt"] = normalize_value(
+                    _vv.get("definition_label_point"))
+                fields["bl96"] = _vv.get("flags_96", 0)
+                fields["tooltip"] = _vv.get("tooltip", "")
+            elif gold_type in ("BLOCKMOVEACTION", "BLOCKSTRETCHACTION",
+                               "BLOCKFLIPACTION"):
+                # dwg2.spec 3471/3480/6135: AcDbBlockAction + connections.
+                _dyn_action_fields(_vv.get("action"), fields)
+                _conns = _vv.get("connections")
+                _dyn_conn_last(_conns, fields)
+                if gold_type == "BLOCKSTRETCHACTION":
+                    # pts (2RD pairs) + hdls/codes (degenerate [0]*n in the
+                    # norm; zero-size REPEATs are omitted).
+                    pts = _vv.get("points")
+                    if isinstance(pts, list) and pts:
+                        fields["pts"] = normalize_value(pts)
+                    hdls = _vv.get("handles")
+                    if isinstance(hdls, list) and hdls:
+                        fields["hdls"] = [0] * len(hdls)
+                    cds = _vv.get("codes")
+                    if isinstance(cds, list) and cds:
+                        fields["codes"] = [0] * len(cds)
+                    _dyn_offsets_fields(_vv.get("offsets"), fields)
+                elif gold_type == "BLOCKMOVEACTION":
+                    _dyn_offsets_fields(_vv.get("offsets"), fields)
+                else:  # BLOCKFLIPACTION: BlockAction_ConnectionPts x4, no doubles
+                    pass
+            elif gold_type in ("BLOCKROTATEACTION", "BLOCKSCALEACTION"):
+                # Silver's payload nests BlockActionWithBasePoint under
+                # `action` (its .action holds the BlockAction) and carries
+                # the class's extra connections at the top level; the wire's
+                # LAST connection wins the plain name/code keys.
+                _b = _vv.get("action") or {}
+                _dyn_action_fields(_b.get("action"), fields)
+                fields["offset"] = normalize_value(_b.get("offset"))
+                fields["dependent"] = 1 if _b.get("dependent") else 0
+                fields["base_pt"] = normalize_value(_b.get("base_point"))
+                _dyn_conn_last(_vv.get("connections"), fields)
+            elif gold_type.startswith("ACSH_"):
+                # SolidHistoryNode shapes (dwg2.spec 2923-3031): base node +
+                # per-shape fields + operation major/minor.
+                _acsh_node_fields(_vv.get("base"), fields)
+                if gold_type != "ACSH_BREP_CLASS":
+                    fields["major"] = _vv.get("operation_major", 0)
+                    fields["minor"] = _vv.get("operation_minor", 0)
+                if gold_type == "ACSH_FILLET_CLASS":
+                    fields["edges"] = list(_vv.get("edges") or [])
+                    fields["startsetbacks"] = [normalize_float(s) for s in (_vv.get("start_setbacks") or [])]
+                    fields["endsetbacks"] = [normalize_float(s) for s in (_vv.get("end_setbacks") or [])]
+                    fields["method"] = _vv.get("method", 0)
+                    fields["radiuses"] = [normalize_float(r) for r in (_vv.get("radii") or [])]
+                elif gold_type == "ACSH_CYLINDER_CLASS":
+                    fields["height"] = normalize_float(_vv.get("height", 0.0))
+                    fields["major_radius"] = normalize_float(_vv.get("major_radius", 0.0))
+                    fields["minor_radius"] = normalize_float(_vv.get("minor_radius", 0.0))
+                    fields["x_radius"] = normalize_float(_vv.get("x_radius", 0.0))
+                elif gold_type in ("ACSH_BOX_CLASS", "ACSH_WEDGE_CLASS"):
+                    fields["height"] = normalize_float(_vv.get("height", 0.0))
+                    fields["length"] = normalize_float(_vv.get("length", 0.0))
+                    fields["width"] = normalize_float(_vv.get("width", 0.0))
+                elif gold_type == "ACSH_CHAMFER_CLASS":
+                    fields["base_dist"] = normalize_float(_vv.get("base_distance", 0.0))
+                    fields["base_face"] = _vv.get("base_face", 0)
+                    fields["edges"] = list(_vv.get("edges") or [])
+                    fields["method"] = _vv.get("method", 0)
+                    fields["other_dist"] = normalize_float(_vv.get("other_distance", 0.0))
+                elif gold_type == "ACSH_BOOLEAN_CLASS":
+                    fields["operand1"] = _vv.get("first_operand", 0)
+                    fields["operand2"] = _vv.get("second_operand", 0)
+                    fields["operation"] = _vv.get("operation", 0)
+                elif gold_type == "ACSH_TORUS_CLASS":
+                    fields["major_radius"] = normalize_float(_vv.get("major_radius", 0.0))
+                    fields["minor_radius"] = normalize_float(_vv.get("minor_radius", 0.0))
+                elif gold_type == "ACSH_BREP_CLASS":
+                    # Gold's own BREP decode derails (garbage major, empty
+                    # acis_data [""] — the 3DSOLID prologue family) and
+                    # silver's reader stores the same derailed bits under
+                    # operation_major/minor (values differ); the divergent
+                    # fields are dropped symmetrically in normalize_gold.
+                    # Project only the matching node fields (handled above).
+                    pass
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
+        if silver_type == "BlockVisibilityParameter":
+            # dwg2.spec 3521 (BLOCKVISIBILITYPARAMETER): gold's shape is
+            # AcDbBlockParameter (element: eval/name/eed1071,
+            # show_properties, chain_actions) + AcDbBlock1PtParameter
+            # (def_pt) + blockvisi_name/desc, is_initialized, unknown_bool,
+            # blocks + states. num_propinfos is never emitted; the states
+            # REPEAT collapses to [0]*count in the norm. Silver's struct is
+            # FLAT (eval_*/element_* keys), not nested.
+            _dyn_eval_fields({"parent_id": payload.get("eval_parent_id"),
+                              "major": payload.get("eval_major"),
+                              "minor": payload.get("eval_minor"),
+                              "value_code": payload.get("eval_value_code"),
+                              "value": payload.get("eval_value"),
+                              "node_id": payload.get("eval_node_id")}, fields)
+            fields["name"] = payload.get("element_name", "")
+            fields["eed1071"] = payload.get("element_eed_1071", 0)
+            fields["show_properties"] = 1 if payload.get("show_properties") else 0
+            fields["chain_actions"] = 1 if payload.get("chain_actions") else 0
+            fields["def_pt"] = normalize_value(payload.get("def_point"))
+            _dyn_propinfo("prop", payload.get("property_info"), fields)
+            fields["blockvisi_name"] = payload.get("name", "")
+            fields["blockvisi_desc"] = payload.get("description", "")
+            fields["is_initialized"] = 1 if payload.get("is_initialized") else 0
+            fields["unknown_bool"] = 1 if payload.get("unknown_bool") else 0
+            ab = payload.get("all_blocks")
+            if isinstance(ab, list):
+                fields["blocks"] = [normalize_handle_value(h) for h in ab]
+            st = payload.get("states")
+            if isinstance(st, list) and st:
+                fields["states"] = [0] * len(st)
+            for sk in ("eval_parent_id", "eval_major", "eval_minor",
+                       "eval_value_code", "eval_value", "eval_node_id",
+                       "element", "element_name", "element_major",
+                       "element_minor", "element_eed_1071", "show_properties",
+                       "chain_actions", "name", "description", "def_point",
+                       "property_info", "property_info_count", "is_initialized",
+                       "unknown_bool", "all_blocks", "states"):
+                payload.pop(sk, None)
+        if gold_type in ("RENDERGLOBAL", "RENDERENTRY", "MENTALRAYRENDERSETTINGS"):
+            # dwg2.spec 2527/2546/2566 — silver's ClassObject payloads.
+            _vv = payload.get("data") or {}
+            _vv = _vv.get(next(iter(_vv))) if isinstance(_vv, dict) and len(_vv) == 1 else {}
+            if not isinstance(_vv, dict):
+                _vv = {}
+            if gold_type == "RENDERGLOBAL":
+                fields["class_version"] = _vv.get("class_version", 0)
+                fields["procedure"] = _vv.get("procedure", 0)
+                fields["destination"] = _vv.get("destination", 0)
+                fields["save_enabled"] = 1 if _vv.get("save_enabled") else 0
+                fields["save_filename"] = _vv.get("save_filename", "")
+                fields["image_width"] = _vv.get("image_width", 0)
+                fields["image_height"] = _vv.get("image_height", 0)
+                fields["predef_presets_first"] = 1 if _vv.get("predefined_presets_first") else 0
+                fields["highlevel_info"] = 1 if _vv.get("high_level_info") else 0
+            elif gold_type == "RENDERENTRY":
+                # Gold's decode derails mid-record on the corpus (render_time
+                # reads the BD '01' special, memory/material = zombie 256s,
+                # minute/second swapped); the derailed fields are dropped
+                # symmetrically in normalize_gold. Project the sane prefix.
+                fields["class_version"] = _vv.get("class_version", 0)
+                fields["dimension_x"] = _vv.get("width", 0)
+                fields["dimension_y"] = _vv.get("height", 0)
+                fields["image_file_name"] = _vv.get("image_filename", "")
+                fields["preset_name"] = _vv.get("preset_name", "")
+                fields["view_name"] = _vv.get("view_name", "")
+                fields["start_day"] = _vv.get("start_day", 0)
+                fields["start_month"] = _vv.get("start_month", 0)
+                fields["start_year"] = _vv.get("start_year", 0)
+            else:  # MENTALRAYRENDERSETTINGS
+                _b = _vv.get("base") if isinstance(_vv.get("base"), dict) else {}
+                fields["class_version"] = _b.get("class_version", 0)
+                fields["name"] = _b.get("name", "")
+                fields["description"] = _b.get("description", "")
+                fields["display_index"] = _b.get("display_index", 0)
+                fields["backfaces_enabled"] = 1 if _b.get("backfaces_enabled") else 0
+                fields["environ_image_enabled"] = 1 if _b.get("environment_image_enabled") else 0
+                fields["environ_image_filename"] = _b.get("environment_image_filename", "")
+                fields["fog_background_enabled"] = 1 if _b.get("fog_background_enabled") else 0
+                fields["fog_enabled"] = 1 if _b.get("fog_enabled") else 0
+                fields["mr_description"] = _vv.get("description", "")
+                fields["mr_version"] = _vv.get("version", 0)
+                fields["diagnostics_mode"] = _vv.get("diagnostics_mode", 0)
+                fields["diagnostics_grid_mode"] = _vv.get("diagnostics_grid_mode", 0)
+                fields["diagnostics_bsp_mode"] = _vv.get("diagnostics_bsp_mode", 0)
+                fields["diagnostics_samples_mode"] = 1 if _vv.get("diagnostics_samples_mode") else 0
+                fields["diagnostics_grid_float"] = normalize_float(_vv.get("diagnostics_grid_size", 0.0))
+                fields["diagnostics_photon_mode"] = _vv.get("diagnostics_photon_mode", 0)
+                fields["sampling1"] = _vv.get("sampling_min", 0)
+                fields["sampling2"] = _vv.get("sampling_max", 0)
+                fields["sampling_filter1"] = normalize_float(_vv.get("sampling_filter_width", 0.0))
+                fields["sampling_filter2"] = normalize_float(_vv.get("sampling_filter_height", 0.0))
+                sc = _vv.get("sampling_contrast")
+                if isinstance(sc, list):
+                    for i in range(min(4, len(sc))):
+                        fields[f"sampling_contrast_color{i + 1}"] = normalize_float(sc[i])
+                fields["sampling_mr_filter"] = _vv.get("sampling_filter", 0)
+                fields["shadow_maps_enabled"] = 1 if _vv.get("shadow_maps_enabled") else 0
+                fields["shadow_mode"] = _vv.get("shadow_mode", 0)
+                fields["ray_tracing_enabled"] = 1 if _vv.get("ray_tracing_enabled") else 0
+                rt = _vv.get("ray_trace_depth")
+                if isinstance(rt, list):
+                    for i in range(min(3, len(rt))):
+                        fields[f"ray_trace_depth{i + 1}"] = rt[i]
+                pt = _vv.get("photon_trace_depth")
+                if isinstance(pt, list):
+                    for i in range(min(3, len(pt))):
+                        fields[f"photon_trace_depth{i + 1}"] = pt[i]
+                fields["global_illumination_enabled"] = 1 if _vv.get("global_illumination_enabled") else 0
+                fields["gi_sample_count"] = _vv.get("global_illumination_sample_count", 0)
+                fields["gi_sample_radius_enabled"] = 1 if _vv.get("global_illumination_sample_radius_enabled") else 0
+                fields["gi_sample_radius"] = normalize_float(_vv.get("global_illumination_sample_radius", 0.0))
+                fields["gi_photons_per_light"] = _vv.get("photons_per_light", 0)
+                fields["final_gathering_enabled"] = 1 if _vv.get("final_gathering_enabled") else 0
+                fields["fg_ray_count"] = _vv.get("final_gathering_ray_count", 0)
+                fsr = _vv.get("final_gathering_sample_radius")
+                if isinstance(fsr, list):
+                    for i in range(min(2, len(fsr))):
+                        fields[f"fg_sample_radius{i + 1}"] = normalize_float(fsr[i])
+                fsrs = _vv.get("final_gathering_sample_radius_state")
+                if isinstance(fsrs, list):
+                    for i in range(min(3, len(fsrs))):
+                        fields[f"fg_sample_radius_state{i + 1}"] = 1 if fsrs[i] else 0
+                fields["export_mi_enabled"] = 1 if _vv.get("export_mi_enabled") else 0
+                fields["energy_multiplier"] = normalize_float(_vv.get("energy_multiplier", 0.0))
+                fields["light_luminance_scale"] = normalize_float(_vv.get("light_luminance_scale", 0.0))
+                fields["memory_limit"] = _vv.get("memory_limit", 0)
+                fields["tile_size"] = _vv.get("tile_size", 0)
+                fields["tile_order"] = _vv.get("tile_order", 0)
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
+        if gold_type == "CELLSTYLEMAP":
+            # dwg2.spec 4220: gold emits ONLY the collapsed cells array.
+            _vv = payload.get("data") or {}
+            _vv = _vv.get(next(iter(_vv))) if isinstance(_vv, dict) and len(_vv) == 1 else {}
+            cells = _vv.get("cells") if isinstance(_vv, dict) else None
+            if isinstance(cells, list) and cells:
+                fields["cells"] = [0] * len(cells)
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
+        if silver_type == "ProxyObject":
+            # dwg.spec 5752 (PROXY_OBJECT): gold emits dxfname, proxy_id,
+            # dwg_version/maint_version, from_dxf, objids; data/data_numbits
+            # are the raw proxy bits (irreducible without the raw-remainder
+            # side channel).
+            fields["dxfname"] = "ACAD_PROXY_OBJECT"
+            fields["proxy_id"] = payload.get("class_id", 0)
+            fields["dwg_version"] = payload.get("dwg_version", 0)
+            fields["maint_version"] = payload.get("maintenance_version", 0)
+            fields["from_dxf"] = 1 if payload.get("from_dxf") else 0
+            _oids = payload.get("object_ids")
+            if isinstance(_oids, list):
+                fields["objids"] = [normalize_handle_value(o.get("handle"))
+                                    for o in _oids if isinstance(o, dict)]
+            for sk in ("class_id", "dwg_version", "maintenance_version",
+                       "from_dxf", "object_ids", "proxy_id", "version",
+                       "dxf_subclass", "payload", "text_payload"):
+                payload.pop(sk, None)
         if silver_type == "Scale":
             # Gold stores a raw `flag` BS (bit 0x01 = temporary) and does NOT
             # emit the derived `is_temporary` bool; silver stores only the
