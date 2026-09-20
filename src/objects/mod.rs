@@ -484,7 +484,10 @@ pub enum ObjectType {
         raw_dxf_codes: Option<Vec<(i32, String)>>,
         /// Raw DWG merged-stream bytes for verbatim round-trip reconstruction.
         /// Populated by the DWG reader for unrecognised non-entity objects.
-        #[cfg_attr(feature = "serde", serde(skip))]
+        /// Serde-visible: the gold-harness dump projects these as gold's
+        /// `unknown_bits`/`data` hex fields (normalize_silver), and the
+        /// bit-exact bytes let the diff verify the passthrough write.
+        #[cfg_attr(feature = "serde", serde(default))]
         raw_dwg_data: Option<Vec<u8>>,
         /// DWG handle-stream bit count (needed to reconstruct the correct split).
         raw_dwg_handle_bits: i64,

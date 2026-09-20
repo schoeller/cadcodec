@@ -2660,7 +2660,10 @@ def normalize_silver(
                              "ACDBASSOC2DCONSTRAINTGROUP": "ASSOC2DCONSTRAINTGROUP",
                              "ASSOCDIMDEPENDENCYBODY": "ASSOCDIMDEPENDENCYBODY"}[_assoc_dxf]
             else:
-                gold_type = "UNKNOWN"
+                # Gold's name for an unmodeled non-entity class record is
+                # UNKNOWN_OBJ (dwgread's raw-object dump); "UNKNOWN" is not
+                # a gold record type and produced count_mismatch rows.
+                gold_type = "UNKNOWN_OBJ"
         else:
             gold_type = OBJECT_TYPE_MAP.get(silver_type, silver_type.upper())
         # Wrapper retype (§8.1.6 unmodeled-class campaign): silver's
@@ -2824,6 +2827,32 @@ def normalize_silver(
                 fields["model_edge"] = vsv.get("model_edge", 0)
             for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
                 payload.pop(kk, None)
+        if gold_type in ("UNKNOWN_OBJ", "UNKNOWN_ENT", "UNKNOWN"):
+            # Gold's unmodeled-class records carry ONLY the common fields on
+            # its JSON (its raw `unknown_bits` hex is dropped symmetrically
+            # in normalize_gold: silver's typed payload is a parse of those
+            # very bits — neither side can express the other). Silver's
+            # wrappers (DynamicBlock/ClassObject/DataObject/Associative/
+            # .../Unknown) hold class metadata + parsed payloads that would
+            # otherwise leak through the generic loop as extra_in_silver.
+            # Runs AFTER every payload-keyed retype above (the viewstyle and
+            # assoc families read payload["data"]/["dxf_name"] to project
+            # their gold types) so only records that are still UNKNOWN-typed
+            # at this point collapse to the common-fields-only shape. Stamp
+            # the wire-constant handle codes gold actually read (object
+            # common: ownerhandle + reactors = soft pointer code 4,
+            # xdicobjhandle = hard pointer code 3; silver's wrapper dumps
+            # keep bare ints for these and lose the codes).
+            payload.clear()
+            for key, code in (("ownerhandle", 4), ("reactors", 4),
+                              ("xdicobjhandle", 3)):
+                v = fields.get(key)
+                if isinstance(v, dict) and not v.get("code"):
+                    v["code"] = code
+                elif isinstance(v, list):
+                    for h in v:
+                        if isinstance(h, dict) and not h.get("code"):
+                            h["code"] = code
         _ASSOC_TYPES = ("ASSOCDEPENDENCY", "ASSOCGEOMDEPENDENCY",
                         "ASSOCVALUEDEPENDENCY", "ASSOCVARIABLE",
                         "ASSOCNETWORK", "ASSOC2DCONSTRAINTGROUP",

@@ -252,6 +252,14 @@ def normalize_gold(data: Dict[str, Any], ignore: Optional[Dict[str, Any]] = None
             and typ in ("3DSOLID", "REGION")
             and bool(obj.get("has_ds_data"))
         )
+        # Gold's unmodeled-class records (UNKNOWN_OBJ/UNKNOWN_ENT) carry a
+        # raw `unknown_bits` hex dump of the bits its spec cannot decode.
+        # Silver parses those same records into typed payloads, so the hex
+        # is not derivable from silver's model (and silver's typed data has
+        # no gold expression). normalize_silver projects those records to the
+        # common-fields-only shape; drop the hex here symmetrically — the
+        # passthrough write itself stays verified by the handle/common rows.
+        _drop_unknown_bits = typ in ("UNKNOWN_OBJ", "UNKNOWN_ENT")
         fields: Dict[str, Any] = {}
         for k, v in obj.items():
             if k in ("entity", "object"):
@@ -259,6 +267,8 @@ def normalize_gold(data: Dict[str, Any], ignore: Optional[Dict[str, Any]] = None
             if is_ignored(k, ignore_set, ignore_patterns):
                 continue
             if _drop_prologue and k in _PROLOGUE_DIVERGENT_FIELDS:
+                continue
+            if _drop_unknown_bits and k == "unknown_bits":
                 continue
             # LibreDWG prints a code-0 null handle as the bare 2-tuple
             # [0, 0] (absolute, no offset counter) while code-3 nulls print
