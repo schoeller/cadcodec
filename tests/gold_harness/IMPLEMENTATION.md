@@ -343,9 +343,11 @@ BLOCK_HEADER xref_pname + lazy dupe strip, POLYLINE_2D parent projection,
 LAYOUTPRINTCONFIG retype, kid linetype inheritance — batches 33-38,
 `078c119`) + the SECTION trio retype (SECTIONOBJECT/SECTION_MANAGER/
 SECTION_SETTINGS — thirty-ninth batch, `5a25bf9`), 2026-09-20):**
-read-fidelity **479**, write-fidelity **455** — the 1 000 milestone was
-passed at 943/804, the below-100 interim milestone was reached on
-2026-09-20, and the **campaign target is now 0 on both sides**
+read-fidelity **38**, write-fidelity **30** (from 479/455 at the
+morning baseline) — the 1 000 milestone was passed at 943/804, the
+below-100 interim milestone was reached on 2026-09-20, the below-50
+band on 2026-09-20 evening, and the **campaign target is now 0 on
+both sides**
 (raised 2026-09-20: land every remaining family, heavy pockets included)
 — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -400,8 +402,14 @@ anonymous dupe strip, POLYLINE_2D parent projection + chain fields,
 LAYOUTPRINTCONFIG retype of the Extended wrapper, kid/SEQEND writer
 linetype inheritance); the SECTION trio retype (batch 39, `5a25bf9`:
 SECTION_MANAGER/SECTION_SETTINGS/SECTIONOBJECT from the ClassObject
-and Extended wrappers). Batches seven through thirty-nine each carry
-their full recipes in their commit messages and §8.1.6).
+and Extended wrappers); the constraint-flat-nodes + Helix era gates
+(batch 40, `c20e6fe`: ASSOC2DCONSTRAINTGROUP mirrored gold's flat
+per-node REPEAT in reader AND writer — the root-node/class-registry
+shape was a misparse that lost the node count and produced garbage
+signed BLs; HELIX knotparam/splineflags gated SINCE(R_2013b)) — read
+**53 → 38**, write **41 → 30**, **116 of 124 files at 0/0**. Batches
+seven through forty each carry their full recipes in their commit
+messages and §8.1.6).
 gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
@@ -411,63 +419,72 @@ it, inflating totals to 7689/7559).
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20 evening halt; campaign target is **0 on both
-sides**; current read **53** / write **41**, 103 of 124 files at 0/0;
-all remaining rows live in 21 files; ranking from the fresh
-post-`5a25bf9` corpus):**
-1. **RAPIDRT gold-bug port** (gh109_1, 7+7 rows: RAPIDRTRENDERSETTINGS
-   count 1 + missing i0-i5, both pairs; plus the UNKNOWN_OBJ._missing 6
-   + _count 1 pocket on the same file): gold MIS-DECODES the seven
-   rapid fields past display_index — its render_target 849379356 and
-   render_time 1107296256 are IEEE-754 bit patterns of doubles read as
-   BL/BD in gold's spec order (dwg2.spec 2659: after
-   AcDbRenderSettings_fields + has_predefined B come rapidrt_version
-   BL / render_target BL / render_level BL / render_time BL /
-   lighting_model BL / filter_type BL / filter_width BD /
-   filter_height BD / has_predefined B per the else-branch), while
-   silver's reader decodes the same wire CLEANLY. Zero rows here
-   require silver to reproduce gold's garbage — either port gold's
-   read order (the wrapper keeps its clean model AND a gold-parity
-   shadow) or re-derive gold's offsets per record. The 7 gold records
-   vs silver's 1 emitted record also points at dropped wrappers.
-2. **SORTENTSTABLE wire考古** (gh109_1, 1+1 rows: sort_ents + ents):
-   gold num_ents=39 with sort handles read from the swapped stream
-   (dwg2.spec 149: str_dat=hdl_dat swap then HANDLE_VECTOR sort_ents,
-   START_OBJECT_HANDLE_STREAM, block_owner, HANDLE_VECTOR_N ents);
-   silver reads 36 entries and its entries[3] {entity 0, sort 1027}
-   diverges from gold's [0,2,919,919] — both counts and the per-entry
-   pairing must be reconciled in silver's read_sort_entities_table
-   (#146-order reader).
-3. **The chain-ordinal cluster** (PolyLine2D.dwg + example_2000, ~9/8
-   rows): BLOCK_HEADER.first/last_entity (gold null/0-target vs
-   silver's resolved handles; the last=LINE-vs-VERTEX_2D ordinals),
-   LINE.handle, POLYLINE_2D.next_entity (gold {6, LINE} — the R2000
-   chain slot), LAYOUTPRINTCONFIG.ownerhandle (gold DICTIONARY-owner
-   vs silver BLOCK_HEADER — a reader owner-slot issue on the
-   CAcLayoutPrintConfig class path), VIEWPORT.vport_entity_header rt
-   null, VPORT.VIEWMODE 4BITS sequence (gold 0 vs silver 1 — the VPORT
-   reader's 4BITS/RS-vs-B read order needs comparing against dwg.spec
-   3952-3995).
-4. **VERTEX_3D.reactors** (6 read rows, six example files): gold binds
-   the assoc-network reactor [1071] to ONE specific vertex (1054 on
-   example_2000 — the third kid, not all kids); silver binds nothing.
-   The binding is not derivable from silver's payload — needs either
-   the network wire data or an accept-as-residual decision.
-5. **Assorted singles**: VIEW.VIEWMODE/has_ds_data/camera_plottable
-   (LiveSection1 + example_2000; composition from the wrong bool set),
-   ASSOC2DCONSTRAINTGROUP.nodes (gold 129 vs silver 113 entries —
-   read count source), Helix x4 (2/2 each — the ctrl_pts count
-   derivation len(knots)-degree-1 vs gold's per-record shape),
-   Constraints x5 (1/1), TS1 ATTRIB.xdicobjhandle,
-   DIMENSION_ANG2LN.xline2end_pt, VERTEX_MESH.prev_entity,
-   Dynblocks ASSOC nodes (above), Surface rt
-   ASSOCPLANESURFACEACTIONBODY.assocdep/pbsab_status (the rt-side
-   null-vs-resolved handle pair — orig passes with the null emission,
-   rt flips: gold_rt resolves 1291 from silver's write while silver_rt
-   synthesizes [0,0]).
+**Next packets (2026-09-20 post-`c20e6fe` halt, second fold; campaign
+target is **0 on both sides**; current read **38** / write **30**, 116
+of 124 files at 0/0; every remaining row lives in NINE files, full
+values dumped to target/probes/pk18_residues_full.txt — regenerate
+any time with target/probes/pk18a_all_rows.py):**
+1. **gh109_1.dwg — 16 read / 14 write** (the biggest pocket):
+   (a) RAPIDRTRENDERSETTINGS count_mismatch + _missing i0-i5, BOTH
+   pairs — 7 gold records (handles 2574-2580, the "低/中/高" presets)
+   vs silver's 1 emitted record. Gold MIS-DECODES the seven rapid
+   fields past display_index+has_predefined: render_target 849379356
+   and render_time 1107296256 are IEEE-754 bit patterns of doubles
+   read as BLs in gold's order (dwg2.spec 2659 after
+   AcDbRenderSettings_fields). Silver decodes the same wire CLEANLY —
+   zero rows require reproducing gold's garbage: first find why silver
+   emits 1 of 7 records (check the 537-class dispatch + ClassObject/
+   RegisteredClassObject wrappers in dwg_document_builder.rs — the
+   same root likely feeds the UNKNOWN_OBJ pocket), then Port gold's
+   miss-read order as a per-record shadow (gold's rapid fields start
+   at its has_predefined-bit position).
+   (b) UNKNOWN_OBJ count_mismatch + _missing i1-i6 — gold 7 vs
+   silver 1: diagnose after (a) (likely the same dropped wrappers).
+   (c) SORTENTSTABLE.sort_ents + .ents (orig only): gold num_ents=39
+   with sort handles read from the SWAPPED stream (dwg2.spec 149:
+   str_dat = hdl_dat; hdl_dat = dat;HANDLE_VECTOR sort_ents;START_
+   OBJECT_HANDLE_STREAM; block_owner; HANDLE_VECTOR_N ents) vs
+   silver's 36 whose [3] is {entity 0, sort 1027} vs gold's
+   [0,2,919,919] — silver's read_sort_entities_table
+   (objects.rs:1369, the #146-order design) diverges in count AND
+   mid-list pairing.
+2. **PolyLine2D.dwg — 7 read / 6 write (the chain-ordinal cluster)**:
+   BLOCK_HEADER.first/last_entity (gold {4, target 0-null or LINE} vs
+   silver's resolved LAYOUTPRINTCONFIG/VERTEX_2D — the R2000 chain
+   ordinals), LINE.handle ({0, LINE} vs {None, VERTEX_2D} pairing
+   shift), POLYLINE_2D.next_entity ({6, LINE} — the R2000 chain
+   slot), LAYOUTPRINTCONFIG.ownerhandle (gold DICTIONARY-owner 856
+   vs silver BLOCK_HEADER 31 — silver's CAcLayoutPrintConfig class
+   path reads the owner slot wrong), VPORT.VIEWMODE (gold 0 vs
+   silver 1: the VPORT reader's 4BITS/RS-vs-BIT sequence vs dwg.spec
+   3952-3995), VIEWPORT.vport_entity_header rt null (gold_rt {5,
+   0-null} vs silver's resolved VX).
+3. **TS1.dwg — 3/3**: ATTRIB.xdicobjhandle (gold {3, 355} on a
+   synthesized insert-kid — the xdic slot is dropped in the kid path),
+   DIMENSION_ANG2LN.xline2end_pt (gold [28.389, 46.635, 0] vs silver
+   [24.131, 44.463, 0] — a value pair, compare the two def-points),
+   VERTEX_MESH.prev_entity (gold {8, VERTEX_MESH} chain slot on the
+   synthesized mesh kids — orig code 8, rt code 4).
+4. **LiveSection1.dwg — 4/2**: VIEW.has_ds_data (gold 1 vs silver 0,
+   orig only) + VIEW.VIEWMODE (gold 1 vs silver 0, both pairs) — the
+   R2013+ ds-data common bit and the VIEW-entity view_mode bits
+   (silver's composite builds from ucs bools — verify against gold's
+   VIEW entity spec block).
+5. **example_2000.dwg — 3/3**: VERTEX_3D.reactors (gold [1071] on the
+   THIRD kid 1054 specifically — not derivable from silver's payload;
+   either the assoc-network wire reference or accept-as-residual),
+   VIEW.VIEWMODE + VIEW.camera_plottable (extra false — gold omits).
+6. **example_2004/2007/2010/2013/2018 — 1/0 each**: the single
+   VERTEX_3D.reactors row per file (same binding as 5).
+7. **2004/Surface.dwg — 0/2 (rt only)**:
+   ASSOCPLANESURFACEACTIONBODY.assocdep + .pbsab_status: gold_rt
+   resolves {5, 1291} from silver's rewrite while silver_rt
+   synthesizes the [0,0]/0 null form (the batch-23 fabrication passes
+   orig but flips rt). The rt-side payload's surface_body.dependency
+   needs the same retention the orig read has.
 
-Done-packet recipes for batches 7-39 live in §8.1.6 below and in the
-commit messages of `fa2cb0a..5a25bf9`.
+Done-packet recipes for batches 7-40 live in §8.1.6 below and in the
+commit messages of `fa2cb0a..c20e6fe`.
 ### Baseline after EntityCommon closure (2026-09-17)
 
 - **LINE entity diffs: 0** on all six versions (2000–2018), both read fidelity
@@ -2541,6 +2558,21 @@ packets — small, well-scoped, and reproducible):
   editing (print both normalized records for the same ordinal).
 
 ### 8.1.6a Gold-spec coverage audit (2026-09-17; re-verified structurally 2026-09-19 at libredwg 34f02f54)
+
+**Constraint-group flat nodes + Helix era gates** — **DONE (2026-09-20
+  fortieth batch, `c20e6fe`; read 53 → 38 / write 41 → 30, −15/−11;
+  Constraints x4 1→0, Dynblocks 2/2 → 0/0, Helix x6 2/2 → 0/0)**:
+  (a) ASSOC2DCONSTRAINTGROUP.nodes is gold's FLAT per-node REPEAT
+  (dwg2.spec 5682 + AcConstraintGroupNode_fields 5576: nodeid BLd,
+  status RC era-gated around num_connections + the BL vector) —
+  silver's root-node + class-registry shape was a misparse (one global
+  connection vector of garbage signed BLs; the count came out 1 or 113
+  where gold reads 9 or 129). Reader AND writer now mirror the flat
+  repeat (associative.rs:1057 / :788); the registry/class/data payload
+  is a DXF-side semantic — the associative_constraint_group tests moved
+  to flat DWG expectations (DXF assertions unchanged); (b)
+  HELIX.knotparam/splineflags are SINCE(R_2013b) only (dwg.spec
+  2588-2590): emit gated, pre-2013 records omit both.
 
 **Answer: gold specs are 100% KNOWN, but NOT 100% COVERED.** Measured
 empirically against the corpus (not just the diff report):
