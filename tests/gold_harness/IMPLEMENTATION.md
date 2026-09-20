@@ -282,8 +282,9 @@ IMAGEDEF/HATCH degenerates/VX family/LIGHT/RASTERVARIABLES/MULTILEADER +
 ARC_DIMENSION graphic + HELIX family/LEADER/TOLERANCE dimstyle/MATERIAL
 rgb + UNKNOWN-family handle-code unstamp + raw-linewt fidelity
 reader/writer/normalizer + LAYOUT.viewports (2026-09-20 fourth + fifth +
-sixth batches), 2026-09-20):**
-read-fidelity **860**, write-fidelity **792** — the 1 000 milestone was
+sixth batches) + PROXY_OBJECT raw-window/objids capture (2026-09-20
+seventh batch, `fa2cb0a`), 2026-09-20):**
+read-fidelity **847**, write-fidelity **779** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -294,7 +295,8 @@ side channel then took −448/−448; the style-map/chain/MLINE batch then took
 −478/−493; the RAY/XLINE/IMAGEDEF/HATCH/VX/LIGHT batch then took −338/−336;
 the HELIX/dimstyle/MATERIAL-rgb batch then took −172/−172; the UNKNOWN
 handle-code unstamp then took −37/−3; the raw-linewt + LAYOUT.viewports
-batch then took −46/−9). gh44-error.dwg
+batch then took −46/−9; the PROXY_OBJECT raw-window/objids batch then took
+−13/−13). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -304,46 +306,44 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`4ce1db8` corpus):**
-1. **PROXY_OBJECT data/data_numbits 30+30 + objids 18** — DERIVABLE: the
-   2026-09-20 investigation found silver's ProxyObject wrapper keeps the
-   raw proxy bits under `payload`/`text_payload` as
-   {"encoding": "Bits", bit_count, records: [{bit_offset, bit_count,
-   data: [bytes]}]} — gold's `data` is the hex of the flattened bytes and
-   `data_numbits` the bit count (dwg.spec 5752 DECODER: window = after
-   the proxy prologue to hdlpos). Pair the right candidate per carrier
-   (Cons-era files; both candidates exist per record) and emit. objids:
-   still the §8.1.1 trailing-null byte-geometry lesson.
+mirrored read/write; ranking from the fresh post-`fa2cb0a` corpus;
+PROXY_OBJECT landed as the seventh batch — see §8.1.6):**
+1. **DIMSTYLE_CONTROL.morehandles 19**: gold's HANDLE_VECTOR uses its own
+   wire count `num_morehandles` (dwg.spec 4163-4185: `FIELD_RCu
+   (num_morehandles, 71)` SINCE R_2000b — a RAW byte — then
+   `HANDLE_VECTOR (morehandles, num_morehandles, 5, 340)`; capture point
+   = pass-1 right after common non-entity data at builder:767, select
+   OBJ_DIMSTYLE_CONTROL; remember per-type CONTROL data shapes differ)
+   which silver's reader does not store — emitting the whole dim-style
+   table produced 109 wrong_value rows (the 2026-09-20
+   regression-and-revert); needs a reader morehandles capture.
 2. **UNKNOWN_OBJ.ownerhandle 37 + _missing 15 + _count 9**: the reader
    ownercode side channel (pipeline-default code 4 vs gold's
    wire-relative 6/8 — the unknown_bits precedent) + the 3140-class
    dropped records; ASSOCSWEPTSURFACEACTIONBODY must STAY UNKNOWN_OBJ
    (dead block) and the Surface dep_on rows ride the SURFACE-typing
    divergence in silver's reader.
-3. **Reader captures**: DIMSTYLE_CONTROL.morehandles 19 (RCu
-   num_morehandles, dwg.spec 4177; capture point = pass1 right after
-   common non-entity data at builder:767, select OBJ_DIMSTYLE_CONTROL;
-   remember per-type CONTROL data shapes differ), VERTEX_MESH._missing 12
-   (TS1 mesh parse
-   gap), SORTENTSTABLE.ents (R2000 entries lost), MLINE.flags closed-bit,
-   the poly-SEQEND shadow pairs, LEADER.arrowhead_type/box_* R2000 pairs.
+3. **Reader captures**: VERTEX_MESH._missing 12 (TS1 mesh parse gap),
+   SORTENTSTABLE.ents (R2000 entries lost), MLINE.flags closed-bit,
+   the poly-SEQEND shadow pairs, LEADER.arrowhead_type/box_* R2000 pairs
+   (box_height BD + box_width BD + hookline_dir B + arrowhead_type BSx,
+   then SINCE R_2000b unknown_bit_4/5 B — dwg.spec 3014-3031).
    DONE: CIRCLE/LINE.linewt (the entity-common RC 370 is the RAW code —
    reader keeps 24..28 as Value(raw) at builder match, writer echoes
    irreversible table codes, normalizer `_lweight_index` echoes
    out-of-table mm values; `6fd5a10`).
-4. **Value-dependent remaining**: MULTILEADER.attach_top/bottom 18 (gold
-   BS values 32/4786/178 per record — spec forensics on the MLEADER
-   dock/context fields), VIEWPORT.status_flag 17 (Dynblocks R2018:
-   gold 819232 vs silver 32800), LAYOUT.viewports 9 (owner-graph
-   derivation of the layout's viewport list).
-3. **DIMSTYLE_CONTROL.morehandles 19**: gold's HANDLE_VECTOR uses its own
-   wire count `num_morehandles` (dwg.spec 4177: RCu, "additional hard
-   handles, undocumented") which silver's reader does not store —
-   emitting the whole dim-style table produced 109 wrong_value rows (the
-   2026-09-20 regression-and-revert); needs a reader morehandles capture.
-4. **Scattered entity families**: RAY/XLINE point/vector/base_point/
+4. **Value-dependent remaining**: MULTILEADER.attach_top/bottom 9+9
+   (gold BS pairs 32/4786/178 per record — the dwg2.spec 1447-1452 trio
+   `attach_dir`(271)/`attach_top`(273)/`attach_bottom`(272), SINCE
+   R_2010b right before COMMON_ENTITY_HANDLE_DATA; no "dock" fields
+   exist), VIEWPORT.status_flag 17 (Dynblocks R2018: gold 819232 vs
+   silver 32800 — plain `FIELD_BL` SINCE R_2000b, dwg.spec 2484; needs
+   raw retention: reader capture + writer echo + normalizer preference).
+5. **Scattered entity families**: RAY/XLINE point/vector/base_point/
    direction + LINE.linewt (13 each), IMAGEDEF.image_size/file_path/
-   resunits/size_in_pixels (~55 on the ATMOS-era carriers), HATCH.paths 15
+   resunits/size_in_pixels (~55 on the ATMOS-era carriers; gold wire
+   order = image_size 2RD FIRST, then file_path T, is_loaded B,
+   resunits RC, pixel_size 2RD — dwg.spec 5163-5182), HATCH.paths 15
    + deflines 12, MULTILEADER.graphic_data 12, CIRCLE.linewt 14
    (Dynblocks R2018, off-by-one on the last ~14 records, gold 28 vs
    silver 29 — adjudicate the wire with dump_section_bytes), the
@@ -353,7 +353,7 @@ mirrored read/write; ranking from the fresh post-`4ce1db8` corpus):**
    (reader parse gap), 3DSOLID/REGION.encr_sat_data on R2000 (accepted
    residual), ASSOCDEPENDENCY.dep_on 5 (the SURFACE entity-typing
    divergence in the reader).
-5. **VX family**: gold VX_CONTROL + VX_TABLE_RECORD records that silver's
+6. **VX family**: gold VX_CONTROL + VX_TABLE_RECORD records that silver's
    reader drops entirely (2000-era files; VIEWPORT.vport_entity_header
    rows die together with them) plus INSERT.owns/ACAD_TABLE count rows —
    all reader-side.
@@ -804,12 +804,64 @@ Given a diff `(type, field, kind)`:
 > −327/−319; the POLYLINE_3D/GROUP/PFACE/Associative-retype batch
 > −478/−493).
 > Next-packet handoff: the "Next packets" block in §7. Remaining mass:
-> PROXY_OBJECT data/data_numbits 60 + objids 18, UNKNOWN_OBJ._missing 53 +
-> ownerhandle 37 (ownercode side channel + the reader-ownercode gap),
-> DIMSTYLE_CONTROL.morehandles 19 (reader num_morehandles), RAY/XLINE/
-> LINE.linewt ~100, IMAGEDEF ~55, HATCH ~27, MULTILEADER.graphic_data 12,
-> CIRCLE.linewt 14, VX reader family, the poly-SEQEND shadow pairs and
-> the 3140/TS1 dropped-record reader gaps (probes `r2_*`/`rt_*`).
+> UNKNOWN_OBJ._missing 53 + ownerhandle 37 (ownercode side channel + the
+> reader-ownercode gap), DIMSTYLE_CONTROL.morehandles 19 (reader
+> num_morehandles), RAY/XLINE/LINE.linewt ~100, IMAGEDEF ~55, HATCH ~27,
+> MULTILEADER.graphic_data 12, CIRCLE.linewt 14, VX reader family, the
+> poly-SEQEND shadow pairs and the 3140/TS1 dropped-record reader gaps
+> (probes `r2_*`/`rt_*`). PROXY_OBJECT data/data_numbits + objids landed
+> (2026-09-20 seventh batch, `fa2cb0a`; full LibreDWG-source parse
+>   evidence in `target/probes/fullsrc/` — see the DONE entry below).
+
+  ~~PROXY_OBJECT data/data_numbits + objids~~ — **DONE (2026-09-20 seventh
+  batch, `fa2cb0a`; read 860 → 847 / write 792 → 779, −13/−13; sole
+  carrier 2018/Constraints.dwg × 5 PROXY_OBJECT records: data/data_numbits
+  10 + objids 3)**. Groundwork: the full-source parse of LibreDWG
+  (`target/probes/fullsrc/`, `findings_notes.md`) pinned the DECODER
+  formula and corrected the census (live HANDLE_UNKNOWN_BITS sites = 71,
+  all dwg2.spec; dwg.spec:5581 is inside `#if 0`; both PROXY blocks carry
+  it commented — proxies emit `data`, never `unknown_bits`). (a) **Raw
+  window capture**: gold's `data`/`data_numbits` (dwg.spec 5752 + entity
+  5666-5680 DECODER) = `data_numbits = (obj->hdlpos −
+  bit_position(dat)) & 0xFFFFFFFF` then `bit_read_bits(dat, numbits)` —
+  the raw record bits from after the prologue to the handle-stream start
+  in CLASSIC WIRE ORDER (opaque payload ++ the R2007+ string area incl.
+  the `dxf_subclass` TU ++ the 17-bit RS size/has_strings trailer ++ pad;
+  `obj->hdlpos = obj->bitsize` via `obj_handle_stream`, decode.c:4362 —
+  no parsed field set reproduces them). Silver:
+  `DwgMergedReader::capture_proxy_window()` slices
+  `main[pos .. handle_start_bit)` with bit_read_bits packing (full bytes
+  MSB-first, trailing partial byte LSB-packed) into
+  `ProxyObject.raw_window` (`ProxyRawWindow{bit_count, bytes}`, serde,
+  semantic_property.rs, re-exported in objects/mod.rs); the builder
+  captures right after `from_dxf`. normalize_silver's ProxyObject branch
+  emits `data` upper-hex + `data_numbits` from it (gold prints %02X via
+  FIELD_BINARY/VALUE_BINARY, out_json.c:388; DXF_OR_PRINT is if(1) in
+  the JSON TU, spec.h:527) and pops raw_window. Bit-exact on all 5
+  (window decompositions 332+314+516+17=1179 etc. — the TU bit count =
+  10-bit BS length + 16×chars). (b) **objids read loop = builder 5646**
+  replicates gold's mechanics verbatim: terminator
+  `while (hdl_dat->byte < hdl_dat->size - 1)` (dwg.spec 5820,
+  byte-quantized at record size — `gold_handle_cursor_at_end()` in
+  merged_reader.rs, ThreeStream reads the position absolutely, TwoStream
+  adds the slice base) AND the **PUSH_HV collapse** (common.h:634: the
+  push is skipped when the new ref pointer equals `objids.last()`; since
+  `dwg_add_handleref` (dwg.c:2213) dedups by (code,value) returning the
+  SAME pointer, CONSECUTIVE EQUAL wire refs collapse — h996 wire
+  [990][4,0][4,0][3,0] → gold pushes 3; h995 10 wire refs → 8. The ≥8
+  bits-remaining guard stays as a safety net). Both semantics verified
+  against all 5 records' handle areas (probe
+  `target/probes/fullsrc/pk1_walk.txt`). (c) **Writer unchanged**:
+  silver's rt records already reproduce the window byte-exact
+  (`gold_rt.data == gold_orig.data`, sizes/bitsizes/objids identical on
+  all 5), so both fidelity sides follow the dump emission alone.
+  Entity side (PROXY_ENTITY) left as-is: the census found zero carriers;
+  gold's entity loop counts without filling the array (count-only,
+  position restored) and JSON would emit `[0,0,0]` placeholders —
+  revisit only if a carrier appears. CAUTION for future packets: the
+  builder's objids loop is SHARED by the RegisteredClass (envelope)
+  branch — the terminator + collapse now apply there too; corpus stayed
+  clean (no regression), but keep it in mind for ASSOC-family carriers.
 
    ~~POLYLINE_3D family + GROUP + PFACE chains + VIEWPORT named_ucs +
    ASSOC actionbody/path retypes~~ — **DONE (2026-09-20 third batch,
