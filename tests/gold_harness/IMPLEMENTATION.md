@@ -280,16 +280,19 @@ INSERT attrib/seqend chain + MLINE projection + POLYLINE_3D/GROUP/PFACE/
 VIEWPORT-named_ucs + ASSOC actionbody/path retype family + RAY/XLINE/
 IMAGEDEF/HATCH degenerates/VX family/LIGHT/RASTERVARIABLES/MULTILEADER +
 ARC_DIMENSION graphic + HELIX family/LEADER/TOLERANCE dimstyle/MATERIAL
-rgb (2026-09-20 fourth + fifth batches), 2026-09-20):**
-read-fidelity **943**, write-fidelity **804** — **BOTH SIDES BELOW THE
-1 000 CAMPAIGN TARGET** — and the two sides MIRROR
+rgb + UNKNOWN-family handle-code unstamp (2026-09-20 fourth + fifth
+batches), 2026-09-20):**
+read-fidelity **906**, write-fidelity **801** — the 1 000 milestone was
+passed at 943/804 and the **campaign target is now below 100 on both
+sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
 used to be cancelled by symmetric counterfeit garbage; the UNKNOWN
 projections then took −308/−324; U2 then took −719/−720; the unknown_bits
 side channel then took −448/−448; the style-map/chain/MLINE batch then took
 −327/−319; the POLYLINE_3D/GROUP/PFACE/Associative-retype batch then took
 −478/−493; the RAY/XLINE/IMAGEDEF/HATCH/VX/LIGHT batch then took −338/−336;
-the HELIX/dimstyle/MATERIAL-rgb batch then took −172/−172). gh44-error.dwg
+the HELIX/dimstyle/MATERIAL-rgb batch then took −172/−172; the UNKNOWN
+handle-code unstamp then took −37/−3). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
