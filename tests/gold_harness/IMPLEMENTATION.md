@@ -283,8 +283,9 @@ ARC_DIMENSION graphic + HELIX family/LEADER/TOLERANCE dimstyle/MATERIAL
 rgb + UNKNOWN-family handle-code unstamp + raw-linewt fidelity
 reader/writer/normalizer + LAYOUT.viewports (2026-09-20 fourth + fifth +
 sixth batches) + PROXY_OBJECT raw-window/objids capture (2026-09-20
-seventh batch, `fa2cb0a`), 2026-09-20):**
-read-fidelity **847**, write-fidelity **779** — the 1 000 milestone was
+seventh batch, `fa2cb0a`) + DIMSTYLE_CONTROL.morehandles reader capture
++ writer echo (2026-09-20 eighth batch, `b08d346`), 2026-09-20):**
+read-fidelity **743**, write-fidelity **779** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -296,7 +297,7 @@ side channel then took −448/−448; the style-map/chain/MLINE batch then took
 the HELIX/dimstyle/MATERIAL-rgb batch then took −172/−172; the UNKNOWN
 handle-code unstamp then took −37/−3; the raw-linewt + LAYOUT.viewports
 batch then took −46/−9; the PROXY_OBJECT raw-window/objids batch then took
-−13/−13). gh44-error.dwg
+−13/−13; the DIMSTYLE_CONTROL.morehandles capture then took −104/0). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -306,24 +307,16 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`fa2cb0a` corpus;
-PROXY_OBJECT landed as the seventh batch — see §8.1.6):**
-1. **DIMSTYLE_CONTROL.morehandles 19**: gold's HANDLE_VECTOR uses its own
-   wire count `num_morehandles` (dwg.spec 4163-4185: `FIELD_RCu
-   (num_morehandles, 71)` SINCE R_2000b — a RAW byte — then
-   `HANDLE_VECTOR (morehandles, num_morehandles, 5, 340)`; capture point
-   = pass-1 right after common non-entity data at builder:767, select
-   OBJ_DIMSTYLE_CONTROL; remember per-type CONTROL data shapes differ)
-   which silver's reader does not store — emitting the whole dim-style
-   table produced 109 wrong_value rows (the 2026-09-20
-   regression-and-revert); needs a reader morehandles capture.
-2. **UNKNOWN_OBJ.ownerhandle 37 + _missing 15 + _count 9**: the reader
+mirrored read/write; ranking from the fresh post-`b08d346` corpus;
+PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles landed as batches seven
+and eight — see §8.1.6):**
+1. **UNKNOWN_OBJ.ownerhandle 37 + _missing 15 + _count 9**: the reader
    ownercode side channel (pipeline-default code 4 vs gold's
    wire-relative 6/8 — the unknown_bits precedent) + the 3140-class
    dropped records; ASSOCSWEPTSURFACEACTIONBODY must STAY UNKNOWN_OBJ
    (dead block) and the Surface dep_on rows ride the SURFACE-typing
    divergence in silver's reader.
-3. **Reader captures**: VERTEX_MESH._missing 12 (TS1 mesh parse gap),
+2. **Reader captures**: VERTEX_MESH._missing 12 (TS1 mesh parse gap),
    SORTENTSTABLE.ents (R2000 entries lost), MLINE.flags closed-bit,
    the poly-SEQEND shadow pairs, LEADER.arrowhead_type/box_* R2000 pairs
    (box_height BD + box_width BD + hookline_dir B + arrowhead_type BSx,
@@ -332,14 +325,14 @@ PROXY_OBJECT landed as the seventh batch — see §8.1.6):**
    reader keeps 24..28 as Value(raw) at builder match, writer echoes
    irreversible table codes, normalizer `_lweight_index` echoes
    out-of-table mm values; `6fd5a10`).
-4. **Value-dependent remaining**: MULTILEADER.attach_top/bottom 9+9
+3. **Value-dependent remaining**: MULTILEADER.attach_top/bottom 9+9
    (gold BS pairs 32/4786/178 per record — the dwg2.spec 1447-1452 trio
    `attach_dir`(271)/`attach_top`(273)/`attach_bottom`(272), SINCE
    R_2010b right before COMMON_ENTITY_HANDLE_DATA; no "dock" fields
    exist), VIEWPORT.status_flag 17 (Dynblocks R2018: gold 819232 vs
    silver 32800 — plain `FIELD_BL` SINCE R_2000b, dwg.spec 2484; needs
    raw retention: reader capture + writer echo + normalizer preference).
-5. **Scattered entity families**: RAY/XLINE point/vector/base_point/
+4. **Scattered entity families**: RAY/XLINE point/vector/base_point/
    direction + LINE.linewt (13 each), IMAGEDEF.image_size/file_path/
    resunits/size_in_pixels (~55 on the ATMOS-era carriers; gold wire
    order = image_size 2RD FIRST, then file_path T, is_loaded B,
@@ -353,7 +346,7 @@ PROXY_OBJECT landed as the seventh batch — see §8.1.6):**
    (reader parse gap), 3DSOLID/REGION.encr_sat_data on R2000 (accepted
    residual), ASSOCDEPENDENCY.dep_on 5 (the SURFACE entity-typing
    divergence in the reader).
-6. **VX family**: gold VX_CONTROL + VX_TABLE_RECORD records that silver's
+5. **VX family**: gold VX_CONTROL + VX_TABLE_RECORD records that silver's
    reader drops entirely (2000-era files; VIEWPORT.vport_entity_header
    rows die together with them) plus INSERT.owns/ACAD_TABLE count rows —
    all reader-side.
@@ -805,13 +798,14 @@ Given a diff `(type, field, kind)`:
 > −478/−493).
 > Next-packet handoff: the "Next packets" block in §7. Remaining mass:
 > UNKNOWN_OBJ._missing 53 + ownerhandle 37 (ownercode side channel + the
-> reader-ownercode gap), DIMSTYLE_CONTROL.morehandles 19 (reader
-> num_morehandles), RAY/XLINE/LINE.linewt ~100, IMAGEDEF ~55, HATCH ~27,
-> MULTILEADER.graphic_data 12, CIRCLE.linewt 14, VX reader family, the
-> poly-SEQEND shadow pairs and the 3140/TS1 dropped-record reader gaps
-> (probes `r2_*`/`rt_*`). PROXY_OBJECT data/data_numbits + objids landed
-> (2026-09-20 seventh batch, `fa2cb0a`; full LibreDWG-source parse
+> reader-ownercode gap), RAY/XLINE/LINE.linewt ~100, IMAGEDEF ~55, HATCH
+> ~27, MULTILEADER.graphic_data 12, CIRCLE.linewt 14, VX reader family,
+> the poly-SEQEND shadow pairs and the 3140/TS1 dropped-record reader
+> gaps (probes `r2_*`/`rt_*`). PROXY_OBJECT data/data_numbits + objids
+> landed (2026-09-20 seventh batch, `fa2cb0a`; full LibreDWG-source parse
 >   evidence in `target/probes/fullsrc/` — see the DONE entry below).
+>   DIMSTYLE_CONTROL.morehandles landed (2026-09-20 eighth batch,
+>   `b08d346`; see its DONE entry below).
 
   ~~PROXY_OBJECT data/data_numbits + objids~~ — **DONE (2026-09-20 seventh
   batch, `fa2cb0a`; read 860 → 847 / write 792 → 779, −13/−13; sole
@@ -863,7 +857,36 @@ Given a diff `(type, field, kind)`:
   branch — the terminator + collapse now apply there too; corpus stayed
   clean (no regression), but keep it in mind for ASSOC-family carriers.
 
-   ~~POLYLINE_3D family + GROUP + PFACE chains + VIEWPORT named_ucs +
+   ~~DIMSTYLE_CONTROL.morehandles~~ — **DONE (2026-09-20 eighth batch,
+  `b08d346`; read 847 → 743 / write stays 779 — the row was on EVERY
+  carrier with a dims control, one per file, not the ranking's
+  truncated 19)**. Gold evidence: dwg.spec 4163-4185 — `FIELD_BS
+  (num_entries, 70)`, then SINCE (R_2000b) `FIELD_RCu (num_morehandles,
+  71)` (ONE RAW BYTE; dec_macros.h:527 — plain bit_read_RC), then
+  CONTROL_HANDLE_STREAM, then `HANDLE_VECTOR (entries, num_entries, 2,
+  0)` and SINCE (R_13b1) `HANDLE_VECTOR (morehandles, num_morehandles,
+  5, 340)` — "additional hard handles, undocumented" (struct
+  dwg.h:3623-3624). Silver fix: (a) reader — the pass-1
+  `OBJ_DIMSTYLE_CONTROL` arm (builder ~767) consumes num_entries BS +
+  the RCu byte, drains the entries vector, and captures the code-5
+  refs into the new document field `dimstyle_morehandles` (document.rs,
+  serde, like the other DWG side channels; also ignore it in
+  semantic_inventory.rs); (b) writer — `write_dimstyle_control`
+  replaced the hardcoded 0 byte with the captured count and writes the
+  refs as HardPointer AFTER the entries (never the entries themselves —
+  emitting the dim-style table regressed 19 → 109 rows in the 2026-09-20
+  attempt); (c) normalize_silver — the table-control emitter projects
+  `data["dimstyle_morehandles"]` into the dims CONTROL record's
+  `morehandles` (via normalize_handle_value). VERIFY lessons: the
+  write side never showed these rows — the write pair is parser parity
+  on the rt (gold_rt vs silver_rt), and silver's old rt wrote RCu 0 so
+  both parsers agreed on absence; the echo keeps the rt faithful and
+  silver_orig ≡ silver_rt. The stash-rerun A/B (probes p45/p46) settled
+  the −104-vs-−19 ranking discrepancy: report by-type tables are top-N
+  truncated, per-file paths are the truth; corpus dirs are
+  stem-collision shared — never A/B them raw (pair by full path).
+
+  ~~POLYLINE_3D family + GROUP + PFACE chains + VIEWPORT named_ucs +
    ASSOC actionbody/path retypes~~ — **DONE (2026-09-20 third batch,
    `bd02a3e`; read 1 931 → 1 453 / write 1 805 → 1 312, −478/−493)**,
    all normalizer work: (a) **POLYLINE_3D parent fields** — curve_type
