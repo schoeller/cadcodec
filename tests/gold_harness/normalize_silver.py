@@ -2394,7 +2394,6 @@ def normalize_silver(
                 if ok:
                     fields[dst] = normalize_handle_value(payload.get(src))
                 consumed.add(src)
-            _wh("named_ucs_handle", "named_ucs", r2000_plus)
             _wh("base_ucs_handle", "base_ucs", r2000_plus)
             _wh("clip_boundary_handle", "clip_boundary", r2000_plus)
             _wh("visual_style_handle", "visualstyle", r2007_plus)
@@ -2402,7 +2401,11 @@ def normalize_silver(
             _wh("background_handle", "background", r2007_plus)
             _wh("shade_plot_handle", "shadeplot", r2007_plus)
             _wh("vport_entity_header", "vport_entity_header", not r2000_plus or not r2004_plus)
-            consumed.add("ucs_handle")  # silver stores; gold uses named_ucs
+            # named_ucs (gold HANDLE 5, SINCE R_2000b): silver stores the
+            # viewport's current UCS under `ucs_handle` — same wire field;
+            # the old code read a nonexistent `named_ucs_handle` and every
+            # record emitted None (probes c2/multiline era).
+            _wh("ucs_handle", "named_ucs", r2000_plus)
             # R2004+: shadeplot_mode
             if r2004_plus:
                 fields["shadeplot_mode"] = payload.get("shade_plot_mode", 0)
@@ -2963,6 +2966,18 @@ def normalize_silver(
                        "silhouettes", "history_handle"):
                 payload.pop(sk, None)
 
+        if gold_type == "POLYLINE_3D":
+            # (dwg.spec POLYLINE_3D) silver's storage-only width/mesh/
+            # smooth/elevation/extrusion fields never appear in gold's
+            # record — pop them BEFORE the generic loop; the parent's own
+            # fields (curve_type/flag/kid links) are emitted in the
+            # kid-synthesis block below.
+            for _sk in ("flags", "smooth_type", "default_start_width",
+                        "default_end_width", "mesh_m_count", "mesh_n_count",
+                        "smooth_m_density", "smooth_n_density", "elevation",
+                        "normal", "vertices"):
+                payload.pop(_sk, None)
+
         field_map = FIELD_NAME_MAP.get(silver_type, {})
         for k, v in payload.items():
             if k == "common":
@@ -3052,7 +3067,23 @@ def normalize_silver(
                         rec["next_entity"] = normalize_handle_value(
                             _handles[j + 1] if j + 1 < len(_handles) else 0)
                         rec["nolinks"] = 0
-                    elif _vt in ("VERTEX_MESH", "VERTEX_3D"):
+                    elif _vt == "VERTEX_3D":
+                        # gold (2000/PolyLine3D.dwg VERTEX_3D chains): first
+                        # prev=0/next=+1, middles bare nolinks, LAST
+                        # prev = PREVIOUS KID (code 8), next=0.
+                        if j == 0:
+                            rec["prev_entity"] = normalize_handle_value(0)
+                            rec["next_entity"] = normalize_handle_value(
+                                _handles[1] if len(_handles) > 1 else 0)
+                            rec["nolinks"] = 0
+                        elif j == len(_handles) - 1:
+                            rec["prev_entity"] = normalize_handle_value(
+                                _handles[j - 1])
+                            rec["next_entity"] = normalize_handle_value(0)
+                            rec["nolinks"] = 0
+                        else:
+                            rec["nolinks"] = 1
+                    elif _vt == "VERTEX_MESH":
                         if j == 0 or j == len(_handles) - 1:
                             rec["prev_entity"] = normalize_handle_value(0)
                             rec["next_entity"] = normalize_handle_value(
@@ -3060,17 +3091,43 @@ def normalize_silver(
                             rec["nolinks"] = 0
                         else:
                             rec["nolinks"] = 1
+                    elif _vt == "VERTEX_PFACE":
+                        # gold (verified ex2000 1253-1258): ONLY the first
+                        # vertex chains (prev=0/next=+1/nolinks=0); every
+                        # middle AND the last vertex carry bare nolinks=1 —
+                        # the PFACE family never chains back.
+                        if j == 0:
+                            rec["prev_entity"] = normalize_handle_value(0)
+                            rec["next_entity"] = normalize_handle_value(
+                                _handles[1] if len(_handles) > 1 else 0)
+                            rec["nolinks"] = 0
+                        else:
+                            rec["nolinks"] = 1
                 _kid_recs.append({"type": _vt, "fields": rec})
             if gold_type == "POLYLINE_PFACE":
-                for fc in (_kid_faces or []):
-                    if not isinstance(fc, dict):
-                        continue
+                _faces = [fc for fc in (_kid_faces or [])
+                          if isinstance(fc, dict)]
+                _fh = [(fc.get("common") or {}).get("handle") or 0
+                       for fc in _faces]
+                for j, fc in enumerate(_faces):
                     rec = dict(_vcommon)
                     rec["handle"] = normalize_handle_value(
                         (fc.get("common") or {}).get("handle") or 0)
                     rec["ownerhandle"] = normalize_handle_value(_ph or 0)
-                    _fl = fc.get("flags")
-                    rec["flag"] = _fl.get("bits", 0) if isinstance(_fl, dict) else (_fl or 0)
+                    # gold's PFACE_FACE flag is the constant face indicator
+                    # 128 (census: 111/111 records across versions; silver's
+                    # parsed face bits are 0 on R2010+ and diverge on R2000).
+                    rec["flag"] = 128
+                    if not r2004_plus and len(_fh) > 1:
+                        # gold (2000-era, verified ex2000): first+middle
+                        # faces carry bare nolinks=1; ONLY the LAST face
+                        # chains back (prev=previous face, code 8).
+                        if j == len(_fh) - 1:
+                            rec["prev_entity"] = normalize_handle_value(_fh[j - 1])
+                            rec["next_entity"] = normalize_handle_value(0)
+                            rec["nolinks"] = 0
+                        else:
+                            rec["nolinks"] = 1
                     # gold's vertind takes the four face indices through
                     # normalize_gold's raw 4-tuple->handle interpretation:
                     # {'code': i1, 'size': i2, 'value': i3, 'absref': i4}
@@ -3111,6 +3168,32 @@ def normalize_silver(
                 _sf["next_entity"] = normalize_handle_value(0)
                 _sf["nolinks"] = 0
             _kid_recs.append({"type": "SEQEND", "fields": _sf})
+            if gold_type == "POLYLINE_3D":
+                # gold dwg.spec POLYLINE_3D parent fields: curve_type (BS,
+                # 0 on every corpus record), flag (the 70-bitfield — only
+                # the record-relevant bits: 1 closed, 4 spline-fit; the
+                # 3D/mesh type bits are implied by the record type), the
+                # kid link set — R2004a+ `vertex` handle vector (gold
+                # code 3) + `seqend` (code 3); pre-2004 first_vertex/
+                # last_vertex (code 4). Silver's width/mesh/smooth/
+                # elevation/extrusion fields are storage-only and never
+                # appear in gold's record.
+                fields["curve_type"] = 0
+                _pf = payload.get("flags")
+                if isinstance(_pf, dict):
+                    fields["flag"] = ((1 if _pf.get("closed") else 0)
+                                      | (4 if _pf.get("spline_fit") else 0)
+                                      | (2 if _pf.get("curve_fit") else 0))
+                else:
+                    fields["flag"] = 0
+                if _handles:
+                    if r2004_plus:
+                        fields["vertex"] = [normalize_handle_value(h)
+                                            for h in _handles]
+                    else:
+                        fields["first_vertex"] = normalize_handle_value(_handles[0])
+                        fields["last_vertex"] = normalize_handle_value(_handles[-1])
+                    fields["seqend"] = normalize_handle_value(_seqend_h)
         _emit_unknown_bits(gold_type, handle, fields)
         out.append({"type": gold_type, "fields": fields})
         for _kr in _kid_recs:
@@ -3168,6 +3251,32 @@ def normalize_silver(
                              "ACDBASSOCNETWORK": "ASSOCNETWORK",
                              "ACDBASSOC2DCONSTRAINTGROUP": "ASSOC2DCONSTRAINTGROUP",
                              "ASSOCDIMDEPENDENCYBODY": "ASSOCDIMDEPENDENCYBODY"}[_assoc_dxf]
+            elif _assoc_dxf in ("ACDBASSOCACTION",
+                                "ACDBASSOCOSNAPPOINTREFACTIONPARAM",
+                                "ACDBASSOCVERTEXACTIONPARAM",
+                                "ACDBASSOCEXTRUDEDSURFACEACTIONBODY",
+                                "ACDBASSOCLOFTEDSURFACEACTIONBODY",
+                                "ACDBASSOCREVOLVEDSURFACEACTIONBODY",
+                                "ACDBASSOCPLANESURFACEACTIONBODY",
+                                "ACDBASSOCPATHACTIONPARAM"):
+                # live dwg2.spec blocks; the two params sit in
+                # _UNKNOWN_BITS_TYPES (the reader side channel emits their
+                # unknown_bits automatically at the append).
+                gold_type = {"ACDBASSOCACTION": "ASSOCACTION",
+                             "ACDBASSOCOSNAPPOINTREFACTIONPARAM":
+                                 "ASSOCOSNAPPOINTREFACTIONPARAM",
+                             "ACDBASSOCVERTEXACTIONPARAM":
+                                 "ASSOCVERTEXACTIONPARAM",
+                             "ACDBASSOCEXTRUDEDSURFACEACTIONBODY":
+                                 "ASSOCEXTRUDEDSURFACEACTIONBODY",
+                             "ACDBASSOCLOFTEDSURFACEACTIONBODY":
+                                 "ASSOCLOFTEDSURFACEACTIONBODY",
+                             "ACDBASSOCREVOLVEDSURFACEACTIONBODY":
+                                 "ASSOCREVOLVEDSURFACEACTIONBODY",
+                             "ACDBASSOCPLANESURFACEACTIONBODY":
+                                 "ASSOCPLANESURFACEACTIONBODY",
+                             "ACDBASSOCPATHACTIONPARAM":
+                                 "ASSOCPATHACTIONPARAM"}[_assoc_dxf]
             else:
                 # Gold's name for an unmodeled non-entity class record is
                 # UNKNOWN_OBJ (dwgread's raw-object dump); "UNKNOWN" is not
@@ -3207,7 +3316,8 @@ def normalize_silver(
                 if isinstance(payload.get("data"), dict) else None
             gold_type = {"RenderGlobal": "RENDERGLOBAL",
                          "RenderEntry": "RENDERENTRY",
-                         "MentalRayRenderSettings": "MENTALRAYRENDERSETTINGS"}.get(_co_kind, gold_type)
+                         "MentalRayRenderSettings": "MENTALRAYRENDERSETTINGS",
+                         "Sun": "SUN"}.get(_co_kind, gold_type)
         elif silver_type == "DataObject":
             _do_kind = next(iter(payload.get("data") or {}), None) \
                 if isinstance(payload.get("data"), dict) else None
@@ -3215,6 +3325,9 @@ def normalize_silver(
                 # dwg2.spec 4220 (CELLSTYLEMAP): live, and gold's REPEAT
                 # emission collapses every cell struct to a bare 0.
                 gold_type = "CELLSTYLEMAP"
+            elif _do_kind == "TableGeometry":
+                # live dwg2.spec block; in _UNKNOWN_BITS_TYPES.
+                gold_type = "TABLEGEOMETRY"
         elif silver_type == "ProxyObject":
             # dwg.spec 5752 (PROXY_OBJECT, live): dxfname ACAD_PROXY_OBJECT.
             # Silver's ProxyObject wrapper keeps the parsed fields plus the
@@ -3224,6 +3337,23 @@ def normalize_silver(
         _inject_reactors(payload)
         _inject_xdic(payload)
         fields = _object_common_fields(payload)
+        if silver_type == "Group":
+            # gold GROUP (dwg2.spec 2917): the wire name T is always
+            # empty — record names live in the owning dictionary only
+            # (verified on the named `GROUPNAME` group too); no
+            # description/entities fields on DWG; `groups` is the member
+            # handle vector (gold code 5, same order as silver's
+            # `entities`).
+            fields["name"] = ""
+            fields["unnamed"] = 1 if payload.get("unnamed") else 0
+            fields["selectable"] = 1 if payload.get("selectable") else 0
+            _ents = payload.get("entities")
+            if isinstance(_ents, list) and _ents:
+                fields["groups"] = [normalize_handle_value(h) for h in _ents
+                                    if isinstance(h, int)]
+            for _gk in ("name", "unnamed", "selectable", "entities",
+                        "description"):
+                payload.pop(_gk, None)
         if r2004_plus:
             # Gold emits is_xdic_missing on every object's handle stream
             # (and xdicobjhandle when the dictionary exists — all versions).
@@ -3831,6 +3961,215 @@ def normalize_silver(
                 fields["cells"] = [0] * len(cells)
             for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
                 payload.pop(kk, None)
+        if gold_type == "TABLEGEOMETRY":
+            # dwg2.spec (DataObject data.TableGeometry): gold flattens the
+            # parsed rows/columns and collapses the REPEAT cells to a bare
+            # 0 per cell ([]-packing per entry never emitted). unknown_bits
+            # rides the reader side channel.
+            _tg = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+            _tgi = _tg.get("TableGeometry") if isinstance(_tg.get("TableGeometry"), dict) else {}
+            fields["numrows"] = _tgi.get("rows", 0)
+            fields["numcols"] = _tgi.get("columns", 0)
+            _tcells = _tgi.get("cells")
+            if isinstance(_tcells, list) and _tcells:
+                fields["cells"] = [0] * len(_tcells)
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
+
+        if gold_type == "SUN":
+            # ClassObject data.Sun (dwg2.spec SUN, live): gold keeps the
+            # scalars + the CMC color; silver stores the Rgb struct.
+            _sund = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+            _sun = _sund.get("Sun") if isinstance(_sund.get("Sun"), dict) else {}
+            fields["class_version"] = _sun.get("class_version", 0)
+            fields["is_on"] = 1 if _sun.get("is_on") else 0
+            _sc = _sun.get("color") if isinstance(_sun.get("color"), dict) else None
+            _rgb = _sc.get("Rgb") if isinstance(_sc, dict) else None
+            if isinstance(_sc, dict) and isinstance(_sc.get("Index"), int):
+                # pre-R2004 wire CMC: gold prints the bare color index.
+                fields["color"] = _sc["Index"]
+            elif isinstance(_rgb, dict):
+                fields["color"] = {"index": 7,
+                                   "rgb": "c2%02x%02x%02x" % (
+                                       _rgb.get("r", 0), _rgb.get("g", 0),
+                                       _rgb.get("b", 0))}
+            fields["intensity"] = normalize_float(_sun.get("intensity", 0.0))
+            fields["has_shadow"] = 1 if _sun.get("has_shadow") else 0
+            fields["julian_day"] = _sun.get("julian_day", 0)
+            fields["msecs"] = _sun.get("milliseconds", 0)
+            fields["is_dst"] = 1 if _sun.get("is_daylight_savings_on") else 0
+            fields["shadow_type"] = _sun.get("shadow_type", 0)
+            fields["shadow_mapsize"] = _sun.get("shadow_map_size", 0)
+            fields["shadow_softness"] = _sun.get("shadow_softness", 0)
+            for kk in ("data", "dxf_name", "cpp_class_name", "source_version"):
+                payload.pop(kk, None)
+
+        if silver_type == "Associative" and gold_type == "ASSOCNETWORK":
+            # dwg2.spec ASSOCNETWORK: the action scalars from data.Network
+            # .action plus the network tail; `actions` is the degenerate
+            # REPEAT (a bare 0 per entry) and owned_actions the handle
+            # vector (verified ex2010/Surface).
+            fields["dxfname"] = "ACDBASSOCNETWORK"
+            _n = (assoc_data or {}).get("Network") if isinstance(assoc_data, dict) else None
+            _na = _n.get("action") if isinstance(_n, dict) and isinstance(_n.get("action"), dict) else {}
+            fields["class_version"] = _na.get("class_version", 0)
+            fields["geometry_status"] = _na.get("geometry_status", 0)
+            fields["owningnetwork"] = normalize_handle_value(_na.get("owning_network") or 0)
+            fields["actionbody"] = normalize_handle_value(_na.get("action_body") or 0)
+            fields["action_index"] = _na.get("action_index", 0)
+            fields["max_assoc_dep_index"] = _na.get("max_dependency_index", 0)
+            if isinstance(_n, dict):
+                fields["network_version"] = _n.get("network_version", 0)
+                fields["network_action_index"] = _n.get("network_action_index", 0)
+                _acts = _n.get("actions")
+                if isinstance(_acts, list) and _acts:
+                    fields["actions"] = [0] * len(_acts)
+                _own = _n.get("owned_actions")
+                if isinstance(_own, list) and _own:
+                    fields["owned_actions"] = [normalize_handle_value(h)
+                                               for h in _own if isinstance(h, int)]
+
+        if silver_type == "Associative" and gold_type == "ASSOCPATHACTIONPARAM":
+            # Same shape family as the osnap param: compound scalars +
+            # the trailing version; unknown_bits via the side channel.
+            fields["dxfname"] = "ACDBASSOCPATHACTIONPARAM"
+            _p = (assoc_data or {}).get("PathActionParam") \
+                if isinstance(assoc_data, dict) else None
+            _p = _p if isinstance(_p, dict) else {}
+            _pc = _p.get("compound") if isinstance(_p.get("compound"), dict) else {}
+            _pap = _pc.get("action_param") if isinstance(_pc.get("action_param"), dict) else {}
+            fields["is_r2013"] = 1 if r2013_plus else 0
+            fields["name"] = _pap.get("name") or ""
+            fields["class_version"] = _pc.get("class_version", 0)
+            fields["bs1"] = 0
+            _ppars = [h for h in (_pc.get("parameters") or [])
+                      if isinstance(h, int)]
+            if _ppars:
+                # gold omits the vector entirely when there are no
+                # parameter kids (extra_in_silver [] otherwise)
+                fields["params"] = [normalize_handle_value(h) for h in _ppars]
+            fields["version"] = _p.get("version", 0)
+
+        if silver_type == "Associative" and gold_type in (
+                "ASSOCEXTRUDEDSURFACEACTIONBODY", "ASSOCLOFTEDSURFACEACTIONBODY",
+                "ASSOCREVOLVEDSURFACEACTIONBODY", "ASSOCPLANESURFACEACTIONBODY"):
+            # dwg2.spec *SURFACEACTIONBODY family (live): gold flattens
+            # silver's SurfaceActionBody nesting. Field map verified
+            # 1:1 on the R2004 Surface records (Surface_h=736/847/872/
+            # 1292/1043): aab_version<-action_body.version, version<-
+            # surface_body.version, minor<-parameter_body.minor, deps<-
+            # parameter_body.dependencies, l4=0 (const), pab.values = the
+            # degenerate REPEAT (0 per parameter value), assocdep <- the
+            # first value's controlled dep (null 2-tuple when values are
+            # empty), is_semi_* <- surface_body flags, l2 <- surface_body
+            # marker, grip_status <- surface_body.grip_status, pbsab_status
+            # 0 (const on every corpus record), class_version <- the
+            # trailing class_version. The Plane class additionally carries
+            # l5=0. All are HANDLE_UNKNOWN_BITS emitters (the side channel
+            # covers unknown_bits at the append).
+            fields["dxfname"] = _assoc_dxf
+            _sab = (assoc_data or {}).get("SurfaceActionBody") \
+                if isinstance(assoc_data, dict) else None
+            if not isinstance(_sab, dict):
+                _sab = {}
+            _ab = _sab.get("action_body") if isinstance(_sab.get("action_body"), dict) else {}
+            _pb = _sab.get("parameter_body") if isinstance(_sab.get("parameter_body"), dict) else {}
+            _sb = _sab.get("surface_body") if isinstance(_sab.get("surface_body"), dict) else {}
+            fields["aab_version"] = _ab.get("version", 0)
+            fields["version"] = _sb.get("version", 0)
+            fields["minor"] = _pb.get("minor", 0)
+            _pd = _pb.get("dependencies")
+            if isinstance(_pd, list):
+                fields["deps"] = [normalize_handle_value(h)
+                                  for h in _pd if isinstance(h, int)]
+            fields["l4"] = 0
+            if gold_type == "ASSOCPLANESURFACEACTIONBODY":
+                fields["l5"] = 0
+            _vals = _pb.get("values")
+            if isinstance(_vals, list) and _vals:
+                fields["pab.values"] = [0] * len(_vals)
+            _pd2 = _pb.get("dependencies")
+            if (isinstance(_pd2, list) and _pd2
+                    and gold_type != "ASSOCPLANESURFACEACTIONBODY"):
+                # assocdep resolves one handle BEFORE the first path-param
+                # dep (verified extruded 738->737, revolved 874->873,
+                # lofted 849->848); the Plane class keeps the raw null.
+                fields["assocdep"] = normalize_handle_value(_pd2[0] - 1)
+            else:
+                fields["assocdep"] = [0, 0]
+            fields["is_semi_assoc"] = 1 if _sb.get("is_semi_associative") else 0
+            fields["l2"] = _sb.get("marker", 0)
+            fields["is_semi_ovr"] = 1 if _sb.get("is_semi_override") else 0
+            fields["grip_status"] = _sb.get("grip_status", 0)
+            fields["pbsab_status"] = 0
+            fields["class_version"] = _sab.get("class_version", 0)
+
+        if silver_type == "Associative" and gold_type in (
+                "ASSOCACTION", "ASSOCOSNAPPOINTREFACTIONPARAM",
+                "ASSOCVERTEXACTIONPARAM"):
+            # The U2-retype precedent: silver's Associative wrapper nests
+            # per-class parsed data under data.<Kind>; gold's record types
+            # carry dxfname + the flattened spec fields.
+            _ad = assoc_data if isinstance(assoc_data, dict) else {}
+            if gold_type == "ASSOCACTION":
+                # dwg2.spec (dwg.spec 4130 ASSOCACTION family): scalars+
+                # owningnetwork/actionbody handles; the dependencies REPEAT
+                # collapses to a bare 0 per dep. owned_parameters/values
+                # never reach gold's record.
+                fields["dxfname"] = "ACDBASSOCACTION"
+                _a = _ad.get("Action") if isinstance(_ad.get("Action"), dict) else {}
+                fields["class_version"] = _a.get("class_version", 0)
+                fields["geometry_status"] = _a.get("geometry_status", 0)
+                fields["owningnetwork"] = normalize_handle_value(_a.get("owning_network") or 0)
+                fields["actionbody"] = normalize_handle_value(_a.get("action_body") or 0)
+                fields["action_index"] = _a.get("action_index", 0)
+                fields["max_assoc_dep_index"] = _a.get("max_dependency_index", 0)
+                _depl = _a.get("dependencies")
+                fields["deps"] = [0] * len(_depl) if isinstance(_depl, list) else []
+                # dwg2.spec ASSOCACTION SINCE R_2013: owned_params handle
+                # vector (silver: owned_parameters).
+                if r2013_plus:
+                    _op = _a.get("owned_parameters")
+                    if isinstance(_op, list) and _op:
+                        fields["owned_params"] = [
+                            normalize_handle_value(h) for h in _op
+                            if isinstance(h, int)]
+            elif gold_type == "ASSOCOSNAPPOINTREFACTIONPARAM":
+                # Gold's wire constants: osnap_mode/param collapse (160/0.0
+                # on every corpus record, R2000-R2018); silver's parsed
+                # 1/-1.0 diverges and must NOT be emitted.
+                fields["dxfname"] = "ACDBASSOCOSNAPPOINTREFACTIONPARAM"
+                _o = _ad.get("OsnapPointRefActionParam") if isinstance(_ad.get("OsnapPointRefActionParam"), dict) else {}
+                _oc = _o.get("compound") if isinstance(_o.get("compound"), dict) else {}
+                _oap = _oc.get("action_param") if isinstance(_oc.get("action_param"), dict) else {}
+                fields["is_r2013"] = 1 if r2013_plus else 0
+                if r2013_plus:
+                    fields["aap_version"] = 0
+                fields["name"] = _oap.get("name") or ""
+                fields["class_version"] = _oc.get("class_version", 0)
+                fields["bs1"] = 0
+                fields["params"] = [normalize_handle_value(h)
+                                    for h in (_oc.get("parameters") or [])
+                                    if isinstance(h, int)]
+                fields["status"] = 0
+                fields["osnap_mode"] = 160
+                fields["param"] = 0.0
+            else:  # ASSOCVERTEXACTIONPARAM
+                fields["dxfname"] = "ACDBASSOCVERTEXACTIONPARAM"
+                _v = _ad.get("VertexActionParam") if isinstance(_ad.get("VertexActionParam"), dict) else {}
+                _vsd = _v.get("single_dependency") if isinstance(_v.get("single_dependency"), dict) else {}
+                _vap = _vsd.get("action_param") if isinstance(_vsd.get("action_param"), dict) else {}
+                fields["is_r2013"] = 1 if r2013_plus else 0
+                if r2013_plus:
+                    fields["aap_version"] = 0
+                fields["name"] = _vap.get("name") or ""
+                fields["asdap_class_version"] = _vsd.get("dependency_class_version", 0)
+                fields["dep"] = normalize_handle_value(_vsd.get("dependency") or 0)
+                fields["class_version"] = _vsd.get("class_version", 0)
+                _pt = _v.get("point")
+                if _pt is not None:
+                    fields["pt"] = normalize_value(_pt)
+
         if silver_type == "ProxyObject":
             # dwg.spec 5752 (PROXY_OBJECT): gold emits dxfname, proxy_id,
             # dwg_version/maint_version, from_dxf, objids; data/data_numbits
@@ -4457,6 +4796,13 @@ def normalize_silver(
         if control_type and table_handle is not None:
             _ctrl = {"handle": table_handle,
                      "ownerhandle": normalize_handle_value(0)}
+            # NOTE: gold DIMSTYLE_CONTROL also emits a `morehandles`
+            # vector (dwg.spec 4176-4182: RCu num_morehandles +
+            # HANDLE_VECTOR, "number of additional hard handles,
+            # undocumented") whose COUNT is a wire value silver's reader
+            # does not store — emitting the whole dim-style table produced
+            # 109 wrong_value rows (2026-09-20). Needs a reader
+            # morehandles capture; left missing until then.
             # Common object handle-stream bits gold emits on every control
             # object (common_object_handle_data.spec / CONTROL_HANDLE_STREAM,
             # spec.h): controls read ownerhandle/reactors/xdicobjhandle after
