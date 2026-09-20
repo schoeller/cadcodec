@@ -798,6 +798,12 @@ fn normalize_entity_for_comparison(entity: &mut EntityType) {
         EntityType::Ole2Frame(o) => {
             o.raw_data.clear();
         }
+        // Retained raw LWPOLYLINE wire flag — fidelity bookkeeping (the
+        // writer recomposes presence bits from values on constructed
+        // documents).
+        EntityType::LwPolyline(p) => {
+            p.dwg_raw_flag = 0;
+        }
         _ => {}
     }
 

@@ -1147,6 +1147,16 @@ def normalize_silver(
         # ARC_DIMENSION/LIGHT precedent).
         if silver_type == "Mesh":
             payload.pop("graphic_data", None)
+        # CAcLayoutPrintConfig instances (class 523/LAYOUTPRINTCONFIG):
+        # silver parses them into the Extended/LayoutPrintConfig wrapper;
+        # gold types the record LAYOUTPRINTCONFIG (a live class in
+        # dwgread's dxfname mapping — PolyLine2D.dwg's 857 emits
+        # class_version 2 / flag 0 + the R2000 null entity-chain pair).
+        if (silver_type == "Extended"
+                and isinstance(payload.get("data"), dict)
+                and "LayoutPrintConfig" in payload["data"]
+                and "RegisteredClass" not in payload["data"]):
+            gold_type = "LAYOUTPRINTCONFIG"
         # SURFACE family (2004/Surface.dwg): gold's EXTRUDED/LOFTED/
         # REVOLVED/SWEPT SURFACE blocks sit in the dead frame (§8.1.1 —
         # dwg2.spec 3716-4513): the class instances decode as raw
@@ -1421,11 +1431,31 @@ def normalize_silver(
             payload.pop("shape_name", None)
             payload.pop("style_name", None)
 
+        if gold_type == "LAYOUTPRINTCONFIG":
+            # gold's record (PolyLine2D.dwg 857): the common entity set +
+            # class_version + flag + the R2000-era null entity-chain trio;
+            # silver's parsed layout-print bits ride the nested data dict.
+            _lpc = payload.pop("data") if isinstance(payload.get("data"), dict) else {}
+            _lpd = (_lpc.get("LayoutPrintConfig")
+                    if isinstance(_lpc.get("LayoutPrintConfig"), dict) else {})
+            fields["class_version"] = _lpd.get("class_version", 0)
+            fields["flag"] = _lpd.get("flag", 0)
+            if not r2004_plus:
+                fields["prev_entity"] = normalize_handle_value(0)
+                fields["next_entity"] = normalize_handle_value(0)
+                fields["nolinks"] = 0
+
         if silver_type == "LwPolyline":
             # Gold LWPOLYLINE: flag (bitfield), points (2D array), bulges,
             # conditional const_width/elevation/thickness/extrusion.
             # Silver stores vertices (nested) + is_closed/plinegen/
             # constant_width/elevation/thickness/extrusion separately.
+            # Gold prints the RAW wire flag (dwg.spec LWPOLYLINE BSx 90 —
+            # the presence bits incl. VERTEXIDCOUNT 0x400 and the
+            # closed/plinegen marks; spec.h FLAG_LWPOLYLINE_*). Retained on
+            # the struct since the reader-capture packet; compose by value
+            # only when absent (constructed docs).
+            _lwf = payload.pop("dwg_raw_flag", None)
             flag = 0
             if payload.get("is_closed"):
                 flag |= 512
@@ -1465,15 +1495,34 @@ def normalize_silver(
                 fields["points"] = pts
                 # Gold always emits bulges (empty list when none set).
                 fields["bulges"] = bulges if has_bulge else []
-                if has_bulge:
+                if has_bulge and not isinstance(_lwf, int):
                     flag |= 16
+            if isinstance(_lwf, int):
+                # the retained raw wire bits are the truth (presence bits +
+                # VERTEXIDCOUNT 0x400 — Dynblocks' 1536/1024-flag records)
+                flag = int(_lwf) & 0xFFFF
             fields["flag"] = flag
-            # Gold's JSON always carries a vertexids array SINCE R_2010b
-            # (libredwg serializes the empty struct array even when flag&1024
-            # is clear; the field is absent pre-R2010). Silver stores none.
-            # Emit [] on R2010+ so gold's [] doesn't diff missing_in_silver.
+            # vertexids: gold always carries the array SINCE R_2010b (an
+            # empty vector when flag&1024 is clear); with 1024 set the
+            # per-vertex wire ids (silver's LwVertex.vertex_id — read
+            # under the same flag).
             if r2010_plus:
-                fields["vertexids"] = []
+                _lvx = payload.get("vertices") or []
+                if flag & 1024 and isinstance(_lvx, list):
+                    _lvi = [(vx.get("vertex_id", 0) if isinstance(vx, dict) else 0)
+                            for vx in _lvx]
+                    # normalize_gold reinterprets a 4-int list as the raw
+                    # handle tuple [code, size, value, absref] (Dynblocks:
+                    # [21, 22, 23, 24] -> the {21/22/23/24} dict) — mirror
+                    # that exact shape. Longer lists stay lists ([13, 14,
+                    # 25, 15, 16, 26] across versions).
+                    if len(_lvi) == 4:
+                        fields["vertexids"] = {"code": _lvi[0], "size": _lvi[1],
+                                               "value": _lvi[2], "absref": _lvi[3]}
+                    else:
+                        fields["vertexids"] = _lvi
+                else:
+                    fields["vertexids"] = []
             if flag & 4:
                 fields["const_width"] = normalize_float(const_width)
             if flag & 8:
@@ -3178,7 +3227,12 @@ def normalize_silver(
             # fit_pts is scenario-2 (bezier) only.
             if scenario == 1:
                 fields["knots"] = [normalize_float(k) for k in knots] if isinstance(knots, list) else []
-                fields["ctrl_pts"] = [0] * (len(cps) * 3) if isinstance(cps, list) else []
+                # gold's ctrl_pts = the degenerate REPEAT: normalize_gold
+                # collapses every {x,y,z} control-point dict to 0, so the
+                # normalized gold value is [0] * num_ctrl_pts (16 for the
+                # Dynblocks car-splines) — NOT the flat x/y/z triple
+                # expansion (that was 48 vs gold's 16).
+                fields["ctrl_pts"] = [0] * len(cps) if isinstance(cps, list) else []
             else:
                 fields["fit_pts"] = [normalize_value(p) for p in fps] if isinstance(fps, list) else []
                 if payload.get("fit_tolerance") is not None:
@@ -3597,6 +3651,18 @@ def normalize_silver(
                        "silhouettes", "history_handle"):
                 payload.pop(sk, None)
 
+        if gold_type == "POLYLINE_2D":
+            # (dwg.spec POLYLINE 2D) silver's flags-bit dict, smooth enum
+            # and vertex list never appear in gold's record — capture the
+            # first two for the kid-synthesis block below (flag BS 70 /
+            # curve_type BS 75) and pop before the generic loop (the 3D
+            # precedent). The vertices were already captured by the
+            # pre-merge kid block (_kid_verts).
+            _p2d_flags = payload.get("flags")
+            _p2d_smooth = payload.get("smooth_surface")
+            for _sk in ("flags", "smooth_surface", "vertices"):
+                payload.pop(_sk, None)
+
         if gold_type == "POLYLINE_3D":
             # (dwg.spec POLYLINE_3D) silver's storage-only width/mesh/
             # smooth/elevation/extrusion fields never appear in gold's
@@ -3832,7 +3898,25 @@ def normalize_silver(
                 _sf["next_entity"] = normalize_handle_value(0)
                 _sf["nolinks"] = 0
             _kid_recs.append({"type": "SEQEND", "fields": _sf})
-            if gold_type == "POLYLINE_3D":
+        if gold_type == "POLYLINE_2D":
+                # gold dwg.spec POLYLINE 2D parent fields: flag BS 70
+                # (silver's flags bit dict: closed=1), curve_type BS 75
+                # (smooth_surface NoSmooth -> 0), the R2000 first/last
+                # vertex chain + seqend (silver's 2D kids carry no stored
+                # handles — the wire assigns parent+1..parent+n). The two
+                # dict values were captured by the early pop branch.
+                fields["flag"] = ((_p2d_flags or {}).get("bits", 0)
+                                  if isinstance(_p2d_flags, dict) else 0)
+                fields["curve_type"] = ({"NoSmooth": 0, "Quadratic": 5,
+                                         "Cubic": 6, "Bezier": 8}
+                                        .get(_p2d_smooth, 0)
+                                        if isinstance(_p2d_smooth, str) else 0)
+                if _handles:
+                    fields["first_vertex"] = normalize_handle_value(_handles[0])
+                    fields["last_vertex"] = normalize_handle_value(_handles[-1])
+                if _seqend_h is not None:
+                    fields["seqend"] = normalize_handle_value(_seqend_h)
+        if gold_type == "POLYLINE_3D":
                 # gold dwg.spec POLYLINE_3D parent fields: curve_type (BS,
                 # 0 on every corpus record), flag (the 70-bitfield — only
                 # the record-relevant bits: 1 closed, 4 spline-fit; the
@@ -5895,16 +5979,21 @@ def normalize_silver(
                 # table uniquified duplicates by appending digits — strip
                 # the uniquifier only when the digitless base exists as
                 # another entry (verified pairs: '*D3' -> '*D' 81 rows,
-                # '*Paper_Space0' -> '*Paper_Space' 38 rows).
+                # '*Paper_Space0' -> '*Paper_Space' 38 rows). The lazy
+                # match strips ALL trailing digits: '*D10' must reduce to
+                # '*D' (the greedy form kept '*D1').
                 _nm = rec.get("name")
                 if isinstance(_nm, str):
-                    _m = re.match(r"^(.*)\d+$", _nm)
+                    _m = re.match(r"^(.*?)\d+$", _nm)
                     if _m and _m.group(1) in sibling_names:
                         _nm = _m.group(1)
                     fields["name"] = _nm
-                # Gold always emits xref_pname (FIELD_T, R13b1+); silver stores
-                # no xref_pname, so emit gold's default empty string.
-                fields.setdefault("xref_pname", "")
+                # xref_pname (FIELD_T, R13b1+): silver keeps it as the
+                # table record's xref_path (the xref's filename slug,
+                # e.g. BED_QUEENSIZE); silver's nested Block entity twin
+                # stores "".
+                _xp = rec.get("xref_path")
+                fields["xref_pname"] = _xp if isinstance(_xp, str) else ""
             if record_gold_type == "VPORT":
                 # VPORT view params (dwg.spec 4007-4160 DWG path): rename silver
                 # snake_case to gold names, convert types, version-gate. The

@@ -153,6 +153,9 @@ pub struct LwPolylineVertex {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LwPolylineData {
     pub flag: i16,
+    /// Raw wire flag retained verbatim (gold prints the full bit set incl.
+    /// VERTEXIDCOUNT 0x400; the derived bools below lose those bits).
+    pub raw_flag: u16,
     pub constant_width: f64,
     pub elevation: f64,
     pub thickness: f64,
@@ -1326,6 +1329,7 @@ fn read_lwpolyline_impl(
 
     LwPolylineData {
         flag,
+        raw_flag: flag as u16,
         constant_width,
         elevation,
         thickness,

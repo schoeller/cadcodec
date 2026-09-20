@@ -3600,6 +3600,7 @@ impl DwgDocumentBuilder {
                     e.normal = data.normal;
                     e.is_closed = (data.flag & 0x200) != 0;
                     e.plinegen = (data.flag & 0x100) != 0;
+                    e.dwg_raw_flag = data.raw_flag;
                     let _ = document.add_entity(EntityType::LwPolyline(e));
                 }
                 OBJ_SPLINE => {

@@ -2522,7 +2522,8 @@ impl<'a> DwgObjectWriter<'a> {
                 None
             };
             self.next_handle = (i + 1 < vertex_handles.len()).then(|| vertex_handles[i + 1]);
-            self.write_vertex2d(v, vh, e.common.handle, &e.common.layer, &e.common.color);
+            self.write_vertex2d(v, vh, e.common.handle, &e.common.layer, &e.common.color,
+                                 &e.common.linetype, &e.common.linetype_handle);
         }
 
         // Write SEQEND — last in polyline chain
@@ -2539,8 +2540,8 @@ impl<'a> DwgObjectWriter<'a> {
             &crate::types::Transparency::default(),
             false,
             1.0,
-            "ByLayer",
-            &None,
+            &e.common.linetype,
+            &e.common.linetype_handle,
             &crate::xdata::ExtendedData::default(),
             &[],
             &None,
@@ -2591,6 +2592,8 @@ impl<'a> DwgObjectWriter<'a> {
         owner: Handle,
         parent_layer: &str,
         parent_color: &crate::types::Color,
+        parent_linetype: &str,
+        parent_linetype_handle: &Option<Handle>,
     ) {
         self.write_common_entity_data(
             common::OBJ_VERTEX_2D,
@@ -2602,8 +2605,8 @@ impl<'a> DwgObjectWriter<'a> {
             &crate::types::Transparency::default(),
             false,
             1.0,
-            "ByLayer",
-            &None,
+            parent_linetype,
+            parent_linetype_handle,
             &crate::xdata::ExtendedData::default(),
             &[],
             &None,
@@ -2720,7 +2723,8 @@ impl<'a> DwgObjectWriter<'a> {
                 None
             };
             self.next_handle = (i + 1 < vertex_handles.len()).then(|| vertex_handles[i + 1]);
-            self.write_vertex3d(v, vh, e.common.handle, &e.common.layer, &e.common.color);
+            self.write_vertex3d(v, vh, e.common.handle, &e.common.layer, &e.common.color,
+                                 &e.common.linetype, &e.common.linetype_handle);
         }
 
         // Write SEQEND — last in polyline chain
@@ -2737,8 +2741,8 @@ impl<'a> DwgObjectWriter<'a> {
             &crate::types::Transparency::default(),
             false,
             1.0,
-            "ByLayer",
-            &None,
+            &e.common.linetype,
+            &e.common.linetype_handle,
             &crate::xdata::ExtendedData::default(),
             &[],
             &None,
@@ -2771,6 +2775,8 @@ impl<'a> DwgObjectWriter<'a> {
         owner: Handle,
         parent_layer: &str,
         parent_color: &crate::types::Color,
+        parent_linetype: &str,
+        parent_linetype_handle: &Option<Handle>,
     ) {
         self.write_common_entity_data(
             common::OBJ_VERTEX_3D,
@@ -2782,8 +2788,8 @@ impl<'a> DwgObjectWriter<'a> {
             &crate::types::Transparency::default(),
             false,
             1.0,
-            "ByLayer",
-            &None,
+            parent_linetype,
+            parent_linetype_handle,
             &crate::xdata::ExtendedData::default(),
             &[],
             &None,
@@ -2954,8 +2960,8 @@ impl<'a> DwgObjectWriter<'a> {
             &crate::types::Transparency::default(),
             false,
             1.0,
-            "ByLayer",
-            &None,
+            &e.common.linetype,
+            &e.common.linetype_handle,
             &crate::xdata::ExtendedData::default(),
             &[],
             &None,
@@ -3095,8 +3101,8 @@ impl<'a> DwgObjectWriter<'a> {
             &crate::types::Transparency::default(),
             false,
             1.0,
-            "ByLayer",
-            &None,
+            &e.common.linetype,
+            &e.common.linetype_handle,
             &crate::xdata::ExtendedData::default(),
             &[],
             &None,
