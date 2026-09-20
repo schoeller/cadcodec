@@ -271,12 +271,16 @@ mid-rank batch (has_ds_data/SORTENTSTABLE/APPID/DIMASSOC.ref/
 IMAGEDEF_REACTOR) + elevation/linewt projections + R2013+ AcDs
 3DSOLID-family writer payload + pre-R2007 is_xref_ref wire bit +
 fabricated-Standard-DIMSTYLE removal + 3DSOLID prologue-divergence
-projection, 2026-09-20):**
-read-fidelity **3 858**, write-fidelity **3 372** (example_2013/2018 left
-write-side exclusion in `b40ba42`, then `ff45453` took −84 read/−860
-write, then `1597db6` took −59/−59), across 125
-corpus files (110 unique dirs; counts inflated by the stem-collision issue
-below; only gh44-error.dwg remains excluded, rc 1 on both sides).
+projection + MTEXT R2018 redundant extents/ignore_attachment + DIMENSION
+family block handle + pre-R2013 classes-verbatim roundtrip, 2026-09-20):**
+read-fidelity **3 733**, write-fidelity **3 616** — the write side now
+MIRRORS the read side family-for-family: the classes-verbatim fix
+un-masked real writer gaps whose rows used to be cancelled by symmetric
+counterfeit garbage (write went 3 372 → 3 616 while killing the entire
+phantom-class phenomenon: 186 re-typed DynamicBlock/ACSH nodes on ATMOS
+alone). gh44-error.dwg stays out of scope (explicit guard in
+`run_corpus.in_scope_files`, `246e60a`; the new `-nan` shim in
+normalize_gold had briefly re-included it, inflating totals to 7689/7559).
 `cargo test --features serde` = 1556 passed / 0 failed; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands. **Campaign target: read AND write below 1 000** (raised
@@ -710,8 +714,13 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> packets `b40ba42` + `ff45453` + `1597db6`): read **3 858** /
-> write **3 372**.
+> packets `b40ba42`…`246e60a`): read **3 733** / write **3 616** — and the
+> two sides now MIRROR family-for-family (the phantom-class un-masking made
+> the write diff honest; remaining mass is shared reader-coverage work:
+> UNKNOWN_OBJ._missing 264, TABLESTYLE.unknown_bits 121, UNKNOWN._missing 66,
+> DIMASSOC.unknown_bits 62, EVALUATION_GRAPH 56, ACSH_FILLET 50,
+> BLOCKGRIPLOCATIONCOMPONENT 34, PROXY_OBJECT 30, VIEWPORT.named_ucs 29,
+> ATTDEF/TEXT.style ~47, plus the unknown_bits floor needing raw remainders).
 
    ~~xdic family + LAYER visualstyle~~ — **DONE (2026-09-19, first reader-PR
    packet of the campaign)**: the top read rows after the 2026-09-19 session
