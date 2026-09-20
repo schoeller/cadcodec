@@ -23,7 +23,22 @@ def in_scope_files(testdata: Path) -> List[Path]:
     for version in ["2000", "2004", "2007", "2010", "2013", "2018"]:
         d = testdata / version
         if d.exists():
-            files.extend(sorted(p for p in d.iterdir() if p.suffix.lower() == ".dwg"))
+            files.extend(
+                sorted(
+                    p
+                    for p in d.iterdir()
+                    if p.suffix.lower() == ".dwg"
+                    # Pathological upstream-crash file (GitHub issue 44):
+                    # gold's decode emits -nan tokens and thousands of
+                    # garbage rows on an intentionally corrupt file. Frozen
+                    # audit decision (IMPLEMENTATION.md §8.1.6a): excluded
+                    # from the campaign's scope and rankings. It was
+                    # previously excluded de facto by the normalize crash;
+                    # normalize_gold's -nan shim (2026-09-20) made it parse,
+                    # so keep the exclusion explicit.
+                    and p.name != "gh44-error.dwg"
+                )
+            )
     for prefix in ["example_", "sample_"]:
         for p in testdata.iterdir():
             if p.name.startswith(prefix) and p.suffix.lower() == ".dwg":
