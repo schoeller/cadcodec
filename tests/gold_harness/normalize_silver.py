@@ -3549,6 +3549,46 @@ def normalize_silver(
         _inject_reactors(payload)
         _inject_xdic(payload)
         fields = _object_common_fields(payload)
+        if silver_type == "ObjectContextData":
+            _cok = payload.get("kind")
+            _ld = _cok.get("Leader") if isinstance(_cok, dict) else None
+            if isinstance(_ld, dict):
+                # dwg2.spec 4611 (LEADEROBJECTCONTEXTDATA, live):
+                # AcDbAnnotScaleObjectContextData_fields (class_version,
+                # is_default, scale handle) + num_points BL + points
+                # 3DPOINT_VECTOR + x_direction + b290 B + inspt_offset +
+                # endptproj, with HANDLE_UNKNOWN_BITS carrying the raw
+                # R2018b tail (LEADEROBJECTCONTEXTDATA is in
+                # _UNKNOWN_BITS_TYPES and the reader's side channel holds
+                # the bits byte-identical — the loop-end emission covers
+                # the field). Silver's generic ObjectContextData parse
+                # maps 1:1: endpoint_projection→endptproj,
+                # insertion_offset→inspt_offset, annotation_enabled→b290.
+                gold_type = "LEADEROBJECTCONTEXTDATA"
+                fields["dxfname"] = "ACDB_LEADEROBJECTCONTEXTDATA_CLASS"
+                _cv = payload.pop("class_version", None)
+                if _cv is not None:
+                    fields["class_version"] = _cv
+                fields["is_default"] = 1 if payload.pop("is_default", None) else 0
+                fields["scale"] = normalize_handle_value(
+                    payload.pop("scale", 0) or 0)
+                payload.pop("kind", None)
+                points = _ld.pop("points", None)
+                if isinstance(points, list):
+                    fields["points"] = [normalize_value(p) for p in points]
+                _xd = _ld.pop("x_direction", None)
+                if _xd is not None:
+                    fields["x_direction"] = normalize_value(_xd)
+                fields["b290"] = 1 if _ld.pop("annotation_enabled", None) else 0
+                for kk in ("insertion_offset", "endpoint_projection"):
+                    _ve = _ld.pop(kk, None)
+                    if _ve is not None:
+                        fields["inspt_offset" if kk == "insertion_offset"
+                               else "endptproj"] = normalize_value(_ve)
+                for kk in list(_ld.keys()):
+                    _ld.pop(kk, None)
+            # non-Leader ObjectContextData payloads keep the generic
+            # OBJECTCONTEXTDATA projection.
         if silver_type == "Group":
             # gold GROUP (dwg2.spec 2917): the wire name T is always
             # empty — record names live in the owning dictionary only
