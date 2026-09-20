@@ -7,107 +7,157 @@
 
 ## Task
 
-Continue the acadrust gold-vs-silver roundtrip harness. The campaign target
-is read AND write below **100** on BOTH sides (raised from 1 000 after it
-was passed on 2026-09-20). Current baseline (2026-09-20, HEAD `b0b251e`):
-read **860** / write **792** (124 corpus files; gh44-error.dwg explicitly
-out of scope via `run_corpus.in_scope_files`). The two sides MIRROR
-family-for-family — every family you fix pays double. All remaining mass
-is reader/writer-side captures or value-dependent forensics; every packet
-in the queue below carries its diagnosis and the file:line anchors.
-Work the queue in order; iterate diagnose → fix → verify → gates →
-commit → docs until you halt.
+Continue the acadrust gold-vs-silver roundtrip harness. The campaign target is
+read AND write below **100** on BOTH sides. Current baseline (2026-09-20,
+after docs commit `9bece22`): read **719** / write **755** (124 corpus
+files; gh44-error.dwg explicitly out of scope via
+`run_corpus.in_scope_files`). The two sides MIRROR family-for-family — every
+wire-family you fix pays double. All remaining mass is reader/writer-side
+captures, value-dependent forensics, or writer wire-order bugs; every packet
+below carries its diagnosis and file:line anchors.
+
+**FIRST ACTION: finish the in-flight MULTILEADER packet** — uncommitted WIP
+is already in the working tree; the diagnosis is complete and the remaining
+fix is ONE mechanical version gate (see "In-flight packet"). Expected −18
+read / −18 write.
 
 ## Read these first (in order)
 
 1. `tests/gold_harness/AGENTS.md` — durable rules: gold is read-only, grep
-   BOTH `dwg.spec` and `dwg2.spec`, **verify class-block liveness
-   (preprocessor frames) before any retype** (§8.1.1), version-gate every
-   conditional, the differ/ignore-list are frozen, regression gates, commit
+   BOTH `dwg.spec` and `dwg2.spec`, verify class-block liveness
+   (preprocessor frames) before any retype (§8.1.1), version-gate every
+   conditional, differ/ignore-list frozen, regression gates, commit
    conventions.
 2. `tests/gold_harness/IMPLEMENTATION.md` — the living plan. Read §7 (entry
-   point; the baseline block ends with the "**Next packets…**" list — that
-   IS the authoritative handoff), §8.1.0 (environment verification),
-   §8.1.1 (liveness rule + frame map), §8.1.6 (queue; the newest DONE
-   entries carry per-packet recipes — 12 landed sessions deep).
+   point; the baseline block ends with the "Next packets…" list — that IS
+   the authoritative handoff), §8.1.0 (environment), §8.1.1 (liveness +
+   frame map), §8.1.6 (queue; DONE entries carry per-packet recipes —
+   15+ landed sessions deep).
+3. `target/probes/fullsrc/` — a full LibreDWG source parse (2026-09-20).
+   `findings_notes.md` is the distilled index with verbatim spec anchors
+   for EVERY family in the queue below; `pkt_*.txt` files hold verbatim
+   spec windows (WIPEOUT, VIEWPORT, smalls, dimstyle), and `gap2-5.txt` the
+   stream/handle geometry. Reuse this before re-grepping gold.
 
 ## Current state (2026-09-20, session handoff)
 
-- Baseline: read **860** / write **792**. `cargo test --features serde` =
-  all segments ok, 0 failed (the 1556 figure spans segments);
-  `gold_roundtrip` = ok. All work pushed on `gold-vs-silver` (HEAD
-  `b0b251e`). Two untracked `examples/*.rs` files predate the campaign —
-  leave them uncommitted.
-- Campaign so far (this file's obsolete packets are folded into
-  IMPLEMENTATION.md §8.1.6 DONE entries): U2 dynamic-block retypes,
-  unknown_bits raw-remainder side channel (−448/−448), style-map +
-  INSERT-chain + MLINE (−327/−319), POLYLINE_3D + GROUP + PFACE chains +
-  ASSOC actionbody/path retypes (−478/−493), RAY/XLINE + IMAGEDEF + HATCH
-  degenerates + VX family + LIGHT + RASTERVARIABLES (−338/−336), HELIX +
-  LEADER/TOLERANCE dimstyle + MATERIAL rgb (−172/−172), UNKNOWN-family
-  handle-code unstamp (−37/−3), raw-linewt fidelity + LAYOUT.viewports
-  (−46/−9).
+- HEAD `9bece22` on `gold-vs-silver`, pushed. `cargo test --features serde`
+  = all segments ok; `gold_roundtrip` = ok. Untracked
+  `examples/cylinder_dwg.rs` predates the campaign — leave uncommitted.
+- Three packets landed this session (docs folded into §7/§8.1.6):
+  - **PROXY_OBJECT data/data_numbits/objids** (`fa2cb0a`, −13/−13): raw
+    window capture to hdlpos in wire order (`capture_proxy_window` +
+    `ProxyObject.raw_window`), byte<size−1 objids terminator, and the
+    **PUSH_HV consecutive-dup collapse** (common.h:634) — the real ghost
+    killer, not the ≥8-bits guard.
+  - **DIMSTYLE_CONTROL.morehandles** (`b08d346`, −104/0): pass-1 RCu
+    capture (the row was on EVERY carrier, one per file — the ranking's
+    "19" was top-N truncation), writer echo, normalizer emission.
+  - **LEADER R2000-pair family** (`b6e6e92`, −24/−24): box_height/
+    box_width/arrowhead_type are wire fields at EVERY version; endptproj
+    is VERSIONS(R_13c3,R_2007) INCLUDES R2007; reader/writer/normalizer
+    aligned to dwg.spec 3014-3045.
 
-## Packet queue (in this order)
+## In-flight packet — MULTILEADER attach trio (FINISH FIRST)
 
-1. **PROXY_OBJECT data/data_numbits 30+30 + objids 18** (~78/side, pure
-   reader capture): gold's `data` is the raw window from after the proxy
-   prologue to hdlpos (dwg.spec 5752 DECODER). Forensics done: on
-   Constraints/2007 h=992 gold_numbits=1179 = payload-bits(332) ++
-   text-bits(516) ++ handle-tail(331) — BIT-spliced, NOT byte-aligned
-   (silver's stored sections diverge from gold at bit 337 because silver's
-   merged-reader main/text emulation boundary ≠ the classic wire).
-   NOT derivable from current storage. Fix in silver's proxy parse
-   (`src/io/dwg/dwg_stream_readers/object_reader/entities.rs:855-930`,
-   after `from_dxf`): capture the full raw window in WIRE order across
-   the main/text/handle sections into a new `ProxyEntityData` field (serde-
-   transparent, `bit_count` + bytes), then emit `data` hex +
-   `data_numbits` in normalize_silver's ProxyObject branch. Verify
-   bit-exactness per carrier (Cons*, Constraints, Robertson-era files)
-   before trusting the merged-reader splice; pre-2010 and R2010+ records
-   must both be probed. objids: on some carriers silver's list has
-   terminator ghosts — the §8.1.1 byte-geometry lesson (gold stops at
-   `hdl_dat->byte < size - 1`); locate carriers from a clean report.
-2. **DIMSTYLE_CONTROL.morehandles 19** (reader capture): gold's vector uses
-   its own wire count `RCu num_morehandles` (dwg.spec 4163-4182,
-   "additional hard handles, undocumented") — silver's reader drops it.
-   Capture point: pass-1 right after `read_common_non_entity_data` for
-   `OBJ_DIMSTYLE_CONTROL` (builder dispatch at
-   `src/io/dwg/dwg_document_builder.rs:767`); pin the RCu read semantics
-   from `dec_macros.h` first; per-type CONTROL data shapes differ, so
-   guard the parse per class. Store as a pub serde-transparent map; emit
-   in the DIMSTYLE_CONTROL `_ctrl` block of normalize_silver. WARNING
-   (2026-09-20 regression story): emitting the whole dim-style table
-   produced 109 wrong_value rows — morehandles ≠ entries.
-3. **WIPEOUT.imagedefreactor 12 (write-side)**: gold expects
-   [4,imagedef][5,reactor]; silver's `write_wipeout` writes BOTH as
-   HardPointer{5} (`.../object_writer/entities.rs:4015-4070`), yet gold-rt
-   reads a stray `{3,0}` null in the reactor slot on R2000/2004/2007 —
-   suspect a common-handle count/sequence shift for unlisted-class
-   entities on classic records. Diagnose by dumping the rt file's WIPEOUT
-   record bytes (dump_section_bytes works on the rewritten file too) and
-   comparing the handle-section sequence against gold's spec order.
-4. **Value-dependent set**: MULTILEADER.attach_top/attach_bottom 9+9
-   (gold BS pairs 32 / 4786 / 178 per record — spec forensics on the
-   dwg2.spec 1298 MLEADER dock/context fields; constants not derivable
-   from silver enums yet); VIEWPORT.status_flag 17 (Dynblocks R2018: gold
-   819232 vs silver 32800 — gold reads raw BS bits silver's bit-name
-   decomposition drops; needs raw retention: reader capture + writer
-   echo + normalizer preference); SEQEND.ownerhandle 18 (write rows —
-   the writer's synthesized seqends' owner links); UNKNOWN_OBJ
-   _missing 15 + _count 9 (reader drops some class records — ex2010's
-   handle-3140 type; find and parse them or leave documented).
-5. **Small residue tails** (each a mini-packet): 3DFACE.z_is_zero 8
-   (write, R2000), MTEXT.column_count/width 6+6, VISUALSTYLE
-   .edge_silhouette_width 9, LEADER R2000 pairs (~24: arrowhead_type/
-   box_height/box_width/hookline_dir/unknown_bit_4), LEADEROBJECT
-   CONTEXTDATA + OBJECTCONTEXTDATA _count/_missing (~24), VERTEX_MESH
-   _missing 12 (TS1 mesh parse gap), MLINE.flags closed-bit (R2000:
-   silver's parse keeps only HAS_VERTICES → gold flag 3), poly-SEQEND
-   shadow pairs (wire-record shadow commons — a seqend storage
-   side-channel or reader parsing), GROUP.name 6 write rows (writer
-   writes the model name where the wire name T is always ""), and the
-   accepted residuals (3DSOLID/REGION.encr_sat_data on R2000).
+Uncommitted WIP in the tree (all deliberate, keep it; builds green):
+
+- `src/entities/multileader.rs` — new raw fields `dwg_attach_dir`,
+  `dwg_attach_top`, `dwg_attach_bottom: i16` (+ constructor defaults 0)
+- `src/io/dwg/dwg_stream_readers/object_reader/entities.rs` —
+  `read_multileader`: trio wire order fixed to gold's dir(271),
+  top(273), bottom(272) (dwg2.spec 1449-1451 — the DXF codes are NOT in
+  wire order; silver's old dir/bottom/top swap was real but secondary)
+- `src/io/dwg/dwg_document_builder.rs` — maps the three raws onto the
+  entity
+- `src/io/dwg/dwg_stream_writers/object_writer/entities.rs` —
+  `write_multileader` tail writes the raws in gold order (R2010+)
+- `tests/gold_harness/normalize_silver.py` — MULTILEADER branch emits
+  `attach_dir/attach_top/attach_bottom` from `dwg_attach_*` (R2010+),
+  pops them; residual comment updated
+
+**Diagnosis (complete; evidence
+`target/probes/fullsrc/pk4_open_diagnosis.txt`)**: rows persist as
+wrong_value (gold attach_top=32, attach_bottom=178 vs silver 9/9) even
+with the order fix — because silver's reader consumes bits the R2010+
+wire does not carry. Gold dwg2.spec:1418-1445 wraps `VERSIONS (R_14,
+R_2007) { num_arrowheads+loop, num_blocklabels+loop, is_neg_textdir B,
+ipe_alignment BS, justification BS, scale_factor BD }` — on R2010+ ALL of
+that is ABSENT, and the attach trio follows `is_annotative` immediately.
+Silver reads `num_blocklabels` (ba_count BL + labels loop, entities.rs
+4562-4583) and the four-field tail (4584-4587: is_neg_textdir/
+ipe_alignment/justification/scale_factor) **unconditionally** → the trio
+read lands on wrong bits. Gold's R2010 JSON record indeed lacks
+scale_factor/is_neg_textdir/ipe_alignment/justification/num_blocklabels
+(verified via `normalize_gold.normalize_gold` probe).
+
+**Remaining fix**: in `read_multileader`, gate the block-attributes read
+AND the four-field tail under `if !version.r2010_plus()`
+(arrowhead_overrides is already gated; keep defaults for the pre-R2010
+fields on R2010+ so nothing else changes). Then:
+
+1. `cargo build --features serde --bins`
+2. Verify carriers into FRESH dirs: 2010/Leader, 2013/Leader, example_2018
+   (attach rows must be 0) AND 2000/Leader, 2004/Leader, 2007/Leader,
+   entities-2d/3d (pre-R2010 still reads the group — no regression).
+3. Watch for NEW extra_in_silver rows on R2010+ files for the pre-R2010
+   fields (scale_factor, is_neg_textdir, ipe_alignment, justification,
+   num_blocklabels): gold does not emit them there. If rows appear, gate
+   the SAME fields in normalize_silver's MULTILEADER emissions and the
+   writer's pre-R2010 outputs (write_multileader must not write
+   ba_count/the tail on R2010+ — verify via the rt diff).
+4. Corpus LAST, gates, commit `fix(harness): MULTILEADER attach trio —
+   gold dwg2.spec 1418-1452 VERSIONS(R_14,R_2007) tail gate + dir/top/
+   bottom raw retention`, push, fold into §7/§8.1.6, docs commit, push.
+
+## Packet queue (after the in-flight one; sizes from the 719/755 report)
+
+1. **UNKNOWN_OBJ.ownerhandle 37 + _missing 15 + _count 9** — biggest
+   family. The ownercode side channel: silver's unknown-obj records carry
+   a pipeline-default handle code 4 where gold reads wire-relative codes
+   (6/8 — the unknown_bits precedent); `_missing`/`_count` are the
+   dropped-record reader gaps (ex2010's handle-3140 class, TS1 ex-*).
+   ASSOCSWEPTSURFACEACTIONBODY must STAY UNKNOWN_OBJ (dead block).
+2. **SEQEND.ownerhandle 18 (write rows)** — the writer's synthesized
+   seqends' owner links (entmode==0 ⇒ ownerhandle code 4; pre-R2004
+   prev/next nolinks). Diff rows on gold_rt-vs-silver_rt pair.
+3. **VIEWPORT.status_flag 17 (read rows only)** — plain `FIELD_BL
+   (status_flag, 90)` SINCE R_2000b (dwg.spec 2484, after num_frozen_
+   layers BL); silver decomposes into named bits and normalizer
+   re-composes (drops bits — gold 819232 vs silver 32800). Needs raw
+   retention: reader capture + writer echo + normalizer preference.
+   Write rows do NOT appear for this family (rt-parser-parity pair).
+4. **WIPEOUT.imagedefreactor 12 (write rows)** — silver's write_wipeout
+   (entities.rs ~4015) writes BOTH handles at the END as
+   HardPointer{5}; gold's wire order (dwg2.spec 1561-1594, exact IMAGE
+   copy): imagedef(code 5) between image_size 2RD and display_props BS,
+   imagedefreactor(code 3) after fade RC. Fix writer order/codes; verify
+   the stray `{3,0}` disappears via dump_section_bytes on the rt record.
+5. **VERTEX_MESH._missing 12 (TS1 mesh parse gap)** — silver drops
+   VERTEX_MESH records; gold spec is trivial (flag RC + point 3BD).
+6. **LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA typing (~24)** — silver
+   types the object-context records as generic OBJECTCONTEXTDATA where
+   gold decodes LEADEROBJECTCONTEXTDATA (dwg2.spec 4611, live);
+   shows as count_mismatch + missing pairs on every Leader carrier.
+   Retype via dxf_name in normalize (liveness rule §8.1.1) or reader.
+7. **TOLERANCE field-name set (~10 on 2010/Leader)** — gold keys
+   ins_pt/x_direction/text_height vs silver insertion_point/direction —
+   normalize projection, value-gated (dwg.spec TOLERANCE block).
+8. **Small write-side batch**: GROUP.name 6 (wire name T is ALWAYS "",
+   writer writes the model name), MLINE.flags closed-bit (MLINE enum
+   HAS_VERTEX=1 | CLOSED=2, dwg.h), 3DFACE.z_is_zero 8 (gold: has_no_
+   flags B + z_is_zero B, omits z RDs when zero — silver writes them),
+   VISUALSTYLE.edge_silhouette_width 9 (sign boundary: gold 65486
+   (0xFFCE) vs silver -50 — check the BL vs BS sign handling),
+   SORTENTSTABLE.ents (R2000 entries lost), MTEXT columns residue,
+   LEADER boxes at 6 each carry over — spec windows all live in
+   fullsrc/pkt_smalls.txt + fullsrc/findings_notes.md.
+9. **Residue** — everything below the top-N tables: use
+   report.json `*_fidelity_by_type_field` dicts (they are TRUNCATED —
+   per-file truth only) and per-file probes.
+
+The totals in THIS brief go stale by design — §7 + the latest
+report.json are authoritative.
 
 ## Environment
 
@@ -130,15 +180,15 @@ on UNC paths — use `sed -n 'a,bp'` in scripts for line ranges.)
 
 ## Workflow (per packet)
 
-1. Pick the packet from the queue above (order matters: PROXY is the
-   biggest single lever; the reader captures 2-4 share a rebuild cycle).
+1. Pick the packet from the queue above (finish the in-flight one first).
 2. Grep the gold spec: BOTH `dwg.spec` and `dwg2.spec`; check the enclosing
    preprocessor frame for liveness (§8.1.1) BEFORE any retype; read the
-   full spec block (macro + version predicate + value guards).
+   full spec block (macro + version predicate + value guards). The
+   fullsrc/ artifacts usually already hold the verbatim window.
 3. Locate the silver side: reader
    (`src/io/dwg/dwg_stream_readers/object_reader/{entities,objects}.rs`),
-   writer (`src/io/dwg/dwg_stream_writers/object_writer/*.rs`),
-   builder (`src/io/dwg/dwg_document_builder.rs`), struct
+   writer (`src/io/dwg/dwg_stream_writers/object_writer/*.rs`), builder
+   (`src/io/dwg/dwg_document_builder.rs`), struct
    (`src/objects|entities|tables/<type>.rs`). Confirm silver stores the
    data in the dump (fresh `run_roundtrip.py` into a FRESH dir; NEVER
    trust pooled `target/gold_harness_corpus/<stem>/` artifacts for field
@@ -151,69 +201,79 @@ on UNC paths — use `sed -n 'a,bp'` in scripts for line ranges.)
    `run_roundtrip.py` into fresh `target/probe_wip/<v>` dirs.
 7. **Run the corpus LAST** (`run_corpus.py`), and while it runs DO NOT
    touch `normalize_silver.py`/`normalize_gold.py`/reader/writer — a
-   mid-run edit produces a mixed-state report (paid for this twice on
-   2026-09-20; both runs had to be killed). Wait with the bounded
+   mid-run edit produces a mixed-state report. Wait with the bounded
    `target/probes/24_wait.sh` (one blocking call; do NOT busy-poll).
-8. Gates: `cargo test --features serde` (all ok) and
+8. Gates: `cargo test --features serde` (all segments ok — count the
+   `test result: ok` segments, not just the tail) and
    `cargo test --features gold-harness --test gold_roundtrip` (ok).
 9. Commit: `fix(harness): <packet> — <gold spec ref> + before→after
    counts`, push, update §7 baseline + §8.1.6 queue, docs commit, push.
 
 ## Hard-won lessons (do not repeat)
 
+- **dwg2json writes `<stem>.json` next to the INPUT FILE by default** —
+  always pass an explicit output path, or you will WRITE INTO THE
+  READ-ONLY GOLD TREE (happened once; file removed immediately).
+- **Write-fidelity rows come from the rt-parser-parity pair**
+  (gold_rt vs silver_rt) — a family can be absent from the write side
+  entirely while broken on the read side (morehandles) or vice versa
+  (status_flag). The writer echo still matters: it keeps the rt faithful
+  and silver_orig ≡ silver_rt.
+- **Corpus report by-type tables are top-N TRUNCATED** — a family can
+  carry one row per file across the whole corpus (morehandles was 104,
+  ranked "19"). Truth: `report.json` `per_file` (compare by FULL path —
+  stems collide across version dirs) and fresh per-file probes. For
+  before/after A/B on a suspicious delta: `git stash`, rebuild, rerun
+  corpus, compare `report.json` per-file by full path, `git stash pop`.
 - **unknown_bits tail byte is LSB-packed** (`chain[bytes] |= last << i`,
-  bits.c 1733): full bytes MSB-first, trailing partial byte read-order bit
-  i at LOW position i. MSB-aligned tails differ in EXACTLY the final byte
-  (03/01 vs C0/80). The HANDLE_UNKNOWN_BITS window is a FULL class-payload
-  snapshot (position restored after) — not leftover bits.
+  bits.c): full bytes MSB-first, trailing partial byte read-order bit i
+  at LOW position i. Same packing for PROXY raw windows.
+- **PROXY `data` window** = [after-prologue .. obj->hdlpos) in WIRE
+  order incl. the string area (R2007+: the dxf_subclass TU + text bits +
+  17-bit RS/has_strings trailer sit INSIDE the window; use
+  `capture_proxy_window()`); objids = the handle walk with gold's
+  PUSH_HV **consecutive-duplicate (code,value) collapse** + terminator
+  `hdl_dat->byte < hdl_dat->size − 1`.
 - **The differ tolerates a missing handle code** (identity = resolved
   target); NEVER fabricate constant codes — the UNKNOWN-family code-4
-  stamp mismatched gold's wire-relative 6/8/12 and cost 37 rows until
-  unstamped.
+  stamp mismatched gold's wire-relative 6/8 (−37/−3 lesson).
 - **Retype by dxf_name ONLY for LIVE class blocks** — check the
-  preprocessor frame first. `ASSOCSWEPTSURFACEACTIONBODY` is DEAD in gold
-  (types UNKNOWN_OBJ) — do not retype. The UNKNOWN-family payload-clear
-  runs LAST, after every payload-keyed retype branch.
+  preprocessor frame first (ASSOCSWEPTSURFACEACTIONBODY is DEAD). The
+  UNKNOWN-family payload-clear runs LAST, after payload-keyed branches.
 - **Same-version DWG roundtrips keep `document.classes` verbatim**; entity-
   common serde-skipped fields ride `_common_dwg` (hex-handle keys) into
   `merge_common` — payload pop lists cannot see them.
-- **The `[0]*n` degenerate REPEAT pattern** covers dozens of families
-  (verts, pab.values, actions, deps, colors, deflines, cells, paths…):
-  gold collapses one element per record into a bare 0. The count source
-  differs per family (kid list, rows×cols, len(values)); verify per file
-  across versions (2000/2004/2007/2010/2013/2018).
+- **The `[0]*n` degenerate REPEAT pattern** covers dozens of families —
+  gold collapses one element per record into a bare 0. Count source
+  differs per family; verify per file across versions.
 - **SEQEND records must be re-sorted ascending by handle** at the end of
-  `normalize_silver` — the differ aligns by (type, ordinal-within-type)
-  and silver's iteration order interleaves wrongly.
-- **Entity-common linewt (370) is the RAW code**, not a table index:
-  out-of-table codes (Dynblocks' invalid 28) echo verbatim; the reader
-  keeps 24..28 as `Value(raw)`, the writer echoes, `_lweight_index`
-  echoes untabled mm values (`6fd5a10`).
-- **Wire-name constants**: GROUP's name T is always "" (2001-era verified,
-  even for named groups); ATTRIB style is raw `[0,0]` null from R2010+;
-  MULTILEADER/ARC_DIMENSION/LIGHT never carry graphic_data (census-verified
-  pops); osnap params' gold constants are osnap_mode 160 / param 0.0 on
-  every corpus record.
-- **MATERIAL rgb is the UNSIGNED i32** (silver serializes signed; `& 0xFFFFFFFF`).
-- **DIMSTYLE_CONTROL.morehandles is its own wire vector** (RCu count) —
-  emitting the dim-style table as morehandles regressed 19 → 109 rows.
-- **Value-gate every spec conditional**: tri locks R2007a / RCs R2010b,
-  first/last chains pre-R2004, mtext_type SINCE R_2018b, vport_entity
-  header pre-2004, CMC color forms per era — the DONE entries carry these.
-- **CMC color method byte, dataflags/num_* absence-bitmasks, REPEAT/REPEAT_CN
-  degenerate JSON, LineWeight table, side channels
-  (`xdic_by_handle`/`reactors_by_handle`/`dwg_data_store_handles`/
-  `unknown_bits_by_handle`), stem collisions, handle-vector codes (objids
-  byte-geometry)** — all still apply; the DONE entries carry their details.
-- **The differ compares the RESOLVED handle-target TYPE NAME** — record
+  `normalize_silver` — the differ aligns by (type, ordinal-within-type).
+- **Entity-common linewt (370) is the RAW code**, not a table index.
+- **Wire-name constants**: GROUP's name T is always "" (even for named
+  groups); ATTRIB style is raw `[0,0]` null from R2010+; MULTILEADER/
+  ARC_DIMENSION/LIGHT never carry graphic_data (census-verified pops);
+  osnap params' gold constants are osnap_mode 160 / param 0.0.
+- **MATERIAL rgb is the UNSIGNED i32** (`& 0xFFFFFFFF`).
+- **MULTILEADER**: the pre-R2010 tail (num_arrowheads/blocklabels/
+  is_neg_textdir/ipe_alignment/justification/scale_factor) is
+  VERSIONS(R_14,R_2007) — absent on R2010+; attach trio wire order is
+  dir(271), top(273), bottom(272) — DXF codes ≠ wire order; the raw BS
+  values (32/4786/178) are outside silver's typed enums — raw retention
+  (dwg_attach_*) is required, enum projection loses them.
+- **Value-gate every spec conditional**: tri R2007a, first/last chains
+  pre-R2004, mtext_type SINCE R_2018b, vport_entity header pre-2004,
+  endptproj VERSIONS(R_13c3,R_2007) INCLUDES R2007, CMC color forms per
+  era, status_flag/count families per era. The DONE entries carry these.
+- **Never edit mid-corpus**; never busy-poll (one bounded 24_wait.sh
+  call); never trust pooled corpus dirs for field shapes.
+- **The differ compares RESOLVED handle-target TYPE NAMES** — record
   retypes ripple; always re-run the corpus after type-map changes.
-- **Never edit mid-corpus** (see workflow 7) and never busy-poll background
-  waits — one bounded blocking script call (`target/probes/24_wait.sh`).
 
 ## The commit / push convention
 
-- Branch: `gold-vs-silver` (tracks `origin/gold-vs-silver`).
-- Commit: `fix(harness): <packet> — <gold spec ref> + before→after counts`
-  followed by a separate `docs(harness): …` commit once §7/§8.1.6 are
-  updated; push after each.
-- The totals in THIS brief go stale by design — §7 is authoritative.
+- Branch `gold-vs-silver`, tracks `origin/gold-vs-silver`.
+- `fix(harness): <packet> — <gold spec ref> + before→after counts`, then a
+  separate `docs(harness): …` commit once §7/§8.1.6 are updated; push
+  after each. Landed this session: `fa2cb0a`, `b08d346`, `b6e6e92` (+ docs
+  `8c49887`, `a9031a5`, `9bece22`). The in-flight MULTILEADER packet is
+  uncommitted WIP — finish, verify, commit it first.
