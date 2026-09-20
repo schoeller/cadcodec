@@ -4146,6 +4146,7 @@ def normalize_silver(
                 if isinstance(payload.get("data"), dict) else None
             gold_type = {"RenderGlobal": "RENDERGLOBAL",
                          "RenderEntry": "RENDERENTRY",
+                         "RapidRtRenderSettings": "RAPIDRTRENDERSETTINGS",
                          "MentalRayRenderSettings": "MENTALRAYRENDERSETTINGS",
                          "Sun": "SUN"}.get(_co_kind, gold_type)
         elif silver_type == "DataObject":
@@ -4981,7 +4982,8 @@ def normalize_silver(
                        "property_info", "property_info_count", "is_initialized",
                        "unknown_bool", "all_blocks", "states"):
                 payload.pop(sk, None)
-        if gold_type in ("RENDERGLOBAL", "RENDERENTRY", "MENTALRAYRENDERSETTINGS"):
+        if gold_type in ("RENDERGLOBAL", "RENDERENTRY", "RAPIDRTRENDERSETTINGS",
+                         "MENTALRAYRENDERSETTINGS"):
             # dwg2.spec 2527/2546/2566 — silver's ClassObject payloads.
             _vv = payload.get("data") or {}
             _vv = _vv.get(next(iter(_vv))) if isinstance(_vv, dict) and len(_vv) == 1 else {}
@@ -4997,6 +4999,49 @@ def normalize_silver(
                 fields["image_height"] = _vv.get("image_height", 0)
                 fields["predef_presets_first"] = 1 if _vv.get("predefined_presets_first") else 0
                 fields["highlevel_info"] = 1 if _vv.get("high_level_info") else 0
+            elif gold_type == "RAPIDRTRENDERSETTINGS":
+                # dwg2.spec AcDbRenderSettings_fields + the RAPIDRT block.
+                # At exactly AC1027 gold reads the base has_predefined bit
+                # BEFORE the rapid seven (VERSION (R_2013) FIELD_B), so its
+                # cursor enters the rapid block one bit late; the reader
+                # retains that mis-order walk as gold_shadow and every
+                # rapid value is emitted from it. Gold's class_version at
+                # R2013 goes through VALUE_BL (read, discarded, unprinted).
+                _b = _vv.get("base") if isinstance(_vv.get("base"), dict) else {}
+                fields["name"] = _b.get("name", "")
+                fields["fog_enabled"] = 1 if _b.get("fog_enabled") else 0
+                fields["fog_background_enabled"] = 1 if _b.get("fog_background_enabled") else 0
+                fields["backfaces_enabled"] = 1 if _b.get("backfaces_enabled") else 0
+                fields["environ_image_enabled"] = 1 if _b.get("environment_image_enabled") else 0
+                fields["environ_image_filename"] = _b.get("environment_image_filename", "")
+                fields["description"] = _b.get("description", "")
+                fields["display_index"] = _b.get("display_index", 0)
+                _gs = _vv.get("gold_shadow") if isinstance(_vv.get("gold_shadow"), dict) else None
+                if _gs is not None:
+                    fields["has_predefined"] = _gs.get("has_predefined", 0)
+                    fields["rapidrt_version"] = _gs.get("rapidrt_version", 0)
+                    fields["render_target"] = _gs.get("render_target", 0)
+                    fields["render_level"] = _gs.get("render_level", 0)
+                    fields["render_time"] = _gs.get("render_time", 0)
+                    fields["lighting_model"] = _gs.get("lighting_model", 0)
+                    fields["filter_type"] = _gs.get("filter_type", 0)
+                    fields["filter_width"] = normalize_float(_gs.get("filter_width", 0.0))
+                    fields["filter_height"] = normalize_float(_gs.get("filter_height", 0.0))
+                else:
+                    # Other eras: gold reads the wire in silver's clean
+                    # order (no R2013 base bit; the block tail's else
+                    # FIELD_B applies after the rapid seven) and prints
+                    # class_version via FIELD_BL.
+                    fields["class_version"] = _b.get("class_version", 0)
+                    fields["has_predefined"] = 1 if _b.get("has_predefined") else 0
+                    fields["rapidrt_version"] = _vv.get("version", 0)
+                    fields["render_target"] = _vv.get("render_target", 0)
+                    fields["render_level"] = _vv.get("render_level", 0)
+                    fields["render_time"] = _vv.get("render_time", 0)
+                    fields["lighting_model"] = _vv.get("lighting_model", 0)
+                    fields["filter_type"] = _vv.get("filter_type", 0)
+                    fields["filter_width"] = normalize_float(_vv.get("filter_width", 0.0))
+                    fields["filter_height"] = normalize_float(_vv.get("filter_height", 0.0))
             elif gold_type == "RENDERENTRY":
                 # Gold's decode derails mid-record on the corpus (render_time
                 # reads the BD '01' special, memory/material = zombie 256s,

@@ -5612,7 +5612,11 @@ impl DwgDocumentBuilder {
                     obj.owner_handle = owner_handle;
                     obj.block_owner_handle = Handle::from(data.block_owner_handle);
                     for entry in data.entries {
-                        obj.add_entry(
+                        // Wire entries append verbatim: gold's wire carries
+                        // repeated null-entity dead pairs (dwg2.spec
+                        // SORTENTSTABLE ents HANDLE_VECTOR_N) that must not
+                        // collapse into one slot.
+                        obj.add_wire_entry(
                             Handle::from(entry.entity_handle),
                             Handle::from(entry.sort_handle),
                         );

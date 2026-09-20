@@ -767,6 +767,33 @@ pub struct MentalRayRenderSettings {
     pub energy_multiplier: f64,
 }
 
+/// LibreDWG (gold) R2013 decode of the RAPIDRT rapid block, retained for
+/// gold-vs-silver harness parity. LibreDWG's `dwg2.spec` RAPIDRTRENDERSETTINGS
+/// at AC1027 reads the base `has_predefined` bit BEFORE the rapid fields
+/// (`AcDbRenderSettings_fields`: VERSION (R_2013) { FIELD_B (has_predefined) })
+/// while the wire carries it AFTER the rapid seven (the block's own
+/// `VERSION (R_2013) {} else FIELD_B` tail). Gold's cursor therefore enters
+/// the rapid block one bit late and every rapid value below is read from the
+/// misaligned stream (VALUE_BL class_version at the base head is also read
+/// and discarded without being stored). Not semantic data: the writer
+/// serializes `RapidRtRenderSettings`'s clean values, never the shadow.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// The BL fields are u32: gold prints every BL through FORMAT_BL ("%"
+/// PRIu32), so desynced reads above 0x7fffffff print as large positives,
+/// not as negatives.
+pub struct RapidRtGoldShadow {
+    pub has_predefined: i32,
+    pub rapidrt_version: u32,
+    pub render_target: u32,
+    pub render_level: u32,
+    pub render_time: u32,
+    pub lighting_model: u32,
+    pub filter_type: u32,
+    pub filter_width: f64,
+    pub filter_height: f64,
+}
+
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct RapidRtRenderSettings {
@@ -779,6 +806,8 @@ pub struct RapidRtRenderSettings {
     pub filter_type: i32,
     pub filter_width: f64,
     pub filter_height: f64,
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub gold_shadow: Option<RapidRtGoldShadow>,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]

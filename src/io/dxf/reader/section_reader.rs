@@ -5283,6 +5283,7 @@ impl<'a> SectionReader<'a> {
                     filter_type,
                     filter_width,
                     filter_height,
+                    gold_shadow: None,
                 })
             }
             "GRADIENT_BACKGROUND" => {

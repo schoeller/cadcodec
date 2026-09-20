@@ -613,6 +613,7 @@ pub fn read_class_object_data(
         }
         "RAPIDRTRENDERSETTINGS" => {
             let mut base = read_render_settings(reader, version, dxf_version, true);
+            let rapid_start = reader.position_in_bits();
             let rapid_version = reader.read_bit_long();
             let render_target = reader.read_bit_long();
             let render_level = reader.read_bit_long();
@@ -622,6 +623,29 @@ pub fn read_class_object_data(
             let filter_width = reader.read_bit_double();
             let filter_height = reader.read_bit_double();
             base.has_predefined = reader.read_bit();
+            // Gold (LibreDWG) parity shadow — see RapidRtGoldShadow. Only
+            // at exactly AC1027 does the VERSION (R_2013) mis-order apply
+            // (spec.h VERSION(v) is an equality check); at other versions
+            // gold reads in the same order as above.
+            let gold_shadow = if dxf_version == DxfVersion::AC1027 {
+                let restore = reader.position_in_bits();
+                reader.set_position_in_bits(rapid_start);
+                let shadow = crate::objects::RapidRtGoldShadow {
+                    has_predefined: reader.read_bit() as i32,
+                    rapidrt_version: reader.read_bit_long() as u32,
+                    render_target: reader.read_bit_long() as u32,
+                    render_level: reader.read_bit_long() as u32,
+                    render_time: reader.read_bit_long() as u32,
+                    lighting_model: reader.read_bit_long() as u32,
+                    filter_type: reader.read_bit_long() as u32,
+                    filter_width: reader.read_bit_double(),
+                    filter_height: reader.read_bit_double(),
+                };
+                reader.set_position_in_bits(restore);
+                Some(shadow)
+            } else {
+                None
+            };
             ClassObjectData::RapidRtRenderSettings(RapidRtRenderSettings {
                 base,
                 version: rapid_version,
@@ -632,6 +656,7 @@ pub fn read_class_object_data(
                 filter_type,
                 filter_width,
                 filter_height,
+                gold_shadow,
             })
         }
         "GRADIENT_BACKGROUND" => ClassObjectData::GradientBackground(GradientBackground {
