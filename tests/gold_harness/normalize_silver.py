@@ -1147,6 +1147,26 @@ def normalize_silver(
         # ARC_DIMENSION/LIGHT precedent).
         if silver_type == "Mesh":
             payload.pop("graphic_data", None)
+        # SURFACE family (2004/Surface.dwg): gold's EXTRUDED/LOFTED/
+        # REVOLVED/SWEPT SURFACE blocks sit in the dead frame (§8.1.1 —
+        # dwg2.spec 3716-4513): the class instances decode as raw
+        # UNKNOWN_ENT, common-only after normalization (verified: gold's
+        # normalized records carry just color/handle/invisible/
+        # is_xdic_missing/layer/linewt/ltype_flags/ltype_scale/
+        # plotstyle_flags/reactors — normalize_gold drops their eed,
+        # preview, and unknown_bits). The Plane variant is gold's LIVE
+        # PLANESURFACE (typed record with the full AcDbSurface field
+        # set — projected in the PLANESURFACE branch below).
+        if silver_type == "Surface":
+            if payload.get("kind") == "Plane":
+                gold_type = "PLANESURFACE"
+            else:
+                gold_type = "UNKNOWN_ENT"
+                for _sk in ("acis_data", "history_handle", "kind",
+                            "modeler_format_version", "point_of_reference",
+                            "silhouettes", "surface_data", "u_isolines",
+                            "v_isolines", "wires"):
+                    payload.pop(_sk, None)
 
         if gold_type == "UNKNOWN_ENT":
             # Gold's unmodeled-class ENTITIES (UNKNOWN_ENT, the §8.1.1
@@ -1202,12 +1222,76 @@ def normalize_silver(
             # graphic-data array.
             fields.pop("graphic_data", None)
         if gold_type in ("MESH", "PDFUNDERLAY", "DWFUNDERLAY",
-                         "PNGUNDERLAY", "JPGUNDERLAY") and "graphic_data" in fields:
+                         "PNGUNDERLAY", "JPGUNDERLAY", "PLANESURFACE",
+                         "UNKNOWN_ENT") and "graphic_data" in fields:
             # Same _common_dwg leak as UNKNOWN_ENT; gold's MESH records
             # (2004/Surface.dwg) and underlay records (2004/Underlay.dwg
             # PDFUNDERLAYs) never carry graphic_data (the MULTILEADER/
             # ARC_DIMENSION/LIGHT pop precedent).
             fields.pop("graphic_data", None)
+
+        if gold_type == "PLANESURFACE":
+            # gold dwg2.spec PLANESURFACE (live): AcDbSurface family —
+            # acis (SAB), isolines, wires, the modeler version, the
+            # point-of-reference, history_id and the SINCE-R2010 unknown
+            # bits tail (the reader side channel holds it byte-identical;
+            # PLANESURFACE is in _UNKNOWN_BITS_TYPES). Projection maps
+            # silver's Plane-kind Surface payload 1:1 (verified on
+            # 2004/Surface.dwg @1290). ENTITY-LOOP branch (the Plane
+            # record is an entity, not an object).
+            _ac = payload.get("acis_data")
+            _sab = _ac.get("sab_data") if isinstance(_ac, dict) else None
+            if isinstance(_sab, list):
+                try:
+                    _b = bytes(int(x) & 0xFF for x in _sab)
+                    _p = _b.find(0)
+                    if _p > 0:
+                        _head = _b[:_p].decode("latin-1")
+                        _rest = _b[_p + 1:].hex().upper()
+                        fields["acis_data"] = [_head, _rest]
+                        fields["acis_empty"] = 0
+                        fields["acis_empty_bit"] = 0
+                except Exception:
+                    pass
+            _av = (str(_ac.get("version", "")) if isinstance(_ac, dict)
+                   else "") or ""
+            if _av.startswith("Version"):
+                try:
+                    fields["version"] = int(_av[len("Version"):])
+                except ValueError:
+                    pass
+            _hh = payload.get("history_handle")
+            fields["history_id"] = normalize_handle_value(
+                _hh if isinstance(_hh, int) else 0)
+            _ui = payload.get("u_isolines")
+            _vi = payload.get("v_isolines")
+            if isinstance(_ui, int):
+                fields["u_isolines"] = _ui
+            if isinstance(_vi, int):
+                fields["v_isolines"] = _vi
+            if isinstance(_ui, int) and isinstance(_vi, int):
+                fields["isolines"] = _ui + _vi
+                fields["isoline_present"] = 1
+            _mfv = payload.get("modeler_format_version")
+            if isinstance(_mfv, int):
+                fields["modeler_format_version"] = _mfv
+            _por = payload.get("point_of_reference")
+            if isinstance(_por, dict):
+                fields["point_present"] = 1
+                fields["point"] = normalize_value(_por)
+            fields["unknown"] = 0
+            _ws = payload.get("wires")
+            if isinstance(_ws, list):
+                fields["wireframe_data_present"] = 1 if _ws else 0
+                # gold's normalized wires REPEAT collapses one zero per
+                # wire record (the [0]*n degenerate pattern: 12 wires →
+                # [0]*12 on both sides).
+                fields["wires"] = [0] * len(_ws)
+            for _sk in ("acis_data", "history_handle", "kind",
+                        "modeler_format_version", "point_of_reference",
+                        "silhouettes", "surface_data", "u_isolines",
+                        "v_isolines", "wires"):
+                payload.pop(_sk, None)
 
         if silver_type == "LwPolyline":
             # Gold LWPOLYLINE: flag (bitfield), points (2D array), bulges,
