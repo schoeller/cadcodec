@@ -2336,15 +2336,12 @@ impl<'a> DwgObjectWriter<'a> {
         self.writer
             .write_handle(DwgReferenceType::HardPointer, ds_handle.value());
 
-        // Block handle (hard pointer)
-        let block_handle = self
-            .document
-            .block_records
-            .get(&base.block_name)
-            .map(|br| br.handle)
-            .unwrap_or(Handle::NULL);
+        // Block handle (hard pointer) — the anonymous dimension-geometry
+        // block record (*D/*U). Write the RAW wire handle: the doc's
+        // name-keyed table uniquifies the many `*D` blocks, so a
+        // name→handle re-lookup resolves the wrong record (or none).
         self.writer
-            .write_handle(DwgReferenceType::HardPointer, block_handle.value());
+            .write_handle(DwgReferenceType::HardPointer, base.block_handle.value());
     }
 
     fn write_dimension_linear(&mut self, d: &DimensionLinear) {

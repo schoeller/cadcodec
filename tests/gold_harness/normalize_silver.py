@@ -1324,10 +1324,18 @@ def normalize_silver(
                         fields["dimstyle"] = normalize_handle_value(_e.get("handle"))
                         break
             # block: gold emits a null dict for the block-less records
-            # (dwg_flags_byte bit 1); the *D/*U block name is ambiguous after
-            # silver's table uniquification, so leave the handle absent.
-            if isinstance(fb, int) and not (fb & 2):
+            # (dwg_flags_byte bit 1) and the raw BLOCK_HEADER handle for
+            # block-ful ones. Silver keeps the wire handle on
+            # `block_handle` (the name-keyed table uniqifies the *D
+            # blocks, so a name resolution would be ambiguous).
+            if isinstance(fb, int) and (fb & 2):
+                bh = dim.get("block_handle")
+                if bh:
+                    fields["block"] = normalize_handle_value(bh)
+            else:
                 fields["block"] = normalize_handle_value(0)
+            dim.pop("block_handle", None)
+            dim.pop("block_name", None)
             if kind in ("Aligned", "Linear"):
                 fields["xline1_pt"] = _vec(dim.get("first_point"))
                 fields["xline2_pt"] = _vec(dim.get("second_point"))

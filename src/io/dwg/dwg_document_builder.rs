@@ -7243,6 +7243,7 @@ fn map_dimension_common(
         crate::types::Vector3::new(common.insertion_point.x, common.insertion_point.y, 0.0);
     base.style_name = maps.dimstyle_name(common.dimstyle_handle);
     base.block_name = maps.block_name(common.block_handle);
+    base.block_handle = Handle::from(common.block_handle);
 }
 
 fn map_entity_common(
