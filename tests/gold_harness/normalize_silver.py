@@ -159,8 +159,9 @@ FIELD_NAME_MAP: Dict[str, Dict[str, str]] = {
     "Block": {"base_point": "base_pt", "name": "name"},
     "BlockEnd": {},
     "Seqend": {},
-    "Ray": {"normal": "extrusion", "start_point": "start_pt", "unit_direction": "direction"},
-    "XLine": {"normal": "extrusion", "start_point": "start_pt", "unit_direction": "direction"},
+    "Ray": {"normal": "extrusion", "base_point": "point", "direction": "vector"},
+    "XLine": {"normal": "extrusion", "base_point": "point", "direction": "vector"},
+    "RasterVariables": {"display_image_frame": "image_frame"},
     "Leader": {"normal": "extrusion"},
     "MLine": {"normal": "extrusion"},
     "Helix": {"normal": "extrusion"},
@@ -2129,6 +2130,11 @@ def normalize_silver(
             if r2010_plus:
                 fields["is_locked_in_block"] = 0
                 fields["keep_duplicate_records"] = 0
+            if r2018_plus:
+                # dwg.spec ATTDEF tail SINCE R_2018b: mtext_type (1 =
+                # single-line, 2 = multiline; silver's is_multiline).
+                fields["mtext_type"] = 2 if payload.get("is_multiline") else 1
+            payload.pop("is_multiline", None)
             # style handle (7, dwg.spec 342/599 SINCE R_13b1): gold emits the
             # text-style handle; silver stores the resolved NAME. Resolve it
             # through silver's text-styles table (the MTEXT precedent).
@@ -2256,6 +2262,26 @@ def normalize_silver(
                        "vertical_alignment", "thickness", "elevation",
                        "normal", "insertion_point", "alignment_point"):
                 payload.pop(sk, None)
+
+        if gold_type == "ARC_DIMENSION":
+            # gold ARC_DIMENSION records never carry the entity-common
+            # graphic_data (census 6/6 corpus records plain); silver's
+            # _common_dwg adds extra rows otherwise. All silver dimensions
+            # share the "Dimension" wrapper — key on the mapped gold type.
+            fields.pop("graphic_data", None)
+
+        # LIGHT entity (dwg2.spec LIGHT, live): gold never serializes
+        # light_type/photometric_mode/photometric_data (not even R2018)
+        # nor the entity-common graphic_data (census: gold LIGHT records
+        # plain everywhere); light_color is the bare ACI index from
+        # silver's {"Index": n} color shape.
+        if silver_type == "Light":
+            fields.pop("graphic_data", None)
+            _lc = payload.pop("light_color", None)
+            if isinstance(_lc, dict) and isinstance(_lc.get("Index"), int):
+                fields["light_color"] = _lc["Index"]
+            for _lk in ("light_type", "photometric_mode", "photometric_data"):
+                payload.pop(_lk, None)
 
         # MLINE entity (dwg.spec 1569 DWG path): gold emits scale/
         # justification (RC enum)/base_point/extrusion/flags (BS bits)/
@@ -2400,7 +2426,21 @@ def normalize_silver(
             _wh("sun_handle", "sun", r2007_plus)
             _wh("background_handle", "background", r2007_plus)
             _wh("shade_plot_handle", "shadeplot", r2007_plus)
-            _wh("vport_entity_header", "vport_entity_header", not r2000_plus or not r2004_plus)
+            # vport_entity_header (pre-R2004, dwg.spec VIEWPORT): gold
+            # points at the VX_TABLE_RECORD whose `viewport` handle equals
+            # this VIEWPORT's; a code-5 null when no entry references it.
+            # Silver's payload carries no link but the vx_table holds both
+            # sides; emit only on those pre-2004 wires.
+            if not r2004_plus:
+                _vpl = None
+                for _vxe in ((data.get("vx_table") or {}).get("entries") or {}).values():
+                    if isinstance(_vxe, dict) and _vxe.get("viewport") == handle \
+                            and isinstance(_vxe.get("handle"), int):
+                        _vpl = _vxe["handle"]
+                        break
+                fields["vport_entity_header"] = normalize_handle_value(
+                    _vpl if _vpl is not None else 0)
+            consumed.add("vport_entity_header")
             # named_ucs (gold HANDLE 5, SINCE R_2000b): silver stores the
             # viewport's current UCS under `ucs_handle` — same wire field;
             # the old code read a nonexistent `named_ucs_handle` and every
@@ -2481,6 +2521,22 @@ def normalize_silver(
             # packet); gold emits num_paths.
             paths = payload.get("paths", [])
             fields["num_paths"] = len(paths) if isinstance(paths, list) else 0
+            # gold `paths` (dwg.spec HATCH REPEAT): the degenerate form —
+            # a bare 0 per path (probes HatchG: 1 path -> [0]).
+            if isinstance(paths, list) and paths:
+                fields["paths"] = [0] * len(paths)
+            # gold `deflines`: degenerate 0 per pattern line, emitted when
+            # the pattern carries lines (gold ANSI31 -> [0]; Dynblocks 12).
+            if isinstance(pat, dict) and isinstance(pat.get("lines"), list) \
+                    and pat["lines"]:
+                fields["deflines"] = [0] * len(pat["lines"])
+            # gold `colors` (dwg.spec _HATCH_gradientfill REPEAT): the
+            # degenerate 0-per-gradient-color form (probes HatchG [0,0]).
+            gc = payload.get("gradient_color")
+            if isinstance(gc, dict):
+                gcc = gc.get("colors")
+                if isinstance(gcc, list) and gcc:
+                    fields["colors"] = [0] * len(gcc)
             # has_derived (dwg.spec 4880, JSON-only): gold derives it from the
             # path flag bits (any path.flag & 0x4). Silver stores paths with a
             # `flag`/`flags` int per path.
@@ -2586,6 +2642,11 @@ def normalize_silver(
                 payload.pop(sk, None)
 
         if silver_type == "MultiLeader":
+            # Entity-common graphic_data: silver's _common_dwg map carries
+            # the wire preview bytes for these records but gold's MULTILEADER
+            # decode never emits them (census: 8/8 corpus records plain) —
+            # dropping the field beat leaving extra_in_silver rows.
+            fields.pop("graphic_data", None)
             # MULTILEADER (gold dwg2.spec 1298 + MLEADER_CONTEXT_DATA_fields
             # macro at dwg2.spec 1227; silver: src/entities/multileader.rs,
             # readers/entities.rs::read_multileader and
@@ -3222,6 +3283,11 @@ def normalize_silver(
         silver_type = list(obj.keys())[0]
         payload = obj[silver_type]
         if not isinstance(payload, dict):
+            continue
+        if silver_type == "TableContent" and not isinstance(payload.get("handle"), int):
+            # silver synthesizes a handleless TableContent wrapper on the
+            # 2000-era files; gold types no ACAD_TABLE there — skip the
+            # phantom record instead of emitting an extra_in_silver count.
             continue
         # Underlay definitions: gold's object name is per-kind too
         # (PDFDEFINITION/DWFDEFINITION; silver keeps underlay_type).
@@ -4188,6 +4254,39 @@ def normalize_silver(
                        "from_dxf", "object_ids", "proxy_id", "version",
                        "dxf_subclass", "payload", "text_payload"):
                 payload.pop(sk, None)
+        if silver_type == "RasterVariables":
+            # dwg.spec RASTERVARIABLES: gold names the display flag
+            # image_frame; silver display_image_frame (class_version/
+            # image_quality/units already match).
+            _if = payload.pop("display_image_frame", None)
+            if _if is not None:
+                fields["image_frame"] = int(_if) if not isinstance(_if, bool) \
+                    else (1 if _if else 0)
+
+        if silver_type == "ImageDefinition":
+            # gold IMAGEDEF (dwg.spec 4776): class_version, image_size (2BD
+            # floats), file_path (T), is_loaded (B), resunits (RC),
+            # pixel_size (2BD pair). Silver: size_in_pixels ints,
+            # file_name, resolution_unit.
+            fields["class_version"] = payload.get("class_version", 0)
+            _sips = payload.get("size_in_pixels")
+            if isinstance(_sips, list) and len(_sips) >= 2:
+                fields["image_size"] = [normalize_float(float(_sips[0])),
+                                        normalize_float(float(_sips[1]))]
+            _fp = payload.get("file_name")
+            if isinstance(_fp, str):
+                fields["file_path"] = _fp
+            fields["is_loaded"] = 1 if payload.get("is_loaded") else 0
+            _ru = payload.get("resolution_unit")
+            fields["resunits"] = _ru if isinstance(_ru, int) else 0
+            _ps = payload.get("pixel_size")
+            if isinstance(_ps, list) and len(_ps) >= 2:
+                fields["pixel_size"] = [normalize_float(_ps[0]),
+                                        normalize_float(_ps[1])]
+            for _ik in ("class_version", "is_loaded", "pixel_size",
+                        "resolution_unit", "size_in_pixels", "file_name"):
+                payload.pop(_ik, None)
+
         if silver_type == "Scale":
             # Gold stores a raw `flag` BS (bit 0x01 = temporary) and does NOT
             # emit the derived `is_temporary` bool; silver stores only the
@@ -5368,6 +5467,32 @@ def normalize_silver(
                     continue
                 fields[k] = normalize_value(v)
             out.append({"type": record_gold_type, "fields": fields})
+
+    # VX family (dwg.spec 3191 VX_CONTROL + 3224 VX_TABLE_RECORD, live):
+    # silver dumps the vx table at the root (vx_table {handle, entries});
+    # gold serializes the control (owner null) + one record per entry with
+    # the entry/viewport/prev_entry handles (verified ex2000 721/722/723).
+    _vxt = data.get("vx_table") or {}
+    if isinstance(_vxt, dict) and isinstance(_vxt.get("handle"), int) \
+            and _vxt["handle"]:
+        out.append({"type": "VX_CONTROL",
+                    "fields": {"handle": normalize_handle_value(_vxt["handle"]),
+                               "ownerhandle": normalize_handle_value(0)}})
+        for _vxe in (_vxt.get("entries") or {}).values():
+            if not isinstance(_vxe, dict) or not isinstance(_vxe.get("handle"), int):
+                continue
+            out.append({"type": "VX_TABLE_RECORD", "fields": {
+                "handle": normalize_handle_value(_vxe["handle"]),
+                "ownerhandle": normalize_handle_value(_vxt["handle"]),
+                "name": _vxe.get("name", ""),
+                "is_xref_ref": 1 if _vxe.get("is_xref_reference") else 0,
+                "is_xref_resolved": 1 if _vxe.get("is_xref_resolved") else 0,
+                "is_xref_dep": 1 if _vxe.get("is_xref_dependent") else 0,
+                "xref": normalize_handle_value(_vxe.get("xref_handle") or 0),
+                "is_on": 1 if _vxe.get("is_on") else 0,
+                "viewport": normalize_handle_value(_vxe.get("viewport") or 0),
+                "prev_entry": normalize_handle_value(_vxe.get("previous_entry") or 0),
+            }})
 
     # SEQEND ordinal alignment: gold's SEQEND records follow document order
     # (ascending handle on every corpus file verified); silver's synthesized
