@@ -1960,7 +1960,12 @@ impl DwgDocumentBuilder {
                                     Some(crate::entities::polygon_mesh::PolygonMeshVertex {
                                         common: c,
                                         location: d.position,
-                                        flags: 0,
+                                        // gold's VERTEX_MESH wire carries the
+                                        // flag RC (64 = POLYGON_MESH on the
+                                        // corpus meshes) before the 3BD
+                                        // point; retain it for the dump and
+                                        // the writer echo.
+                                        flags: d.flags as i16,
                                     })
                                 } else {
                                     None

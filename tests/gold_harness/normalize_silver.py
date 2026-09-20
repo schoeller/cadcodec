@@ -1155,8 +1155,12 @@ def normalize_silver(
         # Capture the polyline-family child lists BEFORE the per-variant
         # branches consume them from the payload (e.g. PolyfaceMesh pops
         # vertices/faces for its own numverts/first_vertex projection).
+        # The mesh parent's gold name is POLYLINE_MESH (the PolygonMesh
+        # variant maps via OBJECT/ENTITY_TYPE_MAP) — NOT POLYGON_MESH,
+        # the old tuple string never matched so no VERTEX_MESH kids were
+        # synthesized for TS1 (12 dropped records).
         _kid_verts = _kid_faces = None
-        if gold_type in ("POLYLINE_2D", "POLYLINE_3D", "POLYGON_MESH",
+        if gold_type in ("POLYLINE_2D", "POLYLINE_3D", "POLYLINE_MESH",
                          "POLYLINE_PFACE"):
             _kid_verts = payload.get("vertices")
             _kid_faces = payload.get("faces")
