@@ -275,13 +275,15 @@ projection + MTEXT R2018 redundant extents/ignore_attachment + DIMENSION
 family block handle + pre-R2013 classes-verbatim roundtrip +
 unmodeled-class (UNKNOWN_OBJ/ENT) projections + UNKNOWN_ENT
 _common_dwg graphic-data strip + U2 dynamic-block-class retype map +
-unknown_bits raw-remainder side channel,
+unknown_bits raw-remainder side channel + text-style map/ATTDEF trio +
+INSERT attrib/seqend chain + MLINE projection (2026-09-20 second batch),
 2026-09-20):**
-read-fidelity **2 258**, write-fidelity **2 124** — both sides MIRROR
+read-fidelity **1 931**, write-fidelity **1 805** — both sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
 used to be cancelled by symmetric counterfeit garbage; the UNKNOWN
 projections then took −308/−324; U2 then took −719/−720; the unknown_bits
-side channel then took −448/−448). gh44-error.dwg
+side channel then took −448/−448; the style-map/chain/MLINE batch then took
+−327/−319). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -289,9 +291,14 @@ it, inflating totals to 7689/7559).
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20 halt after the unknown_bits side channel,
-tops mirrored read/write; ranking from the fresh post-`2cb2eaa` corpus):**
-1. **UNKNOWN_OBJ residue** (_missing 53 + ownerhandle 44 read / 27 write):
+**Next packets (2026-09-20 halt after the style-map/chain/MLINE batch,
+tops mirrored read/write; ranking from the fresh post-`29459bf` corpus):**
+1. **POLYLINE_3D family** (~13 rows × 13 per field, ~150/side): curve_type/
+   flag(s)/seqend/smooth_type/default_start_width/default_end_width/
+   mesh_m_count/mesh_n_count/…/elevation/extrusion/vertices — silver's
+   Poly3D payload shape never got the per-field projection (the POLYLINE_2D/
+   PFACE branches landed; 3D-specific remain).
+2. **UNKNOWN_OBJ residue** (_missing 53 + ownerhandle 44 read / 27 write):
    (a) records silver still types UNKNOWN that gold types by live class —
    ASSOCACTION (Associative dxf_name ACDBASSOCACTION), SUN (ClassObject
    data.Sun), TABLEGEOMETRY (DataObject data.TableGeometry),
@@ -299,28 +306,29 @@ tops mirrored read/write; ranking from the fresh post-`2cb2eaa` corpus):**
    dxf_names); the latter three sit in `_UNKNOWN_BITS_TYPES` so the retype
    also kills their missing `unknown_bits` rows; (b) surviving wrappers
    emit pipeline-default owner code 4 where gold emits the wire-relative
-   6/8; (c) example_2010 3140: gold UNKNOWN_OBJ record silver drops
+   6/8 — needs an ownercode side channel in silver's reader (the
+   unknown_bits precedent);
+   (c) example_2010 3140: gold UNKNOWN_OBJ record silver drops
    entirely (reader gap).
-2. **PROXY_OBJECT data/data_numbits 60 + objids 18** (the §8.1.1 objids
+3. **PROXY_OBJECT data/data_numbits 30/30 + objids 18** (the §8.1.1 objids
    trailing-null byte-geometry lesson: gold stops at `hdl_dat->byte <
-   size - 1`).
-3. **Style-handle maps** (ATTDEF.style 26 / TEXT.style 21): silver stores
-   the text_style NAME (text_styles entries carry name→handle); project
-   like the layer_map precedent (ATTDEF.lock_position_flag 14 rides the
-   same records). IMAGEDEF.image_size/file_path on ATMOS: gold wants a
-   path string + BD size pair where silver emits file_name only.
-4. **VIEWPORT.named_ucs 29 / status_flag 17**, then the chain/seqend half
-   (INSERT.seqend 18 + SEQEND._missing 18 + ATTRIB._missing 18),
-   VERTEX_PFACE_FACE.flag 18, HATCH.paths 15, CIRCLE.linewt 14 (Dynblocks
-   R2018, off-by-one on the last ~14 records, gold 28 vs silver 29 —
-   adjudicate the wire with dump_section_bytes),
-   DIMSTYLE_CONTROL.morehandles 19.
-5. **GROUP.\* 4×13 and MLINE eleven fields ×13** (stem-inflated — get the
-   per-file verdict with a fresh Multiline/Group roundtrip before believing
-   the 13s).
+   size - 1`; parcels live on the proxy-class files — locate them from a
+   clean report before starting; silver's wrapper keeps parsed fields plus
+   raw proxy bits, so the hex may be derivable).
+4. **GROUP.\* 4×13** (name/groups/description/entities): whole-entity
+   projection missing (stem-collision inflated — fresh Group roundtrip
+   first). Also IMAGEDEF.image_size/file_path on ATMOS (gold wants the
+   path string + BD size pair; silver emits file_name only).
+5. **VIEWPORT.named_ucs 29 / status_flag 17**, VERTEX_PFACE_FACE.flag 18,
+   HATCH.paths 15, CIRCLE.linewt 14 (Dynblocks R2018, off-by-one on the
+   last ~14 records, gold 28 vs silver 29 — adjudicate the wire with
+   dump_section_bytes), DIMSTYLE_CONTROL.morehandles 19, the pre-existing
+   poly-SEQEND shadow pairs (ex2010 wires per-record shadow commons that
+   silver's synthesized SEQENDs cannot see — needs a seqend storage
+   side-channel or reader parsing).
 6. **ASSOCDEPENDENCY.ownerhandle/dep_on + ASSOCNETWORK.owned_actions +
    ASSOCACTION count rows** (Surface/ex2010): mostly resolved-target names
-   that die with the ASSOCACTION retype in packet 1.
+   that die with the ASSOCACTION retype in packet 2.
 
    Liveness discipline reminder (the SECTIONVIEWSTYLE/DETAILVIEWSTYLE
    incident, verified `0be4d76`): the UNKNOWN-family payload-clear runs
@@ -757,16 +765,54 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> packets `b40ba42`…`2cb2eaa`): read **2 258** / write **2 124** — and the
-> two sides now MIRROR family-for-family (the phantom-class un-masking made
-> the write diff honest; the UNKNOWN projections took −308/−324; the U2
-> retype map −719/−720; the unknown_bits side channel −448/−448).
+> packets `b40ba42`…`29459bf`): read **1 931** / write **1 805** — both
+> sides BELOW the 2 000 interim milestone — and the two sides MIRROR
+> family-for-family (the phantom-class un-masking made the write diff
+> honest; the UNKNOWN projections took −308/−324; the U2 retype map
+> −719/−720; the unknown_bits side channel −448/−448; the style-map/chain/
+> MLINE batch −327/−319).
 > Next-packet handoff: the "Next packets" block in §7. Remaining mass:
-> UNKNOWN_OBJ._missing 53 + UNKNOWN_OBJ.ownerhandle 44, PROXY_OBJECT
-> data/data_numbits 60 + objids 18, VIEWPORT.named_ucs 29, ATTDEF/TEXT
-> style ~47, the SEQEND/ATTRIB/VERTEX_PFACE_FACE chains 54, MLINE ~11×13,
-> GROUP 4×13, HATCH.paths 15, CIRCLE.linewt 14, and the ASSOCACTION-family
-> retype residue (Surface/ex2010 probes `ub2_*`).
+> the POLYLINE_3D per-field family ~150, UNKNOWN_OBJ._missing 53 +
+> ownerhandle 44, PROXY_OBJECT data/data_numbits 60 + objids 18,
+> VIEWPORT.named_ucs 29, GROUP 4×13, VERTEX_PFACE_FACE 18, HATCH.paths 15,
+> CIRCLE.linewt 14, plus the ASSOCACTION retype + ownercode side channel
+> (probes `ch_*`/`ub2_*`).
+
+   ~~text-style map + ATTDEF trio + INSERT chain + MLINE~~ — **DONE
+   (2026-09-20 second batch, `29459bf`; read 2 258 → 1 931 / write 2 124 →
+   1 805, −327/−319)**, four normalizer-only families: (a) **style map**
+   — `style_map` from silver's text_styles entries (name→handle,
+   `_style_handle`), projected into TEXT/ATTDEF (gold dwg.spec 342/418/
+   599 FIELD_HANDLE style SINCE R_13b1) — the "differ resolves it
+   separately" comments were wrong; the handle must be emitted. (b)
+   **ATTDEF trio** (dwg.spec 568-595): lock_position_flag SINCE R_2007a
+   (from silver's lock_position bool), is_locked_in_block +
+   keep_duplicate_records SINCE R_2010b (unmodeled, 0 on every corpus
+   record; the RCs carry VALUEOUTOFBOUNDS coercion). (c) **INSERT chain**
+   (dwg.spec INSERT/ATTRIB/SEQEND): silver's `insert.attributes` embeds
+   the full parsed ATTRIB entities; synthesize the child records after
+   the parent (the polyline kid machinery) with: R2004a+ `attribs`
+   handle vector vs pre-2004 first_attrib/last_attrib (gold code 4),
+   `seqend` link only when attributes exist (gold code 3), kid
+   TEXT-family projection (tag/text_value/field_length/dataflags+
+   conditionals/flags bits/kid fields), ownerhandle→INSERT; kid style:
+   real handle pre-2010 but RAW `[0,0]` (gold's code-0 null 2-tuple,
+   which normalize_gold keeps as a list) on R2010+; pre-2004 kid chain
+   prev/next nulls + nolinks 0; mtext_type (1) SINCE R_2018b. CRITICAL:
+   SEQEND records must be re-sorted ascending by handle at the end of
+   `normalize_silver` — the differ aligns (type, ordinal) and silver's
+   iteration order (insert-seqends emitted at their parents' positions)
+   interleaves wrongly vs gold's document order (probes ch_ex2000…2018:
+   gold [401, 1051, 1262, 1881]). The pre-existing poly-SEQEND shadow
+   rows (ex2010 wire per-record shadow commons) stay — silver synthesizes
+   those SEQENDs without storage records; they need reader work (queued).
+   (d) **MLINE** (dwg.spec 1569): scale←scale_factor, justification enum
+   (Top/Zero/Bottom→0/1/2), base_point←start_point, flags bits
+   (HAS_VERTICES=1, CLOSED=2), mlinestyle←style_handle, and `verts` =
+   the degenerate REPEAT form `[0] * num_vertices` (verified 2/4/6-vertex
+   records; the [0]*n JSON lesson). Per-file: Multiline 2018 **0/0**,
+   2000 13→3 (residue = DIMSTYLE_CONTROL/VX_CONTROL), ex2000-2018 chains
+   clean, ATTDEF/TEXT families zeroed everywhere.
 
    ~~unknown_bits floor — raw-remainder side channel~~ — **DONE
    (2026-09-20, `2cb2eaa`; read 2 706 → 2 258 / write 2 572 → 2 124,
