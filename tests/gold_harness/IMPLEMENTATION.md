@@ -304,8 +304,10 @@ batch, `e90fb77`) + SORTENTSTABLE.ents emission (twenty-second batch,
 `ab0e02f`) + SURFACE family retypes + PLANESURFACE projection
 (twenty-third batch, `b2955a7`), 2026-09-20):**
 read-fidelity **479**, write-fidelity **455** — the 1 000 milestone was
-passed at 943/804 and the **campaign target is now below 100 on both
-sides** (in flight) — and the two sides MIRROR
+passed at 943/804, the below-100 interim milestone was reached on
+2026-09-20, and the **campaign target is now 0 on both sides**
+(raised 2026-09-20: land every remaining family, heavy pockets included)
+— and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
 used to be cancelled by symmetric counterfeit garbage; the UNKNOWN
 projections then took −308/−324; U2 then took −719/−720; the unknown_bits
@@ -338,8 +340,10 @@ it, inflating totals to 7689/7559).
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Next packets (2026-09-20, campaign target RAISED to below 100 on both
-sides after reaching the 1 000 milestone at read 943 / write 804; tops
+**Next packets (2026-09-20, campaign target RAISED to **0 on both sides**
+(after passing the 1 000 milestone at read 943 / write 804 and the
+below-100 interim milestone the same day; land every remaining family,
+heavy pockets included); tops
 mirrored read/write; ranking from the fresh post-`257895a` corpus;
 PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
 MULTILEADER attach trio + TABLECONTENT retype + VERTEX_MESH dropped
@@ -406,8 +410,10 @@ seven through nineteen — see §8.1.6):**
    LAST — after every payload-keyed retype branch (viewstyles/assoc) — and
    only on records still UNKNOWN-typed; retyping by dxf_name requires the
    class block to be live (check preprocessor frames first). **Campaign
-   target (2026-09-20, RAISED to 100 after the 1 000 target was reached):
-   read AND write below 1 0 0** — the milestones so far ran
+   target (2026-09-20, RAISED to 0 after the 1 000 target and the
+   below-100 interim milestone were both reached): read AND write
+   0 — land every remaining family, heavy pockets included; do not halt
+   at interim milestones** — the milestones so far ran
 12 000 → 8 000 → 5 000 → 3 000 → 1 000 on 2026-09-19 — at this level every
 normalizer-trackable family plus the structural classes (ASSOC retypes, the
 unmodeled wrappers, the SOLID.elevation/LAYOUT.has_ds_data/linewt reader
@@ -839,8 +845,8 @@ Given a diff `(type, field, kind)`:
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
 > the SURFACE-retypes + PLANESURFACE batch `b2955a7`): read **479** /
-> write **455** — below the 1 000 milestone, closing on the below-100
-> campaign target — and the two sides MIRROR family-for-family (the
+> write **455** — below the 1 000 milestone, closing on the raised
+> campaign target of **0 on both sides** — and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
 > unknown_bits side channel −448/−448; the style-map/chain/MLINE batch

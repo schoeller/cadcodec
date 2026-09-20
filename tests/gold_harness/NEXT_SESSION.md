@@ -7,8 +7,10 @@
 
 ## Task
 
-Continue the acadrust gold-vs-silver roundtrip harness. The campaign target is
-read AND write below **100** on BOTH sides. Current baseline (2026-09-20,
+Continue the acadrust gold-vs-silver roundtrip harness. The campaign target
+(2026-09-20, raised) is read AND write **0** on BOTH sides — land every
+remaining family, including the heavy pockets; do not stop at an interim
+milestone. Current baseline (2026-09-20,
 after fix commit `b2955a7` + its docs commit): read **479** / write **455**
 (124 corpus files; gh44-error.dwg explicitly out of scope via
 `run_corpus.in_scope_files`; gh109_1/gh209_1 ARE in scope). The two sides
