@@ -291,9 +291,11 @@ trio — R2010 tail gate + raw retention (2026-09-20 tenth batch,
 retype, 2026-09-20 eleventh batch, `b123b4c`) + VERTEX_MESH dropped
 records (TS1, 2026-09-20 twelfth batch, `fca5367`) + ACSH_CONE_CLASS
 retype (2026-09-20 thirteenth batch, `fad3042`) + WIPEOUT/IMAGE
-imagedefreactor wire codes (2026-09-20 fourteenth batch, `543f877`),
-2026-09-20):**
-read-fidelity **679**, write-fidelity **703** — the 1 000 milestone was
+imagedefreactor wire codes (2026-09-20 fourteenth batch, `543f877`) +
+SEQEND real-handle retention (2026-09-20 fifteenth batch, `689b14d`) +
+VIEWPORT.status_flag raw retention (2026-09-20 sixteenth batch,
+`263ab5f`), 2026-09-20):**
+read-fidelity **662**, write-fidelity **685** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -311,7 +313,9 @@ batch then took −12/−12 — MULTILEADER rows zero on both sides; the
 UNKNOWN-family dropped-records batch then took −12/−12; the VERTEX_MESH
 dropped-records batch then took −12/−12; the ACSH_CONE_CLASS retype
 then took −4/−4; the WIPEOUT/IMAGE imagedefreactor code fix then took
-−12 write rows). gh44-error.dwg
+−12 write rows; the SEQEND real-handle retention then took −18 write
+rows; the VIEWPORT.status_flag raw retention then took −17 read
+rows). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -321,11 +325,12 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`543f877` corpus;
+mirrored read/write; ranking from the fresh post-`263ab5f` corpus;
 PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
 MULTILEADER attach trio + TABLECONTENT retype + VERTEX_MESH dropped
-records + ACSH_CONE_CLASS retype + WIPEOUT imagedefreactor codes landed
-as batches seven through fourteen — see §8.1.6):**
+records + ACSH_CONE_CLASS retype + WIPEOUT imagedefreactor codes +
+SEQEND real handles + VIEWPORT.status_flag raw landed as batches seven
+through sixteen — see §8.1.6):**
 1. **UNKNOWN-family retyping pockets** (ranked from the post-`543f877`
    corpus: UNKNOWN_OBJ._missing 8, _count 0 — the Cone pocket landed as
    batch thirteen; the queued ownerhandle 37 family self-resolved — its
@@ -358,9 +363,10 @@ as batches seven through fourteen — see §8.1.6):**
    irreversible table codes, normalizer `_lweight_index` echoes
    out-of-table mm values; `6fd5a10`); LEADER R2000 pairs (ninth batch,
    `b6e6e92`).
-3. **Value-dependent remaining**: VIEWPORT.status_flag 17 (Dynblocks R2018: gold 819232 vs
-   silver 32800 — plain `FIELD_BL` SINCE R_2000b, dwg.spec 2484; needs
-   raw retention: reader capture + writer echo + normalizer preference).
+3. **Value-dependent remaining**: the VIEWPORT.status_flag family
+   landed as batch sixteen (`263ab5f`, −17 read rows); the residue
+   below the current top-N is the MTEXT column trio and per-era
+   count/status leftovers per the fresh by-type census.
 4. **Scattered entity families**: RAY/XLINE point/vector/base_point/
    direction + LINE.linewt (13 each), IMAGEDEF.image_size/file_path/
    resunits/size_in_pixels (~55 on the ATMOS-era carriers; gold wire
@@ -817,8 +823,8 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> the WIPEOUT imagedefreactor batch `543f877`): read **679** /
-> write **703** — below the 1 000 milestone, closing on the below-100
+> the VIEWPORT.status_flag batch `263ab5f`): read **662** /
+> write **685** — below the 1 000 milestone, closing on the below-100
 > campaign target — and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
@@ -841,9 +847,62 @@ Given a diff `(type, field, kind)`:
 >   landed (2026-09-20 eleventh batch, `b123b4c`), the VERTEX_MESH
 >   dropped records landed (2026-09-20 twelfth batch, `fca5367`),
 >   the ACSH_CONE_CLASS retype landed (2026-09-20 thirteenth batch,
->   `fad3042`) and the WIPEOUT/IMAGE imagedefreactor wire codes landed
->   (2026-09-20 fourteenth batch, `543f877`) — see their DONE entries
->   below.
+>   `fad3042`), the WIPEOUT/IMAGE imagedefreactor wire codes landed
+>   (2026-09-20 fourteenth batch, `543f877`), the SEQEND real-handle
+>   retention landed (2026-09-20 fifteenth batch, `689b14d`) and the
+>   VIEWPORT.status_flag raw retention landed (2026-09-20 sixteenth
+>   batch, `263ab5f`) — see their DONE entries below.
+
+  ~~VIEWPORT.status_flag raw retention~~ — **DONE (2026-09-20 sixteenth
+  batch, `263ab5f`; read 679 → 662 / write 685 stays, −17 read rows,
+  the sole carrier is 2018/Dynblocks.dwg)**: gold keeps status_flag as
+  a plain BL (dwg.spec 2484, SINCE R_2000b, right after
+  num_frozen_layers). Silver's reader captured the raw i32 all along
+  (read_viewport: data.status_flags) but the builder decomposed it
+  into the typed ViewportStatusFlags (bits 0-15 only) and the writer
+  recomposed from the typed bits, dropping the higher bits (gold
+  0xC8060-style values → silver 0x8060; Dynblocks 819232 vs 32800).
+  Fix: the raw-retention pattern — Viewport.dwg_status_flag:
+  Option<i32> from the wire (None on constructed documents), builder
+  stores Some(data.status_flags), writer echoes raw-with-typed-fallback,
+  normalizer prefers raw (r2000+ gate) with the typed recomposition as
+  fallback, and tests/roundtrip.rs's normalize_entity_for_comparison
+  carries the Viewport arm (the seqend_handle precedent: writer-
+  allocated/raw-retained splits are not semantic equality). Write rows
+  never appeared for this family: the rt pair read the same recomposed
+  wire on both sides — self-consistent but unfaithful to the original
+  bits until this fix. NOTE: the old queue's "Dynblocks R2018/R2000"
+  names were wrong — Dynblocks.dwg exists ONLY in 2018/. A stray
+  Cone.json (previous-session pollution, Sep 20 09:18) was removed
+  from the read-only gold tree during verification.
+
+  ~~SEQEND.ownerhandle (synthesized seqends)~~ — **DONE (2026-09-20
+  fifteenth batch, `689b14d`; write 703 → 685, −18 write rows on the
+  six example_* carriers; read unchanged; the queue's entmode/code-4
+  hunch was NOT the cause)**: the rows were ORDINAL ROTATIONS. The
+  wire's SEQENDs are real records with real handles (gold's
+  example_2000 list sorts 401/1051/1262/1881); silver's synthesis
+  invented PSEUDO handles (parent+1 / last-child+1 conventions), and
+  one wrong ordinal rotated the (type, ordinal) pairing of every
+  SEQEND in the file — gold SEQEND[1] owns the PFACE where silver's
+  [1] owned the 3D-poly, etc. PolyfaceMesh/Insert already stored
+  their real seqend_handle; Polyline2D/Polyline3D/PolygonMesh had no
+  field at all. Fix: seqend_handle: Option<Handle> on the three
+  structs (constructors None, serde-visible); every polyline assembly
+  arm restores pending.seqends[owner] (the OBJ_SEQEND dispatch
+  already keys real seqends by owner for all families); the three
+  writers echo stored-else-alloc (the PolyfaceMesh pattern);
+  normalize_silver's kid block prefers the captured real handle
+  (captured AND popped early — BEFORE the generic field loop, else it
+  leaks as extra_in_silver), falls back to the conventions; the PFACE
+  seqend emission uses the captured variable; and the 3D-family
+  vertex extraction also reads the FLAT handle key of silver's
+  Vertex3DPolyline — the nested-common-only lookup synthesized
+  parent+1 for the first vertex, CLASHING with the real SEQEND@1051.
+  tests/roundtrip.rs: the deep-comparer extends the existing
+  PolyfaceMesh.seqend_handle normalization to the three new carriers.
+  The remaining SEQEND residue (plotstyle/shadow_flags +
+  ltype_flags on the synthesized records) PRE-EXISTED this batch.
 
   ~~WIPEOUT/IMAGE imagedefreactor wire codes~~ — **DONE (2026-09-20
   fourteenth batch, `543f877`; read 679 → 679 / write 715 → 703,
