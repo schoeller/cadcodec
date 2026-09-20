@@ -1214,6 +1214,12 @@ def normalize_silver(
             _seq_h_parent = payload.pop("seqend_handle", None)
 
         fields = merge_common(common, common_dwg_entry, layer_map)
+        # Retained per-SEQEND common flag pairs (the wire SEQEND's own
+        # data; populated on the INSERT and polyline-family structs by
+        # the builder). Stash them here so no generic loop leaks them;
+        # the poly-family SEQEND synthesis below emits them verbatim.
+        _seq_pf_stash = payload.pop("seqend_plotstyle_flags", None)
+        _seq_sf_stash = payload.pop("seqend_shadow_flags", None)
         if gold_type == "UNKNOWN_ENT" and "graphic_data" in fields:
             # Silver's raw passthrough entities keep their graphic-data bytes
             # in the serde-skipped EntityCommon map (_common_dwg), which
@@ -1230,6 +1236,86 @@ def normalize_silver(
             # ARC_DIMENSION/LIGHT pop precedent).
             fields.pop("graphic_data", None)
 
+        if gold_type in ("PDFUNDERLAY", "DWFUNDERLAY", "PNGUNDERLAY",
+                         "JPGUNDERLAY", "DGNUNDERLAY"):
+            # gold UNDERLAY_fields (dwg2.spec 1616, AcDbUnderlayReference):
+            # definition_id handle, extrusion, ins_pt, one scale triple
+            # (3BD_1 — silver stores x_/y_/z_scale), angle, flag RC
+            # (silver's bitflags string: CLIPPING=1/ON=2/MONOCHROME=4/
+            # ADJUST_FOR_BACKGROUND=8/CLIP_INSIDE=16), contrast/fade RCd
+            # (same names, generic loop), clip_verts 2RD pairs. Silver's
+            # clip_inverted bool is the CLIP_INSIDE bit it already counts
+            # in flags (pop). verified on 2004/Underlay.dwg's three
+            # PDFUNDERLAYs (flag 30/31/27 vs the split strings).
+            fields["definition_id"] = normalize_handle_value(
+                payload.pop("definition_handle", None))
+            fields["ins_pt"] = normalize_value(payload.pop("insertion_point", None))
+            fields["angle"] = normalize_float(payload.pop("rotation", 0.0) or 0.0)
+            fields["scale"] = [normalize_float(payload.pop("x_scale", 1.0) or 0.0),
+                               normalize_float(payload.pop("y_scale", 1.0) or 0.0),
+                               normalize_float(payload.pop("z_scale", 1.0) or 0.0)]
+            _uflag = payload.pop("flags", 0)
+            if isinstance(_uflag, str):
+                _UF = {"CLIPPING": 1, "ON": 2, "MONOCHROME": 4,
+                       "ADJUST_FOR_BACKGROUND": 8, "CLIP_INSIDE": 16,
+                       "NONE": 0}
+                _uval = 0
+                for _ut in _uflag.split(" | "):
+                    _uval |= _UF.get(_ut.strip(), 0)
+                _uflag = _uval
+            fields["flag"] = _uflag
+            _cv = payload.pop("clip_boundary_vertices", None)
+            if isinstance(_cv, list):
+                fields["clip_verts"] = [normalize_value(v) for v in _cv]
+            payload.pop("clip_inverted", None)
+            payload.pop("underlay_type", None)
+
+        if gold_type == "MESH":
+            # gold MESH (dwg2.spec 2522, AcDbSubDMesh — live; the two
+            # 2004/Surface.dwg records): dlevel BS 71 is the wire version
+            # (silver Mesh.version), is_watertight B 72 is silver's
+            # blend_crease; num_subdiv_vertex (BL 91) is silver's
+            # misnamed subdivision_level — a COUNT of subdiv points silver
+            # never reads; 0 on the corpus so gold emits no subdiv_vertex
+            # (pop). vertex ← vertices; gold's faces/edges are the FLAT
+            # wire vectors ([n, *idx] per face, [idxfrom, idxto] per
+            # edge); crease is the per-edge crease BD vector in edge
+            # order (None → 0.0); unknown_b1/b2 are the retained raw
+            # trailing bits (reader parity packet).
+            fields["dlevel"] = payload.pop("version", 0)
+            fields["is_watertight"] = 1 if payload.pop("blend_crease", None) else 0
+            payload.pop("subdivision_level", None)
+            _mv = payload.pop("vertices", None)
+            if isinstance(_mv, list) and _mv:
+                fields["vertex"] = [normalize_value(v) for v in _mv]
+            _mf = payload.pop("faces", None)
+            if isinstance(_mf, list) and _mf:
+                _mflat: List[Any] = []
+                for _mff in _mf:
+                    _mfv = (_mff.get("vertices")
+                            if isinstance(_mff, dict) else _mff)
+                    if isinstance(_mfv, list):
+                        _mflat.append(len(_mfv))
+                        _mflat.extend(int(x) for x in _mfv)
+                fields["faces"] = _mflat
+            _me = payload.pop("edges", None)
+            if isinstance(_me, list) and _me:
+                # gold's REPEAT-edge dump prints one bare 0 per edge (the
+                # idxfrom/idxto struct entries collapse under the
+                # normalize_value dict-without-index rule, like FIELD's
+                # childval; verified on both Surface.dwg records and
+                # their rewrites): [0] * num_edges.
+                fields["edges"] = [0] * len(_me)
+                _ecrease: List[Any] = []
+                for _med in _me:
+                    _mec = (_med.get("crease")
+                            if isinstance(_med, dict) else None)
+                    _ecrease.append(normalize_float(
+                        _mec if isinstance(_mec, (int, float)) else 0.0))
+                fields["crease"] = _ecrease
+            fields["unknown_b1"] = 1 if payload.pop("unknown_b1", None) else 0
+            fields["unknown_b2"] = 1 if payload.pop("unknown_b2", None) else 0
+
         if gold_type == "PLANESURFACE":
             # gold dwg2.spec PLANESURFACE (live): AcDbSurface family —
             # acis (SAB), isolines, wires, the modeler version, the
@@ -1244,15 +1330,28 @@ def normalize_silver(
             if isinstance(_sab, list):
                 try:
                     _b = bytes(int(x) & 0xFF for x in _sab)
-                    _p = _b.find(0)
+                    # gold's json_3dsolid SAB emission splits at the FIXED
+                    # 15-byte banner ("%.*s" with 15, out_json.c 1605):
+                    # "ACIS BinaryFile" then VALUE_BINARY of the REMAINING
+                    # bytes — the banner is NOT NUL-terminated (the wire
+                    # runs straight into 0x40 0x51), so a find(0) split
+                    # put "@Q" in the head and shifted the hex tail.
+                    if _b.startswith(b"ACIS BinaryFile"):
+                        _p = 15
+                    else:
+                        _p = _b.find(0)
                     if _p > 0:
                         _head = _b[:_p].decode("latin-1")
-                        _rest = _b[_p + 1:].hex().upper()
+                        _rest = _b[_p:].hex().upper()
                         fields["acis_data"] = [_head, _rest]
                         fields["acis_empty"] = 0
-                        fields["acis_empty_bit"] = 0
                 except Exception:
                     pass
+                # gold's raw tail bit after the wireframe block
+                # (COMMON_3DSOLID FIELD_B acis_empty_bit): the ACIS
+                # reader retains it — emit the retained value, not 0.
+                _aeb = _ac.get("acis_empty_bit") if isinstance(_ac, dict) else None
+                fields["acis_empty_bit"] = 1 if _aeb else 0
             _av = (str(_ac.get("version", "")) if isinstance(_ac, dict)
                    else "") or ""
             if _av.startswith("Version"):
@@ -1269,9 +1368,16 @@ def normalize_silver(
                 fields["u_isolines"] = _ui
             if isinstance(_vi, int):
                 fields["v_isolines"] = _vi
-            if isinstance(_ui, int) and isinstance(_vi, int):
-                fields["isolines"] = _ui + _vi
-                fields["isoline_present"] = 1
+            # gold COMMON_3DSOLID: `isolines` is the WIREFRAME block's BL
+            # (wireframe cache) — silver retains it as
+            # acis_data.wireframe_isolines — NOT the u+v isoline display
+            # counts (12 vs 14 on 2004/Surface.dwg).
+            _wi = _ac.get("wireframe_isolines") if isinstance(_ac, dict) else None
+            if isinstance(_wi, int):
+                fields["isolines"] = _wi
+            fields["isoline_present"] = 1 if (
+                _ac.get("wireframe_isoline_present")
+                if isinstance(_ac, dict) else False) else 0
             _mfv = payload.get("modeler_format_version")
             if isinstance(_mfv, int):
                 fields["modeler_format_version"] = _mfv
@@ -1292,6 +1398,28 @@ def normalize_silver(
                         "silhouettes", "surface_data", "u_isolines",
                         "v_isolines", "wires"):
                 payload.pop(_sk, None)
+
+        if silver_type == "Shape":
+            # gold SHAPE (dwg.spec 2330, R13+ DWG path): 3BD ins_pt, BD
+            # scale, BD0 rotation, BD width_factor, BD oblique_angle, BD0
+            # thickness, BS style_id, 3BD extrusion, style handle (5,7).
+            # Silver's read_shape consumes the same slots under shifted
+            # names: its `size` holds the wire SCALE (gold's spec comment
+            # "documented as size"), its `relative_x_scale` holds the wire
+            # WIDTH FACTOR (read order: ins_pt, size, rotation,
+            # relative_x_scale, oblique, thickness, shape_number, normal,
+            # style) — value-verified on entities-2d (ins 6,6 / rotate
+            # 0.5236 / style_id 131 / style 56). shape_name/style_name are
+            # silver lookup twins with no wire field.
+            fields["ins_pt"] = normalize_value(payload.pop("insertion_point"))
+            fields["scale"] = normalize_float(payload.pop("size", 0.0) or 0.0)
+            fields["width_factor"] = normalize_float(
+                payload.pop("relative_x_scale", 1.0) or 0.0)
+            fields["style_id"] = payload.pop("shape_number", 0)
+            fields["style"] = normalize_handle_value(
+                payload.pop("style_handle", None))
+            payload.pop("shape_name", None)
+            payload.pop("style_name", None)
 
         if silver_type == "LwPolyline":
             # Gold LWPOLYLINE: flag (bitfield), points (2D array), bulges,
@@ -1452,9 +1580,11 @@ def normalize_silver(
                     if a.get("height") is not None:
                         rec["height"] = normalize_value(a.get("height"))
                     _ip = a.get("insertion_point")
+                    _ipz = 0.0
                     if _ip is not None:
                         _nv = normalize_value(_ip)
                         if isinstance(_nv, list) and len(_nv) > 2:
+                            _ipz = _nv[2]
                             _nv = _nv[:2]
                         rec["ins_pt"] = _nv
                     rec["thickness"] = normalize_value(a.get("thickness") or 0)
@@ -1476,23 +1606,42 @@ def normalize_silver(
                     ha = a.get("horizontal_alignment")
                     va = a.get("vertical_alignment")
                     # dataflags: the shared TEXT/ATTDEF absence mask
-                    # (dwg.spec 330-345): bit = field absent/default.
-                    df = 0x01  # elevation never stored on the kid records
-                    if apn is None or (isinstance(apn, list) and all(_iz(c) for c in apn)):
-                        df |= 0x02
-                    if _iz(obl):
-                        df |= 0x04
-                    if _iz(rot):
-                        df |= 0x08
-                    if wf is None or (isinstance(wf, (int, float)) and abs(float(wf) - 1.0) < 1e-9):
-                        df |= 0x10
-                    if gen in (None, 0, "Normal"):
-                        df |= 0x20
-                    if ha in (None, 0, "Left"):
-                        df |= 0x40
-                    if va in (None, 0, "Baseline"):
-                        df |= 0x80
+                    # (dwg.spec 330-345). The retained raw wire byte
+                    # (AttributeEntity.raw_dataflags) is the truth —
+                    # which optionals AutoCAD actually wrote (an explicit
+                    # width_factor 1.0 keeps bit 4 clear where a value
+                    # recomposition would set it). Compose by value only
+                    # where the byte is absent (R13-14 layout):
+                    # bit0 elevation absent iff z == 0; bit1 alignment_pt
+                    # absent iff it EQUALS the insertion point (the 2DD
+                    # default) — a real all-zero [0,0] alignment is
+                    # PRESENT on the wire (entities-2d).
+                    _raw_df = a.pop("raw_dataflags", None)
+                    if isinstance(_raw_df, int):
+                        df = int(_raw_df) & 0xFF
+                    else:
+                        df = 0x01 if _iz(_ipz) else 0
+                        _ains = _nv if (_nv is not None and isinstance(_nv, list)) else None
+                        if apn is None or (
+                            isinstance(apn, list) and _ains is not None
+                            and all(abs(float(ac) - float(ic)) < 1e-9
+                                    for ac, ic in zip(apn[:2], _ains[:2]))):
+                            df |= 0x02
+                        if _iz(obl):
+                            df |= 0x04
+                        if _iz(rot):
+                            df |= 0x08
+                        if wf is None or (isinstance(wf, (int, float)) and abs(float(wf) - 1.0) < 1e-9):
+                            df |= 0x10
+                        if gen in (None, 0, "Normal"):
+                            df |= 0x20
+                        if ha in (None, 0, "Left"):
+                            df |= 0x40
+                        if va in (None, 0, "Baseline"):
+                            df |= 0x80
                     rec["dataflags"] = df
+                    if not (df & 0x01):
+                        rec["elevation"] = normalize_float(_ipz)
                     if not (df & 0x02) and apn is not None:
                         if isinstance(apn, list) and len(apn) > 2:
                             apn = apn[:2]
@@ -1547,6 +1696,10 @@ def normalize_silver(
                     _sq = dict(_vcom)
                     _sq["handle"] = normalize_handle_value(_seq_h)
                     _sq["ownerhandle"] = normalize_handle_value(handle)
+                    # INSERT-attached SEQENDs carry NO flag pair on any
+                    # corpus era (verified ex2010 owners: INSERT 400/1878
+                    # -> flags 0, while the POLY-family SEQENDs carry the
+                    # era flags; see the poly _sf block).
                     if not r2004_plus:
                         _sq["prev_entity"] = normalize_handle_value(0)
                         _sq["next_entity"] = normalize_handle_value(0)
@@ -1562,7 +1715,8 @@ def normalize_silver(
                     fields["block_header"] = normalize_handle_value(h)
             payload.pop("block_name", None)
             # seqend_handle is consumed by the chain block above (emitted
-            # only when attributes exist); always pop it here.
+            # only when attributes exist); always pop it here. The retained
+            # per-SEQEND common flags were stashed by the early pop below.
             payload.pop("seqend_handle", None)
             # num_cols/num_rows/col_spacing/row_spacing: R11-only in gold
             # (VERSIONS R_2_0b, R_11). Silver always emits them; drop on R13+.
@@ -1663,7 +1817,19 @@ def normalize_silver(
                     m = _MT_ENUM[gk]
                     fields[gk] = m.get(str(v), v) if isinstance(v, str) else v
                 else:
-                    nv = normalize_value(v)
+                    if gk == "text" and isinstance(v, str):
+                        # gold decodes the ACAD \U+XXXX unicode escapes in
+                        # MTEXT values (dwgread prints "108°"); silver
+                        # keeps the escaped form ("108\U+00B0") — decode it.
+                        try:
+                            nv = re.sub(
+                                r"\\U\+([0-9A-Fa-f]{4})",
+                                lambda mm: chr(int(mm.group(1), 16)),
+                                v)
+                        except Exception:
+                            nv = v
+                    else:
+                        nv = normalize_value(v)
                     # rect_height (R2007a+): silver stores None (default);
                     # gold emits 0.0. Coerce None -> 0.0.
                     if gk == "rect_height" and nv is None:
@@ -1682,13 +1848,17 @@ def normalize_silver(
                         break
                 if _ts_h is not None:
                     fields["style"] = normalize_handle_value(_ts_h)
-            # drop silver-only / gold-omitted fields
+            # drop silver-only / gold-omitted fields. NOTE "value"/"
+            # text_value": the FIELD_NAME_MAP re-map below would otherwise
+            # overwrite the decoded `text` emission with the raw escaped
+            # string ("108\U+00B0").
             for kk in ("is_annotative", "dwg_x_direction", "rotation",
                        "attachment_point", "drawing_direction", "line_spacing_factor",
                        "line_spacing_style", "column_data",
                        "height", "rectangle_width", "rectangle_height",
                        "background_scale", "background_color",
-                       "background_transparency"):
+                       "background_transparency",
+                       "value", "text_value"):
                 payload.pop(kk, None)
             # version-gated drops (gold omits these on older versions)
             if not r2004_plus:
@@ -1836,10 +2006,24 @@ def normalize_silver(
             fs = payload.get("faces") or []
             if isinstance(vs, list) and vs:
                 fields["numverts"] = len(vs)
-                fields["first_vertex"] = normalize_handle_value(_pf_handle(vs[0]) or 0)
             if isinstance(fs, list) and fs:
                 fields["numfaces"] = len(fs)
-                fields["last_vertex"] = normalize_handle_value(_pf_handle(fs[-1]) or 0)
+            # gold dwg.spec POLYLINE parent links: pre-R2004 wire carries
+            # first/last_vertex (code 4); SINCE R_2004a it is BL num_owned
+            # + the full `vertex` HANDLE_VECTOR (code 4) of every owned kid
+            # — for a PFACE that is the vertex records AND the face records
+            # (ex2004 gold [1253..1261]). Era-gate the two shapes.
+            if r2004_plus:
+                _pf_kids = [_pf_handle(x) or 0
+                             for x in list(vs) + list(fs)]
+                if _pf_kids:
+                    fields["vertex"] = [normalize_handle_value(h)
+                                        for h in _pf_kids]
+            else:
+                if isinstance(vs, list) and vs:
+                    fields["first_vertex"] = normalize_handle_value(_pf_handle(vs[0]) or 0)
+                if isinstance(fs, list) and fs:
+                    fields["last_vertex"] = normalize_handle_value(_pf_handle(fs[-1]) or 0)
             # The early poly-family capture popped seqend_handle from the
             # payload — use the captured real wire handle.
             if _seq_h_parent is not None:
@@ -1847,6 +2031,75 @@ def normalize_silver(
             for sk in ("vertices", "faces", "seqend_handle", "flags", "normal",
                        "elevation", "extrusion", "start_width", "end_width",
                        "smooth_surface", "thickness"):
+                payload.pop(sk, None)
+
+
+        if silver_type == "PolygonMesh":
+            # gold POLYLINE_MESH (dwg.spec POLYLINE block, the R2000 chain
+            # shape): flag BS 70 — the variant marker bit, POLYGON_MESH=16
+            # per gold's raw value on TS1; curve_type BS 75 — the smooth
+            # type (NoSmooth=0, Quadratic=5, Cubic=6, Bezier=8, gold's
+            # raw BS codes); m/n_density BS 73/74 = silver's
+            # m/n_smooth_density; first/last_vertex from the nested kid
+            # records' own handles (the 12-kid 3x4 grid runs 528..539);
+            # seqend from the retained wire handle. The MxN vertex COUNTS,
+            # elevation and extrusion are not gold parent-record fields.
+            def _pm_handle(e):
+                if isinstance(e, dict):
+                    c = e.get("common") if isinstance(e.get("common"), dict) else e
+                    return c.get("handle")
+                return e
+            _PM_FLAG = {"POLYGON_MESH": 16, "POLYFACE_MESH": 64,
+                        "POLYLINE_2D": 0, "POLYLINE_3D": 0}
+            _pmf = payload.pop("flags", 0)
+            fields["flag"] = (_PM_FLAG.get(_pmf, _pmf)
+                              if isinstance(_pmf, (int, str)) else 0)
+            _PM_ST = {"NoSmooth": 0, "Quadratic": 5, "QuadraticBspline": 5,
+                      "Cubic": 6, "CubicBspline": 6, "Bezier": 8,
+                      "Spline": 6}
+            _pms = payload.pop("smooth_type", 0)
+            fields["curve_type"] = (_PM_ST.get(_pms, _pms)
+                                     if isinstance(_pms, (int, str)) else 0)
+            fields["m_density"] = payload.pop("m_smooth_density", 0)
+            fields["n_density"] = payload.pop("n_smooth_density", 0)
+            _pm_vs = payload.get("vertices") or []
+            if isinstance(_pm_vs, list) and _pm_vs:
+                fields["first_vertex"] = normalize_handle_value(
+                    _pm_handle(_pm_vs[0]) or 0)
+                fields["last_vertex"] = normalize_handle_value(
+                    _pm_handle(_pm_vs[-1]) or 0)
+            if _seq_h_parent is not None:
+                fields["seqend"] = normalize_handle_value(_seq_h_parent)
+            for sk in ("vertices", "m_vertex_count", "n_vertex_count",
+                       "elevation", "normal", "flags", "smooth_type",
+                       "m_smooth_density", "n_smooth_density"):
+                payload.pop(sk, None)
+
+
+        if silver_type == "Ole2Frame":
+            # gold OLE2FRAME (dwg.spec 5539, R2000 wire): type BS 71
+            # (Link=1/Embedded=2/Static=3), mode BS 72 (tile mode),
+            # FIELD_BINARY `data` — the RAW OLE bytes as an uppercase hex
+            # string (gold keeps the blob verbatim; the decoded CFB
+            # re-encode is not byte-identical — the reader-capture packet
+            # retains raw_data) — plus lock_aspect RC below the blob. The
+            # structured envelope/storage twins and the corner points are
+            # silver-side parse products with no gold counterpart.
+            _olt = payload.pop("ole_object_type", 2)
+            _OT = {"Link": 1, "Embedded": 2, "Static": 3}
+            fields["type"] = (_OT.get(_olt, _olt)
+                              if isinstance(_olt, (int, str)) else 2)
+            fields["mode"] = payload.pop("dwg_mode", 0)
+            _rd = payload.pop("raw_data", None)
+            if isinstance(_rd, list) and _rd:
+                try:
+                    fields["data"] = bytes(
+                        int(x) & 0xFF for x in _rd).hex().upper()
+                except (TypeError, ValueError):
+                    pass
+            for sk in ("version", "source_application",
+                       "upper_left_corner", "lower_right_corner",
+                       "is_paper_space", "storage", "envelope"):
                 payload.pop(sk, None)
 
         if silver_type == "Table":
@@ -1890,9 +2143,13 @@ def normalize_silver(
                 fields["elevation"] = def_pt[2]
             # class_version/unknown/flip_arrow1/flip_arrow2 are SINCE
             # R2007 additions in gold's DIMENSION-common; pre-2007 files
-            # omit them.
+            # omit them — EXCEPT class_version, which gold reads
+            # SINCE(R_2010b) only (COMMON_ENTITY_DIMENSION,
+            # dwg_spec_shared.h 30: FIELD_RC class_version; 2007's
+            # example file carries no gold counterpart — extra row).
             if r2007_plus:
-                fields["class_version"] = dim.get("version", 0)
+                if r2010_plus:
+                    fields["class_version"] = dim.get("version", 0)
                 fields["unknown"] = 1 if dim.get("dwg_unknown_bit") else 0
                 fields["flip_arrow1"] = 1 if dim.get("flip_arrow1") else 0
                 fields["flip_arrow2"] = 1 if dim.get("flip_arrow2") else 0
@@ -2238,12 +2495,16 @@ def normalize_silver(
         # (gold has the handle) — the name is dropped; the handle comes from
         # the text-style table lookup, which the differ resolves separately.
         if silver_type == "AttributeDefinition":
+            _attdef_z = 0.0
+            _attdef_xy = None
             for sk, gk in (("insertion_point", "ins_pt"),):
                 v = payload.get(sk)
                 if v is not None:
                     nv = normalize_value(v)
                     if isinstance(nv, list) and len(nv) > 2:
+                        _attdef_z = nv[2]
                         nv = nv[:2]  # ins_pt is 2RD
+                    _attdef_xy = nv
                     fields[gk] = nv
                 payload.pop(sk, None)
             ap = payload.get("alignment_point")
@@ -2262,21 +2523,38 @@ def normalize_silver(
             gen = payload.get("text_generation_flags")
             ha = payload.get("horizontal_alignment")
             va = payload.get("vertical_alignment")
-            df = 0
-            # 0x01 elevation: silver doesn't store elevation (2D ATTDEF); it is
-            # absent -> set the bit. (Only 2 corpus rows have elevation != 0.)
-            if _is_zero(payload.get("elevation")):
-                df |= 0x01
-            # 0x02 alignment_pt absent when zero (the [0,0] default)
-            if ap is None or (isinstance(normalize_value(ap), list) and all(_is_zero(c) for c in normalize_value(ap))):
-                df |= 0x02
-            if _is_zero(obl): df |= 0x04
-            if _is_zero(rot): df |= 0x08
-            if wf is None or abs(float(wf) - 1.0) < 1e-9: df |= 0x10
-            if gen in (None, 0, "Normal"): df |= 0x20
-            if ha in (None, 0, "Left"): df |= 0x40
-            if va in (None, 0, "Baseline"): df |= 0x80
+            _raw_df = payload.pop("raw_dataflags", None)
+            if isinstance(_raw_df, int):
+                # The retained raw wire byte is the truth — which optionals
+                # AutoCAD actually wrote (an explicit width_factor 1.0
+                # keeps bit 4 clear where a value recomposition would set
+                # it).
+                df = int(_raw_df) & 0xFF
+            else:
+                df = 0
+                # 0x01 elevation: the wire RD lives in silver's 3-D
+                # insertion_point.z (2.0 on entities-2d) — absent iff zero.
+                if _is_zero(_attdef_z):
+                    df |= 0x01
+                # 0x02 alignment_pt absent iff it EQUALS the insertion
+                # point (the 2DD default) — a real all-zero [0,0]
+                # alignment is PRESENT on the wire (entities-2d ATTDEF).
+                _apn = normalize_value(ap)
+                if _apn is None or (
+                    isinstance(_apn, list) and _attdef_xy is not None
+                    and all(_is_zero(float(c) - float(i))
+                            for c, i in zip(_apn[:2], _attdef_xy[:2]))):
+                    df |= 0x02
+                if _is_zero(obl): df |= 0x04
+                if _is_zero(rot): df |= 0x08
+                if wf is None or abs(float(wf) - 1.0) < 1e-9: df |= 0x10
+                if gen in (None, 0, "Normal"): df |= 0x20
+                if ha in (None, 0, "Left"): df |= 0x40
+                if va in (None, 0, "Baseline"): df |= 0x80
             fields["dataflags"] = df
+            # elevation read under bit 0x01 clear (separate RD).
+            if not (df & 0x01):
+                fields["elevation"] = normalize_float(_attdef_z)
             # alignment_pt only when present (dataflags & 0x02 clear)
             if not (df & 0x02):
                 anv = normalize_value(ap)
@@ -2361,11 +2639,15 @@ def normalize_silver(
         # thickness, height, rotation/width_factor/oblique_angle (gated),
         # generation/horiz_alignment/vert_alignment (gated), style (handle 7).
         if silver_type == "Text":
+            _txt_z = 0.0
+            _txt_xy = None
             ip = payload.get("insertion_point")
             if ip is not None:
                 nv = normalize_value(ip)
                 if isinstance(nv, list) and len(nv) > 2:
+                    _txt_z = nv[2]
                     nv = nv[:2]
+                _txt_xy = nv
                 fields["ins_pt"] = nv
             payload.pop("insertion_point", None)
             ap = payload.get("alignment_point")
@@ -2376,25 +2658,37 @@ def normalize_silver(
             ha = payload.get("horizontal_alignment")
             va = payload.get("vertical_alignment")
             th = payload.get("thickness")
-            el = payload.get("elevation")
-            # dataflags (shared ATTDEF/TEXT mask, dwg.spec 491): bit = absent.
-            df = 0
-            if el is None: df |= 0x01
+            # elevation: the wire RD lives in silver's 3-D
+            # insertion_point.z (2.0 on entities-2d).
+            el = _txt_z
+            # dataflags (shared ATTDEF/TEXT mask, dwg.spec 491): the
+            # retained raw wire byte is the truth (which optionals
+            # AutoCAD wrote); compose by value only when absent (the
+            # R13-14 layout) — bit0 elevation absent iff z == 0; bit1
+            # alignment_pt absent iff it EQUALS the insertion point.
+            _raw_df = payload.pop("raw_dataflags", None)
             apn = normalize_value(ap)
-            if apn is None or (isinstance(apn, list) and all(abs(float(c))<1e-9 for c in apn)):
-                df |= 0x02
-            try: oblz = abs(float(obl)) < 1e-9
-            except (TypeError, ValueError): oblz = True
-            if oblz: df |= 0x04
-            try: rotz = abs(float(rot)) < 1e-9
-            except (TypeError, ValueError): rotz = True
-            if rotz: df |= 0x08
-            try: wf1 = wf is None or abs(float(wf)-1.0) < 1e-9
-            except (TypeError, ValueError): wf1 = True
-            if wf1: df |= 0x10
-            if gen in (None, 0): df |= 0x20
-            if ha in (None, 0, "Left"): df |= 0x40
-            if va in (None, 0, "Baseline"): df |= 0x80
+            if isinstance(_raw_df, int):
+                df = int(_raw_df) & 0xFF
+            else:
+                df = 0
+                if abs(float(el or 0.0)) < 1e-9: df |= 0x01
+                if apn is None or (isinstance(apn, list) and _txt_xy is not None
+                                   and all(abs(float(c) - float(i)) < 1e-9
+                                           for c, i in zip(apn[:2], _txt_xy[:2]))):
+                    df |= 0x02
+                try: oblz = abs(float(obl)) < 1e-9
+                except (TypeError, ValueError): oblz = True
+                if oblz: df |= 0x04
+                try: rotz = abs(float(rot)) < 1e-9
+                except (TypeError, ValueError): rotz = True
+                if rotz: df |= 0x08
+                try: wf1 = wf is None or abs(float(wf)-1.0) < 1e-9
+                except (TypeError, ValueError): wf1 = True
+                if wf1: df |= 0x10
+                if gen in (None, 0): df |= 0x20
+                if ha in (None, 0, "Left"): df |= 0x40
+                if va in (None, 0, "Baseline"): df |= 0x80
             fields["dataflags"] = df
             # thickness (BD0)
             if th is not None:
@@ -3222,9 +3516,16 @@ def normalize_silver(
                         segs = segs[:-1]
                     fields["acis_data"] = segs
                 # encr_sat_data (v1): gold re-emits the raw obfuscated wire
-                # blocks (159-b transform, per-block layout). Silver's reader
-                # merges the blocks + the strings stream into one text, so the
-                # block boundaries are unrecoverable — accepted RESIDUAL.
+                # blocks as one uppercase-hex string per block (out_json
+                # json_3dsolid VALUE_BINARY per block; the 159-cipher decode
+                # that yields sat_data is lossy, the raw blocks are not —
+                # retained since the reader-capture packet).
+                if version == 1:
+                    _eb = acis.get("encr_sat_data") or []
+                    if isinstance(_eb, list) and _eb:
+                        fields["encr_sat_data"] = [
+                            bytes(int(x) & 0xFF for x in blk).hex().upper()
+                            for blk in _eb if isinstance(blk, list)]
                 # history_id: COMMON_3DSOLID's else-branch emits it for every
                 # non-SAT record (version>1) whose handle stream has bits
                 # left — not just SINCE R_2007a. Verified on R2004-era
@@ -3301,12 +3602,15 @@ def normalize_silver(
             # smooth/elevation/extrusion fields never appear in gold's
             # record — pop them BEFORE the generic loop; the parent's own
             # fields (curve_type/flag/kid links) are emitted in the
-            # kid-synthesis block below.
+            # kid-synthesis block below. Capture the flag-bit dict for
+            # that block — the pop removes it from the payload.
+            _p3d_flags = payload.get("flags")
             for _sk in ("flags", "smooth_type", "default_start_width",
                         "default_end_width", "mesh_m_count", "mesh_n_count",
                         "smooth_m_density", "smooth_n_density", "elevation",
                         "normal", "vertices"):
                 payload.pop(_sk, None)
+
 
         field_map = FIELD_NAME_MAP.get(silver_type, {})
         for k, v in payload.items():
@@ -3509,6 +3813,19 @@ def normalize_silver(
             _sf = {**_vcommon,
                    "handle": normalize_handle_value(_seqend_h),
                    "ownerhandle": normalize_handle_value(_ph or 0)}
+            # The SEQEND record's own common flags are retained from the
+            # wire (builder pending.seqend_flags — the SEQENDs are real
+            # records; LibreDWG-authored example files carry
+            # flags-3-with-null, DWG-native chains 0). Emit the retained
+            # values verbatim; gold's flags==3 pulls a [5,0,0,0] null ref.
+            if isinstance(_seq_pf_stash, int):
+                _sf["plotstyle_flags"] = _seq_pf_stash
+                if _seq_pf_stash == 3:
+                    _sf["plotstyle"] = normalize_handle_value(0)
+            if r2007_plus and isinstance(_seq_sf_stash, int):
+                _sf["shadow_flags"] = _seq_sf_stash
+                if _seq_sf_stash == 3:
+                    _sf["shadow"] = normalize_handle_value(0)
             if not r2004_plus:
                 # R13-era SEQEND chains: null prev/next pair
                 _sf["prev_entity"] = normalize_handle_value(0)
@@ -3526,7 +3843,10 @@ def normalize_silver(
                 # elevation/extrusion fields are storage-only and never
                 # appear in gold's record.
                 fields["curve_type"] = 0
-                _pf = payload.get("flags")
+                # the flag-bit dict was captured (and popped) by the
+                # early POLYLINE_3D branch above — the pop removed it from
+                # the payload, so read it from the stash
+                _pf = _p3d_flags
                 if isinstance(_pf, dict):
                     fields["flag"] = ((1 if _pf.get("closed") else 0)
                                       | (4 if _pf.get("spline_fit") else 0)
@@ -3589,14 +3909,6 @@ def normalize_silver(
                        "xdictionary_handle"):
                 if _k not in payload and _k in _tc_common:
                     payload[_k] = _tc_common[_k]
-        # Underlay definitions: gold's object name is per-kind too
-        # (PDFDEFINITION/DWFDEFINITION; silver keeps underlay_type).
-        if (silver_type == "UnderlayDefinition"
-                and isinstance(payload.get("underlay_type"), str)):
-            gold_type = {
-                "Pdf": "PDFDEFINITION", "Dwf": "DWFDEFINITION",
-                "Png": "PNGDEFINITION", "Jpeg": "JPGDEFINITION",
-            }.get(payload["underlay_type"], "PDFDEFINITION")
         if silver_type == "Associative":
             # Resolve the class from the payload's dxf_name; the classes with
             # a landed field projection below emit under their real gold type
@@ -3650,6 +3962,19 @@ def normalize_silver(
                 gold_type = "UNKNOWN_OBJ"
         else:
             gold_type = OBJECT_TYPE_MAP.get(silver_type, silver_type.upper())
+        # Underlay definitions: gold's object name is per-kind too
+        # (PDFDEFINITION/DWFDEFINITION/DGNDEFINITION; silver keeps
+        # underlay_type). This must run AFTER the Associative if/else
+        # above — OBJECT_TYPE_MAP's "UnderlayDefinition" entry is the
+        # non-gold "PDFDEF" default and previously overwrote the
+        # per-kind retype (the gh109-era count_mismatch pocket).
+        if (silver_type == "UnderlayDefinition"
+                and isinstance(payload.get("underlay_type"), str)):
+            gold_type = {
+                "Pdf": "PDFDEFINITION", "Dwf": "DWFDEFINITION",
+                "Dgn": "DGNDEFINITION",
+                "Png": "PNGDEFINITION", "Jpeg": "JPGDEFINITION",
+            }.get(payload["underlay_type"], "PDFDEFINITION")
         # Wrapper retype (§8.1.6 unmodeled-class campaign): silver's
         # DynamicBlock/ClassObject-style wrappers parse class-registered
         # objects they do not model individually, keeping the class-table
@@ -3763,6 +4088,220 @@ def normalize_silver(
             for _gk in ("name", "unnamed", "selectable", "entities",
                         "description"):
                 payload.pop(_gk, None)
+        if silver_type == "Field":
+            # gold FIELD (dwg.spec 5935, live — the ACDBFIELD class): pure
+            # name projection, silver stores the same wire fields under its
+            # own vocabulary. id = evaluator_id (T 1), field_state = state
+            # (BL 94), evaluation_error_msg = evaluation_error_message
+            # (T 300); `value` is gold's dotted TABLE_value_fields union
+            # (data_type BL 90 + one member — 0/1 -> data_long, 2 ->
+            # data_double, 4 -> data_string; PRE R_2007a gold masks ~0x200
+            # off the data_type); gold's REPEAT emission collapses childval
+            # to a bare 0 per entry in the norm and only prints `childs`
+            # when num_childs > 0 (code-3 handle vector). num_objects is 0
+            # all corpus — pop referenced_objects.
+            fields["id"] = payload.pop("evaluator_id", "")
+            fields["field_state"] = payload.pop("state", 0)
+            fields["evaluation_error_msg"] = payload.pop(
+                "evaluation_error_message", "")
+            _fv = payload.pop("value", None)
+            if isinstance(_fv, dict):
+                _dt = int(_fv.get("raw_type_code", 0) or 0)
+                if not r2007_plus:
+                    _dt &= ~0x200
+                fields["value.data_type"] = _dt
+                if _dt in (0, 1):
+                    fields["value.data_long"] = int(
+                        _fv.get("numeric_value", 0) or 0)
+                elif _dt == 2:
+                    fields["value.data_double"] = normalize_float(
+                        _fv.get("numeric_value", 0.0))
+                elif _dt == 4:
+                    fields["value.data_string"] = _fv.get("text", "")
+                elif _dt == 8:
+                    fields["value.data_size"] = int(
+                        _fv.get("data_size", 0) or 0)
+                    fields["value.data_date"] = list(
+                        _fv.get("binary_value") or [])
+                elif _dt in (16, 32):
+                    fields["value.data_size"] = int(
+                        _fv.get("data_size", 0) or 0)
+                    fields["value.data_point" if _dt == 16
+                           else "value.data_3dpoint"] = normalize_value(
+                               _fv.get("point_value"))
+            _cf = payload.pop("child_fields", None)
+            if isinstance(_cf, list) and _cf:
+                fields["childs"] = [normalize_handle_value(h) for h in _cf]
+            _cv = payload.pop("child_values", None)
+            if isinstance(_cv, list) and _cv:
+                fields["childval"] = [0] * len(_cv)
+            payload.pop("referenced_objects", None)
+        if silver_type == "FieldList":
+            # gold FIELDLIST (dwg.spec 6013): the `fields` handle vector
+            # (code 4) in gold's order; normalize to handle dicts so the
+            # differ resolves the targets (a bare int never matches).
+            _fl_flds = payload.pop("fields", None)
+            if isinstance(_fl_flds, list) and _fl_flds:
+                fields["fields"] = [normalize_handle_value(h)
+                                   for h in _fl_flds]
+        if silver_type == "PlotSettings":
+            # gold PLOTSETTINGS (dwg.spec 5223): silver's PlotSettings
+            # object stores the same wire data under its own vocabulary.
+            # printer_cfg_file = the page-setup name, paper_size = the
+            # DEVICE name, canonical_media_name = the media (the same
+            # transposition gold's names encode, cf. the LAYOUT branch);
+            # the margins are a dict; plot_flags is the bit composition of
+            # PlotFlags::to_bits (identical layout); paper_units/drawing_
+            # units are the scale numerator/denominator (BD 142/143); the
+            # enum strings invert to gold's raw BS codes (silver's enums
+            # carry the gold values); plotview = the wire handle (R2004+
+            # binary carries the handle — plotview_name only UNTIL R_2002)
+            # and gold's shadeplot handle (SINCE R_2007a, code 4 / DXF 333)
+            # is silver's visual_style_handle (objects.rs reads the
+            # R2007+ handle there). cached_scale has no gold counterpart.
+            fields["printer_cfg_file"] = payload.pop("page_name", "") or ""
+            fields["paper_size"] = payload.pop("printer_name", "") or ""
+            fields["canonical_media_name"] = payload.pop("paper_size", "") or ""
+            _m = payload.pop("margins", None) or {}
+            fields["left_margin"] = normalize_float(_m.get("left", 0.0))
+            fields["bottom_margin"] = normalize_float(_m.get("bottom", 0.0))
+            fields["right_margin"] = normalize_float(_m.get("right", 0.0))
+            fields["top_margin"] = normalize_float(_m.get("top", 0.0))
+            fields["plot_origin"] = [normalize_float(payload.pop("origin_x", 0.0)),
+                                     normalize_float(payload.pop("origin_y", 0.0))]
+            _PU = {"Inches": 0, "Millimeters": 1, "Pixels": 2}
+            _pu = payload.pop("paper_units", 0)
+            fields["plot_paper_unit"] = (_PU.get(_pu, _pu)
+                                        if isinstance(_pu, (int, str)) else 0)
+            _ROT = {"None": 0, "Degrees90": 1, "Degrees180": 2, "Degrees270": 3}
+            _rot = payload.pop("rotation", 0)
+            fields["plot_rotation_mode"] = (_ROT.get(_rot, _rot)
+                                           if isinstance(_rot, (int, str)) else 0)
+            _PT = {"LastScreenDisplay": 0, "Extents": 1, "Limits": 2,
+                   "View": 3, "Window": 4, "Layout": 5}
+            _pt = payload.pop("plot_type", 0)
+            fields["plot_type"] = (_PT.get(_pt, _pt)
+                                   if isinstance(_pt, (int, str)) else 0)
+            _pw = payload.pop("plot_window", None) or {}
+            fields["plot_window_ll"] = [normalize_float(_pw.get("lower_left_x", 0.0)),
+                                        normalize_float(_pw.get("lower_left_y", 0.0))]
+            fields["plot_window_ur"] = [normalize_float(_pw.get("upper_right_x", 0.0)),
+                                        normalize_float(_pw.get("upper_right_y", 0.0))]
+            if not r2004_plus:
+                # UNTIL(R_2002) wire carries the plotview NAME; the handle
+                # is derived (and vice versa on encode).
+                fields["plotview_name"] = payload.pop("plot_view_name", "") or ""
+            payload.pop("plot_view_name", None)
+            fields["plotview"] = normalize_handle_value(
+                payload.pop("plot_view_handle", 0) or 0)
+            fields["paper_units"] = normalize_float(
+                payload.pop("scale_numerator", 0.0))
+            fields["drawing_units"] = normalize_float(
+                payload.pop("scale_denominator", 0.0))
+            fields["stylesheet"] = payload.pop("current_style_sheet", "") or ""
+            _ST = {"ScaleToFit": 0, "CustomScale": 1, "OneToOne": 16,
+                   "OneToTwo": 17, "OneToFour": 18, "OneToEight": 19,
+                   "OneToTen": 20, "OneToSixteen": 21, "OneToTwenty": 22,
+                   "OneToThirty": 23, "OneToForty": 24, "OneToFifty": 25,
+                   "OneToHundred": 26, "TwoToOne": 27, "FourToOne": 28,
+                   "EightToOne": 29, "TenToOne": 30, "HundredToOne": 31}
+            _st = payload.pop("scale_type", 0)
+            fields["std_scale_type"] = (_ST.get(_st, _st)
+                                        if isinstance(_st, (int, str)) else 0)
+            fields["std_scale_factor"] = normalize_float(
+                payload.pop("standard_scale_factor", 0.0))
+            fields["paper_image_origin"] = [
+                normalize_float(payload.pop("paper_image_origin_x", 0.0)),
+                normalize_float(payload.pop("paper_image_origin_y", 0.0))]
+            if r2004_plus:
+                # shadeplot trio SINCE R_2004a (dwg.spec)
+                _SPM = {"AsDisplayed": 0, "Wireframe": 1, "Hidden": 2,
+                        "Rendered": 3}
+                _spm = payload.pop("shade_plot_mode", 0)
+                fields["shadeplot_type"] = (_SPM.get(_spm, _spm)
+                                            if isinstance(_spm, (int, str)) else 0)
+                _SPR = {"Draft": 0, "Preview": 1, "Normal": 2,
+                        "Presentation": 3, "Maximum": 4, "Custom": 5}
+                _spr = payload.pop("shade_plot_resolution", 0)
+                fields["shadeplot_reslevel"] = (_SPR.get(_spr, _spr)
+                                                if isinstance(_spr, (int, str)) else 0)
+                fields["shadeplot_customdpi"] = payload.pop("shade_plot_dpi", 0)
+            else:
+                for kk in ("shade_plot_mode", "shade_plot_resolution",
+                           "shade_plot_dpi"):
+                    payload.pop(kk, None)
+            if r2007_plus:
+                fields["shadeplot"] = normalize_handle_value(
+                    payload.pop("visual_style_handle", 0) or 0)
+            else:
+                payload.pop("visual_style_handle", None)
+            pfl = payload.pop("flags", None)
+            if isinstance(pfl, dict):
+                bits = pfl.get("unknown_bits", 0) & ~0x7EFF
+                for name, bit in (("plot_viewport_borders", 0), ("show_plot_styles", 1),
+                        ("plot_centered", 2), ("plot_hidden", 3), ("use_standard_scale", 4),
+                        ("plot_plot_styles", 5), ("scale_lineweights", 6),
+                        ("print_lineweights", 7), ("draw_viewports_first", 9),
+                        ("model_type", 10), ("update_paper", 11),
+                        ("zoom_to_paper_on_update", 12), ("initializing", 13),
+                        ("prev_plot_init", 14)):
+                    if pfl.get(name):
+                        bits |= (1 << bit)
+                fields["plot_flags"] = bits
+            elif isinstance(pfl, int):
+                fields["plot_flags"] = pfl
+            payload.pop("cached_scale", None)
+        if silver_type == "GeoData" and r2010_plus:
+            # gold GEODATA R2010+ branch (dwg2.spec 25 else-arm, live — the
+            # sole corpus carrier is 2010/gh209_1): pure name projection of
+            # silver's GeoData struct. The pre-R2010 wire (class_version 1)
+            # carries a different field set (obs_pt/scale_vec, datum/wkt,
+            # the civil tail) which the R2010+ branch never reads — pop.
+            # geomesh REPEATs emit only when non-empty (gold's num_*-gated
+            # convention); the civil_* block is UNTIL(R_2007)-only.
+            fields["class_version"] = payload.pop("version", 0)
+            fields["coord_type"] = payload.pop("coordinate_type", 0)
+            fields["design_pt"] = normalize_value(payload.pop("design_point", None))
+            fields["ref_pt"] = normalize_value(payload.pop("reference_point", None))
+            fields["unit_scale_horiz"] = normalize_float(
+                payload.pop("horizontal_unit_scale", 0.0))
+            fields["units_value_horiz"] = payload.pop("horizontal_units", 0)
+            fields["unit_scale_vert"] = normalize_float(
+                payload.pop("vertical_unit_scale", 0.0))
+            fields["units_value_vert"] = payload.pop("vertical_units", 0)
+            fields["up_dir"] = normalize_value(payload.pop("up_direction", None))
+            fields["north_dir"] = normalize_value(payload.pop("north_direction", None))
+            fields["scale_est"] = payload.pop("scale_estimation_method", 0)
+            fields["do_sea_level_corr"] = 1 if payload.pop("sea_level_correction", None) else 0
+            fields["sea_level_elev"] = normalize_float(
+                payload.pop("sea_level_elevation", 0.0))
+            fields["coord_proj_radius"] = normalize_float(
+                payload.pop("coordinate_projection_radius", 0.0))
+            fields["coord_system_def"] = payload.pop("coordinate_system_definition", "")
+            for kk in ("obsolete_observation_point", "obsolete_scale_vector",
+                       "coordinate_system_datum", "coordinate_system_wkt",
+                       "civil_data_present", "civil_obsolete_flag",
+                       "civil_reference_point1", "civil_reference_point2",
+                       "civil_unknown1", "civil_unknown2", "civil_unknown_flag1",
+                       "civil_zero_point1", "civil_zero_point2",
+                       "civil_unknown_flag2", "civil_north_angle_degrees",
+                       "civil_north_angle_radians"):
+                payload.pop(kk, None)
+            for kk in ("mesh_points", "mesh_faces"):
+                _mm = payload.pop(kk, None)
+                if isinstance(_mm, list) and _mm:
+                    fields[kk] = [0] * len(_mm)
+        if silver_type == "UnderlayDefinition":
+            # gold PDFDEFINITION/DWFDEFINITION/DGNDEFINITION (dwg2.spec
+            # 1597, AcDbUnderlayDefinition): filename + name. Silver's
+            # file_path/page_name carry the two T fields; its `name` is a
+            # lookup-only empty twin with no wire counterpart (pop).
+            # reactors flow through _object_common_fields (the builder
+            # retains them since the Dictionary-precedent packet).
+            fields["filename"] = payload.pop("file_path", "") or ""
+            fields["name"] = payload.pop("page_name", "") or ""
+            payload.pop("underlay_type", None)
+            payload.pop("name", None)
         if r2004_plus:
             # Gold emits is_xdic_missing on every object's handle stream
             # (and xdicobjhandle when the dictionary exists — all versions).

@@ -55,6 +55,13 @@ pub struct Insert {
     /// to the INSERT/ATTRIB handle chain. Preserve its source handle when the
     /// insert came from a file; newly created inserts leave it unset.
     pub seqend_handle: Option<Handle>,
+    /// The chain's wire SEQEND record's own plotstyle_flags (retained from
+    /// the SEQEND entity's common data; gold re-emits it verbatim).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub seqend_plotstyle_flags: u8,
+    /// The chain's wire SEQEND record's own shadow_flags (R2007+).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub seqend_shadow_flags: u8,
 }
 
 impl Insert {
@@ -77,6 +84,8 @@ impl Insert {
             attributes: Vec::new(),
             view_rep_handle: None,
             seqend_handle: None,
+            seqend_plotstyle_flags: 0,
+            seqend_shadow_flags: 0,
         }
     }
 

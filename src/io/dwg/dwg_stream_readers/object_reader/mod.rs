@@ -608,28 +608,47 @@ impl DwgObjectReader {
             linetype_handle = reader.read_handle();
         }
 
-        // R2007+: material flags + shadow flags
+        // R2000+: plotstyle_flags COMES AFTER ltype_flags (libredwg
+        // common_entity_data.spec 507-511: ltype_flags FIELD_BB then
+        // plotstyle_flags FIELD_BB). Reading material/shadow first swaps
+        // the labels inside an isochronous 12-bit window — the pairs
+        // mislabel the wrong fields without desyncing (2007 example_2007's
+        // LWPOLYLINE carried its real plotstyle 1893 under `material`).
+        // The HANDLE PULLS keep the handle-stream order
+        // (common_entity_handle_data.spec 127-134: material, shadow,
+        // plotstyle).
+        let mut plotstyle_flags = 0u8;
+        let mut plotstyle_handle: Option<u64> = None;
+        if self.version.r2000_plus() {
+            plotstyle_flags = reader.main_mut().read_2bits();
+        }
+
+        // R2007+: material flags (BB) then shadow flags (RC0)
         let mut material_flags = 0u8;
         let mut material_handle: Option<u64> = None;
         let mut shadow_flags = 0u8;
         if self.version.r2007_plus() {
             material_flags = reader.main_mut().read_2bits();
-            // Material handle (hard pointer) — present when flags == 0b11
+            // Material handle (hard pointer) — present when flags == 0b11;
+            // pull order: after ltype, before shadow/plotstyle.
             if material_flags == 0b11 {
                 material_handle = Some(reader.read_handle());
             }
             shadow_flags = reader.read_byte();
+            // Shadow handle — present when flags == 3. Consume its
+            // handle-stream slot unconditionally when set (gold pulls
+            // it between material and plotstyle); the logical model has
+            // no shadow slot (every corpus record carries the null form),
+            // so the value is read-and-dropped here.
+            if shadow_flags == 0b11 {
+                let _shadow_handle = reader.read_handle();
+            }
         }
 
-        // R2000+: Plotstyle flags (00=bylayer, 01=byblock, 11=handle present)
-        let mut plotstyle_flags = 0u8;
-        let mut plotstyle_handle: Option<u64> = None;
-        if self.version.r2000_plus() {
-            plotstyle_flags = reader.main_mut().read_2bits();
-            if plotstyle_flags == 0b11 {
-                // Plotstyle handle (hard pointer)
-                plotstyle_handle = Some(reader.read_handle());
-            }
+        // plotstyle handle pull — LAST of the three R2000+/R2007+ pairs
+        // (handle-stream order: material, shadow, then plotstyle).
+        if plotstyle_flags == 0b11 {
+            plotstyle_handle = Some(reader.read_handle());
         }
 
         // R2010+: visual style bits — each bit conditionally followed by a handle

@@ -325,6 +325,14 @@ pub struct AcisData {
     /// for round-trip; 0 when the entity carried no wireframe data).
     #[cfg_attr(feature = "serde", serde(default))]
     pub wireframe_isolines: i32,
+    /// Raw pre-2004 SAT blocks, one entry per wire block (dwg.spec
+    /// DECODE_3DSOLID: BL block_size + TFv bytes, terminated by BL 0).
+    /// Gold prints each block's bytes verbatim as `encr_sat_data` hex
+    /// strings (out_json json_3dsolid) — the 159-cipher de-obfuscation
+    /// that yields `sat_data` is lossy — so retain the raw blocks for
+    /// the gold-parity comparison and echo them verbatim on write.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub encr_sat_data: Vec<Vec<u8>>,
 }
 
 impl AcisData {
@@ -343,6 +351,7 @@ impl AcisData {
             acis_empty_bit: false,
             extra_acis_data: None,
             wireframe_isolines: 0,
+            encr_sat_data: Vec::new(),
         }
     }
 
@@ -364,6 +373,7 @@ impl AcisData {
             acis_empty_bit: false,
             extra_acis_data: None,
             wireframe_isolines: 0,
+            encr_sat_data: Vec::new(),
         }
     }
 
@@ -382,6 +392,7 @@ impl AcisData {
             acis_empty_bit: false,
             extra_acis_data: None,
             wireframe_isolines: 0,
+            encr_sat_data: Vec::new(),
         }
     }
 

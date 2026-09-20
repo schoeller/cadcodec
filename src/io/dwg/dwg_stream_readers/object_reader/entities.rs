@@ -199,6 +199,13 @@ pub struct TextEntityData {
     pub horizontal_alignment: i16,
     pub vertical_alignment: i16,
     pub style_handle: u64,
+    /// Retained raw R2000+ dataflags byte (dwg.spec TEXT 491). The wire
+    /// bits are the truth for which optionals AutoCAD wrote (e.g. an
+    /// explicit width_factor 1.0 keeps bit 4 clear while a value-based
+    /// recomposition would set it) — keep them for the gold-parity
+    /// comparison and echo them verbatim on write. None on the R13-R14
+    /// unconditional layout.
+    pub raw_dataflags: Option<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -1451,6 +1458,7 @@ pub fn read_text_entity_data(reader: &mut DwgMergedReader, version: DwgVersion) 
             horizontal_alignment,
             vertical_alignment,
             style_handle: 0,
+            raw_dataflags: None,
         }
     } else {
         let data_flags = reader.read_byte();
@@ -1518,6 +1526,7 @@ pub fn read_text_entity_data(reader: &mut DwgMergedReader, version: DwgVersion) 
             horizontal_alignment,
             vertical_alignment,
             style_handle: 0,
+            raw_dataflags: Some(data_flags),
         }
     }
 }
@@ -2189,7 +2198,8 @@ pub struct MeshData {
     pub faces: Vec<Vec<i32>>,
     pub edges: Vec<(i32, i32)>,
     pub crease_values: Vec<f64>,
-    pub override_option: i32,
+    pub unknown_b1: bool,
+    pub unknown_b2: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -2226,6 +2236,9 @@ pub struct Ole2FrameData {
     /// Frame corners decoded from the OLE data blob (see `ole2frame_corners`).
     pub upper_left: Vector3,
     pub lower_right: Vector3,
+    /// Raw OLE wire bytes (dwg.spec OLE2FRAME FIELD_BINARY) retained for
+    /// the gold-parity `data` hex emission and verbatim write echo.
+    pub raw_data: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -3178,7 +3191,13 @@ pub fn read_mesh(reader: &mut DwgMergedReader) -> MeshData {
         crease_values.push(reader.read_bit_double());
     }
 
-    let override_option = reader.read_bit_long();
+    // Trailing raw bits (dwg.spec MESH FIELD_B unknown_b1/unknown_b2, the
+    // last two fields before COMMON_ENTITY_HANDLE_DATA). LibreDWG reads
+    // two single bits here; reading a BL instead shifts every value and
+    // mis-shapes the tail (gold normalizes 1/0, the BL read 0). Echo them
+    // verbatim on write.
+    let unknown_b1 = reader.read_bit();
+    let unknown_b2 = reader.read_bit();
 
     MeshData {
         version,
@@ -3188,7 +3207,8 @@ pub fn read_mesh(reader: &mut DwgMergedReader) -> MeshData {
         faces,
         edges,
         crease_values,
-        override_option,
+        unknown_b1,
+        unknown_b2,
     }
 }
 
@@ -4171,6 +4191,7 @@ pub fn read_ole2frame(reader: &mut DwgMergedReader, version: DwgVersion) -> Ole2
         lock_aspect,
         upper_left,
         lower_right,
+        raw_data: data,
     }
 }
 
@@ -5046,6 +5067,9 @@ pub struct AcisEntityData {
     pub revision: AcisRevision,
     /// R2007+ material bindings.
     pub materials: Vec<AcisMaterial>,
+    /// Raw pre-2004 SAT wire blocks (one entry per block; gold emits them
+    /// verbatim as encr_sat_data hex strings — the decode is lossy).
+    pub encr_sat_data: Vec<Vec<u8>>,
 }
 
 #[derive(Debug, Clone)]
@@ -5208,6 +5232,7 @@ fn read_acis_entity_impl(
     let mut sab_data = Vec::new();
     let mut is_binary = false;
     let mut acis_version: i16 = 0;
+    let mut encr_sat_data: Vec<Vec<u8>> = Vec::new();
 
     // R2013+ entities with `has_ds_data` keep geometry in AcDs. Their inline
     // record still contains the shared wire/material/revision tail and, for
@@ -5234,6 +5259,11 @@ fn read_acis_entity_impl(
             is_binary = false;
 
             let mut all_bytes = Vec::new();
+            // Gold keeps each wire block verbatim as encr_sat_data[i]
+            // (out_json json_3dsolid prints per-block hex; the
+            // 159-cipher decode below is lossy) — retain the raw blocks
+            // for the gold-parity comparison and the verbatim write echo.
+            let mut raw_blocks: Vec<Vec<u8>> = Vec::new();
             loop {
                 let raw_block_size = reader.read_bit_long();
                 if let Some(end) = inline_end {
@@ -5250,7 +5280,9 @@ fn read_acis_entity_impl(
                 }
                 let block = reader.read_bytes(block_size);
                 all_bytes.extend_from_slice(&block);
+                raw_blocks.push(block);
             }
+            encr_sat_data = raw_blocks;
 
             // Decrypt with selective 159-substitution cipher
             // (per LibreDWG dwg.spec: bytes <= 32 pass through, bytes > 32: 159 - byte)
@@ -5330,6 +5362,7 @@ fn read_acis_entity_impl(
                     silhouettes: Vec::new(),
                     revision: AcisRevision::default(),
                     materials: Vec::new(),
+                    encr_sat_data: Vec::new(),
                 });
             }
         }
@@ -5484,6 +5517,7 @@ fn read_acis_entity_impl(
         silhouettes,
         revision,
         materials,
+        encr_sat_data,
     })
 }
 
@@ -5561,9 +5595,14 @@ pub fn read_surface(
         .expect("database surface decoding retains unrecognized legacy payloads");
     // Surface records do not have the 3DSOLID history-id handle slot.
     let history_handle = 0;
-    // The modeler version is already part of the ACIS header. Native
-    // surfaces begin with the two isoline counts immediately after it.
-    let modeler_format_version = 1;
+    // gold dwg2.spec PLANESURFACE (and the sibling SURFACE blocks):
+    // after the COMMON_3DSOLID tail (ACIS + wireframe + acis_empty_bit)
+    // come three BS — modeler_format_version (DXF 70; a per-file modeler
+    // value like 6, not a constant), then the two isoline counts. Reading
+    // the counts two fields early lands u on the modeler slot (6) and v
+    // on u (6), the 2004/Surface.dwg PLANESURFACE residue. The writer
+    // echoes the same order.
+    let modeler_format_version = reader.read_bit_short();
     let u_isolines = reader.read_bit_short();
     let v_isolines = reader.read_bit_short();
     let surface_data = match kind {

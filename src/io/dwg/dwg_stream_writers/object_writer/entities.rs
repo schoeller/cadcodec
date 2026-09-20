@@ -706,40 +706,53 @@ impl<'a> DwgObjectWriter<'a> {
             // Vert align BS 73
             self.writer.write_bit_short(e.vertical_alignment as i16);
         } else {
-            // R2000+: DataFlags RC — presence bits for subsequent data
-            let mut data_flags: u8 = 0;
-            // 0x01 = elevation (InsertPoint.Z) is 0
-            if e.insertion_point.z == 0.0 {
-                data_flags |= 0x01;
-            }
-            // 0x02 = alignment point is zero
-            if alignment_point.x == 0.0 && alignment_point.y == 0.0 && alignment_point.z == 0.0 {
-                data_flags |= 0x02;
-            }
-            // 0x04 = oblique angle is 0
-            if e.oblique_angle == 0.0 {
-                data_flags |= 0x04;
-            }
-            // 0x08 = rotation is 0
-            if e.rotation == 0.0 {
-                data_flags |= 0x08;
-            }
-            // 0x10 = width factor is 1.0
-            if e.width_factor == 1.0 {
-                data_flags |= 0x10;
-            }
-            // 0x20 = generation (mirror) flag is None (0)
-            if e.generation_flags == 0 {
-                data_flags |= 0x20;
-            }
-            // 0x40 = horizontal alignment is Left (0)
-            if e.horizontal_alignment as u8 == 0 {
-                data_flags |= 0x40;
-            }
-            // 0x80 = vertical alignment is Baseline (0)
-            if e.vertical_alignment as u8 == 0 {
-                data_flags |= 0x80;
-            }
+            // R2000+: DataFlags RC — presence bits for subsequent data.
+            // The retained raw byte from the wire is authoritative (which
+            // optionals AutoCAD actually wrote, e.g. an explicit
+            // width_factor 1.0 keeps bit 4 clear); compose only for
+            // constructed documents.
+            let mut data_flags: u8 = match e.raw_dataflags {
+                Some(raw) => raw,
+                None => {
+                    let mut composed = 0u8;
+                    // 0x01 = elevation (insertion z) is 0
+                    if e.insertion_point.z == 0.0 {
+                        composed |= 0x01;
+                    }
+                    // 0x02 = alignment equals the insertion point (the
+                    // 2DD default; LibreDWG dwg_set_dataflags semantics)
+                    if alignment_point.x == e.insertion_point.x
+                        && alignment_point.y == e.insertion_point.y
+                    {
+                        composed |= 0x02;
+                    }
+                    // 0x04 = oblique angle is 0
+                    if e.oblique_angle == 0.0 {
+                        composed |= 0x04;
+                    }
+                    // 0x08 = rotation is 0
+                    if e.rotation == 0.0 {
+                        composed |= 0x08;
+                    }
+                    // 0x10 = width factor is 1.0
+                    if e.width_factor == 1.0 {
+                        composed |= 0x10;
+                    }
+                    // 0x20 = generation (mirror) flag is None (0)
+                    if e.generation_flags == 0 {
+                        composed |= 0x20;
+                    }
+                    // 0x40 = horizontal alignment is Left (0)
+                    if e.horizontal_alignment as u8 == 0 {
+                        composed |= 0x40;
+                    }
+                    // 0x80 = vertical alignment is Baseline (0)
+                    if e.vertical_alignment as u8 == 0 {
+                        composed |= 0x80;
+                    }
+                    composed
+                }
+            };
             self.writer.write_byte(data_flags);
 
             // Elevation RD — present if !(DataFlags & 0x01)
@@ -1297,6 +1310,7 @@ impl<'a> DwgObjectWriter<'a> {
             att.text_generation_flags,
             att.horizontal_alignment as i16,
             att.vertical_alignment as i16,
+            att.raw_dataflags,
         );
 
         // writeCommonAttData: R2010+ version byte
@@ -2514,6 +2528,7 @@ impl<'a> DwgObjectWriter<'a> {
         // Write SEQEND — last in polyline chain
         self.prev_handle = None;
         self.next_handle = None;
+        let seqend_flags = self.seqend_era_flags();
         self.write_common_entity_data(
             common::OBJ_SEQEND,
             seqend_handle,
@@ -2533,8 +2548,8 @@ impl<'a> DwgObjectWriter<'a> {
             None,
             0,
             &None,
-            0,
-            0,
+            seqend_flags.0,
+            seqend_flags.1,
             &None,
             &None,
             &None,
@@ -2549,6 +2564,24 @@ impl<'a> DwgObjectWriter<'a> {
         // Restore block-level entity chain
         self.prev_handle = saved_prev;
         self.next_handle = saved_next;
+    }
+
+    fn seqend_era_flags(&self) -> (u8, u8) {
+        // AutoCAD's SEQEND convention, verified per owner across the
+        // example corpus (ex2000/2004/2007/2010/2013/2018): the
+        // polyline-family SEQENDs carry a flags-3-with-null-ref pair -
+        // plotstyle in the R2004 band, shadow R2007 through R2013 (gone
+        // at R2018) - while INSERT-attached SEQENDs carry none. Returns
+        // (shadow_flags, plotstyle_flags).
+        if self.version.r2007_plus()
+            && !self.version.r2018_plus(self.dxf_version)
+        {
+            (3, 0)
+        } else if self.version.r2004_plus() && !self.version.r2007_plus() {
+            (0, 3)
+        } else {
+            (0, 0)
+        }
     }
 
     fn write_vertex2d(
@@ -2693,6 +2726,7 @@ impl<'a> DwgObjectWriter<'a> {
         // Write SEQEND — last in polyline chain
         self.prev_handle = None;
         self.next_handle = None;
+        let seqend_flags = self.seqend_era_flags();
         self.write_common_entity_data(
             common::OBJ_SEQEND,
             seqend_handle,
@@ -2712,8 +2746,8 @@ impl<'a> DwgObjectWriter<'a> {
             None,
             0,
             &None,
-            0,
-            0,
+            seqend_flags.0,
+            seqend_flags.1,
             &None,
             &None,
             &None,
@@ -2909,6 +2943,7 @@ impl<'a> DwgObjectWriter<'a> {
         // Write SEQEND — last in polyface chain
         self.prev_handle = None;
         self.next_handle = None;
+        let seqend_flags = self.seqend_era_flags();
         self.write_common_entity_data(
             common::OBJ_SEQEND,
             seqend_handle,
@@ -2928,8 +2963,8 @@ impl<'a> DwgObjectWriter<'a> {
             None,
             0,
             &None,
-            0,
-            0,
+            seqend_flags.0,
+            seqend_flags.1,
             &None,
             &None,
             &None,
@@ -3049,6 +3084,7 @@ impl<'a> DwgObjectWriter<'a> {
         // Write SEQEND — last in polygon mesh chain
         self.prev_handle = None;
         self.next_handle = None;
+        let seqend_flags = self.seqend_era_flags();
         self.write_common_entity_data(
             common::OBJ_SEQEND,
             seqend_handle,
@@ -3068,8 +3104,8 @@ impl<'a> DwgObjectWriter<'a> {
             None,
             0,
             &None,
-            0,
-            0,
+            seqend_flags.0,
+            seqend_flags.1,
             &None,
             &None,
             &None,
@@ -3138,8 +3174,10 @@ impl<'a> DwgObjectWriter<'a> {
             self.writer.write_bit_double(crease);
         }
 
-        // Trailing value (override option for meshes)
-        self.writer.write_bit_long(e.override_option);
+        // Trailing raw bits (dwg.spec MESH FIELD_B unknown_b1/unknown_b2) —
+        // echo the retained wire bits verbatim (gold parity).
+        self.writer.write_bit(e.unknown_b1);
+        self.writer.write_bit(e.unknown_b2);
 
         self.register_object(e.common.handle);
     }
@@ -4114,8 +4152,14 @@ impl<'a> DwgObjectWriter<'a> {
             self.writer.write_bit_short(mode);
         }
 
-        // Data Length BL + data bytes
-        let data = e.encoded_payload();
+        // Data Length BL + data bytes. Echo the retained raw wire bytes when
+        // present (byte-identical rewrite — the re-encoded payload is not);
+        // the re-encode path serves constructed documents.
+        let data = if e.raw_data.is_empty() {
+            e.encoded_payload()
+        } else {
+            e.raw_data.clone()
+        };
         self.writer.write_bit_long(data.len() as i32);
         self.writer.write_bytes(&data);
 
@@ -4753,6 +4797,7 @@ impl<'a> DwgObjectWriter<'a> {
             e.text_generation_flags,
             e.horizontal_alignment as i16,
             e.vertical_alignment as i16,
+            e.raw_dataflags,
         );
 
         // writeCommonAttData: R2010+ version byte
@@ -4836,6 +4881,7 @@ impl<'a> DwgObjectWriter<'a> {
             e.text_generation_flags,
             e.horizontal_alignment as i16,
             e.vertical_alignment as i16,
+            e.raw_dataflags,
         );
 
         // writeCommonAttData: R2010+ version byte
@@ -4893,6 +4939,7 @@ impl<'a> DwgObjectWriter<'a> {
     /// Write the TEXT entity data structure shared by Text, AttDef, and AttEntity.
     /// This matches the C# `writeTextEntity` method.
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments)]
     fn write_text_entity_data(
         &mut self,
         insertion_point: Vector3,
@@ -4907,6 +4954,7 @@ impl<'a> DwgObjectWriter<'a> {
         generation: i16,
         horizontal_alignment: i16,
         vertical_alignment: i16,
+        raw_dataflags: Option<u8>,
     ) {
         if self.version.r13_14_only() {
             // R13-R14: all fields present
@@ -4926,33 +4974,49 @@ impl<'a> DwgObjectWriter<'a> {
             self.writer.write_bit_short(horizontal_alignment);
             self.writer.write_bit_short(vertical_alignment);
         } else {
-            // R2000+: DataFlags-based conditional encoding
-            let mut data_flags: u8 = 0;
-            if insertion_point.z == 0.0 {
-                data_flags |= 0b0000_0001; // elevation is zero
-            }
-            if alignment_point == Vector3::ZERO {
-                data_flags |= 0b0000_0010; // alignment point is zero
-            }
-            if oblique_angle == 0.0 {
-                data_flags |= 0b0000_0100;
-            }
-            if rotation == 0.0 {
-                data_flags |= 0b0000_1000;
-            }
-            if width_factor == 1.0 {
-                data_flags |= 0b0001_0000;
-            }
-            if generation == 0 {
-                data_flags |= 0b0010_0000; // no mirror
-            }
-            if horizontal_alignment == 0 {
-                data_flags |= 0b0100_0000; // left
-            }
-            if vertical_alignment == 0 {
-                data_flags |= 0b1000_0000; // baseline
-            }
-
+            // R2000+: DataFlags-based conditional encoding. The retained
+            // raw byte from the wire is authoritative (which optionals
+            // AutoCAD actually wrote); compose only for constructed
+            // documents.
+            let mut data_flags: u8 = match raw_dataflags {
+                Some(raw) => raw,
+                None => {
+                    let mut composed = 0u8;
+                    if insertion_point.z == 0.0 {
+                        composed |= 0b0000_0001; // elevation is zero
+                    }
+                    // LibreDWG dwg_set_dataflags (encode.c 8168): the bit
+                    // is only set when the alignment point EQUALS the
+                    // insertion point (the 2DD default) — not when it is
+                    // merely [0,0] (entities-2d's ATTRIB/ATTDEF carry a
+                    // real all-zero alignment with a non-zero insertion,
+                    // which gold decodes as present).
+                    if alignment_point.x == insertion_point.x
+                        && alignment_point.y == insertion_point.y
+                    {
+                        composed |= 0b0000_0010; // alignment == insertion
+                    }
+                    if oblique_angle == 0.0 {
+                        composed |= 0b0000_0100;
+                    }
+                    if rotation == 0.0 {
+                        composed |= 0b0000_1000;
+                    }
+                    if width_factor == 1.0 {
+                        composed |= 0b0001_0000;
+                    }
+                    if generation == 0 {
+                        composed |= 0b0010_0000; // no mirror
+                    }
+                    if horizontal_alignment == 0 {
+                        composed |= 0b0100_0000; // left
+                    }
+                    if vertical_alignment == 0 {
+                        composed |= 0b1000_0000; // baseline
+                    }
+                    composed
+                }
+            };
             self.writer.write_byte(data_flags);
 
             // Elevation RD — if !(flags & 0x01)
@@ -5210,6 +5274,10 @@ impl<'a> DwgObjectWriter<'a> {
                 self.write_acis_revision(&e.acis_data.revision);
             }
         }
+        // gold dwg2.spec PLANESURFACE order: BS modeler_format_version
+        // (70), then BS u_isolines (71) / v_isolines (72) — mirror the
+        // reader (the modeler value is retained from the wire).
+        self.writer.write_bit_short(e.modeler_format_version);
         self.writer.write_bit_short(e.u_isolines);
         self.writer.write_bit_short(e.v_isolines);
 
@@ -5614,9 +5682,22 @@ impl<'a> DwgObjectWriter<'a> {
                     }
                 }
 
-                // Write as a single block + terminating BL(0)
-                self.writer.write_bit_long(encrypted.len() as i32);
-                self.writer.write_bytes(&encrypted);
+                if !acis.encr_sat_data.is_empty() {
+                    // Retained raw wire blocks (reader-capture packet): echo
+                    // them verbatim — byte-identical rewrite (gold's
+                    // encr_sat_data compares raw block bytes; the fresh
+                    // re-encryption is CRLF/strip-normalized, not
+                    // byte-identical). The wireframe/revision tail below
+                    // still runs for the SAT path.
+                    for block in &acis.encr_sat_data {
+                        self.writer.write_bit_long(block.len() as i32);
+                        self.writer.write_bytes(block);
+                    }
+                } else {
+                    // Write as a single block + terminating BL(0)
+                    self.writer.write_bit_long(encrypted.len() as i32);
+                    self.writer.write_bytes(&encrypted);
+                }
                 self.writer.write_bit_long(0); // terminating empty block
             }
         }

@@ -393,6 +393,7 @@ fn explode_mtext(mtext: &MText) -> Vec<EntityType> {
         normal: mtext.normal,
         thickness: 0.0,
         generation_flags: 0,
+        raw_dataflags: None,
     };
     vec![EntityType::Text(text)]
 }
@@ -671,6 +672,7 @@ fn explode_dimension(dim: &Dimension) -> Vec<EntityType> {
         normal: base.normal,
         thickness: 0.0,
         generation_flags: 0,
+        raw_dataflags: None,
     };
     result.push(EntityType::Text(text));
 

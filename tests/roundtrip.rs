@@ -653,15 +653,25 @@ fn normalize_entity_for_comparison(entity: &mut EntityType) {
                 v.layer = String::new();
             }
             p.seqend_handle = None;
+            // Retained per-SEQEND wire flag pairs: fidelity bookkeeping
+            // (gold re-emits the wire SEQEND's own common flags), not
+            // payload semantics — the writer synthesizes era defaults on
+            // constructed documents. Clear both sides.
+            p.seqend_plotstyle_flags = 0;
+            p.seqend_shadow_flags = 0;
         }
         // Polyline2D: writer-allocated seqend handle (write allocates,
         // read stores the wire record's handle).
         EntityType::Polyline2D(p) => {
             p.seqend_handle = None;
+            p.seqend_plotstyle_flags = 0;
+            p.seqend_shadow_flags = 0;
         }
         // PolygonMesh: writer-allocated seqend handle, same as above.
         EntityType::PolygonMesh(pm) => {
             pm.seqend_handle = None;
+            pm.seqend_plotstyle_flags = 0;
+            pm.seqend_shadow_flags = 0;
         }
         // Viewport: the raw status_flag is retained from the wire on read
         // but absent on constructed documents (the writer then recomposes
@@ -672,6 +682,8 @@ fn normalize_entity_for_comparison(entity: &mut EntityType) {
         // PolyfaceMesh: seqend handle + nested vertex/face EntityCommon
         EntityType::PolyfaceMesh(pf) => {
             pf.seqend_handle = None;
+            pf.seqend_plotstyle_flags = 0;
+            pf.seqend_shadow_flags = 0;
             for v in &mut pf.vertices {
                 normalize_entity_common(&mut v.common);
             }
@@ -768,6 +780,23 @@ fn normalize_entity_for_comparison(entity: &mut EntityType) {
                 v.direction = round_vector3(v.direction, 14);
                 v.miter = round_vector3(v.miter, 14);
             }
+        }
+        // Retained raw R2000+ dataflags bytes are wire-fidelity
+        // bookkeeping, not payload semantics (a built document composes
+        // them from values); clear both sides before comparing.
+        EntityType::Text(t) => {
+            t.raw_dataflags = None;
+        }
+        EntityType::AttributeDefinition(a) => {
+            a.raw_dataflags = None;
+        }
+        EntityType::AttributeEntity(a) => {
+            a.raw_dataflags = None;
+        }
+        // Retained raw OLE blob — the decoded storage/envelope already
+        // model it; the raw echo is wire-fidelity bookkeeping.
+        EntityType::Ole2Frame(o) => {
+            o.raw_data.clear();
         }
         _ => {}
     }

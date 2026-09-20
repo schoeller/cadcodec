@@ -193,6 +193,13 @@ pub struct Polyline3D {
     /// (retained from the read; keeps the dump/normalizer and the
     /// rewrite faithful to gold's record layout).
     pub seqend_handle: Option<Handle>,
+    /// The chain's wire SEQEND record's own plotstyle_flags (retained from
+    /// the SEQEND entity's common data; gold re-emits it verbatim).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub seqend_plotstyle_flags: u8,
+    /// The chain's wire SEQEND record's own shadow_flags (R2007+).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub seqend_shadow_flags: u8,
 }
 
 impl Polyline3D {
@@ -212,6 +219,8 @@ impl Polyline3D {
             normal: Vector3::UNIT_Z,
             vertices: Vec::new(),
             seqend_handle: None,
+            seqend_plotstyle_flags: 0,
+            seqend_shadow_flags: 0,
         }
     }
 

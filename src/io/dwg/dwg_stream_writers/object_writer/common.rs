@@ -585,7 +585,14 @@ impl<'a> DwgObjectWriter<'a> {
                 .write_handle(DwgReferenceType::HardPointer, lt_handle.value());
         }
 
-        // ── R2007+: material flags + shadow flags ──
+        // ── R2000+: Plotstyle flag pair — comes IMMEDIATELY after
+        // ltype_flags in the main stream (common_entity_data.spec
+        // 507-511); the HANDLE keeps the last slot of the R2007+ group
+        // (handle-stream order: material, shadow, then plotstyle —
+        // common_entity_handle_data.spec 127-134). ──
+        self.writer.write_2bits(plotstyle_flags);
+
+        // ── R2007+: material pair + shadow flags + shadow handle ──
         if self.version.r2007_plus() {
             let material_handle = material_handle.filter(|handle| self.is_writable_object(handle));
             let material_flags = if material_flags == 0b11 && material_handle.is_none() {
@@ -593,7 +600,7 @@ impl<'a> DwgObjectWriter<'a> {
             } else {
                 material_flags
             };
-            // Material flags BB
+            // Material flags BB + handle (slot 1 of the group)
             self.writer.write_2bits(material_flags);
             if material_flags == 0b11 {
                 if let Some(mh) = material_handle {
@@ -603,12 +610,18 @@ impl<'a> DwgObjectWriter<'a> {
                     self.writer.write_handle(DwgReferenceType::HardPointer, 0);
                 }
             }
-            // Shadow flags RC
+            // Shadow flags RC + shadow handle slot (slot 2; gold pulls a
+            // null [5,0,0,0] ref on flags==3 — SEQENDs on 2007-2010
+            // examples carry exactly that null form)
             self.writer.write_byte(shadow_flags);
+            if shadow_flags == 0b11 {
+                // gold's null shadow ref is [5, 0, 0, 0] — a hard-pointer
+                // code with offset 0.
+                self.writer.write_handle(DwgReferenceType::HardPointer, 0);
+            }
         }
 
-        // ── R2000+: Plotstyle flags ──
-        self.writer.write_2bits(plotstyle_flags);
+        // ── plotstyle handle — LAST slot of the group ──
         if plotstyle_flags == 0b11 {
             if let Some(ph) = plotstyle_handle {
                 self.writer

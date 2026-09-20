@@ -231,8 +231,12 @@ pub struct Mesh {
     pub faces: Vec<MeshFace>,
     /// Mesh edges with crease information.
     pub edges: Vec<MeshEdge>,
-    /// Trailing mesh override option stored by DWG.
-    pub override_option: i32,
+    /// Trailing raw wire bits (dwg.spec MESH FIELD_B unknown_b1/
+    /// unknown_b2 after the crease vector) — retained from the read and
+    /// echoed verbatim by the writer for gold parity.
+    pub unknown_b1: bool,
+    /// Second trailing raw bit.
+    pub unknown_b2: bool,
 }
 
 impl Mesh {
@@ -246,7 +250,8 @@ impl Mesh {
             vertices: Vec::new(),
             faces: Vec::new(),
             edges: Vec::new(),
-            override_option: 0,
+            unknown_b1: false,
+            unknown_b2: false,
         }
     }
 

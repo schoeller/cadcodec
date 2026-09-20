@@ -423,6 +423,13 @@ pub struct PolyfaceMesh {
     pub faces: Vec<PolyfaceFace>,
     /// SEQEND handle (for DXF/DWG compatibility).
     pub seqend_handle: Option<Handle>,
+    /// The chain's wire SEQEND record's own plotstyle_flags (retained from
+    /// the SEQEND entity's common data; gold re-emits it verbatim).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub seqend_plotstyle_flags: u8,
+    /// The chain's wire SEQEND record's own shadow_flags (R2007+).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub seqend_shadow_flags: u8,
 }
 
 impl PolyfaceMesh {
@@ -449,6 +456,8 @@ impl PolyfaceMesh {
             vertices: Vec::new(),
             faces: Vec::new(),
             seqend_handle: None,
+            seqend_plotstyle_flags: 0,
+            seqend_shadow_flags: 0,
         }
     }
 

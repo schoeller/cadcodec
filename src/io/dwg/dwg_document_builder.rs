@@ -159,6 +159,11 @@ struct PendingPolylines {
     vertices: HashMap<u64, Vec<PendingVertex>>,
     /// SEQEND handle keyed by owner (parent polyline) handle.
     seqends: HashMap<u64, crate::types::Handle>,
+    /// The wire SEQEND records' own common flag pairs (plotstyle_flags,
+    /// shadow_flags) keyed by owner — gold re-emits them verbatim per
+    /// record (LibreDWG-authored example files carry 3/null, DWG-native
+    /// chains 0), so parent-flags guesses are wrong either way.
+    seqend_flags: HashMap<u64, (u8, u8)>,
     /// Polyline entities awaiting vertex assembly, keyed by their handle.
     polylines: Vec<(u64, EntityType)>,
 }
@@ -1658,6 +1663,7 @@ impl DwgDocumentBuilder {
         let mut pending = PendingPolylines {
             vertices: HashMap::new(),
             seqends: HashMap::new(),
+            seqend_flags: HashMap::new(),
             polylines: Vec::new(),
         };
         // Pending attribute entities keyed by owner (INSERT) handle.
@@ -1834,6 +1840,7 @@ impl DwgDocumentBuilder {
                         .append(&mut vertices);
                 }
                 pending.seqends.extend(chunk.pending.seqends.drain());
+            pending.seqend_flags.extend(chunk.pending.seqend_flags.drain());
                 pending.polylines.append(&mut chunk.pending.polylines);
                 for (owner, mut attributes) in chunk.pending_attributes.drain() {
                     pending_attributes
@@ -1901,6 +1908,12 @@ impl DwgDocumentBuilder {
                         // Preserve the wire's SEQEND handle for this chain.
                         if let Some(sh) = pending.seqends.get(&poly_handle).copied() {
                             e.seqend_handle = Some(sh);
+                            if let Some((pf, sf)) =
+                                pending.seqend_flags.get(&poly_handle).copied()
+                            {
+                                e.seqend_plotstyle_flags = pf;
+                                e.seqend_shadow_flags = sf;
+                            }
                         }
                     }
                     EntityType::Polyline3D(ref mut e) => {
@@ -1922,6 +1935,12 @@ impl DwgDocumentBuilder {
                         // Preserve the wire's SEQEND handle for this chain.
                         if let Some(sh) = pending.seqends.get(&poly_handle).copied() {
                             e.seqend_handle = Some(sh);
+                            if let Some((pf, sf)) =
+                                pending.seqend_flags.get(&poly_handle).copied()
+                            {
+                                e.seqend_plotstyle_flags = pf;
+                                e.seqend_shadow_flags = sf;
+                            }
                         }
                     }
                     EntityType::PolyfaceMesh(ref mut e) => {
@@ -1956,6 +1975,12 @@ impl DwgDocumentBuilder {
                         // Restore the seqend handle for this polyface mesh
                         if let Some(sh) = pending.seqends.get(&poly_handle).copied() {
                             e.seqend_handle = Some(sh);
+                            if let Some((pf, sf)) =
+                                pending.seqend_flags.get(&poly_handle).copied()
+                            {
+                                e.seqend_plotstyle_flags = pf;
+                                e.seqend_shadow_flags = sf;
+                            }
                         }
                     }
                     EntityType::PolygonMesh(ref mut e) => {
@@ -1983,6 +2008,12 @@ impl DwgDocumentBuilder {
                         // Preserve the wire's SEQEND handle for this chain.
                         if let Some(sh) = pending.seqends.get(&poly_handle).copied() {
                             e.seqend_handle = Some(sh);
+                            if let Some((pf, sf)) =
+                                pending.seqend_flags.get(&poly_handle).copied()
+                            {
+                                e.seqend_plotstyle_flags = pf;
+                                e.seqend_shadow_flags = sf;
+                            }
                         }
                     }
                     _ => {}
@@ -2007,6 +2038,10 @@ impl DwgDocumentBuilder {
                     }
                     if let Some(seqend) = pending.seqends.get(&insert_handle).copied() {
                         ins.seqend_handle = Some(seqend);
+                    }
+                    if let Some((pf, sf)) = pending.seqend_flags.get(&insert_handle).copied() {
+                        ins.seqend_plotstyle_flags = pf;
+                        ins.seqend_shadow_flags = sf;
                     }
                 }
             }
@@ -3652,13 +3687,20 @@ impl DwgDocumentBuilder {
                         3 => TextVerticalAlignment::Top,
                         _ => TextVerticalAlignment::Baseline,
                     };
-                    // Only set alignment_point when alignment mode actually uses it
-                    e.alignment_point =
-                        if data.horizontal_alignment != 0 || data.vertical_alignment != 0 {
+                    // The retained raw dataflags bit 1 is authoritative for
+                    // whether the wire carried the alignment point; keep the
+                    // alignment-mode heuristic only where the raw byte is
+                    // absent (the R13-14 layout / constructed documents).
+                    e.alignment_point = match data.raw_dataflags {
+                        Some(flags) if flags & 0x02 == 0 => Some(data.alignment_point),
+                        Some(_) => None,
+                        None if data.horizontal_alignment != 0
+                            || data.vertical_alignment != 0 =>
+                        {
                             Some(data.alignment_point)
-                        } else {
-                            None
-                        };
+                        }
+                        None => None,
+                    };
                     e.rotation = data.rotation;
                     e.oblique_angle = data.oblique_angle;
                     e.width_factor = data.width_factor;
@@ -3666,6 +3708,7 @@ impl DwgDocumentBuilder {
                     e.style = maps.style_name(data.style_handle);
                     e.thickness = data.thickness;
                     e.generation_flags = data.generation;
+                    e.raw_dataflags = data.raw_dataflags;
                     let _ = document.add_entity(EntityType::Text(e));
                 }
                 OBJ_MTEXT => {
@@ -4175,7 +4218,8 @@ impl DwgDocumentBuilder {
                             crease: data.crease_values.get(i).copied().filter(|v| *v != 0.0),
                         })
                         .collect();
-                    e.override_option = data.override_option;
+                    e.unknown_b1 = data.unknown_b1;
+                    e.unknown_b2 = data.unknown_b2;
                     let _ = document.add_entity(EntityType::Mesh(e));
                 }
 
@@ -4312,6 +4356,7 @@ impl DwgDocumentBuilder {
                     e.mtext_flag = MTextFlag::from_value(data.att_type as i16);
                     e.is_multiline = data.att_type > 1;
                     e.line_count = e.default_value.matches("\\P").count() as i16 + 1;
+                    e.raw_dataflags = data.text_data.raw_dataflags;
                     e.embedded_mtext = data.embedded_mtext.map(|mtext| {
                         Box::new(mtext_from_data(mtext, EntityCommon::default(), &maps))
                     });
@@ -4372,6 +4417,7 @@ impl DwgDocumentBuilder {
                     e.mtext_flag = MTextFlag::from_value(data.att_type as i16);
                     e.is_multiline = data.att_type > 1;
                     e.line_count = e.value.matches("\\P").count() as i16 + 1;
+                    e.raw_dataflags = data.text_data.raw_dataflags;
                     e.embedded_mtext = data.embedded_mtext.map(|mtext| {
                         Box::new(mtext_from_data(mtext, EntityCommon::default(), &maps))
                     });
@@ -4406,6 +4452,10 @@ impl DwgDocumentBuilder {
                     // attribute sequence. Store the seqend handle so
                     // it can be preserved on the parent polyline.
                     entities::read_seqend(&mut reader);
+                    pending.seqend_flags.insert(
+                        entity_data.owner_handle,
+                        (entity_data.plotstyle_flags, entity_data.shadow_flags),
+                    );
                     pending
                         .seqends
                         .insert(entity_data.owner_handle, entity_common.handle);
@@ -4571,6 +4621,7 @@ impl DwgDocumentBuilder {
                     e.dwg_mode = data.mode;
                     e.is_paper_space = data.mode == 1;
                     e.lock_aspect = data.lock_aspect;
+                    e.raw_data = data.raw_data;
                     let _ = document.add_entity(EntityType::Ole2Frame(e));
                 }
 
@@ -4619,6 +4670,7 @@ impl DwgDocumentBuilder {
                     e.acis_data.acis_empty_bit = data.acis_empty_bit;
                     e.acis_data.extra_acis_data = data.extra_acis_data.map(Box::new);
                     e.acis_data.wireframe_isolines = data.isolines;
+                    e.acis_data.encr_sat_data = data.encr_sat_data;
                     // The wireframe anchor AutoCAD bakes in (point_present +
                     // 3BD) is the body's bounding-box centre — the natural
                     // reference point. Empty/degenerate bodies (no anchor) fall
@@ -4669,6 +4721,7 @@ impl DwgDocumentBuilder {
                     e.acis_data.acis_empty_bit = data.acis_empty_bit;
                     e.acis_data.extra_acis_data = data.extra_acis_data.map(Box::new);
                     e.acis_data.wireframe_isolines = data.isolines;
+                    e.acis_data.encr_sat_data = data.encr_sat_data;
                     // The wireframe anchor AutoCAD bakes in (point_present +
                     // 3BD) is the body's bounding-box centre — the natural
                     // reference point. Empty/degenerate bodies (no anchor) fall
@@ -4710,6 +4763,7 @@ impl DwgDocumentBuilder {
                     e.acis_data.acis_empty_bit = data.acis_empty_bit;
                     e.acis_data.extra_acis_data = data.extra_acis_data.map(Box::new);
                     e.acis_data.wireframe_isolines = data.isolines;
+                    e.acis_data.encr_sat_data = data.encr_sat_data;
                     // The wireframe anchor AutoCAD bakes in (point_present +
                     // 3BD) is the body's bounding-box centre — the natural
                     // reference point. Empty/degenerate bodies (no anchor) fall
@@ -4770,6 +4824,7 @@ impl DwgDocumentBuilder {
                     e.acis_data.acis_empty_bit = data.acis.acis_empty_bit;
                     e.acis_data.extra_acis_data = data.acis.extra_acis_data.map(Box::new);
                     e.acis_data.wireframe_isolines = data.acis.isolines;
+                    e.acis_data.encr_sat_data = data.acis.encr_sat_data;
                     e.wires = data.acis.wires;
                     e.silhouettes = data.acis.silhouettes;
                     e.point_of_reference = data.acis.point;
@@ -5503,6 +5558,17 @@ impl DwgDocumentBuilder {
                     let mut obj = crate::objects::UnderlayDefinition::new(utype);
                     obj.handle = Handle::from(handle);
                     obj.owner_handle = owner_handle;
+                    // Reactors are parsed into the object-common data (the
+                    // wire lists every referencing underlay entity plus the
+                    // owner dictionary); keep them on the struct so dwg2json
+                    // emits them for the gold comparison and the writer
+                    // echoes them (Dictionary precedent).
+                    obj.reactors = non_entity_data
+                        .reactors
+                        .iter()
+                        .copied()
+                        .map(Handle::from)
+                        .collect();
                     obj.file_path = data.file_path;
                     obj.page_name = data.page_name;
                     document.objects.insert(
