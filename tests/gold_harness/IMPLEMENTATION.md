@@ -296,8 +296,10 @@ SEQEND real-handle retention (2026-09-20 fifteenth batch, `689b14d`) +
 VIEWPORT.status_flag raw retention (2026-09-20 sixteenth batch,
 `263ab5f`) + LEADEROBJECTCONTEXTDATA retype (2026-09-20 seventeenth
 batch, `9f06d89`) + TOLERANCE field-name set (2026-09-20 eighteenth
-batch, `a7e451b`), 2026-09-20):**
-read-fidelity **575**, write-fidelity **598** — the 1 000 milestone was
+batch, `a7e451b`) + smalls batch: MTEXT columns / GROUP.name /
+VISUALSTYLE BS sign / 3DFACE z_is_zero / MLINE CLOSED (2026-09-20
+nineteenth batch, `257895a`), 2026-09-20):**
+read-fidelity **558**, write-fidelity **536** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -318,7 +320,9 @@ then took −4/−4; the WIPEOUT/IMAGE imagedefreactor code fix then took
 −12 write rows; the SEQEND real-handle retention then took −18 write
 rows; the VIEWPORT.status_flag raw retention then took −17 read
 rows; the LEADEROBJECTCONTEXTDATA retype then took −24/−24; the
-TOLERANCE field-name batch then took −63/−63). gh44-error.dwg
+TOLERANCE field-name batch then took −63/−63; the smalls batch
+(MTEXT columns, GROUP.name, VISUALSTYLE sign, 3DFACE z_is_zero,
+MLINE CLOSED) then took −17/−62). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -328,13 +332,13 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`a7e451b` corpus;
+mirrored read/write; ranking from the fresh post-`257895a` corpus;
 PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
 MULTILEADER attach trio + TABLECONTENT retype + VERTEX_MESH dropped
 records + ACSH_CONE_CLASS retype + WIPEOUT imagedefreactor codes +
 SEQEND real handles + VIEWPORT.status_flag raw + LEADEROBJECTCONTEXTDATA
-retype + TOLERANCE field names landed as batches seven through
-eighteen — see §8.1.6):**
+retype + TOLERANCE field names + the smalls batch landed as batches
+seven through nineteen — see §8.1.6):**
 1. **UNKNOWN-family retyping pockets** (ranked from the post-`543f877`
    corpus: UNKNOWN_OBJ._missing 8, _count 0 — the Cone pocket landed as
    batch thirteen; the queued ownerhandle 37 family self-resolved — its
@@ -826,9 +830,9 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> the TOLERANCE field-name batch `a7e451b`): read **575** /
-> write **598** — below the 1 000 milestone, closing on the below-100
-> campaign target — and the two sides MIRROR family-for-family (the
+> the smalls batch `257895a`): read **558** / write **536** — below
+> the 1 000 milestone, closing on the below-100 campaign target —
+> and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
 > unknown_bits side channel −448/−448; the style-map/chain/MLINE batch
@@ -855,9 +859,38 @@ Given a diff `(type, field, kind)`:
 >   retention landed (2026-09-20 fifteenth batch, `689b14d`), the
 >   VIEWPORT.status_flag raw retention landed (2026-09-20 sixteenth
 >   batch, `263ab5f`), the LEADEROBJECTCONTEXTDATA retype landed
->   (2026-09-20 seventeenth batch, `9f06d89`) and the TOLERANCE
+>   (2026-09-20 seventeenth batch, `9f06d89`), the TOLERANCE
 >   field-name projection landed (2026-09-20 eighteenth batch,
->   `a7e451b`) — see their DONE entries below.
+>   `a7e451b`) and the smalls batch landed (2026-09-20 nineteenth
+>   batch, `257895a`: MTEXT columns, GROUP.name, VISUALSTYLE BS sign,
+>   3DFACE z_is_zero, MLINE CLOSED) — see their DONE entries below.
+
+  ~~smalls batch: MTEXT columns / GROUP.name / VISUALSTYLE BS sign /
+  3DFACE z_is_zero / MLINE CLOSED~~ — **DONE (2026-09-20 nineteenth
+  batch, `257895a`; read 575 → 558 / write 598 → 536, −17/−62)**
+  — five independent one-liner families, recipes in the commit:
+  (a) MTEXT columns: the nested column_data projection now emits
+  gold's flat names (width→column_width, heights→column_heights) and
+  skips silver-only column_count; carrier 2018/Text.dwg only (the
+  Text stem exists in every version dir — always fresh-probe the
+  right era). (b) GROUP.name: the wire CARRIES group names
+  (dwg.spec 4498 FIELD_T (name, 300); 2018/Leader is "Superhatch") —
+  silver's reader stores it under the misnomered `description`
+  payload key (GroupData.description; the writer writes it back, rt
+  faithful) — project it; the old always-"" emission was a bad
+  census. (c) VISUALSTYLE Short-variant values mask with 0xFFFF
+  (gold FIELD_CAST (…, BS, BL) zero-extends; 0xFFCE = 65486 vs
+  silver's -50; the MATERIAL-rgb unsigned lesson re-applied).
+  (d) 3DFACE: gold's ENCODER derives z_is_zero from corner1.z alone
+  (dwg.spec 2125) — the writer's AND-of-four disagreed with silver's
+  own normalizer derive on the rt pair (8 rows on 2013/gh109_1 —
+  in-scope like gh209_1; only gh44-error is excluded). (e) MLINE:
+  the reader parsed the openclosed BS but the builder DROPPED it —
+  retain the CLOSED bit (dwg.h: HAS_VERTEX=1 | CLOSED=2; the writer
+  already derived its wire value from MLineFlags::CLOSED); the
+  normalizer splits bitflags' serde joined strings on " | ".
+  LESSON: never put backticks in bash-embedded commit-message
+  strings (one got command-substituted in this commit's body).
 
   ~~TOLERANCE field-name set~~ — **DONE (2026-09-20 eighteenth batch,
   `a7e451b`; read 638 → 575 / write 661 → 598, −63/−63 — far more
