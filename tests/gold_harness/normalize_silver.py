@@ -296,11 +296,13 @@ _LWEIGHT_INDEXED = [0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53,
 
 
 def _lweight_index(mm100: int) -> Any:
-    """Map a mm*100 weight value back to gold's raw table index."""
+    """Map a mm*100 weight value back to gold's raw table index. Echo the
+    raw code for out-of-table values (gold prints the wire byte verbatim
+    for invalid codes like Dynblocks R2018's 28)."""
     try:
         return _LWEIGHT_INDEXED.index(mm100)
     except ValueError:
-        return 0
+        return mm100
 
 
 def _lineweight_to_gold(value: Any) -> Any:
@@ -4870,6 +4872,13 @@ def normalize_silver(
                 fields["block_header"] = normalize_handle_value(payload["block_record"])
             if payload.get("viewport") is not None:
                 fields["active_viewport"] = normalize_handle_value(payload["viewport"])
+            # viewports (gold HANDLE_VECTOR, code 4): silver's Layout keeps
+            # the actual per-layout viewport handle list (verified ex2018:
+            # layout 86 -> [136]).
+            _vps = payload.pop("viewports", None)
+            if isinstance(_vps, list) and _vps:
+                fields["viewports"] = [normalize_handle_value(h)
+                                       for h in _vps if isinstance(h, int)]
             # drop all consumed/silver-only keys so the generic loop skips them
             for kk in (list(_PS) + list(_LAY) + [
                 "plot_flags", "plot_origin_x", "plot_origin_y",

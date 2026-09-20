@@ -639,8 +639,22 @@ impl<'a> DwgObjectWriter<'a> {
         // ── MAIN: Invisibility ──
         self.writer.write_bit_short(if invisible { 1 } else { 0 });
 
-        // ── R2000+: Lineweight (5-bit DWG index) ──
-        self.writer.write_byte(line_weight.to_dwg_index());
+        // ── R2000+: Lineweight (the raw wire code) ──
+        // Gold echoes out-of-table codes verbatim; the table round-trip
+        // would fold them (untabled Value(v) -> index 31 = Default) and
+        // corrupt the rewrite (Dynblocks R2018's invalid code 28).
+        let code = {
+            let idx = line_weight.to_dwg_index();
+            match line_weight {
+                crate::types::LineWeight::Value(v)
+                    if crate::types::LineWeight::from_dwg_index(idx) != *line_weight =>
+                {
+                    *v as u8
+                }
+                _ => idx,
+            }
+        };
+        self.writer.write_byte(code);
     }
 
     // ── write_common_non_entity_data ────────────────────────────────

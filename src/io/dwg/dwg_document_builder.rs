@@ -7332,8 +7332,14 @@ fn map_entity_common(
     common.invisible = data.invisible;
     common.linetype_scale = data.linetype_scale;
     common.layer = maps.layer_name(data.layer_handle);
-    // Line weight (raw DWG index byte → LineWeight)
-    common.line_weight = crate::types::LineWeight::from_dwg_index(data.line_weight);
+    // Line weight (raw DWG code byte → LineWeight). The entity-common RC
+    // is the wire CODE, not a sanitizable table slot: gold echoes
+    // out-of-table codes verbatim (Dynblocks R2018 wires the invalid code
+    // 28 on its circles — gold prints 28; folding to ByLayer loses it).
+    common.line_weight = match data.line_weight {
+        0..=23 | 29..=31 => crate::types::LineWeight::from_dwg_index(data.line_weight),
+        raw => crate::types::LineWeight::Value(raw as i16),
+    };
     // Reactors
     common.reactors = data.reactors.iter().map(|&h| Handle::from(h)).collect();
     // XDictionary handle
