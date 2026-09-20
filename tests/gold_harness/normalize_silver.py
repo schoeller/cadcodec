@@ -2385,6 +2385,33 @@ def normalize_silver(
             if isinstance(_ds_h, int) and _ds_h:
                 fields["dimstyle"] = normalize_handle_value(_ds_h)
             payload.pop("dimension_style_name", None)
+            # gold dwg.spec 3058 (TOLERANCE): the R2000+ wire carries
+            # 3BD ins_pt, 3BD x_direction, extrusion, T text_value —
+            # silver's names map 1:1 (insertion_point/direction/text,
+            # values verified identical). The unknown_short/height/dimgap
+            # trio exists only on VERSIONS (R_13b1, R_14) wires; silver's
+            # struct carries them unconditionally — pop them on R2000+.
+            _ip = payload.pop("insertion_point", None)
+            if _ip is not None:
+                fields["ins_pt"] = normalize_value(_ip)
+            _dr = payload.pop("direction", None)
+            if _dr is not None:
+                fields["x_direction"] = normalize_value(_dr)
+            _tx = payload.pop("text", None)
+            if _tx is not None:
+                fields["text_value"] = _tx
+            if r2000_plus:
+                payload.pop("text_height", None)
+                payload.pop("dimension_gap", None)
+                payload.pop("dwg_unknown_short", None)
+            else:
+                fields["height"] = normalize_float(
+                    payload.pop("text_height", 0.0) or 0.0)
+                fields["dimgap"] = normalize_float(
+                    payload.pop("dimension_gap", 0.0) or 0.0)
+                _us = payload.pop("dwg_unknown_short", None)
+                if _us is not None:
+                    fields["unknown_short"] = _us
 
         # MLINE entity (dwg.spec 1569 DWG path): gold emits scale/
         # justification (RC enum)/base_point/extrusion/flags (BS bits)/
