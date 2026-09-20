@@ -1157,6 +1157,13 @@ def normalize_silver(
                 and "LayoutPrintConfig" in payload["data"]
                 and "RegisteredClass" not in payload["data"]):
             gold_type = "LAYOUTPRINTCONFIG"
+        # SECTIONOBJECT (dwg2.spec, live — the AcDbSection entity on
+        # 2018/LiveSection1.dwg): silver parses it into the Extended/
+        # SectionObject wrapper with the same wire fields.
+        if (silver_type == "Extended"
+                and isinstance(payload.get("data"), dict)
+                and "SectionObject" in payload["data"]):
+            gold_type = "SECTIONOBJECT"
         # SURFACE family (2004/Surface.dwg): gold's EXTRUDED/LOFTED/
         # REVOLVED/SWEPT SURFACE blocks sit in the dead frame (§8.1.1 —
         # dwg2.spec 3716-4513): the class instances decode as raw
@@ -1444,6 +1451,37 @@ def normalize_silver(
                 fields["prev_entity"] = normalize_handle_value(0)
                 fields["next_entity"] = normalize_handle_value(0)
                 fields["nolinks"] = 0
+            fields.pop("graphic_data", None)
+
+        if gold_type == "SECTIONOBJECT":
+            # gold SECTIONOBJECT (dwg2.spec, the AcDbSection entity —
+            # LiveSection1.dwg 552): state/flags/name/vert_dir/top/
+            # bottom_height, indicator_alpha + the bare indicator_color
+            # index, `verts` (3BD points), section_settings (code 3,
+            # the settings object handle). Gold's preview* fields are
+            # ignore-listed (never normalized).
+            _soc = payload.pop("data") if isinstance(payload.get("data"), dict) else {}
+            _so = (_soc.get("SectionObject")
+                   if isinstance(_soc.get("SectionObject"), dict) else {})
+            fields["state"] = _so.get("state", 0)
+            fields["flags"] = _so.get("flags", 0)
+            fields["name"] = _so.get("name", "") or ""
+            fields["vert_dir"] = normalize_value(_so.get("vertical_direction"))
+            fields["top_height"] = normalize_float(_so.get("top_height", 0.0) or 0.0)
+            fields["bottom_height"] = normalize_float(_so.get("bottom_height", 0.0) or 0.0)
+            fields["indicator_alpha"] = _so.get("indicator_alpha", 0)
+            _sic = _so.get("indicator_color")
+            fields["indicator_color"] = (_sic.get("Index")
+                                          if isinstance(_sic, dict) else _sic) or 0
+            _svn = _so.get("vertices")
+            if isinstance(_svn, list) and _svn:
+                fields["verts"] = [normalize_value(p) for p in _svn]
+            fields["section_settings"] = normalize_handle_value(
+                _so.get("settings_handle", 0) or 0)
+            _sbl = _so.get("back_line_vertices")
+            if isinstance(_sbl, list) and _sbl:
+                fields["back_line_verts"] = [normalize_value(p) for p in _sbl]
+            fields.pop("graphic_data", None)
 
         if silver_type == "LwPolyline":
             # Gold LWPOLYLINE: flag (bitfield), points (2D array), bulges,
@@ -4059,6 +4097,17 @@ def normalize_silver(
                 "Dgn": "DGNDEFINITION",
                 "Png": "PNGDEFINITION", "Jpeg": "JPGDEFINITION",
             }.get(payload["underlay_type"], "PDFDEFINITION")
+        # Section family (2018/LiveSection1.dwg): silver parses
+        # AcDbSectionManager / AcDbSectionSettings into the ClassObject
+        # wrapper. Gold's SECTION_MANAGER (dwg2.spec, live: the 553
+        # record is is_live + sections only) and SECTION_SETTINGS. The
+        # SectionViewStyle/DetailViewStyle classes stay UNKNOWN_OBJ.
+        if (silver_type == "ClassObject"
+                and isinstance(payload.get("data"), dict)):
+            if "SectionManager" in payload["data"]:
+                gold_type = "SECTION_MANAGER"
+            elif "SectionSettings" in payload["data"]:
+                gold_type = "SECTION_SETTINGS"
         # Wrapper retype (§8.1.6 unmodeled-class campaign): silver's
         # DynamicBlock/ClassObject-style wrappers parse class-registered
         # objects they do not model individually, keeping the class-table
@@ -4386,6 +4435,31 @@ def normalize_silver(
             fields["name"] = payload.pop("page_name", "") or ""
             payload.pop("underlay_type", None)
             payload.pop("name", None)
+        if silver_type == "ClassObject":
+            _codata = payload.get("data")
+            if not isinstance(_codata, dict):
+                _codata = {}
+            if gold_type == "SECTION_MANAGER" and "SectionManager" in _codata:
+                # gold SECTION_MANAGER (dwg2.spec, live): is_live B +
+                # the sections handle vector (the 552 section entity).
+                _sm = _codata.get("SectionManager") or {}
+                fields["is_live"] = 1 if _sm.get("is_live") else 0
+                _sms = _sm.get("sections")
+                if isinstance(_sms, list) and _sms:
+                    fields["sections"] = [normalize_handle_value(h) for h in _sms]
+                payload.pop("data", None)
+            elif gold_type == "SECTION_SETTINGS" and "SectionSettings" in _codata:
+                # gold SECTION_SETTINGS: curr_type 4BITS + the types
+                # REPEAT (normalize_gold collapses each entry dict to a
+                # bare 0 — emit [0]*n) + gold retains the tail as
+                # unknown_bits (silver parses past gold's spec stop; the
+                # raw tail channel is not retained — residual row).
+                _ss = _codata.get("SectionSettings") or {}
+                fields["curr_type"] = _ss.get("current_type", 0)
+                _st = _ss.get("types")
+                if isinstance(_st, list):
+                    fields["types"] = [0] * len(_st)
+                payload.pop("data", None)
         if r2004_plus:
             # Gold emits is_xdic_missing on every object's handle stream
             # (and xdicobjhandle when the dictionary exists — all versions).
