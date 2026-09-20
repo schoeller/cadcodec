@@ -52,22 +52,52 @@ error on rewritten DWGs (see §7).
 
 ## 3. Architecture
 
-```
-            LibreDWG (gold, WSL)                     cadcodec/acadrust (silver)
-            -------------------                     ---------------------------
-orig.dwg --> dwgread -O JSON --> gold_orig.json  --> [normalize] --+
-orig.dwg ---------------------------------------> DwgReader.read() |
-                                                     |             |
-                                                     v             |
-                                              CadDocument --serde--> silver_orig.json
-                                                     |             |
-                                              DwgWriter            |
-                                                     v             |
-                                              rt.dwg ---------> dwgread -O JSON --> gold_rt.json
-                                                     |             |
-                                              DwgReader.read()     |
-                                                     v             v
-                                              silver_rt.json   [normalize + DIFF] --> report
+```mermaid
+flowchart LR
+    ORIG["orig.dwg"]
+
+    subgraph SGOLD["LibreDWG — gold (read-only oracle, WSL)"]
+        DR1["dwgread -O JSON"]
+        DR2["dwgread -O JSON"]
+    end
+
+    subgraph SSILVER["cadcodec / acadrust — silver"]
+        R1["DwgReader.read()"]
+        DOC[("CadDocument")]
+        W["DwgWriter"]
+        R2["DwgReader.read()"]
+    end
+
+    subgraph SHARNESS["gold_harness — normalize + diff_fields"]
+        D1["1. read fidelity<br/>(gold_orig vs silver_orig)"]
+        D2["2. write fidelity<br/>(gold_orig vs gold_rt)"]
+        D3["3. internal consistency<br/>(silver_orig vs silver_rt — currently stubbed)"]
+        REP["reports<br/>(per-file + corpus)"]
+    end
+
+    %% gold reads the original
+    ORIG --> DR1 --> GO["gold_orig.json"]
+
+    %% silver reads the original, dumps it, and rewrites it
+    ORIG --> R1 --> DOC
+    DOC -- "serde dump" --> SO["silver_orig.json"]
+    DOC --> W --> RT["rt.dwg"]
+
+    %% both sides read the rewrite
+    RT --> DR2 --> GR["gold_rt.json"]
+    RT --> R2 --> SR["silver_rt.json"]
+
+    %% the three diffs per file
+    GO --> D1
+    SO --> D1
+    GO --> D2
+    GR --> D2
+    SO --> D3
+    SR --> D3
+
+    D1 --> REP
+    D2 --> REP
+    D3 --> REP
 ```
 
 Three diffs per file:
