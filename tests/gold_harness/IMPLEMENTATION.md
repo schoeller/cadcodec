@@ -285,8 +285,10 @@ reader/writer/normalizer + LAYOUT.viewports (2026-09-20 fourth + fifth +
 sixth batches) + PROXY_OBJECT raw-window/objids capture (2026-09-20
 seventh batch, `fa2cb0a`) + DIMSTYLE_CONTROL.morehandles reader capture
 + writer echo (2026-09-20 eighth batch, `b08d346`) + LEADER R2000-pair
-family fix (2026-09-20 ninth batch, `b6e6e92`), 2026-09-20):**
-read-fidelity **719**, write-fidelity **755** — the 1 000 milestone was
+family fix (2026-09-20 ninth batch, `b6e6e92`) + MULTILEADER attach
+trio — R2010 tail gate + raw retention (2026-09-20 tenth batch,
+`45382ec`), 2026-09-20):**
+read-fidelity **707**, write-fidelity **743** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -299,7 +301,8 @@ the HELIX/dimstyle/MATERIAL-rgb batch then took −172/−172; the UNKNOWN
 handle-code unstamp then took −37/−3; the raw-linewt + LAYOUT.viewports
 batch then took −46/−9; the PROXY_OBJECT raw-window/objids batch then took
 −13/−13; the DIMSTYLE_CONTROL.morehandles capture then took −104/0; the
-LEADER R2000-pair family then took −24/−24). gh44-error.dwg
+LEADER R2000-pair family then took −24/−24; the MULTILEADER attach-trio
+batch then took −12/−12 — MULTILEADER rows zero on both sides). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -309,9 +312,10 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`b08d346` corpus;
-PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles landed as batches seven
-and eight — see §8.1.6):**
+mirrored read/write; ranking from the fresh post-`45382ec` corpus;
+PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
+MULTILEADER attach trio landed as batches seven through ten — see
+§8.1.6):**
 1. **UNKNOWN_OBJ.ownerhandle 37 + _missing 15 + _count 9**: the reader
    ownercode side channel (pipeline-default code 4 vs gold's
    wire-relative 6/8 — the unknown_bits precedent) + the 3140-class
@@ -330,11 +334,7 @@ and eight — see §8.1.6):**
    irreversible table codes, normalizer `_lweight_index` echoes
    out-of-table mm values; `6fd5a10`); LEADER R2000 pairs (ninth batch,
    `b6e6e92`).
-3. **Value-dependent remaining**: MULTILEADER.attach_top/bottom 9+9
-   (gold BS pairs 32/4786/178 per record — the dwg2.spec 1447-1452 trio
-   `attach_dir`(271)/`attach_top`(273)/`attach_bottom`(272), SINCE
-   R_2010b right before COMMON_ENTITY_HANDLE_DATA; no "dock" fields
-   exist), VIEWPORT.status_flag 17 (Dynblocks R2018: gold 819232 vs
+3. **Value-dependent remaining**: VIEWPORT.status_flag 17 (Dynblocks R2018: gold 819232 vs
    silver 32800 — plain `FIELD_BL` SINCE R_2000b, dwg.spec 2484; needs
    raw retention: reader capture + writer echo + normalizer preference).
 4. **Scattered entity families**: RAY/XLINE point/vector/base_point/
@@ -793,9 +793,9 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> packets `b40ba42`…`bd02a3e`): read **1 453** / write **1 312** — both
-> sides BELOW the 2 000 interim milestone ("below 1 000" campaign target
-> not yet reached) — and the two sides MIRROR family-for-family (the
+> the MULTILEADER attach-trio batch `45382ec`): read **707** / write
+> **743** — below the 1 000 milestone, closing on the below-100 campaign
+> target — and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
 > unknown_bits side channel −448/−448; the style-map/chain/MLINE batch
@@ -810,8 +810,59 @@ Given a diff `(type, field, kind)`:
 > landed (2026-09-20 seventh batch, `fa2cb0a`; full LibreDWG-source parse
 >   evidence in `target/probes/fullsrc/` — see the DONE entry below).
 >   DIMSTYLE_CONTROL.morehandles landed (2026-09-20 eighth batch,
->   `b08d346`) and the LEADER R2000-pair family landed (2026-09-20
->   ninth batch, `b6e6e92`) — see their DONE entries below.
+>   `b08d346`), the LEADER R2000-pair family landed (2026-09-20
+>   ninth batch, `b6e6e92`) and the MULTILEADER attach trio landed
+>   (2026-09-20 tenth batch, `45382ec`; MULTILEADER rows zero on both
+>   sides) — see their DONE entries below.
+
+  ~~MULTILEADER attach trio~~ — **DONE (2026-09-20 tenth batch,
+  `45382ec`; read 719 → 707 / write 755 → 743, −12/−12, mirrored;
+  MULTILEADER rows zero on BOTH sides — top read rows are now
+  VIEWPORT.status_flag 17 / SEQEND.ownerhandle 18 on write)**. Gold
+  evidence (dwg2.spec 1355-1458 + `pk4_open_diagnosis.txt`): the
+  VERSIONS (R_14, R_2007) block 1418-1445 wraps num_arrowheads+loop,
+  num_blocklabels+loop, is_neg_textdir B, ipe_alignment BS,
+  justification BS, scale_factor BD — on R2010+ ALL of it is ABSENT and
+  the attach trio follows is_annotative directly: SINCE (R_2010b)
+  FIELD_BS attach_dir (271) then FIELD_BS attach_top (273) then
+  FIELD_BS attach_bottom (272) 1449-1451 — the DXF codes are NOT in
+  wire order (273 before 272); the leader-loop trio is
+  dwg2.spec 1366-1367 lnode attach_dir SINCE (R_2010b). Silver bugs:
+  (a) reader consumed ba_count + labels loop + the four-field tail
+  UNCONDITIONALLY — on R2010+ the reads landed on the trio's bits
+  (wrong_value: gold attach_top=32/attach_bottom=178 vs silver 9/9
+  defaults; the old dir/bottom/top order swap was real but secondary);
+  (b) the writer mirrored the desync — writing ba_count + the tail on
+  R2010+ desynchronizes gold_rt (the rt wire must carry is_annotative →
+  attach trio → is_text_extended(SINCE R_2013b) only; (c) the typed
+  TextAttachmentType/TextAttachmentDirectionType enums lose the
+  out-of-range raws (32/4786/178; `From<i16>` clamps to MiddleOfText).
+  Fix: (a) gate the block-attributes read and the four-field tail
+  (entities.rs `read_multileader`) under `!version.r2010_plus()`
+  (arrowhead_overrides was already gated) keeping MultiLeader::new()
+  defaults for the absent fields (scale_factor 1.0, trio 9/9-until-read)
+  — mirror the SAME gate in `write_multileader` (pre-R2010-only
+  ba_count/labels/tail write, R2010+ trio write); (b) retain the trio as
+  raw `dwg_attach_dir/dwg_attach_top/dwg_attach_bottom: i16` on
+  MultiLeader (multileader.rs), builder maps the raws onto the entity,
+  and the writer writes the raws verbatim on R2010+; (c) the
+  constructor raws MUST mirror the typed defaults (Horizontal=0,
+  CenterOfText=9) — raw 0/0 defaults desynced the internal deep
+  round-trip tests (dwg_roundtrip_deep_{r2000,r2013,r2018}: R2000
+  wrote nothing/read 9s, R2013+ wrote raw 0s and read back
+  TopOfTopLine; the suite gate catches raw-vs-typed splits whenever a
+  struct carries both), (d) normalize_silver emits
+  `attach_dir/attach_top/attach_bottom` verbatim from `dwg_attach_*`
+  (R2010+ gate; the VERSIONS(R_14,R_2007) arrowheads/blocklabels/tail
+  emissions were already gated `not r2010_plus`) and pops the raws with
+  their typed twins. Verified per-file: R2010+ carriers fully clean
+  (2010/Leader 16→14, 2013/Leader 7→5, 2018/Leader 7→5, example_2018
+  23→21/26→24 — remaining rows are the OTHER queued families:
+  GROUP.name, CONTEXTDATA typing, TOLERANCE naming); pre-R2010 carriers
+  unchanged (2000/2004/2007 Leader, entities-2d/3d still read the
+  group; attach rows never existed there); NO new extra_in_silver rows
+  for scale_factor/is_neg_textdir/ipe_alignment/justification/
+  num_blocklabels on R2010+.
 
   ~~PROXY_OBJECT data/data_numbits + objids~~ — **DONE (2026-09-20 seventh
   batch, `fa2cb0a`; read 860 → 847 / write 792 → 779, −13/−13; sole
@@ -890,7 +941,8 @@ Given a diff `(type, field, kind)`:
   gh209_1, gh109_1) show zero remaining LEADER rows. Remaining families
   in the same files: TOLERANCE field-name mismatch set (~9-10 rows on
   2010/Leader — DIFFERENT packet), GROUP.name write rows,
-  MULTILEADER.attach trio, LEADEROBJECTCONTEXTDATA typing.
+  LEADEROBJECTCONTEXTDATA typing (the MULTILEADER attach trio in the same
+  files landed separately as the tenth batch, `45382ec`).
 
   ~~DIMSTYLE_CONTROL.morehandles~~ — **DONE (2026-09-20 eighth batch,
   `b08d346`; read 847 → 743 / write stays 779 — the row was on EVERY
