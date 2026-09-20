@@ -548,6 +548,11 @@ _DYNBLOCK_RETYPE = {
     "BLOCKSCALEACTION": "BLOCKSCALEACTION",
     "ACSH_FILLET_CLASS": "ACSH_FILLET_CLASS",
     "ACSH_CYLINDER_CLASS": "ACSH_CYLINDER_CLASS",
+    # dwg2.spec 2978 (ACSH_CONE_CLASS): same wire fields as the cylinder
+    # (height BD, major_radius BD, minor_radius BD, x_radius BD); silver
+    # parses them under base_x_radius/base_y_radius/top_radius (2000/Cone
+    # values 5.0/5.0/0.0 map 1:1 onto gold's 5.0/5.0/0.0).
+    "ACSH_CONE_CLASS": "ACSH_CONE_CLASS",
     "ACSH_WEDGE_CLASS": "ACSH_WEDGE_CLASS",
     "ACSH_BOX_CLASS": "ACSH_BOX_CLASS",
     "ACSH_CHAMFER_CLASS": "ACSH_CHAMFER_CLASS",
@@ -3950,6 +3955,13 @@ def normalize_silver(
                     fields["major_radius"] = normalize_float(_vv.get("major_radius", 0.0))
                     fields["minor_radius"] = normalize_float(_vv.get("minor_radius", 0.0))
                     fields["x_radius"] = normalize_float(_vv.get("x_radius", 0.0))
+                elif gold_type == "ACSH_CONE_CLASS":
+                    # same wire fields as the cylinder; silver's shape keys
+                    # are base_x/base_y/top radii (Cone.dwg: 5.0/5.0/0.0)
+                    fields["height"] = normalize_float(_vv.get("height", 0.0))
+                    fields["major_radius"] = normalize_float(_vv.get("base_x_radius", 0.0))
+                    fields["minor_radius"] = normalize_float(_vv.get("base_y_radius", 0.0))
+                    fields["x_radius"] = normalize_float(_vv.get("top_radius", 0.0))
                 elif gold_type in ("ACSH_BOX_CLASS", "ACSH_WEDGE_CLASS"):
                     fields["height"] = normalize_float(_vv.get("height", 0.0))
                     fields["length"] = normalize_float(_vv.get("length", 0.0))
