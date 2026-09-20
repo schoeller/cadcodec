@@ -1658,6 +1658,14 @@ def normalize_silver(
                     rec = dict(_vcom)
                     rec["handle"] = normalize_handle_value(_ah)
                     rec["ownerhandle"] = normalize_handle_value(handle)
+                    # The kid's own xdic slot (dwg.spec ATTRIB
+                    # XDICOBJHANDLE): gold prints the real handle when
+                    # the record has one; the parent-subset xdic flags
+                    # do not apply to the kid.
+                    _axh = (a.get("common") or {}).get("xdictionary_handle")
+                    if isinstance(_axh, int) and _axh:
+                        rec["xdicobjhandle"] = normalize_handle_value(_axh)
+                        rec.pop("is_xdic_missing", None)
                     if a.get("tag") is not None:
                         rec["tag"] = a.get("tag")
                     if a.get("value") is not None:
@@ -2308,7 +2316,11 @@ def normalize_silver(
                 fields["xline1start_pt"] = _vec(dim.get("first_point"))
                 fields["xline1end_pt"] = _vec(dim.get("second_point"))
                 fields["xline2start_pt"] = _vec(dim.get("angle_vertex"))
-                fields["xline2end_pt"] = _vec(dim.get("first_point"))
+                # dwg.spec DIMENSION_ANG2LN wire order: def_pt (2RD),
+                # xline1start, xline1end, xline2start, xline2end — silver
+                # reads the same slots as dimension_arc, first_point,
+                # second_point, angle_vertex, definition_point.
+                fields["xline2end_pt"] = _vec(dim.get("definition_point"))
             elif kind == "Angular3Pt":
                 fields["def_pt"] = def_pt
                 fields["xline1_pt"] = _vec(dim.get("first_point"))
@@ -3078,21 +3090,17 @@ def normalize_silver(
             _wh("sun_handle", "sun", r2007_plus)
             _wh("background_handle", "background", r2007_plus)
             _wh("shade_plot_handle", "shadeplot", r2007_plus)
-            # vport_entity_header (pre-R2004, dwg.spec VIEWPORT): gold
-            # points at the VX_TABLE_RECORD whose `viewport` handle equals
-            # this VIEWPORT's; a code-5 null when no entry references it.
-            # Silver's payload carries no link but the vx_table holds both
-            # sides; emit only on those pre-2004 wires.
+            # vport_entity_header (pre-R2004, dwg.spec VIEWPORT): the
+            # reader retains the wire's own FIELD_HANDLE (vport_entity_
+            # header, 5, 0) after the clip boundary (R13-14: before the
+            # frozen layers) — emit it verbatim, including the null form.
+            # consume the raw model key on every era (it would otherwise
+            # leak through the generic loop on R2004+).
             if not r2004_plus:
-                _vpl = None
-                for _vxe in ((data.get("vx_table") or {}).get("entries") or {}).values():
-                    if isinstance(_vxe, dict) and _vxe.get("viewport") == handle \
-                            and isinstance(_vxe.get("handle"), int):
-                        _vpl = _vxe["handle"]
-                        break
                 fields["vport_entity_header"] = normalize_handle_value(
-                    _vpl if _vpl is not None else 0)
+                    payload.get("vport_entity_handle") or 0)
             consumed.add("vport_entity_header")
+            consumed.add("vport_entity_handle")
             # named_ucs (gold HANDLE 5, SINCE R_2000b): silver stores the
             # viewport's current UCS under `ucs_handle` — same wire field;
             # the old code read a nonexistent `named_ucs_handle` and every
@@ -3777,10 +3785,17 @@ def normalize_silver(
                     _nh = v["common"].get("handle")
                 # silver's 3D-family Vertex3DPolyline serializes the wire
                 # handle as a FLAT field (e.g. 1052 after the poly@1050 +
-                # seqend@1051) — use it; the parent+1..parent+n fallback
-                # would synthesize 1051 and CLASH with the real SEQEND.
+                # seqend@1051) — use it; the 2D-family Vertex2D retains the
+                # real wire handle as wire_handle; the parent+1..parent+n
+                # fallback only applies to vertices with no wire knowledge
+                # (DXF-built payloads) and can MISPAIR whenever a foreign
+                # block-chain record interleaves the kid run
+                # (2000/PolyLine2D.dwg: LINE@512 between poly@511 and its
+                # true kids 513/514).
                 if _nh is None and isinstance(v.get("handle"), int):
                     _nh = v["handle"]
+                if _nh is None and isinstance(v.get("wire_handle"), int):
+                    _nh = v["wire_handle"]
                 if _nh is None:
                     _nh = (_ph or 0) + 1 + len(_handles)
                 _handles.append(_nh)
@@ -3804,6 +3819,20 @@ def normalize_silver(
                 if _vt == "VERTEX_2D":
                     rec["bulge"] = normalize_float(v.get("bulge", 0.0))
                     rec["tangent_dir"] = normalize_float(v.get("curve_tangent", 0.0))
+                # Wire reactors of the kid record: associative networks
+                # register individual polyline vertices as reactors (gold
+                # prints the list only on the registered kid). Read the
+                # 3D-family flat retention or the pface-style nested
+                # common; emit only when non-empty (gold's no-reactor
+                # kids carry no key at all).
+                _rlist = v.get("reactor_handles")
+                if not isinstance(_rlist, (list, tuple)):
+                    _cc = v.get("common")
+                    _rlist = _cc.get("reactors") if isinstance(_cc, dict) else None
+                if isinstance(_rlist, (list, tuple)):
+                    _rhs = [r for r in _rlist if isinstance(r, int)]
+                    if _rhs:
+                        rec["reactors"] = [normalize_handle_value(r) for r in _rhs]
                 if _pre2004:
                     # R13-era chains (empirically verified): the 2D family
                     # chains every vertex (prev null at the head, next
@@ -3835,10 +3864,22 @@ def normalize_silver(
                         else:
                             rec["nolinks"] = 1
                     elif _vt == "VERTEX_MESH":
-                        if j == 0 or j == len(_handles) - 1:
+                        # gold (2000/TS1 POLYLINE_MESH 527 grid): the FIRST
+                        # vertex chains forward only (prev = the code-4
+                        # null 0, next = the second kid); the LAST vertex
+                        # chains back (prev = the PREVIOUS kid — a code-8
+                        # zero-offset ref resolving to it, not the 0-null
+                        # form — gold 539: prev {8 -> 528..538}); the
+                        # middles carry bare nolinks=1.
+                        if j == 0:
                             rec["prev_entity"] = normalize_handle_value(0)
                             rec["next_entity"] = normalize_handle_value(
-                                _handles[1] if j == 0 and len(_handles) > 1 else 0)
+                                _handles[1] if len(_handles) > 1 else 0)
+                            rec["nolinks"] = 0
+                        elif j == len(_handles) - 1:
+                            rec["prev_entity"] = normalize_handle_value(
+                                _handles[j - 1])
+                            rec["next_entity"] = normalize_handle_value(0)
                             rec["nolinks"] = 0
                         else:
                             rec["nolinks"] = 1
@@ -6202,9 +6243,15 @@ def normalize_silver(
                 # composite bits
                 ucsicon = (1 if rec.get("ucsicon_lower") else 0) | (2 if rec.get("ucsicon_origin") else 0)
                 fields["UCSICON"] = ucsicon
-                viewmode = ((1 if rec.get("ucs_per_viewport") else 0)
-                            | (2 if rec.get("ucs_at_origin") else 0)
-                            | (8 if rec.get("ucsfollow") else 0))
+                # dwg.spec VPORT DWG path: gold reads VIEWMODE as one
+                # FIELD_4BITS nibble (bits.c bit_read_4BITS composes the
+                # bits MSB-first: first-read bit becomes value 8). The wire
+                # order is perspective, front_clipping, back_clipping,
+                # front_clip_at_eye — NOT the ucs bools.
+                viewmode = ((8 if rec.get("perspective") else 0)
+                            | (4 if rec.get("front_clipping") else 0)
+                            | (2 if rec.get("back_clipping") else 0)
+                            | (1 if rec.get("front_clip_at_eye") else 0))
                 fields["VIEWMODE"] = viewmode
                 # view_width: gold computes it (aspect_ratio * VIEWSIZE); silver
                 # stores neither. Derive from the two silver values so the
@@ -6284,7 +6331,10 @@ def normalize_silver(
                 if r2007_plus:
                     fields["use_default_lights"] = 1 if rec.get("use_default_lights") else 0
                     fields["is_camera_plottable"] = 1 if rec.get("camera_plottable") else 0
-                    view_consumed.add("camera_plottable")
+                    # dwg.spec VIEW: is_camera_plottable is an R2007+
+                    # field — gold omits it entirely on earlier files;
+                    # consume the silver key unconditionally below so it
+                    # never leaks through the generic loop on R2000.
                     fields["background"] = normalize_handle_value(rec.get("background_handle"))
                     fields["visualstyle"] = normalize_handle_value(rec.get("visual_style_handle"))
                     fields["sun"] = normalize_handle_value(rec.get("sun_handle"))
@@ -6296,16 +6346,20 @@ def normalize_silver(
                     for kk in ("use_default_lights", "background_handle", "visual_style_handle",
                                "sun_handle", "ambient_color"):
                         view_consumed.add(kk)
-                # drop silver-only / DXF-only fields
-                for kk in ("perspective", "front_clipping", "back_clipping",
-                           "front_clip_at_eye", "live_section_handle"):
-                    view_consumed.add(kk)
-                # composite VIEWMODE bits (same as VPORT)
-                viewmode = ((1 if rec.get("ucs_per_viewport") else 0)
-                            | (2 if rec.get("ucs_at_origin") else 0)
-                            | (8 if rec.get("ucsfollow") else 0))
+                # composite VIEWMODE bits: gold reads one FIELD_4BITS
+                # nibble (bits.c composes MSB-first: first-read bit is
+                # value 8); wire order = perspective, front_clipping,
+                # back_clipping, front_clip_at_eye (dwg.spec VIEW
+                # ViInfo block).
+                viewmode = ((8 if rec.get("perspective") else 0)
+                            | (4 if rec.get("front_clipping") else 0)
+                            | (2 if rec.get("back_clipping") else 0)
+                            | (1 if rec.get("front_clip_at_eye") else 0))
                 fields["VIEWMODE"] = viewmode
-                view_consumed.update(("ucs_per_viewport", "ucsfollow"))
+                view_consumed.update(("perspective", "front_clipping",
+                                      "back_clipping", "front_clip_at_eye",
+                                      "ucs_per_viewport", "ucsfollow",
+                                      "live_section_handle"))
                 # aspect_ratio: gold computes view_width / VIEWSIZE (both stored
                 # in silver as width/height). Derive it.
                 vw = rec.get("width"); vh2 = rec.get("height")
@@ -6314,7 +6368,12 @@ def normalize_silver(
                 # livesection handle (R2007+)
                 if r2007_plus:
                     fields["livesection"] = normalize_handle_value(rec.get("live_section_handle"))
-                    view_consumed.add("live_section_handle")
+                # dwg.spec VIEW: is_camera_plottable is an R2007+ field —
+                # gold omits it entirely on earlier files; consume the
+                # silver key unconditionally so it never leaks through the
+                # generic loop on R2000.
+                view_consumed.add("camera_plottable")
+                view_consumed.add("live_section_handle")
                 # drop silver xref bookkeeping (gold table-record block emits the
                 # is_xref_* bits; these silver-internal dupes never appear in gold)
                 view_consumed.update(("xref_reference", "xref_resolved",
@@ -6369,7 +6428,11 @@ def normalize_silver(
             elif r2004_plus:
                 fields["is_xdic_missing"] = 1
             if r2013_plus:
-                fields["has_ds_data"] = 0
+                # R2013+ AcDs bit: project from the reader's document-level
+                # dwg_data_store_handles set (same source as the object
+                # branch; table entries pass has_ds through it — the
+                # 2018/LiveSection1 VIEW records carry the bit set).
+                fields["has_ds_data"] = 1 if str(rec.get("handle")) in dwg_ds_handles else 0
             if record_gold_type == "DIMSTYLE":
                 # flag0 is a derived gold field (bit 0 of the 70 flag); the
                 # silver struct doesn't store it. Gold always has it as 0 for

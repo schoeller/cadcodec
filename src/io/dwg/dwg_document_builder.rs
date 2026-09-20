@@ -700,9 +700,10 @@ impl DwgDocumentBuilder {
                     let eed_raw = non_entity.common.eed_raw;
                     let xdic = non_entity.xdictionary_handle;
                     let reactors = non_entity.reactors.clone();
-                    (obj_handle, type_code, eed_raw, xdic, reactors)
+                    let has_ds = non_entity.has_ds_data;
+                    (obj_handle, type_code, eed_raw, xdic, reactors, has_ds)
                 }));
-                let (obj_handle, type_code, eed_raw_pass1, xdic_pass1, reactors_pass1) =
+                let (obj_handle, type_code, eed_raw_pass1, xdic_pass1, reactors_pass1, has_ds_pass1) =
                     match result {
                         Ok(v) => v,
                         Err(_) => {
@@ -735,6 +736,14 @@ impl DwgDocumentBuilder {
                 // model block 0x2 vs default LAYER_CONTROL 0x2); the writer's
                 // handle map then keeps only one record and the saved drawing
                 // reopens with an empty model space.
+                // R2013+ AcDs bit on table entries (dwg_data_store_handles):
+                // the normalizer projects has_ds_data from this set and the
+                // writer echoes the bit per record.
+                if has_ds_pass1 {
+                    document
+                        .dwg_data_store_handles
+                        .insert(Handle::from(obj_handle));
+                }
                 let control_handle = Handle::from(obj_handle);
                 match type_code {
                     OBJ_BLOCK_CONTROL => {
@@ -1899,6 +1908,7 @@ impl DwgDocumentBuilder {
                                         bulge: d.bulge,
                                         curve_tangent: d.tangent_dir,
                                         id: d.vertex_id,
+                                        wire_handle: Some(d.handle.value()),
                                     })
                                 } else {
                                     None
@@ -1920,12 +1930,13 @@ impl DwgDocumentBuilder {
                         e.vertices = verts
                             .into_iter()
                             .filter_map(|v| {
-                                if let PendingVertex::V3D(d, _ec) = v {
+                                if let PendingVertex::V3D(d, ec) = v {
                                     Some(crate::entities::polyline3d::Vertex3DPolyline {
                                         handle: d.handle,
                                         layer: String::new(),
                                         position: d.position,
                                         flags: d.flags as i32,
+                                        reactor_handles: ec.reactors.clone(),
                                     })
                                 } else {
                                     None
@@ -3162,7 +3173,15 @@ impl DwgDocumentBuilder {
                     };
                 }
                 if !valid_owners.contains(&owner) && model_is_valid {
-                    owner = model_space;
+                    // Non-block owners are legitimate on class entities: the
+                    // CAcLayoutPrintConfig record (dwg2.spec 4929) is owned by
+                    // its DICTIONARY, not by a block record, and gold keeps
+                    // that raw owner with a NULL model-space chain. Only
+                    // re-own to model space when the owner resolves to
+                    // nothing at all.
+                    if !document.objects.contains_key(&owner) {
+                        owner = model_space;
+                    }
                 }
                 if common.owner_handle != owner {
                     std::sync::Arc::make_mut(entity).common_mut().owner_handle = owner;
@@ -3917,17 +3936,29 @@ impl DwgDocumentBuilder {
                     // after the frozen layers. Non-NULL => the viewport is
                     // clipped by a boundary entity.
                     if self.obj_reader.version().r13_14_only() {
-                        let _viewport_header = reader.read_handle();
+                        // dwg.spec VIEWPORT: VERSIONS (R_13b1, R_14)
+                        // FIELD_HANDLE (vport_entity_header, 5, 0) — the
+                        // VX link lives HERE, before any frozen layers.
+                        let vh = reader.read_handle();
+                        if vh != 0 {
+                            e.vport_entity_handle = Handle::new(vh);
+                        }
                     } else {
                         let clip = reader.read_handle();
                         if clip != 0 {
                             e.clip_boundary_handle = Handle::new(clip);
                         }
-                        // R2000 carries an obsolete viewport-entity-header handle.
+                        // R2000 carries the viewport-entity-header handle
+                        // after the clip boundary (dwg.spec VIEWPORT
+                        // VERSIONS (R_2000b, R_2002) FIELD_HANDLE
+                        // (vport_entity_header, 5, 0)) — retain it.
                         if self.obj_reader.version()
                             == crate::io::dwg::dwg_version::DwgVersion::AC15
                         {
-                            let _ = reader.read_handle();
+                            let vh = reader.read_handle();
+                            if vh != 0 {
+                                e.vport_entity_handle = Handle::new(vh);
+                            }
                         }
                         let ucs = reader.read_handle();
                         if ucs != 0 {

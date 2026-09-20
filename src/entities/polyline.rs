@@ -145,6 +145,13 @@ pub struct Vertex2D {
     pub curve_tangent: f64,
     /// Vertex ID (R2010+)
     pub id: i32,
+    /// The wire handle of the VERTEX_2D sub-entity record this vertex was
+    /// decoded from, retained verbatim on the DWG read path (the records do
+    /// not always follow the parent handle sequentially — a foreign
+    /// block-chain record can interleave). Absent on constructed documents
+    /// and on the DXF path.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub wire_handle: Option<u64>,
 }
 
 impl Vertex2D {
@@ -157,6 +164,7 @@ impl Vertex2D {
             bulge: 0.0,
             curve_tangent: 0.0,
             id: 0,
+            wire_handle: None,
         }
     }
 

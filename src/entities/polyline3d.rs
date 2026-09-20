@@ -117,6 +117,11 @@ pub struct Vertex3DPolyline {
     pub position: Vector3,
     /// Vertex flags
     pub flags: i32,
+    /// Wire reactor handles of the VERTEX_3D sub-entity record (the
+    /// associative network registers individual vertices as reactors —
+    /// gold prints them on the kid record). Retained verbatim on the DWG
+    /// read path; empty on constructed documents and the DXF path.
+    pub reactor_handles: Vec<Handle>,
 }
 
 impl Vertex3DPolyline {
@@ -127,6 +132,7 @@ impl Vertex3DPolyline {
             layer: "0".to_string(),
             position,
             flags: 32, // 3D polyline vertex flag
+            reactor_handles: Vec::new(),
         }
     }
 

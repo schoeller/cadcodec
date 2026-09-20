@@ -340,6 +340,12 @@ pub struct Viewport {
     pub ambient_color: Color,
     /// Custom scale factor
     pub custom_scale: f64,
+    /// Pre-R2004 viewport-entity-header handle (dwg.spec VIEWPORT:
+    /// FIELD_HANDLE (vport_entity_header, 5, 0) in VERSIONS (R_13b1, R_14)
+    /// and (R_2000b, R_2002)) — the VX table record linking this entity,
+    /// with its wire-null form. Retained verbatim on the DWG read path and
+    /// echoed by the writer; NULL on newer eras and constructed documents.
+    pub vport_entity_handle: Handle,
 }
 
 impl Viewport {
@@ -393,6 +399,7 @@ impl Viewport {
             contrast: 0.0,
             ambient_color: Color::from_index(0),
             custom_scale: 1.0,
+            vport_entity_handle: Handle::NULL,
         }
     }
 

@@ -2242,9 +2242,13 @@ impl<'a> DwgObjectWriter<'a> {
             e.clip_boundary_handle.value(),
         );
 
-        // R2000 (AC1015) only: VIEWPORT ENT HEADER
+        // R2000 (AC1015) only: VIEWPORT ENT HEADER — echo the retained
+        // wire link (dwg.spec VIEWPORT vport_entity_header).
         if self.version == crate::io::dwg::dwg_version::DwgVersion::AC15 {
-            self.writer.write_handle(DwgReferenceType::HardPointer, 0);
+            self.writer.write_handle(
+                DwgReferenceType::HardPointer,
+                e.vport_entity_handle.value(),
+            );
         }
 
         // Named UCS and Base UCS handles (written for all versions)
@@ -2791,7 +2795,7 @@ impl<'a> DwgObjectWriter<'a> {
             parent_linetype,
             parent_linetype_handle,
             &crate::xdata::ExtendedData::default(),
-            &[],
+            &v.reactor_handles,
             &None,
             None,
             None,
@@ -5089,6 +5093,7 @@ impl<'a> DwgObjectWriter<'a> {
                 layer: e.common.layer.clone(),
                 position: v.location,
                 flags: v.flags.bits() as i32,
+                reactor_handles: Vec::new(),
             });
         }
         self.write_polyline3d(&p3d);
