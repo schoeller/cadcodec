@@ -646,11 +646,15 @@ fn normalize_entity_for_comparison(entity: &mut EntityType) {
         // writer-allocated on constructed documents (the read stores the
         // wire's real record handle), so it is not part of semantic
         // roundtrip equality — same treatment as PolyfaceMesh below.
+        // The retained per-vertex wire reactor handles (harness kid
+        // synthesis bookkeeping, echoed by the writer only for
+        // wire-read documents) are cleared here as well.
         EntityType::Polyline3D(p) => {
             for v in &mut p.vertices {
                 v.handle = Handle::NULL;
                 // Layer may be inherited from the polyline after write/read
                 v.layer = String::new();
+                v.reactor_handles.clear();
             }
             p.seqend_handle = None;
             // Retained per-SEQEND wire flag pairs: fidelity bookkeeping
@@ -666,6 +670,13 @@ fn normalize_entity_for_comparison(entity: &mut EntityType) {
             p.seqend_handle = None;
             p.seqend_plotstyle_flags = 0;
             p.seqend_shadow_flags = 0;
+            // Retained per-vertex wire handles: fidelity bookkeeping for
+            // the harness kid synthesis (the wires own handles; writers
+            // allocate fresh ones on constructed documents), not payload
+            // semantics. Clear on both sides.
+            for v in p.vertices.iter_mut() {
+                v.wire_handle = None;
+            }
         }
         // PolygonMesh: writer-allocated seqend handle, same as above.
         EntityType::PolygonMesh(pm) => {
