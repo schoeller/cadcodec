@@ -9,7 +9,7 @@
 
 Continue the acadrust gold-vs-silver roundtrip harness. The campaign target is
 read AND write below **100** on BOTH sides. Current baseline (2026-09-20,
-after fix commit `fca5367` + its docs commit): read **683** / write **719**
+after fix commit `543f877` + its docs commit): read **679** / write **703**
 (124 corpus files; gh44-error.dwg explicitly out of scope via
 `run_corpus.in_scope_files`). The two sides MIRROR family-for-family — every
 wire-family you fix pays double. All remaining mass is reader/writer-side
@@ -23,8 +23,11 @@ tree is clean (only the unrelated, campaign-predating untracked
 on 2026-09-20 and are fully closed — do NOT re-diagnose them:
 `45382ec` (MULTILEADER attach trio; MULTILEADER rows zero on both sides) and
 `b123b4c` (TABLECONTENT→UNKNOWN_OBJ retype; the example_* "handle-3140
-class" records; UNKNOWN_OBJ._count zero, _missing 9) and `fca5367`
-(VERTEX_MESH dropped records; TS1; VERTEX_MESH rows zero on both sides).
+class" records; UNKNOWN_OBJ._count zero, _missing 9), `fca5367`
+(VERTEX_MESH dropped records; TS1; VERTEX_MESH rows zero on both sides),
+`fad3042` (ACSH_CONE_CLASS retype, Cone.dwg) and `543f877`
+(WIPEOUT/IMAGE imagedefreactor wire codes; WIPEOUT rows zero on the
+write side).
 
 **Staleness rule:** always re-read the by-type table from the FRESH
 `target/gold_harness_corpus/report.json` before starting a packet — queue
@@ -55,18 +58,17 @@ with `45382ec` without any packet touching it).
 
 ## Current state (2026-09-20, session handoff)
 
-- HEAD is past fix `fca5367` on `gold-vs-silver`, pushed; the docs commit
+- HEAD is past fix `543f877` on `gold-vs-silver`, pushed; the docs commit
   that carries this file follows it. `cargo test --features serde` = all
   segments ok (roundtrip suite 97/0); `gold_roundtrip` = ok. Working tree
   clean apart from untracked `examples/cylinder_dwg.rs`.
-- Fresh corpus (post-`fca5367`): read **683** / write **719**. Top rows:
+- Fresh corpus (post-`543f877`): read **679** / write **703**. Top rows:
   SEQEND.ownerhandle 18 (write), VIEWPORT.status_flag 17 (read),
-  UNKNOWN_OBJ._missing 9 (Cone/LiveSection/Surface typing pockets),
+  UNKNOWN_OBJ._missing 8 (LiveSection/Surface typing pockets),
   LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA _count/_missing 6 each
-  (typing pair), WIPEOUT.imagedefreactor 12 (write),
-  VISUALSTYLE.edge_silhouette_width 9, 3DFACE.z_is_zero 8,
-  SORTENTSTABLE.ents 6, GROUP.name 6, MTEXT column residue 6,
-  UNKNOWN_ENT._missing 6, RAPIDRTRENDERSETTINGS._missing 6.
+  (typing pair), VISUALSTYLE.edge_silhouette_width 9,
+  3DFACE.z_is_zero 8, SORTENTSTABLE.ents 6, GROUP.name 6, MTEXT
+  column residue 6, UNKNOWN_ENT._missing 6, RAPIDRTRENDERSETTINGS._missing 6.
 - Session history 2026-09-20 (all folded into §7/§8.1.6):
   - **PROXY_OBJECT data/data_numbits/objids** (`fa2cb0a`, −13/−13), notes
     in its DONE entry.
@@ -90,19 +92,28 @@ with `45382ec` without any packet touching it).
     POLYLINE_MESH (silently dead), plus the builder zeroed the parsed
     wire flag. LESSON: kid-capture tuples key on GOLD record names; a
     silver struct name is silently dead.
+  - **ACSH_CONE_CLASS retype** (`fad3042`, −4/−4 on 2000/Cone.dwg):
+    cylinder-shaped elif + _DYNBLOCK_RETYPE entry; silver's
+    base_x/base_y/top radii map onto gold's major/minor/x (5/5/0 both
+    sides).
+  - **WIPEOUT/IMAGE imagedefreactor wire codes** (`543f877`, −12 write):
+    writer nibble fix (reactor HardOwnership 3, not HardPointer 5) +
+    normalizer stops fabricating constant codes (NULL form, code=None —
+    differ tolerates). LESSON: fabricated constants matching gold's raw
+    ORIG value mask writer bugs and explode on the RT pair; read the row
+    VALUES before trusting a queue diagnosis.
 
-## Packet queue (sizes from the 683/719 report)
+## Packet queue (sizes from the 679/703 report)
 
-1. **UNKNOWN-family retyping pockets** (UNKNOWN_OBJ._missing 9 + Cone/
-   LiveSection/Surface rows, both sides mirrored): (a) 2000/Cone.dwg —
-   gold types one record ACSH_CONE_CLASS where silver's DynamicBlock
-   wrapper retypes it UNKNOWN_OBJ (near-grade: other ACSH classes have
-   landed retypes + projections in `_DYNBLOCK_RETYPE`/the object loop;
-   add ACSH_CONE_CLASS + its field projection); (b) 2018/LiveSection1.dwg
-   — gold: SECTIONOBJECT/SECTION_MANAGER/SECTION_SETTINGS (1 each) where
-   silver decodes UNKNOWN_ENT(1)+UNKNOWN_OBJ(2); silver's raw bits ride
-   `unknown_bits_by_handle`; model or retype via the side channel (check
-   §8.1.1 liveness before retyping); (c) 2004/Surface.dwg — silver types
+1. **UNKNOWN-family retyping pockets** (UNKNOWN_OBJ._missing 8 + LiveSection/
+   Surface rows, both sides mirrored; Cone landed as `fad3042`):
+   (a) 2018/LiveSection1.dwg — gold: SECTIONOBJECT (entity, heavy — full
+   AcDbSection wire + 188-byte preview blob)/SECTION_MANAGER (trivial:
+   is_live + sections)/SECTION_SETTINGS (large settings REPEAT + 2320-bit
+   handle-stream remainder; already in _UNKNOWN_BITS_TYPES) where silver
+   decodes UNKNOWN_ENT(1)+UNKNOWN_OBJ(2) — silver PARSES the latter two
+   under ClassObject wrappers (data.SectionManager/data.SectionSettings);
+   model or retype per-pocket; (b) 2004/Surface.dwg — silver types
    5 SURFACE records where gold decodes UNKNOWN_ENT (dead SURFACE frame)
    and gold's PLANESURFACE record is missing in silver; the
    ASSOCDEPENDENCY.dep_on rows ride the same divergence.
@@ -118,12 +129,13 @@ with `45382ec` without any packet touching it).
    re-composes (drops bits — gold 819232 vs silver 32800). Needs raw
    retention: reader capture + writer echo + normalizer preference.
    Write rows do NOT appear for this family (rt-parser-parity pair).
-4. **WIPEOUT.imagedefreactor 12 (write rows)** — silver's write_wipeout
-   (entities.rs ~4015) writes BOTH handles at the END as
-   HardPointer{5}; gold's wire order (dwg2.spec 1561-1594, exact IMAGE
-   copy): imagedef(code 5) between image_size 2RD and display_props BS,
-   imagedefreactor(code 3) after fade RC. Fix writer order/codes; verify
-   the stray `{3,0}` disappears via dump_section_bytes on the rt record.
+4. **WIPEOUT.imagedefreactor — LANDED (`543f877`); do NOT re-diagnose**:
+   the queue's old order-diagnosis was inverted; the rows were code-nibble
+   rows (writer wrote reactor HardPointer 5; the original wires and gold
+   dwg2.spec 1561/dwg.spec 5129 carry nibble 3; the normalizer's
+   fabricated {code:3} stamp masked the bug on ORIG and exposed it on RT).
+   Lesson: read the row VALUES before trusting a diagnosis; fabricated
+   constants are time bombs for the rt pair.
 5. **LEADEROBJECTCONTEXTDATA/OBJECTCONTEXTDATA typing (~24)** — silver
    types the object-context records as generic OBJECTCONTEXTDATA where
    gold decodes LEADEROBJECTCONTEXTDATA (dwg2.spec 4611, live);
@@ -296,9 +308,11 @@ pattern); a bare launch died once.)
 - Branch `gold-vs-silver`, tracks `origin/gold-vs-silver`.
 - `fix(harness): <packet> — <gold spec ref> + before→after counts`, then a
   separate `docs(harness): …` commit once §7/§8.1.6 are updated; push
-  after each. Landed on 2026-09-20: batches 7–12 = `fa2cb0a` (PROXY),
+  after each. Landed on 2026-09-20: batches 7–14 = `fa2cb0a` (PROXY),
   `b08d346` (DIMSTYLE_CONTROL), `b6e6e92` (LEADER family), `45382ec`
   (MULTILEADER attach trio), `b123b4c` (TABLECONTENT dropped records),
-  `fca5367` (VERTEX_MESH dropped records), each followed by a docs commit
-  (`8c49887`, `a9031a5`, `9bece22`, `444f4aa`, `3065f74`, `0a79f98`,
-  and the one carrying this file).
+  `fca5367` (VERTEX_MESH dropped records), `fad3042` (ACSH_CONE_CLASS
+  retype), `543f877` (WIPEOUT/IMAGE imagedefreactor codes), each
+  followed by a docs commit (`8c49887`, `a9031a5`, `9bece22`,
+  `444f4aa`, `3065f74`, `0a79f98`, `bfe7b0d`, and the one carrying this
+  file).

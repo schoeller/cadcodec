@@ -289,8 +289,11 @@ family fix (2026-09-20 ninth batch, `b6e6e92`) + MULTILEADER attach
 trio — R2010 tail gate + raw retention (2026-09-20 tenth batch,
 `45382ec`) + UNKNOWN-family dropped-records/typing fixes (TABLECONTENT
 retype, 2026-09-20 eleventh batch, `b123b4c`) + VERTEX_MESH dropped
-records (TS1, 2026-09-20 twelfth batch, `fca5367`), 2026-09-20):**
-read-fidelity **683**, write-fidelity **719** — the 1 000 milestone was
+records (TS1, 2026-09-20 twelfth batch, `fca5367`) + ACSH_CONE_CLASS
+retype (2026-09-20 thirteenth batch, `fad3042`) + WIPEOUT/IMAGE
+imagedefreactor wire codes (2026-09-20 fourteenth batch, `543f877`),
+2026-09-20):**
+read-fidelity **679**, write-fidelity **703** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -306,7 +309,9 @@ batch then took −46/−9; the PROXY_OBJECT raw-window/objids batch then took
 LEADER R2000-pair family then took −24/−24; the MULTILEADER attach-trio
 batch then took −12/−12 — MULTILEADER rows zero on both sides; the
 UNKNOWN-family dropped-records batch then took −12/−12; the VERTEX_MESH
-dropped-records batch then took −12/−12). gh44-error.dwg
+dropped-records batch then took −12/−12; the ACSH_CONE_CLASS retype
+then took −4/−4; the WIPEOUT/IMAGE imagedefreactor code fix then took
+−12 write rows). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -316,21 +321,27 @@ each packet lands.
 
 **Next packets (2026-09-20, campaign target RAISED to below 100 on both
 sides after reaching the 1 000 milestone at read 943 / write 804; tops
-mirrored read/write; ranking from the fresh post-`fca5367` corpus;
+mirrored read/write; ranking from the fresh post-`543f877` corpus;
 PROXY_OBJECT + DIMSTYLE_CONTROL.morehandles + LEADER family +
 MULTILEADER attach trio + TABLECONTENT retype + VERTEX_MESH dropped
-records landed as batches seven through twelve — see §8.1.6):**
-1. **UNKNOWN-family retyping pockets** (ranked from the post-`b123b4c`
-   corpus: UNKNOWN_OBJ._missing 9, _count 0; the queued ownerhandle 37
-   family self-resolved — its rows were downstream desync of the
-   unbated R2010+ MULTILEADER reader, killed by `45382ec`; the 3140-class
-   dropped records were the TABLECONTENT objects, landed as `b123b4c`):
-   (a) Cone.dwg — gold's ACSH_CONE_CLASS record retypes silver's
-   DynamicBlock wrapper (add ACSH_CONE_CLASS to _DYNBLOCK_RETYPE +
-   land the field projection, mirroring the other ACSH classes);
-   (b) LiveSection1.dwg — gold's SECTIONOBJECT/SECTION_MANAGER/
-   SECTION_SETTINGS trio vs silver's UNKNOWN_OBJ/ENT decodes (model or
-   retype via the side channel); (c) Surface.dwg — silver types 5
+records + ACSH_CONE_CLASS retype + WIPEOUT imagedefreactor codes landed
+as batches seven through fourteen — see §8.1.6):**
+1. **UNKNOWN-family retyping pockets** (ranked from the post-`543f877`
+   corpus: UNKNOWN_OBJ._missing 8, _count 0 — the Cone pocket landed as
+   batch thirteen; the queued ownerhandle 37 family self-resolved — its
+   rows were downstream desync of the unbated R2010+ MULTILEADER reader,
+   killed by `45382ec`; the 3140-class dropped records were the
+   TABLECONTENT objects, landed as `b123b4c`):
+   (a) LiveSection1.dwg — gold's SECTIONOBJECT/SECTION_MANAGER/
+   SECTION_SETTINGS records vs silver's UNKNOWN_OBJ/ENT decodes —
+   silver PARSES the latter two via ClassObject wrappers
+   (data.SectionManager is a 2-field trivial projection;
+   data.SectionSettings carries a large settings REPEAT + a 2320-bit
+   handle-stream remainder gold dumps via HANDLE_UNKNOWN_BITS;
+   SECTION_SETTINGS is already in _UNKNOWN_BITS_TYPES) while the
+   SECTIONOBJECT ENTITY is a heavy unmodeled family (full AcDbSection
+   wire + a 188-byte preview blob) — model or retype per-pocket;
+   (b) Surface.dwg — silver types 5
    SURFACE records where gold decodes UNKNOWN_ENT (dead frame) + 1
    PLANESURFACE gold record silver lacks; ASSOCSWEPTSURFACEACTIONBODY
    must STAY UNKNOWN_OBJ (dead block) and the Surface dep_on rows ride
@@ -806,8 +817,8 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> the VERTEX_MESH dropped-records batch `fca5367`): read **683** /
-> write **719** — below the 1 000 milestone, closing on the below-100
+> the WIPEOUT imagedefreactor batch `543f877`): read **679** /
+> write **703** — below the 1 000 milestone, closing on the below-100
 > campaign target — and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
@@ -827,9 +838,62 @@ Given a diff `(type, field, kind)`:
 >   ninth batch, `b6e6e92`), the MULTILEADER attach trio landed
 >   (2026-09-20 tenth batch, `45382ec`; MULTILEADER rows zero on both
 >   sides), the UNKNOWN-family dropped-records/TABLECONTENT retype
->   landed (2026-09-20 eleventh batch, `b123b4c`) and the VERTEX_MESH
->   dropped records landed (2026-09-20 twelfth batch, `fca5367`) —
->   see their DONE entries below.
+>   landed (2026-09-20 eleventh batch, `b123b4c`), the VERTEX_MESH
+>   dropped records landed (2026-09-20 twelfth batch, `fca5367`),
+>   the ACSH_CONE_CLASS retype landed (2026-09-20 thirteenth batch,
+>   `fad3042`) and the WIPEOUT/IMAGE imagedefreactor wire codes landed
+>   (2026-09-20 fourteenth batch, `543f877`) — see their DONE entries
+>   below.
+
+  ~~WIPEOUT/IMAGE imagedefreactor wire codes~~ — **DONE (2026-09-20
+  fourteenth batch, `543f877`; read 679 → 679 / write 715 → 703,
+  −12 write rows on the six example_* WIPEOUT pairs; read side
+  untouched — rt-parser-parity family)**. THE QUEUE'S DIAGNOSIS WAS
+  INVERTED: the rows were not wire-ORDER rows — the writer's handle
+  ORDER was already gold-shaped (the merged writer appends handle
+  entries in call order and the trailing entity-body writes land
+  after the common handles, which is where gold's handle stream also
+  puts them: per-entity handles precede COMMON_ENTITY_HANDLE_DATA) —
+  the divergence was the CODE NIBBLE: silver wrote BOTH the
+  imagedef and imagedefreactor handles as DwgReferenceType::HardPointer
+  (nibble 5), while the original wires (and gold's spec,
+  dwg2.spec 1561 / dwg.spec 5129 FIELD_HANDLE (imagedefreactor, 3,
+  360)) carry the reactor with nibble 3 ([3,0,0,0] verified in
+  every record; imagedef is [5,0,0,0]). The ORIG pair never showed
+  rows because silver's normalizer FABRICATED the constant {code: 3}
+  for absent reactor handles — gold's raw 3 coincidentally matched
+  the stamp; silver's own rt read restamped 3 over its writer's 5,
+  and only gold_rt exposed the truth (5 vs 3). Fix: (a) writer —
+  write_wipeout AND write_raster_image (the IMAGE sibling has the
+  identical wire; it was equally wrong but unexercised — no IMAGE
+  entities in the corpus) now write the reactor as
+  DwgReferenceType::HardOwnership (nibble 3); imagedef stays
+  HardPointer 5; (b) normalizer — both branches emit the NULL form
+  (normalize_handle_value(0), code=None) for absent handles instead
+  of fabricating constants, and the RasterImage branch also stops
+  silently dropping the field. LESSONS: read the ROW VALUES (gold vs
+  silver) before trusting a queue diagnosis — gold_value {code 5} vs
+  silver_value {code 3} with the ORIGINAL wires showing [3,0,0,0]
+  pinned the writer, not the normalizer, in three probes; and a
+  fabricated constant that happens to match gold's raw value on the
+  ORIG pair is a time bomb for the RT pair.
+
+  ~~ACSH_CONE_CLASS retype (Cone.dwg)~~ — **DONE (2026-09-20
+  thirteenth batch, `fad3042`; read 683 → 679 / write 719 → 715,
+  −4/−4 on 2000/Cone.dwg)**: gold types the class-519 record
+  (handle 524) as ACSH_CONE_CLASS (dwg2.spec 2978 — live frame, the
+  same AcDbShPrimitive region as the landed cylinder: AcDbEvalExpr +
+  AcDbShHistoryNode + height/major_radius/minor_radius/x_radius BD
+  quartet). Silver's DynamicBlock wrapper parses it under
+  data.SolidHistoryNode.Cone with base node + operation majors +
+  height/base_x_radius/base_y_radius/top_radius (15/5/5/0); the class
+  was on the deliberately-deferred "ACSH sphere/cone" list. Fix:
+  added ACSH_CONE_CLASS to _DYNBLOCK_RETYPE + the cylinder-shaped
+  elif in the landed ACSH projection (major_radius=base_x_radius,
+  minor_radius=base_y_radius, x_radius=top_radius — value-verified
+  1:1). Remaining Cone.dwg rows are unrelated residue:
+  3DSOLID.encr_sat_data (newline family) and
+  VISUALSTYLE.edge_silhouette_width (sign boundary).
 
   ~~VERTEX_MESH dropped records (TS1 mesh parse gap)~~ — **DONE
   (2026-09-20 twelfth batch, `fca5367`; read 695 → 683 / write 731 →
