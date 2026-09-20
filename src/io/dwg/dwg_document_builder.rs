@@ -767,6 +767,32 @@ impl DwgDocumentBuilder {
                     OBJ_DIMSTYLE_CONTROL => {
                         document.dim_styles.set_handle(control_handle);
                         document.header.dimstyle_control_handle = control_handle;
+                        // Gold dwg.spec 4163-4185: after num_entries the
+                        // R2000+ record carries one raw RCu byte —
+                        // num_morehandles, "additional hard handles,
+                        // undocumented" — followed, after the entries
+                        // vector, by that many code-5 handles in the
+                        // handle stream. Capture the vector verbatim for
+                        // the writer echo and the harness emission.
+                        if self.obj_reader.version().r2000_plus() {
+                            let num_entries = reader.read_bit_short().max(0) as i32;
+                            let num_morehandles = reader.read_byte() as i32;
+                            if num_entries > 0 {
+                                for _ in 0..num_entries {
+                                    let _ =
+                                        reader.read_handle_reference(obj_handle);
+                                }
+                            }
+                            if num_morehandles > 0 {
+                                for _ in 0..num_morehandles {
+                                    let (value, _kind) =
+                                        reader.read_handle_reference(obj_handle);
+                                    document
+                                        .dimstyle_morehandles
+                                        .push(Handle::from(value));
+                                }
+                            }
+                        }
                     }
                     OBJ_VPENT_HDR_CONTROL => {
                         document.vx_table.set_handle(control_handle);

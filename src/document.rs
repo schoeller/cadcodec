@@ -1264,6 +1264,15 @@ pub struct CadDocument {
     #[cfg_attr(feature = "serde", serde(default))]
     pub(crate) dwg_data_store_handles: HashSet<Handle>,
 
+    /// Gold `DIMSTYLE_CONTROL.morehandles` (dwg.spec 4177: `FIELD_RCu
+    /// (num_morehandles, 71)` SINCE R_2000b — a raw byte — then
+    /// `HANDLE_VECTOR (morehandles, num_morehandles, 5, 340)`,
+    /// "additional hard handles, undocumented"). Captured verbatim by the
+    /// pass-1 reader and echoed by the DWG writer so both harness fidelity
+    /// sides see the vector; NOT the dim-style table entries.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub dimstyle_morehandles: Vec<Handle>,
+
     /// Section-view style (`AcDbSectionViewStyle`) display fields, decoded from
     /// the DWG for rendering section marks (arrow size, label height, …). A file
     /// normally has one; the first decoded is kept. `None` for new/DXF documents
@@ -1438,6 +1447,7 @@ impl CadDocument {
             raw_acds_data: None,
             raw_acds_fingerprint: Vec::new(),
             dwg_data_store_handles: HashSet::new(),
+            dimstyle_morehandles: Vec::new(),
             section_view_style: None,
             view_rep_refs: std::collections::HashMap::new(),
             section_view_reps: Vec::new(),

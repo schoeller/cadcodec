@@ -648,14 +648,23 @@ impl<'a> DwgObjectWriter<'a> {
 
         self.writer.write_bit_long(handles.len() as i32);
 
-        // Undocumented byte in R2000+
+        // Gold dwg.spec 4177: the R2000+ record carries one raw RCu byte —
+        // num_morehandles, "additional hard handles, undocumented" — whose
+        // vector follows the entries (code 5). Echo the captured vector
+        // (never the dim-style table entries — that regressed 19 → 109).
+        let morehandles = self.document.dimstyle_morehandles.clone();
         if self.version.r2000_plus() {
-            self.writer.write_byte(0);
+            self.writer.write_byte(morehandles.len() as u8);
         }
 
         for h in &handles {
             self.writer
                 .write_handle(DwgReferenceType::SoftOwnership, h.value());
+        }
+
+        for h in &morehandles {
+            self.writer
+                .write_handle(DwgReferenceType::HardPointer, h.value());
         }
 
         self.register_object(table_handle);

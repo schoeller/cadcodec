@@ -4972,13 +4972,18 @@ def normalize_silver(
         if control_type and table_handle is not None:
             _ctrl = {"handle": table_handle,
                      "ownerhandle": normalize_handle_value(0)}
-            # NOTE: gold DIMSTYLE_CONTROL also emits a `morehandles`
-            # vector (dwg.spec 4176-4182: RCu num_morehandles +
-            # HANDLE_VECTOR, "number of additional hard handles,
-            # undocumented") whose COUNT is a wire value silver's reader
-            # does not store — emitting the whole dim-style table produced
-            # 109 wrong_value rows (2026-09-20). Needs a reader
-            # morehandles capture; left missing until then.
+            # Gold DIMSTYLE_CONTROL also emits a `morehandles` vector
+            # (dwg.spec 4177: RCu num_morehandles SINCE R_2000b +
+            # HANDLE_VECTOR code 5, "additional hard handles,
+            # undocumented"). Silver's pass-1 reader captures it as the
+            # document-level `dimstyle_morehandles` handle list; project
+            # it here. NEVER emit the dim-style table entries as
+            # morehandles — that regressed 19 → 109 rows (2026-09-20).
+            if table_key == "dim_styles":
+                _mh = data.get("dimstyle_morehandles")
+                if isinstance(_mh, list) and _mh:
+                    _ctrl["morehandles"] = [normalize_handle_value(h)
+                                            for h in _mh]
             # Common object handle-stream bits gold emits on every control
             # object (common_object_handle_data.spec / CONTROL_HANDLE_STREAM,
             # spec.h): controls read ownerhandle/reactors/xdicobjhandle after
