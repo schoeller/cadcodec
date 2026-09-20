@@ -2016,8 +2016,9 @@ def normalize_silver(
             for sk, gk in _LDR.items():
                 v = payload.get(sk)
                 if gk is not None and v is not None:
-                    # endptproj is VERSIONS (R_13c3, R_2007) only — not R2010+.
-                    if gk == "endptproj" and not r2007_plus:
+                    # endptproj is VERSIONS (R_13c3, R_2007) — INCLUDES
+                    # R2007 (AC1021); absent from R2010+ wires only.
+                    if gk == "endptproj" and not r2010_plus:
                         fields[gk] = normalize_value(v)
                     elif gk != "endptproj":
                         fields[gk] = normalize_value(v)

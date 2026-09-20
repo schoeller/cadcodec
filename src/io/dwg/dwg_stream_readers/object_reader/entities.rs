@@ -1733,7 +1733,10 @@ pub fn read_leader(
     let normal = reader.read_3bit_double();
     let horizontal_direction = reader.read_3bit_double();
     let block_offset = reader.read_3bit_double();
-    let annotation_offset = if dxf_version >= DxfVersion::AC1014 {
+    let annotation_offset = if dxf_version >= DxfVersion::AC1014
+        && dxf_version <= DxfVersion::AC1021
+    {
+        // Gold dwg.spec 3007-3009: endptproj is VERSIONS (R_13c3, R_2007).
         reader.read_3bit_double()
     } else {
         Vector3::ZERO
@@ -1745,26 +1748,29 @@ pub fn read_leader(
         0.0
     };
 
-    let (text_height, text_width) = if dxf_version <= DxfVersion::AC1021 {
-        (reader.read_bit_double(), reader.read_bit_double())
-    } else {
-        (0.0, 0.0)
-    };
+    // dwg.spec 3014-3015: FIELD_BD (box_height, 40) + FIELD_BD (box_width,
+    // 41) — wire fields at EVERY version (the DXF block at 2998 is
+    // display-only). Reading them only through R2007 desynchronized every
+    // R2010+ record.
+    let text_height = reader.read_bit_double();
+    let text_width = reader.read_bit_double();
 
+    // hookline_dir B (3016) + arrowhead_on B (3017)
     let hookline_on_x_dir = reader.read_bit();
     let arrowhead_on = reader.read_bit();
 
-    let common_arrowhead_or_unknown = reader.read_bit_short();
-    let mut arrowhead_type = 0;
+    // dwg.spec 3022: FIELD_BSx (arrowhead_type, 0) — at every version;
+    // the R2000+ wire slot previously got mislabeled as an unknown short.
+    let arrowhead_type = reader.read_bit_short();
     let mut dimasz = 0.0;
     let mut unknown_bit2 = false;
     let mut unknown_bit3 = false;
-    let unknown_short1;
+    let mut unknown_short1 = 0;
     let mut byblock_color = 0;
     let unknown_bit4;
     let unknown_bit5;
     if version.r13_14_only() {
-        arrowhead_type = common_arrowhead_or_unknown;
+        // dwg.spec 3030-3039: R13-R14-only extras.
         dimasz = reader.read_bit_double();
         unknown_bit2 = reader.read_bit();
         unknown_bit3 = reader.read_bit();
@@ -1772,10 +1778,13 @@ pub fn read_leader(
         byblock_color = reader.read_bit_short();
         unknown_bit4 = reader.read_bit();
         unknown_bit5 = reader.read_bit();
-    } else {
-        unknown_short1 = common_arrowhead_or_unknown;
+    } else if version.r2000_plus() {
+        // dwg.spec 3041-3045: SINCE (R_2000b).
         unknown_bit4 = reader.read_bit();
         unknown_bit5 = reader.read_bit();
+    } else {
+        unknown_bit4 = false;
+        unknown_bit5 = false;
     }
 
     let annotation_handle = reader.read_handle();

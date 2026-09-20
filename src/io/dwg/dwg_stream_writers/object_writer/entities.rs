@@ -1670,8 +1670,11 @@ impl<'a> DwgObjectWriter<'a> {
         // Offsettoblockinspt 3BD 212
         self.writer.write_3bit_double(e.block_offset);
 
-        // R14+: Endptproj 3BD (annotation offset) — not present in R13
-        if self.dxf_version >= crate::types::DxfVersion::AC1014 {
+        // Gold dwg.spec 3007-3009: endptproj is VERSIONS (R_13c3, R_2007) —
+        // absent from R2010+ wires.
+        if self.dxf_version >= crate::types::DxfVersion::AC1014
+            && self.dxf_version <= crate::types::DxfVersion::AC1021
+        {
             self.writer.write_3bit_double(e.annotation_offset);
         }
 
@@ -1680,11 +1683,9 @@ impl<'a> DwgObjectWriter<'a> {
             self.writer.write_bit_double(e.dimension_gap);
         }
 
-        // R13-R2007: annotation box height / width.
-        if self.dxf_version <= crate::types::DxfVersion::AC1021 {
-            self.writer.write_bit_double(e.text_height);
-            self.writer.write_bit_double(e.text_width);
-        }
+        // dwg.spec 3014/3015: box_height/box_width at every version.
+        self.writer.write_bit_double(e.text_height);
+        self.writer.write_bit_double(e.text_width);
 
         // Hooklineonxdir B
         self.writer
@@ -1692,18 +1693,18 @@ impl<'a> DwgObjectWriter<'a> {
         // Arrowheadon B
         self.writer.write_bit(e.arrow_enabled);
 
-        // R13-R14 names this field arrowhead type.  R2000+ retains the same
-        // stream slot as an undocumented bit-short.
-        let arrowhead_or_unknown = if self.version.r13_14_only() {
+        // dwg.spec 3022: FIELD_BSx (arrowhead_type, 0) at every version;
+        // R13-R14 folds the hookline state into bit 3.
+        let arrowhead_type = if self.version.r13_14_only() {
             if e.hookline_enabled {
                 e.arrowhead_type | 8
             } else {
                 e.arrowhead_type & !8
             }
         } else {
-            e.dwg_unknown_short1
+            e.arrowhead_type
         };
-        self.writer.write_bit_short(arrowhead_or_unknown);
+        self.writer.write_bit_short(arrowhead_type);
         if self.version.r13_14_only() {
             self.writer.write_bit_double(e.arrow_size);
             self.writer.write_bit(e.dwg_unknown_bit2);
