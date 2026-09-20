@@ -1642,6 +1642,15 @@ def normalize_silver(
         # first_corner.z) — project it back out of the corner before the 2RD
         # slice drops z. thickness matches.
         if silver_type in ("Solid", "Trace"):
+            # gold types the record by its wire type code (31 SOLID vs
+            # TRACE — dwg.spec _SOLID: subclass AcDbTrace for code 31 is
+            # actually the TRACE; silver folds both into the Solid entity
+            # and marks TRACE via is_trace). Type it accordingly or the
+            # TRACE lands in gold's SOLID ordinal bucket and shifts every
+            # SOLID pairing (entities-2d/3d: 24 corner rows + the
+            # SOLID/TRACE count pairs on TS1).
+            if payload.get("is_trace"):
+                gold_type = "TRACE"
             _SOL = {"first_corner": "corner1", "second_corner": "corner2",
                     "third_corner": "corner3", "fourth_corner": "corner4"}
             _elev = None
