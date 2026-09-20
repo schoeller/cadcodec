@@ -1132,13 +1132,21 @@ def normalize_silver(
             _flat["_dimension_kind"] = _dim_kind
             payload = _flat
         # Underlay entities: gold's spec blocks are per-kind (PDFUNDERLAY,
-        # DWFUNDERLAY, ...); the kind lives on silver's underlay_type.
+        # DWFUNDERLAY, ...); the kind lives on silver's underlay_type;
+        # gold's underlay records never carry entity-common graphic_data
+        # (census: 2000/Underlay.dwg's three PDFUNDERLAYs).
         if silver_type == "Underlay" and isinstance(payload.get("underlay_type"), str):
             gold_type = {
                 "Pdf": "PDFUNDERLAY", "Dwf": "DWFUNDERLAY",
                 "Png": "PNGUNDERLAY", "Jpeg": "JPGUNDERLAY",
                 "Jpg": "JPGUNDERLAY",
             }.get(payload["underlay_type"], gold_type)
+            payload.pop("graphic_data", None)
+        # MESH: entity-common graphic_data never appears in gold's record
+        # (census: 2004/Surface.dwg's two meshes; the MULTILEADER/
+        # ARC_DIMENSION/LIGHT precedent).
+        if silver_type == "Mesh":
+            payload.pop("graphic_data", None)
 
         if gold_type == "UNKNOWN_ENT":
             # Gold's unmodeled-class ENTITIES (UNKNOWN_ENT, the §8.1.1
@@ -1192,6 +1200,13 @@ def normalize_silver(
             # merge_common just folded into `fields` — the payload pop list
             # above cannot see them. Gold's UNKNOWN_ENT never emits a
             # graphic-data array.
+            fields.pop("graphic_data", None)
+        if gold_type in ("MESH", "PDFUNDERLAY", "DWFUNDERLAY",
+                         "PNGUNDERLAY", "JPGUNDERLAY") and "graphic_data" in fields:
+            # Same _common_dwg leak as UNKNOWN_ENT; gold's MESH records
+            # (2004/Surface.dwg) and underlay records (2004/Underlay.dwg
+            # PDFUNDERLAYs) never carry graphic_data (the MULTILEADER/
+            # ARC_DIMENSION/LIGHT pop precedent).
             fields.pop("graphic_data", None)
 
         if silver_type == "LwPolyline":
