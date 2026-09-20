@@ -89,7 +89,13 @@ OBJECT_TYPE_MAP: Dict[str, str] = {
     "PlotSettings": "PLOTSETTINGS",
     "MultiLeaderStyle": "MLEADERSTYLE",
     "TableStyle": "TABLESTYLE",
-    "TableContent": "ACAD_TABLE",
+    # gold's TABLECONTENT block (dwg2.spec 466) sits inside the same
+    # debug-gated region (dwg2.spec 297-959, §8.1.1 liveness rule) as the
+    # TABLE entity: the built dwgread decodes the record raw as UNKNOWN_OBJ
+    # with only the common fields on its JSON. Handled silver TableContent
+    # records ARE the gold UNKNOWN_OBJ carriers (one per example_* file);
+    # the object loop's handleless-wrapper guard skips silver's phantoms.
+    "TableContent": "UNKNOWN_OBJ",
     "Scale": "SCALE",
     "ObjectContextData": "OBJECTCONTEXTDATA",
     "SortEntitiesTable": "SORTENTSTABLE",
@@ -3355,11 +3361,25 @@ def normalize_silver(
         payload = obj[silver_type]
         if not isinstance(payload, dict):
             continue
-        if silver_type == "TableContent" and not isinstance(payload.get("handle"), int):
-            # silver synthesizes a handleless TableContent wrapper on the
-            # 2000-era files; gold types no ACAD_TABLE there — skip the
-            # phantom record instead of emitting an extra_in_silver count.
-            continue
+        if silver_type == "TableContent":
+            _tc_common = (payload.get("common")
+                          if isinstance(payload.get("common"), dict) else {})
+            _tc_handle = _tc_common.get("handle", payload.get("handle"))
+            if not isinstance(_tc_handle, int):
+                # silver synthesizes a handleless TableContent wrapper on the
+                # 2000-era files; gold types no ACAD_TABLE there — skip the
+                # phantom record instead of emitting an extra_in_silver count.
+                continue
+            # Handled records: gold reads them raw as UNKNOWN_OBJ (dead
+            # TABLECONTENT frame, dwg2.spec 466). The nested common dict
+            # holds the standard common keys — hoist them to the top level
+            # so _inject_reactors/_inject_xdic/_object_common_fields and
+            # the is_xdic_missing/has_ds_data gates see them; the UNKNOWN
+            # payload-clear below drops the typed tables payload anyway.
+            for _k in ("handle", "owner", "owner_handle", "reactors",
+                       "xdictionary_handle"):
+                if _k not in payload and _k in _tc_common:
+                    payload[_k] = _tc_common[_k]
         # Underlay definitions: gold's object name is per-kind too
         # (PDFDEFINITION/DWFDEFINITION; silver keeps underlay_type).
         if (silver_type == "UnderlayDefinition"
