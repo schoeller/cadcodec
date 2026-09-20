@@ -1054,50 +1054,38 @@ pub fn read_associative_data(
             let count = reader.read_bit_long();
             let actions = read_handles(reader, count);
             let node_count = safe_count(reader.read_bit_long());
-            let mut nodes = Vec::with_capacity(node_count.saturating_add(1) as usize);
-            if node_count > 0 {
-                let root_id = reader.read_bit_long();
-                let connection_count = safe_count(reader.read_bit_long());
-                let mut connections = Vec::with_capacity(connection_count as usize);
-                for _ in 0..connection_count {
+            // gold dwg2.spec ASSOC2DCONSTRAINTGROUP (5682 + AcConstraint
+            // GroupNode_fields 5576): num_nodes BL then a FLAT REPEAT —
+            // per node: nodeid BLd, [pre-R2013b: status RC], num_
+            // connections BL, connections BL-vector, [R2013b+: status
+            // RC]. The old root-node + class-registry shape misparsed the
+            // per-node data as one global connection vector (garbage
+            // signed BLs) and lost the node count: gold reads 9 nodes on
+            // Constraints.dwg where this read 1, 129 where this read 113.
+            let mut nodes: Vec<AssocConstraintNode> =
+                Vec::with_capacity(node_count as usize);
+            for _ in 0..node_count {
+                let node_id = reader.read_bit_long();
+                let mut status = 0u8;
+                if !version.r2013_plus(dxf_version) {
+                    status = reader.read_byte();
+                }
+                let num_connections = safe_count(reader.read_bit_long());
+                let mut connections = Vec::with_capacity(num_connections as usize);
+                for _ in 0..num_connections {
                     connections.push(reader.read_bit_long());
                 }
+                if version.r2013_plus(dxf_version) {
+                    status = reader.read_byte();
+                }
                 nodes.push(AssocConstraintNode {
-                    node_id: root_id,
-                    status: u8::from(reader.read_bit()),
+                    node_id,
+                    status,
                     connections,
                     class_name: String::new(),
                     registry_flag: false,
                     data: AssocConstraintNodeData::None,
                 });
-                let class_type_count = safe_count(reader.read_bit_long());
-                let mut class_types = Vec::with_capacity(class_type_count as usize);
-                for _ in 0..class_type_count {
-                    class_types.push(reader.read_variable_text());
-                }
-                let registered_count = safe_count(reader.read_bit_long()).min(node_count);
-                let mut registry = Vec::with_capacity(registered_count as usize);
-                for _ in 0..registered_count {
-                    let registry_flag = reader.read_bit();
-                    let class_index = reader.read_bit_long();
-                    let node_id = reader.read_bit_long();
-                    let class_name = class_index
-                        .checked_sub(1)
-                        .and_then(|index| class_types.get(index as usize))
-                        .cloned()
-                        .unwrap_or_default();
-                    registry.push((class_name, node_id, registry_flag));
-                }
-                for (class_name, registered_node_id, registry_flag) in registry {
-                    let mut node = read_constraint_node_common(reader, version, dxf_version);
-                    if node.node_id == 0 {
-                        node.node_id = registered_node_id;
-                    }
-                    node.data = read_constraint_node_data(reader, &class_name);
-                    node.class_name = class_name;
-                    node.registry_flag = registry_flag;
-                    nodes.push(node);
-                }
             }
             AssociativeData::ConstraintGroup(Assoc2dConstraintGroup {
                 action,

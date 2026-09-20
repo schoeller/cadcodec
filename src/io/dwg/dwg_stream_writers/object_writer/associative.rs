@@ -795,50 +795,14 @@ impl<'a> DwgObjectWriter<'a> {
                 self.write_assoc_handle(DwgReferenceType::HardOwnership, value.dependency);
                 self.writer.write_bit_long(value.actions.len() as i32);
                 self.write_assoc_handles(DwgReferenceType::HardOwnership, &value.actions);
-                if let Some(first) = value.nodes.first() {
-                    let registered: Vec<&AssocConstraintNode> = value
-                        .nodes
-                        .iter()
-                        .skip(1)
-                        .filter(|node| !node.class_name.is_empty())
-                        .collect();
-                    self.writer.write_bit_long(registered.len() as i32);
-                    self.writer.write_bit_long(first.node_id);
-                    self.writer.write_bit_long(first.connections.len() as i32);
-                    for connection in &first.connections {
-                        self.writer.write_bit_long(*connection);
-                    }
-                    self.writer.write_bit(first.status != 0);
-                    let mut class_types: Vec<&str> = Vec::new();
-                    for node in &registered {
-                        if !class_types
-                            .iter()
-                            .any(|name| name.eq_ignore_ascii_case(&node.class_name))
-                        {
-                            class_types.push(&node.class_name);
-                        }
-                    }
-                    self.writer.write_bit_long(class_types.len() as i32);
-                    for class_name in &class_types {
-                        self.writer.write_variable_text(class_name);
-                    }
-                    self.writer.write_bit_long(registered.len() as i32);
-                    for node in &registered {
-                        self.writer.write_bit(node.registry_flag);
-                        let class_index = class_types
-                            .iter()
-                            .position(|name| name.eq_ignore_ascii_case(&node.class_name))
-                            .map(|index| index as i32 + 1)
-                            .unwrap_or(0);
-                        self.writer.write_bit_long(class_index);
-                        self.writer.write_bit_long(node.node_id);
-                    }
-                    for node in registered {
-                        self.write_constraint_node_common(node);
-                        self.write_constraint_node_data(&node.data);
-                    }
-                } else {
-                    self.writer.write_bit_long(0);
+                // gold dwg2.spec ASSOC2DCONSTRAINTGROUP: num_nodes BL
+                // then the FLAT per-node REPEAT (nodeid BLd + status RC
+                // era-gated around num_connections + the BL vector) —
+                // write_constraint_node_common is exactly that shape;
+                // mirrors the reader.
+                self.writer.write_bit_long(value.nodes.len() as i32);
+                for node in &value.nodes {
+                    self.write_constraint_node_common(node);
                 }
             }
             AssociativeData::Variable(value) => {

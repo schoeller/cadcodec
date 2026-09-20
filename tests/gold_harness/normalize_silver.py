@@ -2851,15 +2851,21 @@ def normalize_silver(
                                           "TurnHeight": 3}.get(_ct, 0)
             if isinstance(_sp, dict) and _sp:
                 fields["degree"] = _sp.get("degree", 0)
-                fields["knotparam"] = _sp.get("knot_parameterization", 0)
+                # gold's HELIX records carry knotparam/splineflags ONLY
+                # SINCE R2013b (dwg.spec 2588-2590 — the embedded-spline
+                # R2013 additions); pre-2013 records omit BOTH (extra
+                # rows otherwise) while 2013/2018 files need them.
+                if r2013_plus:
+                    fields["knotparam"] = _sp.get("knot_parameterization", 0)
                 fields["knot_tol"] = normalize_float(_sp.get("knot_tolerance", 0.0))
                 fields["ctrl_tol"] = normalize_float(_sp.get("control_tolerance", 0.0))
                 _fl = _sp.get("flags") if isinstance(_sp.get("flags"), dict) else {}
                 fields["closed_b"] = 1 if _fl.get("closed") else 0
                 fields["periodic"] = 1 if _fl.get("periodic") else 0
                 fields["rational"] = 1 if _fl.get("rational") else 0
-                fields["splineflags"] = ((1 if _fl.get("planar") else 0)
-                                         | (2 if _fl.get("linear") else 0))
+                if r2013_plus:
+                    fields["splineflags"] = ((1 if _fl.get("planar") else 0)
+                                             | (2 if _fl.get("linear") else 0))
                 _kn = _sp.get("knots")
                 if isinstance(_kn, list) and _kn:
                     fields["knots"] = [normalize_float(x) for x in _kn]

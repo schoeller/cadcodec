@@ -63,7 +63,11 @@ fn dwg_constraint_group_counts_only_registered_nodes() {
     assert_eq!(group.nodes.len(), 2);
     assert_eq!(group.nodes[0].node_id, 0);
     assert_eq!(group.nodes[1].node_id, 1);
-    assert_eq!(group.nodes[1].class_name, "AcFixedConstraint");
+    // The DWG wire is gold's flat per-node REPEAT (dwg2.spec 5682 +
+    // AcConstraintGroupNode_fields 5576 — nodeid/status/connections
+    // only): the registry/class channel is a DXF-side semantic and does
+    // not survive a DWG round-trip.
+    assert_eq!(group.nodes[1].class_name, "");
 }
 
 fn document_with_axis_and_rigid_set() -> CadDocument {
@@ -271,7 +275,33 @@ fn axis_constraint_and_rigid_set_round_trip_in_dwg_and_dxf() {
     ))
     .read()
     .expect("read DWG");
-    assert_axis_and_rigid_set(&dwg);
+    // The DWG binary wire is gold's FLAT per-node REPEAT (dwg2.spec
+    // ASSOC2DCONSTRAINTGROUP 5682 + AcConstraintGroupNode_fields 5576:
+    // nodeid BLd, status RC era-gated, num_connections + BL vector —
+    // nothing else). The rich per-node class/data payload is a DXF-side
+    // semantic and cannot survive a DWG round-trip; assert the flat fields
+    // only (the flat reader landed with the gold-parity packet — the old
+    // registry/class wire shape misparsed every real AutoCAD record).
+    {
+        let group = dwg
+            .objects
+            .values()
+            .find_map(|object| match object {
+                ObjectType::Associative(AssociativeObject {
+                    data: AssociativeData::ConstraintGroup(group),
+                    ..
+                }) => Some(group),
+                _ => None,
+            })
+            .expect("constraint group should round-trip");
+        assert_eq!(group.nodes.len(), 8);
+        let ids: Vec<i32> = group.nodes.iter().map(|n| n.node_id).collect();
+        assert_eq!(ids, vec![0, 1, 2, 3, 4, 5, 6, 7]);
+        for node in &group.nodes {
+            assert!(node.class_name.is_empty());
+            assert!(matches!(node.data, AssocConstraintNodeData::None));
+        }
+    }
 
     let dxf = DxfReader::from_reader(Cursor::new(
         DxfWriter::new(&document).write_to_vec().expect("write DXF"),
