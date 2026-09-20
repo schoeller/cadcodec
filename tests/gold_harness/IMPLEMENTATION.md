@@ -298,8 +298,12 @@ VIEWPORT.status_flag raw retention (2026-09-20 sixteenth batch,
 batch, `9f06d89`) + TOLERANCE field-name set (2026-09-20 eighteenth
 batch, `a7e451b`) + smalls batch: MTEXT columns / GROUP.name /
 VISUALSTYLE BS sign / 3DFACE z_is_zero / MLINE CLOSED (2026-09-20
-nineteenth batch, `257895a`), 2026-09-20):**
-read-fidelity **558**, write-fidelity **536** — the 1 000 milestone was
+nineteenth batch, `257895a`) + TRACE/SOLID wire-type split (twentieth
+batch, `91e72a3`) + MESH/PDFUNDERLAY graphic_data pops (twenty-first
+batch, `e90fb77`) + SORTENTSTABLE.ents emission (twenty-second batch,
+`ab0e02f`) + SURFACE family retypes + PLANESURFACE projection
+(twenty-third batch, `b2955a7`), 2026-09-20):**
+read-fidelity **479**, write-fidelity **455** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -322,7 +326,11 @@ rows; the VIEWPORT.status_flag raw retention then took −17 read
 rows; the LEADEROBJECTCONTEXTDATA retype then took −24/−24; the
 TOLERANCE field-name batch then took −63/−63; the smalls batch
 (MTEXT columns, GROUP.name, VISUALSTYLE sign, 3DFACE z_is_zero,
-MLINE CLOSED) then took −17/−62). gh44-error.dwg
+MLINE CLOSED) then took −17/−62; the TRACE/SOLID wire-type split
+then took −53/−53; the MESH/PDFUNDERLAY graphic_data pops then took
+−5/−5; the SORTENTSTABLE.ents emission then took −4/−5; the SURFACE
+family retypes + PLANESURFACE projection then took −17/−18).
+gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -830,9 +838,9 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> the smalls batch `257895a`): read **558** / write **536** — below
-> the 1 000 milestone, closing on the below-100 campaign target —
-> and the two sides MIRROR family-for-family (the
+> the SURFACE-retypes + PLANESURFACE batch `b2955a7`): read **479** /
+> write **455** — below the 1 000 milestone, closing on the below-100
+> campaign target — and the two sides MIRROR family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
 > unknown_bits side channel −448/−448; the style-map/chain/MLINE batch
@@ -863,7 +871,48 @@ Given a diff `(type, field, kind)`:
 >   field-name projection landed (2026-09-20 eighteenth batch,
 >   `a7e451b`) and the smalls batch landed (2026-09-20 nineteenth
 >   batch, `257895a`: MTEXT columns, GROUP.name, VISUALSTYLE BS sign,
->   3DFACE z_is_zero, MLINE CLOSED) — see their DONE entries below.
+>   3DFACE z_is_zero, MLINE CLOSED), the TRACE/SOLID wire-type split
+>   landed (twentieth batch, `91e72a3`), the MESH/PDFUNDERLAY
+>   graphic_data pops landed (twenty-first batch, `e90fb77`), the
+>   SORTENTSTABLE.ents emission landed (twenty-second batch,
+>   `ab0e02f`) and the SURFACE family retypes + PLANESURFACE
+>   projection landed (twenty-third batch, `b2955a7`) — see their
+>   DONE entries below.
+
+  ~~SURFACE family retypes + PLANESURFACE projection~~ — **DONE
+  (2026-09-20 twenty-third batch, `b2955a7`; read 496 → 479 / write
+  473 → 455, −17/−18; Surface.dwg 47→31 read, 50→33 write)**:
+  silver's five Surf entities map kind-for-kind onto gold —
+  Extruded/Lofted/Revolved/Swept are gold's DEAD-frame records
+  (§8.1.1, dwg2.spec 3716-4513 → raw UNKNOWN_ENT, common-only in
+  normalize_gold — verified field-by-field), kind Plane is gold's
+  LIVE PLANESURFACE. The retype poisons every handle-vector that
+  resolves one of them (SORTENTSTABLE sort_ents/ents targets on
+  Surface AND gh109_1, ASSOCDEPENDENCY.dep_on). Fix: the Surface
+  entity mapping kind→PLANESURFACE, others→UNKNOWN_ENT with the
+  payload popped to common-only; the PLANESURFACE ENTITY-loop branch
+  projects silver's Plane payload 1:1 (SAB bytes → [ascii-prefix,
+  hex-rest] per gold's acis_data shape; u/v isolines + sum + present
+  bit; point_of_reference → point; degenerate [0]*n wires; unknown
+  bits via the pre-registered _UNKNOWN_BITS_TYPES channel emission).
+  REMAINING sub-knots (recipes above): the one PLANESURFACE record's
+  acis_data SAB boundary detail, modeler_format_version 6-vs-1 and
+  v_isolines 8-vs-6 (silver's Plane reader misparses two fields),
+  and gh109_1's ORIG sortent rows need NULL-ENTRY RETENTION in
+  silver's sort-table reader (gold keeps the zero pairs at ~3
+  indices; silver drops most, shifting ordinals).
+
+  ~~TRACE/SOLID wire-type split + graphic_data pops + SORTENTSTABLE.ents~~ — **DONE (twentieth–twenty-second batches, `91e72a3`,
+  `e90fb77`, `ab0e02f`)**: (a) TRACE (wire code 32) vs SOLID (31) —
+  silver folded both into Solid with is_trace; the normalizer now
+  types is_trace payloads TRACE (entities-2d/3d −23/−23 each on the
+  corner rotations; TS1's residual SOLID/TRACE count rows die too).
+  (b) MESH/PDFUNDERLAY graphic_data leaks via merge_common's
+  _common_dwg path (the UNKNOWN_ENT precedent) — gold never emits
+  them (census Surface/Underlay). (c) gold dumps BOTH sort-table
+  handle vectors on DWG (code-0 sort_ents + code-4 ents, zipped in
+  silver's entries order — pair-verified on Surface@719); the old
+  "DXF-only, never serialized" claim was wrong.
 
   ~~smalls batch: MTEXT columns / GROUP.name / VISUALSTYLE BS sign /
   3DFACE z_is_zero / MLINE CLOSED~~ — **DONE (2026-09-20 nineteenth
