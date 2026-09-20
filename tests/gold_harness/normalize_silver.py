@@ -3463,8 +3463,8 @@ def normalize_silver(
         elif silver_type == "ProxyObject":
             # dwg.spec 5752 (PROXY_OBJECT, live): dxfname ACAD_PROXY_OBJECT.
             # Silver's ProxyObject wrapper keeps the parsed fields plus the
-            # raw proxy bits (payload/text_payload) gold dumps as data hex —
-            # not derivable (raw-remainder class), left missing.
+            # raw window (raw_window) gold dumps as data hex — captured
+            # verbatim by the reader and projected in the branch below.
             gold_type = "PROXY_OBJECT"
         _inject_reactors(payload)
         _inject_xdic(payload)
@@ -4298,21 +4298,31 @@ def normalize_silver(
 
         if silver_type == "ProxyObject":
             # dwg.spec 5752 (PROXY_OBJECT): gold emits dxfname, proxy_id,
-            # dwg_version/maint_version, from_dxf, objids; data/data_numbits
-            # are the raw proxy bits (irreducible without the raw-remainder
-            # side channel).
+            # dwg_version/maint_version, from_dxf, objids, and the raw
+            # window data/data_numbits. The reader captures the window
+            # verbatim (after-prologue .. hdlpos, wire order incl. the
+            # string area) as `raw_window`; emit it as gold's uppercase
+            # hex + bit count.
             fields["dxfname"] = "ACAD_PROXY_OBJECT"
             fields["proxy_id"] = payload.get("class_id", 0)
             fields["dwg_version"] = payload.get("dwg_version", 0)
             fields["maint_version"] = payload.get("maintenance_version", 0)
             fields["from_dxf"] = 1 if payload.get("from_dxf") else 0
+            _rw = payload.get("raw_window")
+            if isinstance(_rw, dict) and isinstance(_rw.get("bit_count"), int):
+                fields["data_numbits"] = int(_rw["bit_count"])
+                _rw_bytes = _rw.get("bytes")
+                if isinstance(_rw_bytes, list):
+                    fields["data"] = "".join(
+                        "%02X" % (int(b) & 0xFF) for b in _rw_bytes)
             _oids = payload.get("object_ids")
             if isinstance(_oids, list):
                 fields["objids"] = [normalize_handle_value(o.get("handle"))
                                     for o in _oids if isinstance(o, dict)]
             for sk in ("class_id", "dwg_version", "maintenance_version",
                        "from_dxf", "object_ids", "proxy_id", "version",
-                       "dxf_subclass", "payload", "text_payload"):
+                       "dxf_subclass", "payload", "text_payload",
+                       "raw_window"):
                 payload.pop(sk, None)
         if silver_type == "RasterVariables":
             # dwg.spec RASTERVARIABLES: gold names the display flag

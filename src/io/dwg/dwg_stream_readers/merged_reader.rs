@@ -560,6 +560,81 @@ impl DwgMergedReader {
     pub fn set_main_data_end(&mut self, bit: i64) {
         self.text_start_bit = bit;
     }
+
+    /// Capture the raw PROXY data window the way gold's `dwg.spec` DECODER
+    /// does for PROXY_ENTITY/PROXY_OBJECT: every record bit from the current
+    /// main position to the handle-stream start, in classic wire order.
+    /// That window spans the opaque main payload, the R2007+ string area
+    /// (including the `dxf_subclass` TU and the stream trailer bits), and
+    /// the tail padding up to `hdlpos` — gold reads it with
+    /// `data_numbits = (obj->hdlpos - bit_position(dat)) & 0xFFFFFFFF`
+    /// followed by `bit_read_bits(dat, data_numbits)`, and no parsed
+    /// field set reproduces those bytes.  Packing follows bit_read_bits:
+    /// full bytes MSB-first, trailing partial byte LSB-packed
+    /// (read-order bit i at low position i).
+    pub fn capture_proxy_window(&self) -> (Vec<u8>, i64) {
+        let start = self.main.position_in_bits();
+        let end = self.handle_start_bit.max(start);
+        let total = end - start;
+        let data = self.main.data_bytes();
+        let full = total / 8;
+        let rem = total - full * 8;
+        // Slice from the full record buffer bit-by-bit (main and handle
+        // positions share the same coordinate base within `data`).
+        let bit_at = |abs: i64| -> bool {
+            let byte = (abs / 8) as usize;
+            byte < data.len() && (data[byte] & (0x80 >> ((abs % 8) as u32))) != 0
+        };
+        let mut out = vec![0u8; (total as usize).div_ceil(8)];
+        for j in 0..full as usize {
+            let mut v = 0u8;
+            for k in 0..8usize {
+                if bit_at(start + j as i64 * 8 + k as i64) {
+                    v |= 1 << (7 - k);
+                }
+            }
+            out[j] = v;
+        }
+        if rem > 0 {
+            let base = full * 8;
+            let mut v = 0u8;
+            for k in 0..rem as usize {
+                if bit_at(start + base + k as i64) {
+                    v |= 1 << k;
+                }
+            }
+            out[full as usize] = v;
+        }
+        (out, total)
+    }
+
+    /// Gold's byte-geometry terminator for the trailing proxy handle loop
+    /// (`dwg.spec` PROXY_OBJECT objids: `while (hdl_dat->byte <
+    /// hdl_dat->size - 1)`).  `hdl_dat->size` is the whole record's byte
+    /// size and `hdl_dat->bit` is ignored, so once the handle cursor's
+    /// record-relative byte reaches `size - 1` no further handle is read —
+    /// the record's last byte never becomes a ghost handle.
+    pub fn gold_handle_cursor_at_end(&self) -> bool {
+        let record_bytes = self.main.data_len() as i64;
+        if record_bytes == 0 {
+            return true;
+        }
+        let abs_bit = match &self.handle {
+            Some(r) => {
+                if r.data_len() == self.main.data_len() {
+                    // Three-stream reader: positioned absolutely in the
+                    // shared buffer copy.
+                    r.position_in_bits()
+                } else {
+                    // Two-stream reader: byte slice starting at the handle
+                    // stream; positions are slice-relative.
+                    (self.handle_start_bit / 8) * 8 + r.position_in_bits()
+                }
+            }
+            None => self.main.position_in_bits(),
+        };
+        abs_bit / 8 >= record_bytes - 1
+    }
 }
 
 // ════════════════════════════════════════════════════════════════════════════

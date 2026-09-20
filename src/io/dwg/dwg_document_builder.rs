@@ -5616,6 +5616,14 @@ impl DwgDocumentBuilder {
                     } else {
                         false
                     };
+                    // Gold dwg.spec 5752 DECODER: data_numbits =
+                    // (obj->hdlpos - bit_position(dat)) & 0xFFFFFFFF and
+                    // data = bit_read_bits(dat, data_numbits). The window
+                    // spans the main payload, the R2007+ string area (incl.
+                    // the dxf_subclass TU) and the stream trailer bits —
+                    // capture it verbatim in wire order here.
+                    let (raw_window_bytes, raw_window_bits) =
+                        reader.capture_proxy_window();
                     let object_data_bits = reader.main_remaining_bits() as u32;
                     let mut object_data =
                         vec![0u8; object_data_bits.div_ceil(8) as usize];
@@ -5635,8 +5643,15 @@ impl DwgDocumentBuilder {
                                 0x80 >> (bit_index % 8);
                         }
                     }
-                    let mut object_ids = Vec::new();
-                    while reader.handle_remaining_bits() >= 8 {
+                    let mut object_ids: Vec<crate::objects::ProxyObjectReference> =
+                        Vec::new();
+                    // Gold's terminator for the objids push loop
+                    // (dwg.spec 5816-5831): `while (hdl_dat->byte <
+                    // hdl_dat->size - 1)` — byte-quantized, so the record's
+                    // last byte never becomes a terminator-ghost handle.
+                    while !reader.gold_handle_cursor_at_end()
+                        && reader.handle_remaining_bits() >= 8
+                    {
                         let (value, reference_type) =
                             reader.read_handle_reference(handle);
                         let kind = match reference_type {
@@ -5656,10 +5671,23 @@ impl DwgDocumentBuilder {
                                 crate::objects::ProxyReferenceKind::Undefined
                             }
                         };
-                        object_ids.push(crate::objects::ProxyObjectReference {
-                            handle: Handle::from(value),
-                            kind,
-                        });
+                        // Gold's PUSH_HV (common.h:634) skips the push when
+                        // the new ref pointer equals objids.last() — and
+                        // dwg_add_handleref dedups by (code, value), returning
+                        // the same pointer. Consecutive equal (code, value)
+                        // wire refs therefore collapse into one entry.
+                        let dup_of_last = match object_ids.last() {
+                            Some(prev) => {
+                                prev.handle.value() == value && prev.kind == kind
+                            }
+                            None => false,
+                        };
+                        if !dup_of_last {
+                            object_ids.push(crate::objects::ProxyObjectReference {
+                                handle: Handle::from(value),
+                                kind,
+                            });
+                        }
                     }
                     let payload =
                         crate::objects::ProxyPayload::from_bits(
@@ -5722,6 +5750,12 @@ impl DwgDocumentBuilder {
                                         text_data_bits,
                                     ),
                                 object_ids,
+                                raw_window: Some(
+                                    crate::objects::ProxyRawWindow {
+                                        bit_count: raw_window_bits as u32,
+                                        bytes: raw_window_bytes,
+                                    },
+                                ),
                             },
                         )
                     };

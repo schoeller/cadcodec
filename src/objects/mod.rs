@@ -100,7 +100,8 @@ pub use plot_settings::{
 pub use scale::Scale;
 pub use semantic_property::{
     ProxyObject, ProxyObjectReference, ProxyPayload, ProxyPayloadEncoding, ProxyPayloadRecord,
-    ProxyReferenceKind, RegisteredClassObject, SemanticProperty, SemanticPropertyValue,
+    ProxyRawWindow, ProxyReferenceKind, RegisteredClassObject, SemanticProperty,
+    SemanticPropertyValue,
 };
 pub use sort_entities_table::{SortEntitiesTable, SortEntsEntry};
 pub use stub_objects::{

@@ -66,6 +66,26 @@ pub struct ProxyObject {
     #[cfg_attr(feature = "serde", serde(default))]
     pub text_payload: ProxyPayload,
     pub object_ids: Vec<ProxyObjectReference>,
+    /// Gold's raw `data` window slice, captured verbatim by the reader
+    /// (see [`ProxyRawWindow`]).  Emitted by the gold-vs-silver harness
+    /// normalizer as `data` hex + `data_numbits`; the writer re-serializes
+    /// the parsed fields, which already reproduce the window bit-exact.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub raw_window: Option<ProxyRawWindow>,
+}
+
+/// Gold's raw PROXY data window (`dwg.spec` PROXY_OBJECT/PROXY_ENTITY
+/// DECODER): the record bits from after the prologue to the handle-stream
+/// start, in wire order — spanning the opaque payload, the R2007+ string
+/// area (including the `dxf_subclass` TU), and the stream trailer bits.
+/// `bit_count` bits packed like bit_read_bits: full bytes MSB-first and a
+/// trailing partial byte LSB-packed, matching gold's `data` hex +
+/// `data_numbits` emission byte for byte.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ProxyRawWindow {
+    pub bit_count: u32,
+    pub bytes: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
