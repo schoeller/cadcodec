@@ -2482,15 +2482,23 @@ def normalize_silver(
                     fields[gk] = nv
                 else:
                     fields[gk] = normalize_value(v)
-            # status_flag: silver decomposes into a `status` bit-struct; gold
-            # keeps the raw BL (R2000+). Recompose using silver's own bit
-            # layout (viewport.rs ViewportStatusFlags::to_bits):
+            # status_flag: gold keeps the raw BL (R2000+, dwg.spec 2484).
+            # The reader now retains the wire value verbatim on the entity
+            # (dwg_status_flag) — prefer it; fall back to recomposing from
+            # silver's `status` bit-struct (viewport.rs
+            # ViewportStatusFlags::to_bits), which models only bits 0-15:
             #   bit0 perspective, 1 front_clipping, 2 back_clipping, 3 ucs_follow,
             #   4 front_clip_not_at_eye, 5 ucs_icon_visible, 6 ucs_icon_at_origin,
             #   7 fast_zoom, 8 snap_on, 9 grid_on, 10 isometric_snap, 11 hide_plot,
             #   12 iso_pair_top, 13 iso_pair_right, 14 locked, 15 is_on.
+            _raw_sf = payload.get("dwg_status_flag")
             st = payload.get("status")
-            if r2000_plus and isinstance(st, dict):
+            if r2000_plus and isinstance(_raw_sf, int):
+                fields["status_flag"] = _raw_sf
+                consumed.add("status")
+                consumed.add("status_flag")
+                consumed.add("dwg_status_flag")
+            elif r2000_plus and isinstance(st, dict):
                 _ST_BITS = (("perspective", 0), ("front_clipping", 1),
                             ("back_clipping", 2), ("ucs_follow", 3),
                             ("front_clip_not_at_eye", 4), ("ucs_icon_visible", 5),

@@ -2167,8 +2167,13 @@ impl<'a> DwgObjectWriter<'a> {
         // Status/UCS data (written for all versions)
         // Frozen layer count BL
         self.writer.write_bit_long(e.frozen_layers.len() as i32);
-        // Status flags BL 90
-        self.writer.write_bit_long(e.status.to_bits());
+        // Status flags BL 90 — write the wire-true raw when the read
+        // retained it (the typed bits model only 0-15); constructed
+        // viewports fall back to the typed recomposition.
+        let status_flags = e
+            .dwg_status_flag
+            .unwrap_or_else(|| e.status.to_bits());
+        self.writer.write_bit_long(status_flags);
         // Style Sheet TV 1
         self.writer.write_variable_text(&e.style_sheet);
         // Render Mode RC 281

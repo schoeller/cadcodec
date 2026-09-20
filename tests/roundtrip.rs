@@ -663,6 +663,12 @@ fn normalize_entity_for_comparison(entity: &mut EntityType) {
         EntityType::PolygonMesh(pm) => {
             pm.seqend_handle = None;
         }
+        // Viewport: the raw status_flag is retained from the wire on read
+        // but absent on constructed documents (the writer then recomposes
+        // the typed bits) — not part of semantic roundtrip equality.
+        EntityType::Viewport(v) => {
+            v.dwg_status_flag = None;
+        }
         // PolyfaceMesh: seqend handle + nested vertex/face EntityCommon
         EntityType::PolyfaceMesh(pf) => {
             pf.seqend_handle = None;

@@ -249,6 +249,13 @@ pub struct Viewport {
     pub height: f64,
     /// Viewport status flags
     pub status: ViewportStatusFlags,
+    /// Raw DWG status_flag (BL 90, SINCE R_2000b) retained verbatim from
+    /// the wire. The typed `status` decomposition models only bits 0-15
+    /// and drops the higher bits (corpus records carry 0xC8060-style
+    /// values); the raw is the wire-true source for the harness and the
+    /// writer echo. None on programmatically constructed viewports (the
+    /// writer then falls back to the typed bits).
+    pub dwg_status_flag: Option<i32>,
     /// Viewport ID (unique within the drawing)
     pub id: i16,
     /// View center point (DCS - Display Coordinate System)
@@ -344,6 +351,7 @@ impl Viewport {
             width: 297.0,  // A4 width in mm
             height: 210.0, // A4 height in mm
             status: ViewportStatusFlags::default_on(),
+            dwg_status_flag: None,
             id: 0,
             view_center: Vector3::ZERO,
             snap_base: Vector3::ZERO,
