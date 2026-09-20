@@ -897,9 +897,14 @@ impl<'a> DwgObjectWriter<'a> {
                 // Registered application H (null hard pointer)
                 self.writer.write_handle(DwgReferenceType::HardPointer, 0);
 
-                // ── BEGIN redundant fields (discarded on read) ──
-                // Attachment point BL
-                self.writer.write_bit_long(e.attachment_point as i32);
+                // ── BEGIN redundant fields ──
+                // Redundant-block header BL (gold: `ignore_attachment` —
+                // AutoCAD repeats the absolute attachment point). Write the
+                // raw stored value: gold's JSON emits the LAST-read extents/
+                // ignore_attachment, so zeros here would read back as
+                // extents 0.0 in gold while the true values ride only in
+                // the main block.
+                self.writer.write_bit_long(e.ignore_attachment);
                 // X-axis dir 3BD
                 let x_dir_redundant = x_dir;
                 self.writer.write_3bit_double(x_dir_redundant);
@@ -910,10 +915,10 @@ impl<'a> DwgObjectWriter<'a> {
                 // Rect height BD
                 self.writer
                     .write_bit_double(e.rectangle_height.unwrap_or(0.0));
-                // Extents width BD
-                self.writer.write_bit_double(0.0);
-                // Extents height BD
-                self.writer.write_bit_double(0.0);
+                // Extents width BD 42
+                self.writer.write_bit_double(e.extents_width);
+                // Extents height BD 43
+                self.writer.write_bit_double(e.extents_height);
                 // ── END redundant fields ──
 
                 let col = &e.column_data;

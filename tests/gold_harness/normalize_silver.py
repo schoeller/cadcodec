@@ -1100,7 +1100,9 @@ def normalize_silver(
             if not r2018_plus:
                 for kk in ("column_type", "column_count", "flow_reversed",
                            "auto_height", "width", "gutter", "heights",
-                           "num_column_heights", "column_heights", "numfragments"):
+                           "num_column_heights", "column_heights", "numfragments",
+                           # R2018-only redundant-block header BL
+                           "ignore_attachment"):
                     payload.pop(kk, None)
             # bg_fill_flag is R2004a+ (FIELD_BL0 90); silver stores
             # background_fill_flags. Project it.

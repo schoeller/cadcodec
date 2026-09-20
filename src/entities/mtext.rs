@@ -140,6 +140,12 @@ pub struct MText {
     /// "extents height"). 0 when never laid out.
     #[cfg_attr(feature = "serde", serde(default))]
     pub extents_height: f64,
+    /// R2018+ redundant annotative-block header BL
+    /// (`ignore_attachment`, dwg.spec: `FIELD_BL (ignore_attachment, 0);
+    /// // not in DXF, prev as BS`). AutoCAD repeats the absolute attachment
+    /// point here; kept raw for wire round-trip fidelity.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub ignore_attachment: i32,
 }
 
 impl MText {
@@ -173,6 +179,7 @@ impl MText {
             column_data: MTextColumnData::new(),
             extents_width: 0.0,
             extents_height: 0.0,
+            ignore_attachment: 0,
         }
     }
 

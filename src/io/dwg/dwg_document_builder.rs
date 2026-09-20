@@ -366,6 +366,7 @@ fn mtext_from_data(data: entities::MTextData, common: EntityCommon, maps: &Handl
     }
     e.extents_width = data.extents_width;
     e.extents_height = data.extents_height;
+    e.ignore_attachment = data.ignore_attachment;
     e.normal = data.normal;
     e.attachment_point = match data.attachment_point {
         2 => AttachmentPoint::TopCenter,

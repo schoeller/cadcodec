@@ -231,6 +231,8 @@ pub struct MTextData {
     pub column_width: f64,
     pub column_gutter: f64,
     pub column_heights: Vec<f64>,
+    /// R2018+ redundant-block header BL (gold name `ignore_attachment`).
+    pub ignore_attachment: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -1598,6 +1600,7 @@ pub fn read_mtext(
     let mut column_width = 0.0;
     let mut column_gutter = 0.0;
     let mut column_heights = Vec::new();
+    let mut ignore_attachment = 0i32;
     if version.r2018_plus(dxf_version) {
         // Is NOT annotative B
         let is_not_annotative = reader.read_bit();
@@ -1611,9 +1614,11 @@ pub fn read_mtext(
             // Registered application H (hard pointer)
             let _app_handle = reader.read_handle();
 
-            // ── BEGIN redundant fields (already captured above; discarded) ──
-            // Attachment point BL
-            let _attachment = reader.read_bit_long();
+            // ── BEGIN redundant fields ──
+            // Gold's redundant-block header BL is `ignore_attachment` (the
+            // absolute attachment point; keep it raw: gold's JSON emits this
+            // last-read vector, so the rewrite must repeat it verbatim).
+            ignore_attachment = reader.read_bit_long();
             // X-axis dir 3BD
             let _x_axis = reader.read_3bit_double();
             // Insertion point 3BD
@@ -1682,6 +1687,7 @@ pub fn read_mtext(
         column_width,
         column_gutter,
         column_heights,
+        ignore_attachment,
     }
 }
 
@@ -4282,6 +4288,7 @@ pub(crate) fn read_embedded_mtext(
         column_auto_height,
         column_width,
         column_gutter,
+        ignore_attachment: 0,
         column_heights,
     }
 }
