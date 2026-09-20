@@ -1061,6 +1061,22 @@ def normalize_silver(
             if isinstance(rec, dict) and isinstance(rec.get("handle"), int):
                 block_handle_map[str(name).upper()] = rec["handle"]
 
+    # Text-style name -> handle map (silver's text_styles table): gold emits
+    # the STYLE-table HANDLE for TEXT/ATTDEF/ATTRIB style (dwg.spec FIELD
+    # HANDLE style, SINCE R_13b1) while silver stores the resolved NAME.
+    # Same pattern as the layer_map below and the MTEXT style resolution.
+    style_map: Dict[str, int] = {}
+    ts_table = data.get("text_styles", {})
+    if isinstance(ts_table, dict):
+        for ts_name, ts_rec in (ts_table.get("entries") or {}).items():
+            if isinstance(ts_rec, dict) and isinstance(ts_rec.get("handle"), int):
+                style_map[str(ts_rec.get("name") or ts_name).upper()] = ts_rec["handle"]
+
+    def _style_handle(name: Any) -> Optional[int]:
+        if not isinstance(name, str):
+            return None
+        return style_map.get(name.upper())
+
     # Entities.
     for entity in entities:
         if not isinstance(entity, dict) or len(entity) != 1:
@@ -1117,6 +1133,11 @@ def normalize_silver(
         common_key = "0x{:X}".format(handle) if isinstance(handle, int) else str(handle)
         common_dwg_entry = common_dwg.get(common_key)
 
+        # INSERT-chain synthesized kids (the ATTRIB records + trailing
+        # SEQEND for insert-attached attributes; filled in the Insert
+        # branch below, appended after the parent record like the polyline
+        # kid machinery).
+        _ins_kids: List[Dict[str, Any]] = []
         # Capture the polyline-family child lists BEFORE the per-variant
         # branches consume them from the payload (e.g. PolyfaceMesh pops
         # vertices/faces for its own numverts/first_vertex projection).
@@ -1236,16 +1257,164 @@ def normalize_silver(
                     fields["scale"] = [xs, ys, zs]
                 for kk in ("x_scale", "y_scale", "z_scale"):
                     payload.pop(kk, None)
-            # has_attribs: silver stores `attributes` (the ATTRIB entities);
-            # gold has has_attribs (B) + attribs (handle vector, R2004a+).
+            # INSERT chain (dwg.spec INSERT/ATTRIB/SEQEND): silver keeps the
+            # parsed ATTRIB entities in `attributes` (never emitted as
+            # top-level entities); gold materializes the child ATTRIB
+            # records plus their trailing SEQEND, linked from the INSERT:
+            # R2004a+ `attribs` handle vector, pre-2004 first_attrib/
+            # last_attrib chain ends (gold code 4), and `seqend` (code 3)
+            # only when attributes exist. Kid shapes verified on
+            # example_2000/2004/2007/2010/2018 (probes st_*).
             attrs = payload.get("attributes")
+            _kid_handles: List[int] = []
             if isinstance(attrs, list):
                 fields["has_attribs"] = 1 if attrs else 0
-                # attribs is a handle vector (R2004a+); silver's attributes are
-                # the ATTRIB *entities* (not handles). We can't resolve them to
-                # handles here — leave attribs missing so the differ reports
-                # the real gap.
+                for a in attrs:
+                    if isinstance(a, dict):
+                        _ah = (a.get("common") or {}).get("handle")
+                        if isinstance(_ah, int):
+                            _kid_handles.append(_ah)
+                if _kid_handles:
+                    if r2004_plus:
+                        fields["attribs"] = [normalize_handle_value(_ah)
+                                             for _ah in _kid_handles]
+                    else:
+                        fields["first_attrib"] = normalize_handle_value(_kid_handles[0])
+                        fields["last_attrib"] = normalize_handle_value(_kid_handles[-1])
                 payload.pop("attributes", None)
+            else:
+                payload.pop("attributes", None)
+            _seq_h = payload.get("seqend_handle")
+            if _kid_handles and isinstance(_seq_h, int):
+                fields["seqend"] = normalize_handle_value(_seq_h)
+            if isinstance(attrs, list) and attrs:
+                # Parent-common subset for the kids (the polyline
+                # _vcommon precedent — the nested attribs have no
+                # _common_dwg entry of their own).
+                _vcom = {k: fields[k] for k in (
+                    "layer", "is_xdic_missing", "has_ds_data", "color",
+                    "ltype_scale", "ltype_flags", "plotstyle_flags",
+                    "material_flags", "shadow_flags", "has_full_visualstyle",
+                    "has_face_visualstyle", "has_edge_visualstyle",
+                    "invisible", "linewt") if k in fields}
+                for a in attrs:
+                    if not isinstance(a, dict):
+                        continue
+                    _ah = (a.get("common") or {}).get("handle")
+                    if not isinstance(_ah, int):
+                        continue
+                    rec = dict(_vcom)
+                    rec["handle"] = normalize_handle_value(_ah)
+                    rec["ownerhandle"] = normalize_handle_value(handle)
+                    if a.get("tag") is not None:
+                        rec["tag"] = a.get("tag")
+                    if a.get("value") is not None:
+                        rec["text_value"] = a.get("value")
+                    if a.get("field_length") is not None:
+                        rec["field_length"] = a.get("field_length")
+                    if a.get("height") is not None:
+                        rec["height"] = normalize_value(a.get("height"))
+                    _ip = a.get("insertion_point")
+                    if _ip is not None:
+                        _nv = normalize_value(_ip)
+                        if isinstance(_nv, list) and len(_nv) > 2:
+                            _nv = _nv[:2]
+                        rec["ins_pt"] = _nv
+                    rec["thickness"] = normalize_value(a.get("thickness") or 0)
+                    _nm = a.get("normal")
+                    if _nm is not None:
+                        rec["extrusion"] = normalize_value(_nm)
+
+                    def _iz(v):
+                        try:
+                            return abs(float(v)) < 1e-9
+                        except (TypeError, ValueError):
+                            return True
+                    ap = a.get("alignment_point")
+                    apn = normalize_value(ap)
+                    rot = a.get("rotation")
+                    obl = a.get("oblique_angle")
+                    wf = a.get("width_factor")
+                    gen = a.get("text_generation_flags")
+                    ha = a.get("horizontal_alignment")
+                    va = a.get("vertical_alignment")
+                    # dataflags: the shared TEXT/ATTDEF absence mask
+                    # (dwg.spec 330-345): bit = field absent/default.
+                    df = 0x01  # elevation never stored on the kid records
+                    if apn is None or (isinstance(apn, list) and all(_iz(c) for c in apn)):
+                        df |= 0x02
+                    if _iz(obl):
+                        df |= 0x04
+                    if _iz(rot):
+                        df |= 0x08
+                    if wf is None or (isinstance(wf, (int, float)) and abs(float(wf) - 1.0) < 1e-9):
+                        df |= 0x10
+                    if gen in (None, 0, "Normal"):
+                        df |= 0x20
+                    if ha in (None, 0, "Left"):
+                        df |= 0x40
+                    if va in (None, 0, "Baseline"):
+                        df |= 0x80
+                    rec["dataflags"] = df
+                    if not (df & 0x02) and apn is not None:
+                        if isinstance(apn, list) and len(apn) > 2:
+                            apn = apn[:2]
+                        rec["alignment_pt"] = apn
+                    _AH = {"Left": 0, "Center": 1, "Right": 2, "Aligned": 3,
+                           "Middle": 4, "Fit": 5}
+                    _VA = {"Baseline": 0, "Bottom": 1, "Middle": 2, "Top": 3}
+                    if not (df & 0x08) and rot is not None:
+                        rec["rotation"] = normalize_float(rot)
+                    if not (df & 0x04) and obl is not None:
+                        rec["oblique_angle"] = normalize_float(obl)
+                    if not (df & 0x10) and wf is not None:
+                        rec["width_factor"] = normalize_float(wf)
+                    if not (df & 0x20) and gen is not None:
+                        rec["generation"] = gen
+                    if not (df & 0x40) and ha is not None:
+                        rec["horiz_alignment"] = _AH.get(str(ha), ha) if isinstance(ha, str) else ha
+                    if not (df & 0x80) and va is not None:
+                        rec["vert_alignment"] = _VA.get(str(va), va) if isinstance(va, str) else va
+                    # flags (70): silver flags dict -> bits (ATTDEF precedent)
+                    _flk = a.get("flags")
+                    _fvk = 0
+                    if isinstance(_flk, dict):
+                        if _flk.get("invisible"): _fvk |= 1
+                        if _flk.get("constant"): _fvk |= 2
+                        if _flk.get("verify"): _fvk |= 4
+                        if _flk.get("preset"): _fvk |= 8
+                    elif isinstance(_flk, int):
+                        _fvk = _flk
+                    rec["flags"] = _fvk
+                    # style: R2010+ wire keeps a code-0 null (gold [0,0]);
+                    # earlier versions carry the real handle via the map.
+                    if r2010_plus:
+                        rec["style"] = [0, 0]
+                    else:
+                        _st_h2 = _style_handle(a.get("text_style"))
+                        if _st_h2 is not None:
+                            rec["style"] = normalize_handle_value(_st_h2)
+                    if r2007_plus:
+                        rec["lock_position_flag"] = 1 if a.get("lock_position") else 0
+                    if r2010_plus:
+                        rec["is_locked_in_block"] = 0
+                        rec["keep_duplicate_records"] = 0
+                    if r2018_plus:
+                        rec["mtext_type"] = 2 if a.get("is_multiline") else 1
+                    if not r2004_plus:
+                        rec["prev_entity"] = normalize_handle_value(0)
+                        rec["next_entity"] = normalize_handle_value(0)
+                        rec["nolinks"] = 0
+                    _ins_kids.append({"type": "ATTRIB", "fields": rec})
+                if isinstance(_seq_h, int):
+                    _sq = dict(_vcom)
+                    _sq["handle"] = normalize_handle_value(_seq_h)
+                    _sq["ownerhandle"] = normalize_handle_value(handle)
+                    if not r2004_plus:
+                        _sq["prev_entity"] = normalize_handle_value(0)
+                        _sq["next_entity"] = normalize_handle_value(0)
+                        _sq["nolinks"] = 0
+                    _ins_kids.append({"type": "SEQEND", "fields": _sq})
             # block_header (handle 0 / 330): silver stores the block NAME
             # (`block_name`); gold wants the BLOCK_RECORD handle. Resolve via
             # the block_records name->handle map built from the dump.
@@ -1255,9 +1424,8 @@ def normalize_silver(
                 if h is not None:
                     fields["block_header"] = normalize_handle_value(h)
             payload.pop("block_name", None)
-            # seqend_handle -> seqend (R13b1+)
-            if payload.get("seqend_handle") is not None:
-                fields["seqend"] = normalize_handle_value(payload["seqend_handle"])
+            # seqend_handle is consumed by the chain block above (emitted
+            # only when attributes exist); always pop it here.
             payload.pop("seqend_handle", None)
             # num_cols/num_rows/col_spacing/row_spacing: R11-only in gold
             # (VERSIONS R_2_0b, R_11). Silver always emits them; drop on R13+.
@@ -1951,10 +2119,23 @@ def normalize_silver(
             elif isinstance(fl, int):
                 fv = fl
             fields["flags"] = fv
-            # style handle (7): gold emits the text-style handle; silver has
-            # only the resolved name. The differ resolves it separately, so
-            # drop the name here (don't emit a wrong None).
-            payload.pop("text_style", None)
+            # dwg.spec 568-595 (ATTDEF DWG path): lock_position_flag SINCE
+            # R_2007a (CMC-era B), is_locked_in_block + keep_duplicate_records
+            # SINCE R_2010b (RC with VALUEOUTOFBOUNDS coercion to <=1/<=0).
+            # Silver parses lock_position (bool); the two RCs are unmodeled
+            # (0 on every corpus record).
+            if r2007_plus:
+                fields["lock_position_flag"] = 1 if payload.get("lock_position") else 0
+            if r2010_plus:
+                fields["is_locked_in_block"] = 0
+                fields["keep_duplicate_records"] = 0
+            # style handle (7, dwg.spec 342/599 SINCE R_13b1): gold emits the
+            # text-style handle; silver stores the resolved NAME. Resolve it
+            # through silver's text-styles table (the MTEXT precedent).
+            _st = payload.pop("text_style", None)
+            _st_h = _style_handle(_st)
+            if _st_h is not None:
+                fields["style"] = normalize_handle_value(_st_h)
             # Conditional text-style fields (dataflags bits: 0x01 elevation,
             # 0x04 oblique_angle, 0x08 rotation, 0x10 width_factor, 0x20
             # generation, 0x40 horiz_alignment, 0x80 vert_alignment): gold
@@ -2041,7 +2222,12 @@ def normalize_silver(
                     apn = apn[:2]
                 fields["alignment_pt"] = apn
             payload.pop("alignment_point", None)
-            payload.pop("style", None)  # name only; handle resolved separately
+            # style handle (dwg.spec 418 SINCE R_13b1): resolve the stored name
+            # through the text-styles table (the MTEXT/ATTDEF precedent).
+            _st = payload.pop("style", None)
+            _st_h = _style_handle(_st)
+            if _st_h is not None:
+                fields["style"] = normalize_handle_value(_st_h)
             # conditional fields (bit clear -> emit)
             _TXT_HA = {"Left": 0, "Center": 1, "Right": 2, "Aligned": 3,
                        "Middle": 4, "Fit": 5}
@@ -2070,6 +2256,41 @@ def normalize_silver(
                        "vertical_alignment", "thickness", "elevation",
                        "normal", "insertion_point", "alignment_point"):
                 payload.pop(sk, None)
+
+        # MLINE entity (dwg.spec 1569 DWG path): gold emits scale/
+        # justification (RC enum)/base_point/extrusion/flags (BS bits)/
+        # verts/mlinestyle; silver stores snake_case names, enum strings
+        # and rich vertex records. The gold `verts` field is the degenerate
+        # REPEAT form — one 0 per vertex (the [0]*n JSON lesson; verified
+        # against 2/4/6-vertex records on Multiline/TS1/example_*).
+        if silver_type == "MLine":
+            _sc = payload.get("scale_factor")
+            fields["scale"] = normalize_float(_sc if _sc is not None else 1.0)
+            payload.pop("scale_factor", None)
+            _j = payload.pop("justification", None)
+            fields["justification"] = {"Top": 0, "Zero": 1, "Bottom": 2}.get(_j, 0)
+            bp = payload.pop("start_point", None)
+            if bp is not None:
+                fields["base_point"] = normalize_value(bp)
+            _nm = payload.pop("normal", None)
+            if _nm is not None:
+                fields["extrusion"] = normalize_value(_nm)
+            _fl = payload.pop("flags", None)
+            if isinstance(_fl, str):
+                _fl = [_fl]
+            if isinstance(_fl, list):
+                _fv = 0
+                for _n in _fl:
+                    _fv |= {"HAS_VERTICES": 1, "CLOSED": 2}.get(str(_n), 0)
+                fields["flags"] = _fv
+            else:
+                fields["flags"] = int(_fl or 0)
+            _vs = payload.pop("vertices", None)
+            fields["verts"] = [0] * len(_vs) if isinstance(_vs, list) else []
+            if payload.get("style_handle") is not None:
+                fields["mlinestyle"] = normalize_handle_value(payload["style_handle"])
+            for _sk in ("style_handle", "style_name", "style_element_count"):
+                payload.pop(_sk, None)
 
         # VIEWPORT entity (dwg.spec 2412 DWG path): rename silver snake_case to
         # gold names, convert types, version-gate, wrap handles. The consumed
@@ -2772,7 +2993,7 @@ def normalize_silver(
             "POLYLINE_PFACE": "VERTEX_PFACE",
         }
         _kid_type = kid_map.get(gold_type)
-        _kid_recs = []
+        _kid_recs = list(_ins_kids)
         if _kid_type:
             _vt = _kid_type
             _verts = _kid_verts or []
@@ -4801,6 +5022,21 @@ def normalize_silver(
                     continue
                 fields[k] = normalize_value(v)
             out.append({"type": record_gold_type, "fields": fields})
+
+    # SEQEND ordinal alignment: gold's SEQEND records follow document order
+    # (ascending handle on every corpus file verified); silver's synthesized
+    # seqends emit at their parents' iteration positions, which interleaves
+    # wrongly once the INSERT chains add theirs. Reorder the SEQEND records
+    # ascending by handle so the differ's (type, ordinal) alignment pairs
+    # them with gold's (probes ch_ex2000/…/ch_ex2018).
+    _seq_slots = [i for i, r in enumerate(out)
+                  if isinstance(r, dict) and r.get("type") == "SEQEND"]
+    if len(_seq_slots) > 1:
+        _seq_recs = [out[i] for i in _seq_slots]
+        _seq_recs.sort(key=lambda r: ((r.get("fields") or {}).get("handle") or {})
+                       .get("absref", 0) if isinstance((r.get("fields") or {}).get("handle"), dict) else 0)
+        for i, _old in enumerate(_seq_slots):
+            out[_old] = _seq_recs[i]
 
     return out
 
