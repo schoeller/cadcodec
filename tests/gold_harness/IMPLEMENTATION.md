@@ -741,10 +741,11 @@ Given a diff `(type, field, kind)`:
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
 > file before committing to a packet. Current baseline (2026-09-20, after
-> packets `b40ba42`…`246e60a`): read **3 733** / write **3 616** — and the
+> packets `b40ba42`…`d584521`): read **3 425** / write **3 292** — and the
 > two sides now MIRROR family-for-family (the phantom-class un-masking made
-> the write diff honest; remaining mass is shared reader-coverage work:
-> UNKNOWN_OBJ._missing 264, TABLESTYLE.unknown_bits 121, UNKNOWN._missing 66,
+> the write diff honest; the UNKNOWN projections then took −308/−324).
+> Next-packet handoff: the "Next packets" block in §7. Remaining mass:
+> UNKNOWN_OBJ._missing 296, TABLESTYLE.unknown_bits 121,
 > DIMASSOC.unknown_bits 62, EVALUATION_GRAPH 56, ACSH_FILLET 50,
 > BLOCKGRIPLOCATIONCOMPONENT 34, PROXY_OBJECT 30, VIEWPORT.named_ucs 29,
 > ATTDEF/TEXT.style ~47, plus the unknown_bits floor needing raw remainders).
