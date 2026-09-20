@@ -284,8 +284,9 @@ rgb + UNKNOWN-family handle-code unstamp + raw-linewt fidelity
 reader/writer/normalizer + LAYOUT.viewports (2026-09-20 fourth + fifth +
 sixth batches) + PROXY_OBJECT raw-window/objids capture (2026-09-20
 seventh batch, `fa2cb0a`) + DIMSTYLE_CONTROL.morehandles reader capture
-+ writer echo (2026-09-20 eighth batch, `b08d346`), 2026-09-20):**
-read-fidelity **743**, write-fidelity **779** — the 1 000 milestone was
++ writer echo (2026-09-20 eighth batch, `b08d346`) + LEADER R2000-pair
+family fix (2026-09-20 ninth batch, `b6e6e92`), 2026-09-20):**
+read-fidelity **719**, write-fidelity **755** — the 1 000 milestone was
 passed at 943/804 and the **campaign target is now below 100 on both
 sides** (in flight) — and the two sides MIRROR
 family-for-family (the classes-verbatim fix un-masked real gaps whose rows
@@ -297,7 +298,8 @@ side channel then took −448/−448; the style-map/chain/MLINE batch then took
 the HELIX/dimstyle/MATERIAL-rgb batch then took −172/−172; the UNKNOWN
 handle-code unstamp then took −37/−3; the raw-linewt + LAYOUT.viewports
 batch then took −46/−9; the PROXY_OBJECT raw-window/objids batch then took
-−13/−13; the DIMSTYLE_CONTROL.morehandles capture then took −104/0). gh44-error.dwg
+−13/−13; the DIMSTYLE_CONTROL.morehandles capture then took −104/0; the
+LEADER R2000-pair family then took −24/−24). gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
@@ -318,13 +320,16 @@ and eight — see §8.1.6):**
    divergence in silver's reader.
 2. **Reader captures**: VERTEX_MESH._missing 12 (TS1 mesh parse gap),
    SORTENTSTABLE.ents (R2000 entries lost), MLINE.flags closed-bit,
-   the poly-SEQEND shadow pairs, LEADER.arrowhead_type/box_* R2000 pairs
-   (box_height BD + box_width BD + hookline_dir B + arrowhead_type BSx,
-   then SINCE R_2000b unknown_bit_4/5 B — dwg.spec 3014-3031).
+   the poly-SEQEND shadow pairs, LEADEROBJECTCONTEXTDATA/
+   OBJECTCONTEXTDATA typing (~24: silver types the AcDbAnnotScaleObject
+   contexts as generic OBJECTCONTEXTDATA where gold decodes
+   LEADEROBJECTCONTEXTDATA — count_mismatch + missing pairs on every
+   version-folder Leader carrier).
    DONE: CIRCLE/LINE.linewt (the entity-common RC 370 is the RAW code —
    reader keeps 24..28 as Value(raw) at builder match, writer echoes
    irreversible table codes, normalizer `_lweight_index` echoes
-   out-of-table mm values; `6fd5a10`).
+   out-of-table mm values; `6fd5a10`); LEADER R2000 pairs (ninth batch,
+   `b6e6e92`).
 3. **Value-dependent remaining**: MULTILEADER.attach_top/bottom 9+9
    (gold BS pairs 32/4786/178 per record — the dwg2.spec 1447-1452 trio
    `attach_dir`(271)/`attach_top`(273)/`attach_bottom`(272), SINCE
@@ -805,7 +810,8 @@ Given a diff `(type, field, kind)`:
 > landed (2026-09-20 seventh batch, `fa2cb0a`; full LibreDWG-source parse
 >   evidence in `target/probes/fullsrc/` — see the DONE entry below).
 >   DIMSTYLE_CONTROL.morehandles landed (2026-09-20 eighth batch,
->   `b08d346`; see its DONE entry below).
+>   `b08d346`) and the LEADER R2000-pair family landed (2026-09-20
+>   ninth batch, `b6e6e92`) — see their DONE entries below.
 
   ~~PROXY_OBJECT data/data_numbits + objids~~ — **DONE (2026-09-20 seventh
   batch, `fa2cb0a`; read 860 → 847 / write 792 → 779, −13/−13; sole
@@ -857,7 +863,36 @@ Given a diff `(type, field, kind)`:
   branch — the terminator + collapse now apply there too; corpus stayed
   clean (no regression), but keep it in mind for ASSOC-family carriers.
 
-   ~~DIMSTYLE_CONTROL.morehandles~~ — **DONE (2026-09-20 eighth batch,
+   ~~LEADER R2000-pair family~~ — **DONE (2026-09-20 ninth batch,
+  `b6e6e92`; read 743 → 719 / write 779 → 755, −24/−24, mirrored)**.
+  Gold evidence (dwg.spec 2983-3053): `FIELD_BD (box_height, 40)` +
+  `FIELD_BD (box_width, 41)` + `FIELD_B (hookline_dir)` +
+  `FIELD_B (arrowhead_on)` + `FIELD_BSx (arrowhead_type)` are wire
+  fields at EVERY version; `endptproj` is VERSIONS (R_13c3, R_2007)
+  (INCLUDES R2007 — silver's normalize gate `not r2007_plus` wrongly
+  dropped AC1021); VERSIONS (R_13b1, R_14) carries [dimasz BD,
+  unknown_bit_2/3 B, unknown_short_1 BS, byblock_color BS, bit_4/5 B];
+  SINCE (R_2000b) carries unknown_bit_4/unknown_bit_5. Silver bugs:
+  (a) box_height/box_width were read gated `<= AC1021` (its
+  text_height/text_width fields), desynchronizing EVERY R2010+ LEADER
+  (the whole box/hookline/arrowhead/unknown-bit cascade of wrong_value
+  rows); (b) the common BS after arrowhead_on was mislabeled
+  `dwg_unknown_short1` on R2000+ while gold reads it as
+  arrowhead_type; (c) the writer wrote e.dwg_unknown_short1 there and
+  dropped the box pair on R2010+, and endptproj at AC1014+ without the
+  upper bound; (d) normalize's endptproj gate excluded R2007.
+  Fix: reader/writer read/write box pair + arrowhead_type
+  unconditionally, endptproj gated (AC1014..=AC1021) in both reader and
+  writer, R13-14 extras stay in their branch; builder map unconditional;
+  normalize gate `not r2010_plus`. Verified: 2000/2004 Leader 6→5
+  (arrowhead_type 8 vs 0 fixed), 2007 7→5 (+endptproj), 2010 26→16
+  (+idx-1 arrowhead_on), 2013 12→7, all other carriers (entities-2d/3d,
+  gh209_1, gh109_1) show zero remaining LEADER rows. Remaining families
+  in the same files: TOLERANCE field-name mismatch set (~9-10 rows on
+  2010/Leader — DIFFERENT packet), GROUP.name write rows,
+  MULTILEADER.attach trio, LEADEROBJECTCONTEXTDATA typing.
+
+  ~~DIMSTYLE_CONTROL.morehandles~~ — **DONE (2026-09-20 eighth batch,
   `b08d346`; read 847 → 743 / write stays 779 — the row was on EVERY
   carrier with a dims control, one per file, not the ranking's
   truncated 19)**. Gold evidence: dwg.spec 4163-4185 — `FIELD_BS
