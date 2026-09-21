@@ -169,7 +169,13 @@ impl Leader {
             dimension_style: "Standard".to_string(),
             arrow_enabled: true,
             path_type: LeaderPathType::StraightLine,
-            creation_type: LeaderCreationType::WithText,
+            // Default to "no annotation" (annot_type 3): authored wires only
+            // pair a text/tolerance/block-typed leader with a real
+            // associated_annotation slot, and a strict loader rejects the
+            // dangling null association of a defaulted WithText leader
+            // (BricsCAD "Object improperly read: <AcDbLeader>"). Callers must
+            // opt into WithText and attach the MTEXT explicitly.
+            creation_type: LeaderCreationType::NoAnnotation,
             hookline_direction: HooklineDirection::Opposite,
             hookline_enabled: false,
             text_height: 2.5,

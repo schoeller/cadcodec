@@ -711,7 +711,7 @@ impl<'a> DwgObjectWriter<'a> {
             // optionals AutoCAD actually wrote, e.g. an explicit
             // width_factor 1.0 keeps bit 4 clear); compose only for
             // constructed documents.
-            let mut data_flags: u8 = match e.raw_dataflags {
+            let data_flags: u8 = match e.raw_dataflags {
                 Some(raw) => raw,
                 None => {
                     let mut composed = 0u8;
@@ -1811,8 +1811,16 @@ impl<'a> DwgObjectWriter<'a> {
         // Extrusion 3BD 210
         self.writer.write_3bit_double(e.normal);
 
-        // SHAPEFILE style handle (hard pointer)
-        let sh = e.style_handle.unwrap_or(Handle::NULL);
+        // SHAPEFILE style handle (hard pointer). A constructed shape
+        // references its .shx style by NAME; resolve that against the
+        // document's text styles when no explicit handle was set. A null
+        // style here is a fatal audit in strict loaders ("Shape style
+        // (font file) is not set" — BricsCAD recover).
+        let sh = e
+            .style_handle
+            .filter(|h| !h.is_null())
+            .or_else(|| self.document.text_styles.get(&e.style_name).map(|ts| ts.handle))
+            .unwrap_or(Handle::NULL);
         self.writer
             .write_handle(DwgReferenceType::HardPointer, sh.value());
 
@@ -3160,7 +3168,12 @@ impl<'a> DwgObjectWriter<'a> {
             self.writer.write_3bit_double(*v);
         }
 
-        // Faces: count = sum of (1 + face.vertices.len()) for each face
+        // Faces: count = sum of (1 + face.vertices.len()) for each face.
+        // The header carries the FLATTENED ARRAY LENGTH, not the face
+        // count — bit-verified against the authored MESH 0x2D0 of
+        // 2004/Surface.dwg (silver's reader walks the same convention and
+        // the harness roundtrip is 0/0; BricsCAD also rejects the
+        // face-count form).
         let nfaces: i32 = e.faces.iter().map(|f| 1 + f.vertices.len() as i32).sum();
         self.writer.write_bit_long(nfaces);
         for face in &e.faces {
@@ -4461,8 +4474,17 @@ impl<'a> DwgObjectWriter<'a> {
             self.writer.write_variable_text(&ctx.text_string);
             // 3BD 11 Normal vector
             self.writer.write_3bit_double(ctx.text_normal);
-            // H 340 Text style handle (hard pointer)
-            let ts = ctx.text_style_handle.unwrap_or(Handle::NULL);
+            // H 340 Text style handle (hard pointer). Authored multileaders
+            // always carry a resolvable text content style; a strict loader
+            // rejects text content with a null style slot. Fall back to the
+            // document's Standard text style when the handle is unset
+            // (constructed documents) — retained handles (roundtrips) pass
+            // through unchanged.
+            let ts = ctx
+                .text_style_handle
+                .filter(|h| !h.is_null())
+                .or_else(|| self.document.text_styles.get("Standard").map(|s| s.handle))
+                .unwrap_or(Handle::NULL);
             self.writer
                 .write_handle(DwgReferenceType::HardPointer, ts.value());
             // 3BD 12 Location
@@ -4988,7 +5010,7 @@ impl<'a> DwgObjectWriter<'a> {
             // raw byte from the wire is authoritative (which optionals
             // AutoCAD actually wrote); compose only for constructed
             // documents.
-            let mut data_flags: u8 = match raw_dataflags {
+            let data_flags: u8 = match raw_dataflags {
                 Some(raw) => raw,
                 None => {
                     let mut composed = 0u8;

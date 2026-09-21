@@ -3127,6 +3127,9 @@ pub fn read_mesh(reader: &mut DwgMergedReader) -> MeshData {
         vertices.push(reader.read_3bit_double());
     }
 
+    // BL 93 carries the FLATTENED FACE-DATA LENGTH: sum of (1 + sizes)
+    // over the faces — the authored-wire convention (see write_mesh; the
+    // 2004/Surface.dwg MESH 0x2D0 is the bit-verified reference).
     let declared_face_data = reader.read_bit_long();
     let available_face_data = reader.main_remaining_bits().saturating_sub(6) / 2;
     let total_face_data = usize::try_from(declared_face_data)

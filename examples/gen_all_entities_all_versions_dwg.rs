@@ -16,7 +16,27 @@ use acadrust::entities::multileader::MultiLeader;
 use acadrust::entities::polyface_mesh::PolyfaceMesh;
 use acadrust::entities::*;
 use acadrust::types::{DxfVersion, Vector2, Vector3};
-use acadrust::{BlockRecord, CadDocument, DwgWriter, TableEntry};
+use acadrust::{
+    BlockRecord, CadDocument, DimStyle, DwgWriter, LineWeight, TableEntry, TextStyle,
+    Transparency,
+};
+
+/// Dimstyle-override EED payload of an authored text-leader (from
+/// 2018/Leader.dwg), with the embedded annotation-entity reference
+/// repointed from the original 0x77A to this document's MTEXT handle
+/// 0x40 (masked RLL tail: run of 0x00 masks + 0x40 terminator).
+/// Retained as the transcription record for the strict-load work; not
+/// currently attached (the plaintext-leader probe class).
+#[allow(dead_code)]
+const DSTYLE_EED: [u8; 73] = [
+    0x00, 0x06, 0x00, 0x44, 0x00, 0x53, 0x00, 0x54, 0x00, 0x59, 0x00, 0x4C, //
+    0x00, 0x45, 0x00, 0x02, 0x00, 0x46, 0x28, 0x00, 0x28, 0x00, 0x00, 0x00, //
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x46, 0x29, 0x00, 0x28, 0xB8, 0x1E, 0x85, //
+    0xEB, 0x51, 0xB8, 0xCE, 0x3F, 0x46, 0x55, 0x01, 0x05, 0x00, 0x00, 0x00, //
+    0x00, 0x00, 0x00, 0x00, 0x40, 0x46, 0x93, 0x00, 0x28, 0x0A, 0xD7, 0xA3, //
+    0x70, 0x3D, 0x0A, 0xB7, 0x3F, 0x46, 0x4D, 0x00, 0x46, 0x00, 0x00, 0x02, //
+    0x01,
+];
 
 fn main() {
     let mut doc = CadDocument::with_version(DxfVersion::AC1032);
@@ -242,19 +262,105 @@ fn main() {
 
     // ── Annotations ─────────────────────────────────────────────
 
-    add_entity(
-        &mut doc,
-        "LEADER",
-        &mut ok,
-        &mut fail,
-        &mut skip,
-        || {
-            EntityType::Leader(Leader::two_point(
-                Vector3::new(0.0, 0.0, 0.0),
-                Vector3::new(10.0, 10.0, 0.0),
-            ))
-        },
-    );
+    // BricsCAD's strict (plain-open) loader rejects the constructed bare
+    // leader record ("Object improperly read: <AcDbLeader>"), tolerating
+    // it only under RECOVER, while both local decoders read it
+    // spec-exact. GENALL_LEADER_MODE selects a variant for isolating the
+    // audit: "plain" (default) — annot_type 3 with the null association,
+    // the TS1-attested authored-null form; "annot" — the authored
+    // WithText form with a real MTEXT association (ergo the leader's
+    // handle shifts, which also disambiguates BricsCAD's "(40)" as
+    // handle vs status code); "skip" — no leader record at all.
+    let leader_mode = std::env::var("GENALL_LEADER_MODE").unwrap_or_default();
+    if leader_mode.eq_ignore_ascii_case("skip") {
+        println!("  SKIP LEADER (GENALL_LEADER_MODE=skip)");
+    } else if leader_mode.eq_ignore_ascii_case("annot") {
+        // Authored leaders with annotation always carry the real
+        // association; create the MTEXT first so its handle exists.
+        match doc.add_entity(EntityType::MText(MText::with_value(
+            "Note",
+            Vector3::new(12.0, 12.0, 0.0),
+        ))) {
+            Ok(mtext_handle) => {
+                let mut leader = Leader::two_point(
+                    Vector3::new(0.0, 0.0, 0.0),
+                    Vector3::new(10.0, 10.0, 0.0),
+                );
+                leader.creation_type = LeaderCreationType::WithText;
+                leader.annotation_handle = mtext_handle;
+                match doc.add_entity(EntityType::Leader(leader)) {
+                    Ok(_) => ok += 1,
+                    Err(e) => {
+                        println!("  SKIP LEADER add error: {:?}", e);
+                        skip += 1;
+                    }
+                }
+            }
+            Err(e) => {
+                println!("  SKIP LEADER mtext error: {:?}", e);
+                skip += 1;
+            }
+        }
+    } else {
+        // Plain-class leader construction: WithText + a real MTEXT
+        // association, spline path, authored arrowhead/box values, scale,
+        // weight and transparency — but NO named-linetype reference: a
+        // named real linetype deep-resolves its table record, and a
+        // constructed doc has no real dash description for it (the deep
+        // loader drops the resolving entity). Continuous = no ltype slot.
+        let _ = doc.dim_styles.add(DimStyle::new("Annotative"));
+        match doc.add_entity(EntityType::MText(MText::with_value(
+            "Note",
+            Vector3::new(22.0, 12.0, 0.0),
+        ))) {
+            Ok(mtext_handle) => {
+                let mut leader = Leader::from_vertices(vec![
+                    Vector3::new(0.0, 0.0, 0.0),
+                    Vector3::new(10.0, 10.0, 0.0),
+                    Vector3::new(20.0, 10.0, 0.0),
+                ]);
+                leader.creation_type = LeaderCreationType::WithText;
+                leader.annotation_handle = mtext_handle;
+                leader.path_type = LeaderPathType::Spline;
+                leader.arrow_enabled = false;
+                leader.arrowhead_type = 322;
+                leader.hookline_direction = HooklineDirection::Same;
+                leader.dwg_unknown_bit4 = true;
+                leader.text_height = 0.0;
+                leader.text_width = -0.09;
+                // Consistent plain-leader class: no EED (the Annotative
+                // marks imply an annotation-scale context with an
+                // extension dictionary our constructed document does not
+                // provide — the deep loader drops the mismatched
+                // annotative leader), standard DIMSTYLE, and a real
+                // linetype only when the table can back it (here:
+                // continuous — the plainest legal class).
+                leader.dimension_style = "Standard".to_string();
+                leader.common.linetype = "Continuous".to_string();
+                leader.common.line_weight = LineWeight::Value(5);
+                leader.common.linetype_scale = 1.5;
+                leader.common.transparency = Transparency::Explicit(169);
+                match doc.add_entity(EntityType::Leader(leader)) {
+                    Ok(leader_handle) => {
+                        // The last authentically structural delta from the
+                        // accepted record: a real extension dictionary,
+                        // where per-scale annotation contexts live. The deep
+                        // loader "improperly read"s the leader without it.
+                        doc.ensure_extension_dictionary(leader_handle);
+                        ok += 1;
+                    }
+                    Err(e) => {
+                        println!("  SKIP LEADER add error: {:?}", e);
+                        skip += 1;
+                    }
+                }
+            }
+            Err(e) => {
+                println!("  SKIP LEADER mtext error: {:?}", e);
+                skip += 1;
+            }
+        }
+    }
 
     add_entity(
         &mut doc,
@@ -284,13 +390,28 @@ fn main() {
         },
     );
 
+    // A SHAPE needs both a style whose font is a shape (.shx) file and a
+    // nonzero shape number — a strict audit (BricsCAD) rejects the record
+    // with both unset. ltypeshp.shx is the classic AutoCAD shape library;
+    // 130 selects a glyph in it (the style/number pair is what the loader
+    // validates; the glyph itself is cosmetic).
+    let mut shape_style = TextStyle::new("LTYPESHP");
+    shape_style.font_file = "ltypeshp.shx".to_string();
+    shape_style.is_shape_file = true;
+    let _ = doc.text_styles.add(shape_style);
+
     add_entity(
         &mut doc,
         "SHAPE",
         &mut ok,
         &mut fail,
         &mut skip,
-        || EntityType::Shape(Shape::with_name(Vector3::new(50.0, 50.0, 0.0), "BOX", 5.0)),
+        || {
+            let mut shape = Shape::with_name(Vector3::new(50.0, 50.0, 0.0), "BOX", 5.0);
+            shape.shape_number = 130;
+            shape.style_name = "LTYPESHP".to_string();
+            EntityType::Shape(shape)
+        },
     );
 
     add_entity(
@@ -394,20 +515,29 @@ fn main() {
 
     // ── MultiLeader ───────────────────────────────────────────────
 
-    add_entity(
-        &mut doc,
-        "MULTILEADER",
-        &mut ok,
-        &mut fail,
-        &mut skip,
-        || {
-            EntityType::MultiLeader(MultiLeader::with_text(
-                "Label",
-                Vector3::new(20.0, 20.0, 0.0),
-                vec![Vector3::new(0.0, 0.0, 0.0), Vector3::new(10.0, 10.0, 0.0)],
-            ))
-        },
-    );
+    // GENALL_MLEADER_MODE=skip omits the MULTILEADER record (BricsCAD
+    // strict-load probe; see the leader mode note above).
+    if std::env::var("GENALL_MLEADER_MODE")
+        .map(|m| m.eq_ignore_ascii_case("skip"))
+        .unwrap_or(false)
+    {
+        println!("  SKIP MULTILEADER (GENALL_MLEADER_MODE=skip)");
+    } else {
+        add_entity(
+            &mut doc,
+            "MULTILEADER",
+            &mut ok,
+            &mut fail,
+            &mut skip,
+            || {
+                EntityType::MultiLeader(MultiLeader::with_text(
+                    "Label",
+                    Vector3::new(20.0, 20.0, 0.0),
+                    vec![Vector3::new(0.0, 0.0, 0.0), Vector3::new(10.0, 10.0, 0.0)],
+                ))
+            },
+        );
+    }
 
     // ── Mesh ────────────────────────────────────────────────────
 
@@ -418,14 +548,21 @@ fn main() {
         &mut fail,
         &mut skip,
         || {
-            EntityType::Mesh(Mesh::from_triangles(
+            let mut mesh = Mesh::from_triangles(
                 vec![
                     Vector3::new(0.0, 0.0, 0.0),
                     Vector3::new(10.0, 0.0, 0.0),
                     Vector3::new(5.0, 10.0, 5.0),
                 ],
                 &[(0, 1, 2)],
-            ))
+            );
+            // Authored-wire population invariants (2004/Surface.dwg's
+            // MESH 0x2D0 and every authored specimen): wire bit 72 —
+            // which the model calls blend_crease and gold decodes as
+            // is_watertight — is 0, and the trailing unknown_b1 is 1.
+            mesh.blend_crease = false;
+            mesh.unknown_b1 = true;
+            EntityType::Mesh(mesh)
         },
     );
 
@@ -450,21 +587,15 @@ fn main() {
         &mut fail,
         &mut skip,
         || {
-            let sat = "700 0 1 0\n\
-                   @7 unknown 12 ACIS 7.0 NT 24 Wed Jan 01 00:00:00 2025 1.0 9.9999999999999995e-007 1e-010\n\
-                   body $-1 $1 $-1 $-1 #\n\
-                   lump $-1 $-1 $2 $0 #\n\
-                   shell $-1 $-1 $-1 $3 $-1 $1 #\n\
-                   face $-1 $-1 $-1 $4 $2 $5 forward single #\n\
-                   loop $-1 $-1 $6 $3 #\n\
-                   plane-surface $-1 0 0 0 0 0 1 1 0 0 forward_v I I I I #\n\
-                   coedge $-1 $6 $6 $-1 $7 forward $4 $-1 #\n\
-                   edge $-1 $8 0 $8 1 $6 $9 forward #\n\
-                   vertex $-1 $7 $10 #\n\
-                   straight-curve $-1 -5 -5 0 1 0 0 I I #\n\
-                   point $-1 -5 -5 0 #\n\
-                   End-of-ACIS-data\n";
-            EntityType::Region(Region::from_sat(sat))
+            // A valid planar region built through the SatDocument API: a
+            // single plane face with a closed four-edge outer loop (an open
+            // sheet — every edge has exactly one coedge, so partners stay
+            // null), all back-pointers wired. The earlier hand-typed SAT
+            // string had degenerate records (single-vertex edges,
+            // self-partnered coedges) that strict modelers reject as an
+            // empty data stream.
+            let sat_doc = build_region_sat();
+            EntityType::Region(Region::from_sat(&sat_doc.to_sat_string()))
         },
     );
 
@@ -475,21 +606,11 @@ fn main() {
         &mut fail,
         &mut skip,
         || {
-            let sat = "700 0 1 0\n\
-                   @7 unknown 12 ACIS 7.0 NT 24 Wed Jan 01 00:00:00 2025 1.0 9.9999999999999995e-007 1e-010\n\
-                   body $-1 $1 $-1 $-1 #\n\
-                   lump $-1 $-1 $2 $0 #\n\
-                   shell $-1 $-1 $-1 $3 $-1 $1 #\n\
-                   face $-1 $-1 $-1 $4 $2 $5 forward single #\n\
-                   loop $-1 $-1 $6 $3 #\n\
-                   plane-surface $-1 0 0 0 0 0 1 1 0 0 forward_v I I I I #\n\
-                   coedge $-1 $6 $6 $-1 $7 forward $4 $-1 #\n\
-                   edge $-1 $8 0 $8 1 $6 $9 forward #\n\
-                   vertex $-1 $7 $10 #\n\
-                   straight-curve $-1 -5 -5 0 1 0 0 I I #\n\
-                   point $-1 -5 -5 0 #\n\
-                   End-of-ACIS-data\n";
-            EntityType::Body(Body::from_sat(sat))
+            // AcDbBody accepts any modeler body; reuse the valid closed
+            // cylinder solid (lump -> shell -> faces) instead of the
+            // earlier broken hand-typed sheet text.
+            let sat_doc = build_cylinder_sat();
+            EntityType::Body(Body::from_sat(&sat_doc.to_sat_string()))
         },
     );
 
@@ -746,6 +867,115 @@ fn build_cylinder_sat() -> SatDocument {
 
     if let Some(body_rec) = sat.record_mut(0) {
         body_rec.tokens[1] = SatToken::Pointer(ptr(lump_idx));
+    }
+
+    // Back-pointers the modeler audits demand ("edge without backptr" /
+    // "vertex without edge" are fatal in BricsCAD/AutoCAD): every edge
+    // names one of its coedges, every vertex names an edge that contains
+    // it (both seam endpoints name the seam edge).
+    if let Some(r) = sat.record_mut(e_bot as usize) {
+        r.tokens[5] = SatToken::Pointer(ptr(co(0)));
+    }
+    if let Some(r) = sat.record_mut(e_top as usize) {
+        r.tokens[5] = SatToken::Pointer(ptr(co(1)));
+    }
+    if let Some(r) = sat.record_mut(e_seam as usize) {
+        r.tokens[5] = SatToken::Pointer(ptr(co(3)));
+    }
+    if let Some(r) = sat.record_mut(v0 as usize) {
+        r.tokens[1] = SatToken::Pointer(ptr(e_seam));
+    }
+    if let Some(r) = sat.record_mut(v1 as usize) {
+        r.tokens[1] = SatToken::Pointer(ptr(e_seam));
+    }
+
+    sat
+}
+
+/// A minimal valid planar region: body → lump → shell → one plane face
+/// with a closed four-edge outer loop. An open sheet — every edge has
+/// exactly one coedge (partners null) — and every back-pointer wired
+/// (edge → its coedge, vertex → its edge, body → its lump).
+fn build_region_sat() -> SatDocument {
+    let mut sat = SatDocument::new_body();
+    let body_idx = SatPointer::new(0);
+    let ptr = |i: i32| SatPointer::new(i);
+
+    // Corners of a 10x10 square in the XY plane (counter-clockwise).
+    let p0 = sat.add_point(0.0, 0.0, 0.0);
+    let p1 = sat.add_point(10.0, 0.0, 0.0);
+    let p2 = sat.add_point(10.0, 10.0, 0.0);
+    let p3 = sat.add_point(0.0, 10.0, 0.0);
+
+    let surf = sat.add_plane_surface([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]);
+
+    // Side curves, each directed along the loop traversal.
+    let c0 = sat.add_straight_curve([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+    let c1 = sat.add_straight_curve([10.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
+    let c2 = sat.add_straight_curve([10.0, 10.0, 0.0], [-1.0, 0.0, 0.0]);
+    let c3 = sat.add_straight_curve([0.0, 10.0, 0.0], [0.0, -1.0, 0.0]);
+
+    let v0 = sat.add_vertex(SatPointer::NULL, ptr(p0));
+    let v1 = sat.add_vertex(SatPointer::NULL, ptr(p1));
+    let v2 = sat.add_vertex(SatPointer::NULL, ptr(p2));
+    let v3 = sat.add_vertex(SatPointer::NULL, ptr(p3));
+
+    let e0 = sat.add_edge(ptr(v0), 0.0, ptr(v1), 10.0, SatPointer::NULL, ptr(c0), Sense::Forward);
+    let e1 = sat.add_edge(ptr(v1), 0.0, ptr(v2), 10.0, SatPointer::NULL, ptr(c1), Sense::Forward);
+    let e2 = sat.add_edge(ptr(v2), 0.0, ptr(v3), 10.0, SatPointer::NULL, ptr(c2), Sense::Forward);
+    let e3 = sat.add_edge(ptr(v3), 0.0, ptr(v0), 10.0, SatPointer::NULL, ptr(c3), Sense::Forward);
+
+    // Coedge indices: 4 coedges, then loop, face, shell, lump.
+    let base = sat.records.len() as i32;
+    let co = |i: i32| base + i;
+    let loop_idx = base + 4;
+    let face_idx = base + 5;
+    let shell_idx = base + 6;
+    let lump_idx = base + 7;
+
+    let edges = [e0, e1, e2, e3];
+    for i in 0..4i32 {
+        let next = co((i + 1) % 4);
+        let prev = co((i + 3) % 4);
+        sat.add_coedge(
+            ptr(next),
+            ptr(prev),
+            SatPointer::NULL, // open sheet: no partner coedge on another face
+            ptr(edges[i as usize]),
+            Sense::Forward,
+            ptr(loop_idx),
+        );
+    }
+
+    sat.add_loop(SatPointer::NULL, ptr(co(0)), ptr(face_idx));
+    sat.add_face(
+        SatPointer::NULL,
+        ptr(loop_idx),
+        ptr(shell_idx),
+        ptr(surf),
+        Sense::Forward,
+        Sidedness::Single,
+    );
+    sat.add_shell(ptr(face_idx), ptr(lump_idx));
+    sat.add_lump(ptr(shell_idx), body_idx);
+
+    if let Some(body_rec) = sat.record_mut(0) {
+        body_rec.tokens[1] = SatToken::Pointer(ptr(lump_idx));
+    }
+
+    // Back-pointers (same audits as the cylinder): edge → its coedge,
+    // vertex → its edge.
+    let coedges = [co(0), co(1), co(2), co(3)];
+    for i in 0..4usize {
+        if let Some(r) = sat.record_mut(edges[i] as usize) {
+            r.tokens[5] = SatToken::Pointer(ptr(coedges[i]));
+        }
+    }
+    let verts = [v0, v1, v2, v3];
+    for i in 0..4usize {
+        if let Some(r) = sat.record_mut(verts[i] as usize) {
+            r.tokens[1] = SatToken::Pointer(ptr(edges[i]));
+        }
     }
 
     sat
