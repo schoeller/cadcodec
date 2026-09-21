@@ -3312,6 +3312,10 @@ def normalize_silver(
             # decode never emits them (census: 8/8 corpus records plain) —
             # dropping the field beat leaving extra_in_silver rows.
             fields.pop("graphic_data", None)
+            # R2010+ wire bit-group captured between the walked spec tail
+            # and the string-stream anchor (writer-only fidelity channel;
+            # gold's spec has no counterpart and dumps it into unknown_bits).
+            fields.pop("dwg_raw_tail_bits", None)
             # MULTILEADER (gold dwg2.spec 1298 + MLEADER_CONTEXT_DATA_fields
             # macro at dwg2.spec 1227; silver: src/entities/multileader.rs,
             # readers/entities.rs::read_multileader and
@@ -3567,7 +3571,10 @@ def normalize_silver(
                        "text_attachment_direction", "text_top_attachment",
                        "text_bottom_attachment", "extend_leader_to_text",
                        "dwg_version", "text_height", "graphic_data",
-                       "dwg_attach_dir", "dwg_attach_top", "dwg_attach_bottom"):
+                       "dwg_attach_dir", "dwg_attach_top", "dwg_attach_bottom",
+                       # R2010+ wire bit-group (writer-side fidelity channel;
+                       # gold's spec walks it into unknown_bits).
+                       "dwg_raw_tail_bits"):
                 payload.pop(sk, None)
 
         if silver_type in ("Solid3D", "Region"):

@@ -4506,6 +4506,9 @@ pub struct MultiLeaderData {
     pub text_bottom_attachment: i16,
     pub text_top_attachment: i16,
     pub extend_leader_to_text: bool,
+    /// Verbatim R2010+ wire bits between the walked spec tail and the
+    /// string-stream anchor: `(packed MSB-first, bit count)`.
+    pub raw_tail_bits: Option<(u64, u8)>,
 }
 
 pub fn read_multileader(
@@ -4641,6 +4644,25 @@ pub fn read_multileader(
         extend_leader_to_text = reader.read_bit();
     }
 
+    // R2010+ authored wires park a short unparsed bit-group between the
+    // walked spec tail (is_text_extended; attach_bottom on R2010) and the
+    // string-stream anchor. Neither the public specs nor gold's walk model
+    // those bits, so capture them verbatim for a byte-faithful rewrite.
+    // Census: 17 bits 0b00100101000010010 on the ODA text-content samples
+    // (2010/2013/2018 Leader.dwg), 9 bits on an empty-text AutoCAD 2013
+    // mleader — width is content-dependent, the group ends at the anchor.
+    let mut raw_tail_bits = None;
+    if version.r2010_plus() {
+        let main_end = reader.position_in_bits();
+        let anchor = reader.main_data_end();
+        let count = anchor - main_end;
+        if count > 0 && count <= 48 {
+            if let Some(bits) = reader.peek_window_bits(main_end, count as u8) {
+                raw_tail_bits = Some((bits, count as u8));
+            }
+        }
+    }
+
     MultiLeaderData {
         dwg_version,
         context,
@@ -4679,6 +4701,7 @@ pub fn read_multileader(
         text_bottom_attachment,
         text_top_attachment,
         extend_leader_to_text,
+        raw_tail_bits,
     }
 }
 

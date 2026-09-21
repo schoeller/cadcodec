@@ -1750,6 +1750,18 @@ impl<'a> DwgObjectWriter<'a> {
         self.writer
             .write_handle(DwgReferenceType::HardPointer, dimstyle_handle.value());
 
+        // R2010+ authored LEADER records park the no-text flag and the
+        // handle region back inside the main tail ("underlap": bitsize =
+        // main_end − 6). The sequential layout parsed clean in gold but
+        // BricsCAD deep-dropped the otherwise byte-verified rewrite
+        // record (user test 2026-09-21: `(72E)` warn) while the authored
+        // underlap file opened clean. The merge verifies the overlapped
+        // bits are identical in both layouts and falls back to
+        // sequential when they are not (no value ever changes).
+        if self.version.r2010_plus() {
+            self.writer.set_underlap_tail(6);
+        }
+
         self.register_object(e.common.handle);
     }
 
@@ -4413,6 +4425,22 @@ impl<'a> DwgObjectWriter<'a> {
         if self.version.r2013_plus(self.dxf_version) {
             // 295 Leader extended to text (B)
             self.writer.write_bit(e.extend_leader_to_text);
+        }
+
+        // R2010+ wires park a hidden bit-group between the walked spec
+        // tail and the string-stream anchor that no public spec models.
+        // Byte-fidelity rewrites echo the captured bits verbatim;
+        // constructed entities use the native default (BricsCAD and
+        // AutoCAD both emit the constant 9-bit group on their own
+        // samples; the ODA family's 17-bit group made BricsCAD's
+        // AcDbMLeader parse reject constructed records).
+        if self.version.r2010_plus() {
+            let (bits, count) = e
+                .dwg_raw_tail_bits
+                .unwrap_or((0b000010010, 9));
+            for i in (0..count as u32).rev() {
+                self.writer.write_bit((bits >> i) & 1 == 1);
+            }
         }
 
         self.register_object(e.common.handle);

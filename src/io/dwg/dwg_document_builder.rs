@@ -4331,6 +4331,7 @@ impl DwgDocumentBuilder {
                         TextAttachmentType::from(data.text_bottom_attachment);
                     e.text_top_attachment = TextAttachmentType::from(data.text_top_attachment);
                     e.extend_leader_to_text = data.extend_leader_to_text;
+                    e.dwg_raw_tail_bits = data.raw_tail_bits;
                     let _ = document.add_entity(EntityType::MultiLeader(e));
                 }
 

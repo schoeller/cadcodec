@@ -584,6 +584,38 @@ impl DwgMergedReader {
         self.text_start_bit = bit;
     }
 
+    /// The string-stream anchor, i.e. the wire's true main-data end.
+    ///
+    /// This is the rewound TU start found by the flag probe when a string
+    /// stream is present, otherwise the flag position itself.  Authored
+    /// R2010+ records may park a short unparsed bit-group between the
+    /// walked main tail and this anchor; callers use the gap to capture
+    /// that group for byte-faithful rewrites.
+    pub fn main_data_end(&self) -> i64 {
+        self.text_start_bit
+    }
+
+    /// Read `count` raw record-window bits at absolute bit `start`
+    /// without disturbing any stream cursor.  The first wire bit takes
+    /// the result's highest bit position `count-1`.
+    pub fn peek_window_bits(&self, start: i64, count: u8) -> Option<u64> {
+        if count == 0 {
+            return Some(0);
+        }
+        if start < 0 || start + count as i64 > self.record_end_bits() {
+            return None;
+        }
+        let data = self.main.data_bytes();
+        let mut value = 0u64;
+        for i in 0..count as i64 {
+            let pos = start + i;
+            let byte = data[(pos >> 3) as usize];
+            let bit = (byte >> (7 - (pos & 7))) & 1;
+            value = (value << 1) | bit as u64;
+        }
+        Some(value)
+    }
+
     /// Capture the raw PROXY data window the way gold's `dwg.spec` DECODER
     /// does for PROXY_ENTITY/PROXY_OBJECT: every record bit from the current
     /// main position to the handle-stream start, in classic wire order.

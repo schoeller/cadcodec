@@ -328,9 +328,13 @@ impl Mesh {
     /// Computes edges from faces.
     /// This creates an edge for each unique edge in the face list.
     pub fn compute_edges(&mut self) {
-        use std::collections::HashSet;
+        // Ordered set: the wire emits the edge list verbatim, so the
+        // vertex-pair iteration order must be process-stable (a hash
+        // container randomizes the edge order per run and makes the
+        // generated files nondeterministic byte-for-byte).
+        use std::collections::BTreeSet;
 
-        let mut edge_set: HashSet<(usize, usize)> = HashSet::new();
+        let mut edge_set = BTreeSet::new();
 
         for face in &self.faces {
             for &(v1, v2) in &face.edges() {

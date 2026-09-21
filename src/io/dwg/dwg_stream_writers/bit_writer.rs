@@ -91,6 +91,46 @@ impl DwgBitWriter {
         self.write_pos as i64 * 8 + self.bit_shift as i64
     }
 
+    /// Physical readback of `n` already-written bits starting at absolute
+    /// bit `start` (MSB-first), for append-only states. Returns None when
+    /// the range is not fully written yet. Used by the merge layer to
+    /// verify layout-invariant overlap candidates before rewinding into
+    /// written data (the authored R2010+ LEADER underlap).
+    pub fn bits_at(&self, start: i64, n: usize) -> Option<u32> {
+        let pos = self.position_in_bits();
+        if start < 0 || start + n as i64 > pos {
+            return None;
+        }
+        let mut value = 0u32;
+        for i in 0..n as i64 {
+            let p = start + i;
+            let byte_index = (p / 8) as usize;
+            let bit_index = (p % 8) as u8;
+            let byte = if byte_index == self.write_pos {
+                self.last_byte
+            } else {
+                *self.buffer.get(byte_index)?
+            };
+            let bit = (byte >> (7 - bit_index)) & 1;
+            value = (value << 1) | bit as u32;
+        }
+        Some(value)
+    }
+
+    /// Readback of the first `n` written bits (MSB-first, append-only).
+    pub fn first_written_bits(&self, n: usize) -> Option<u32> {
+        self.bits_at(0, n)
+    }
+
+    /// Readback of the last `n` written bits (MSB-first, append-only).
+    pub fn last_written_bits(&self, n: usize) -> Option<u32> {
+        let pos = self.position_in_bits();
+        if pos < n as i64 {
+            return None;
+        }
+        self.bits_at(pos - n as i64, n)
+    }
+
     /// Current byte position (partial byte not counted).
     pub fn position(&self) -> usize {
         self.write_pos

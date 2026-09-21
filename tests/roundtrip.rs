@@ -1478,6 +1478,10 @@ fn dwg_roundtrip_deep_r2000() {
                 !expected_profile_changes
                     .iter()
                     .any(|prefix| difference.starts_with(prefix))
+                    // The R2010+ mleader wire-tail bit-group has no
+                    // pre-R2010 wire counterpart: an AC1015 write drops it
+                    // and the read-back legitimately reports None.
+                    && !difference.contains("dwg_raw_tail_bits")
             })
             .cloned()
             .collect(),

@@ -55,6 +55,15 @@ pub struct DwgMergedWriter {
     /// Bit position in the merged main stream where the handle section starts.
     /// Set during merge, used by R2010+ record framing to compute MC handle_bits.
     handle_start_bits: i64,
+    /// R2010+ "underlap" request: park the no-text flag and the handle
+    /// region `bits` positions back inside the main tail — the authored
+    /// ODA layout for LEADER records (flag at main_end−bits, handles at
+    /// main_end−(bits−1); a sequential record instead runs the main to
+    /// its end and starts the region right after). The merge applies it
+    /// only when the overlapped bits are identical in both layouts
+    /// (main tail == [false] ++ handle head); otherwise it falls back to
+    /// sequential so values never change.
+    underlap_bits: Option<u8>,
 }
 
 impl DwgMergedWriter {
@@ -74,6 +83,7 @@ impl DwgMergedWriter {
             saved_position: false,
             position_in_bits: -1,
             handle_start_bits: -1,
+            underlap_bits: None,
         }
     }
 
@@ -97,6 +107,7 @@ impl DwgMergedWriter {
             saved_position: false,
             position_in_bits: -1,
             handle_start_bits: -1,
+            underlap_bits: None,
         }
     }
 
@@ -163,6 +174,7 @@ impl DwgMergedWriter {
         self.saved_position = false;
         self.position_in_bits = -1;
         self.handle_start_bits = -1;
+        self.underlap_bits = None;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -176,6 +188,23 @@ impl DwgMergedWriter {
         self.position_in_bits = self.main.position_in_bits();
         // Write 4 zero bytes as a placeholder
         self.main.write_int(0);
+    }
+
+    /// Request the authored R2010+ "underlap" record layout for the next
+    /// merged object: the flag bit and the handle region start back
+    /// inside the main tail (`bits` positions before its end), overlapping
+    /// the last main bits. The authored ODA LEADER records use this genus
+    /// (bitsize = main_end − 6: flag at −6, handles at −5, with the tail
+    /// bits double-reading as arrowhead tail + unknown_bit_4/5); a strict
+    /// consumer deep-loads it clean while the sequential genus warned
+    /// (2026-09-21 user test: rewrite-byte-identical-sequential leader
+    /// warned `(72E)` while the authored underlap file opened clean).
+    ///
+    /// The merge verifies the overlap is value-preserving (the main's
+    /// last `bits` bits must equal `[false-flag] ++ handle-head`), and
+    /// silently falls back to the sequential layout otherwise.
+    pub fn set_underlap_tail(&mut self, bits: u8) {
+        self.underlap_bits = Some(bits);
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -475,8 +504,32 @@ impl DwgMergedWriter {
     /// 4. If text not present: write `false` bit
     /// 5. Append the handle stream
     fn merge_three_stream(&mut self) -> Vec<u8> {
-        let main_size_bits = self.main.position_in_bits();
+        let mut main_size_bits = self.main.position_in_bits();
         let text_size_bits = self.text.position_in_bits();
+
+        // Authored underlap request (R2010+ LEADER genus): rewind the
+        // flag+handle region `bits` positions back into the main tail so
+        // the overlapped bits double-read. Value-preserving only when the
+        // main's last `bits` bits equal the region's own head bits there
+        // (flag=false ++ handle head); verify and fall back to sequential
+        // otherwise.
+        if let Some(bits) = self.underlap_bits {
+            let n = bits as usize;
+            let head = self.handle.first_written_bits(n - 1);
+            let tail = self.main.last_written_bits(n);
+            // The overlapped bits must equal [flag=false] ++ handle head;
+            // the leading false makes that comparison value-equal to the
+            // (n−1)-bit head itself.
+            let ok = text_size_bits == 0
+                && head.is_some()
+                && tail.is_some()
+                && tail == head;
+            if ok {
+                main_size_bits -= bits as i64;
+            } else {
+                self.underlap_bits = None;
+            }
+        }
 
         // Pad main to byte boundary so text and flag writes don't
         // corrupt the last partial byte of entity data
