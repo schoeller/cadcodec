@@ -81,3 +81,7 @@ path = "tests/gold_harness/src/bin/dwgrewrite.rs"
 [[bin]]
 name = "dump_section_bytes"
 path = "tests/gold_harness/src/bin/dump_section_bytes.rs"
+
+[[bin]]
+name = "dump_proxy_graphics"
+path = "tests/gold_harness/src/bin/dump_proxy_graphics.rs"
