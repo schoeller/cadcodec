@@ -4,6 +4,10 @@
 //!   - GOLD_DWGREAD: path to a built libredwg `dwgread` binary.
 //!   - GOLD_TESTDATA: path to libredwg `test/test-data` directory.
 //!
+//! The whole file is feature-gated (not just the test body), so a plain
+//! `cargo test` compiles an empty 0-test target here instead of warning
+//! about the oracle helpers as dead code.
+//!
 //! Oracle-optional: `cargo test` must work on machines without a LibreDWG
 //! checkout. When the oracle is unavailable the test SKIPS PASS with a
 //! written notice in `target/gold_harness_oracle_skipped.txt` (Rust
@@ -18,6 +22,8 @@
 //! representative subset and asserts that the storage-only `EntityCommon`
 //! fields (`z_is_zero`, `ltype_flags`, `prev_entity`, `next_entity`,
 //! `nolinks`) never appear in the read-fidelity or rewrite-fidelity diffs.
+
+#![cfg(feature = "gold-harness")]
 
 use std::path::{Path, PathBuf};
 use std::process::Command;

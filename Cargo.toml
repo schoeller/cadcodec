@@ -85,3 +85,8 @@ path = "tests/gold_harness/src/bin/dump_section_bytes.rs"
 [[bin]]
 name = "dump_proxy_graphics"
 path = "tests/gold_harness/src/bin/dump_proxy_graphics.rs"
+
+# Consumes serde_json unconditionally; skip under feature-less builds.
+[[example]]
+name = "entity_atlas"
+required-features = ["serde"]
