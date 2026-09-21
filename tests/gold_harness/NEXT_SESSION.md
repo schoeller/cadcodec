@@ -1,268 +1,289 @@
-# Zero-context prompt — gold-vs-silver roundtrip harness (next session)
+# Zero-context prompt — BricsCAD strict-load campaign (next session)
 
-> Paste this whole file into a fresh session to continue the gold-vs-silver
-> roundtrip-fidelity work with no prior context. It is the cold-start brief.
-> Replace this file at the next halt (fold landed outcomes into
-> IMPLEMENTATION.md §7 + §8.1.6 first).
+> Paste this whole file into a fresh session to continue the strict-load
+> campaign with no prior context. It is the cold-start brief. Replace this
+> file at the next halt (fold landed outcomes into IMPLEMENTATION.md first).
+> After reading this file, read in order: `tests/gold_harness/AGENTS.md`
+> (durable rules), then `tests/gold_harness/IMPLEMENTATION.md` §7 and §18.
 
 ## Task
 
-The acadrust gold-vs-silver roundtrip campaign is COMPLETE. The target
-(2026-09-20, raised: read AND write 0 on BOTH sides) was reached
-2026-09-21 at batch 44 (`9b1738c`; docs fold on top):
+The **strict-load zero target**: `cargo run --example
+gen_all_entities_all_versions_dwg` produces `gen_all_entities_all_versions.dwg`
+(AC1032/R2018, 30 entity types). That file must open in **BricsCAD** on the
+USER's machine via plain `_open` (not RECOVER) with **no modal error, no
+command-line warnings, and 30 visible entities**.
 
-**read 0 / write 0 — ALL 124 of the 124 corpus files are at 0/0.
-Residue dump empty (`target/probes/pk18_residues_full.txt`).**
+Current state (halt 2026-09-21 ~14:00Z):
 
-gh44-error.dwg stays explicitly out of scope via `run_corpus.in_scope_files`
-(the frozen `246e60a` audit decision). The work queue (IMPLEMENTATION.md
-§8.1.6) is EMPTY. A fresh session therefore has exactly ONE job:
+- 28 of 29 entities visible in the mleader-omitted file; the LEADER parses
+  but is dropped at deep-load with a bare warning.
+- The MULTILEADER record is the only fatal blocker when present.
+- Both remaining defects are fully scoped: silverWRITER encoding-form
+  deltas (a few bits) against authored wires. The route to zero below is
+  complete and needs no new content theories.
 
-**Re-verify the standing 0/0, and treat any row that resurfaced (e.g. after
-an unrelated codec change) with the per-packet workflow in IMPLEMENTATION.md
-§8.1.** There is no outstanding pocket; do not invent work beyond the
-verification pass unless a concrete row exists.
+This campaign runs alongside the COMPLETED gold-vs-silver fidelity campaign
+(0/0 on the 124-file corpus — section "Standing fidelity rules" below).
+Preserving that 0/0 is a hard constraint on every writer change.
 
-**Session history (2026-09-20):** morning batches 7-23 (`fa2cb0a..b2955a7`);
-evening batches 24-32 (`82f0225`), 33-38 (`078c119`), 39 (`5a25bf9`), 40
-(`c20e6fe`); late-night 41 (`707e7a8`, gh109_1), 42 (`604f956`, chain-ordinal
-wave), 43 (`e0c6f93`, deep-gate arms), docs folds `fe23963`/`e088f33` +
-the dossier fold `33d5a0e`. Session total read 38 → 0, write 30 → 2.
+## BricsCAD message semantics (decoded — do not re-derive)
 
-**Session history (2026-09-21):** batch 44 (`9b1738c`, the Surface
-zero-out — the last pocket, from the decoded dossier; read 0/write 2 →
-0/0; docs fold on top). The campaign-closing recipe and the one
-measured refinement of the dossier are in §7 and the §8.1.6a DONE entry.
+1. Modal `Unable to load drawing ... Object improperly read: <Class> (N)`
+   = FATAL at the first unparseable object. **(N) is the object's handle
+   in HEX** (proven by handle-shift experiments: adding an entity before
+   the leader moved it 0x40→0x41 and the complaint followed the handle).
+2. Bare `Object improperly read (N)` at the command line = NON-FATAL
+   per-object warning: the record parsed, the entity gets dropped at
+   deep-load. Identify the victim by the visible-entity count, not just
+   the message.
+3. RECOVER names entities with specific validation text and heals
+   silently (`Total errors found during audit N, fixed M`).
+4. **The stale-copy trap**: always confirm WHICH generation was tested.
+   On 2026-09-21 the user once tested a stale copy — the mleader printed
+   (50) where the fresh generation had (51). Cross-check the printed
+   handle against the freshly generated file's actual handles (gold JSON
+   query) before interpreting a result.
+5. User observations arrive as pasted text: modal lines, bare warning
+   lines, and visible-entity counts. Ask for the count when absent.
 
-**Staleness rule:** re-read `target/gold_harness_corpus/report.json`
-(`read_fidelity_total`, `write_fidelity_total`, and `per_file` — entry
-keys are file/returncode/read_fidelity_diffs/write_fidelity_diffs; the
-by-type tables truncate, per_file is truth) FIRST; it must still say 0/0
-with no per-file nonzero rows. After every landed change, re-run and
-re-dump residues (`python3 target/probes/pk18a_all_rows.py`).
+## What is fixed and user-validated (do not retest these)
 
-## Read these first (in order)
+1. **Region/BODY/3dSolid SAT topology** — the example's cylinder
+   (`build_cylinder_sat`) keeps its correct coedge wiring and gained the
+   missing back-pointers: every edge record points at one of its coedges
+   (tokens[5]) and every vertex at an edge (tokens[1]).
+   `build_region_sat` (new) builds a valid planar square sheet; BODY
+   reuses the cylinder. Receipts: the earlier RECOVER texts ("shell not
+   connected", "coedge's edge doesn't point to coedge", "edge without
+   backptr", "vertex without edge", "Data stream is empty") are all GONE.
+2. **Shape** — example adds a shape-file TextStyle ("LTYPESHP",
+   font `ltypeshp.shx`, `is_shape_file = true`), `shape.shape_number =
+   130`; writer-side `write_shape` resolves a null style handle by name
+   against `doc.text_styles`. Receipts: "font file not set / shape number
+   not set" GONE.
+3. **MESH population bits** — model `blend_crease = false` (wire B72 =
+   gold's `is_watertight`), `unknown_b1 = true` (authored census:
+   2004/Surface.dwg MESH). Receipt: the bare `(4E)` on SubDMesh GONE —
+   the mleader-omitted, leader-omitted file opened with **no
+   errors/warnings** once. ⚠ DO NOT "fix" the mesh face-count header to
+   the face count — the flattened-length convention is the authored
+   truth (the corpus caught that regression at 8 rows and it was
+   reverted).
+4. **MLEADER text content style** — `write_multileader_annotation_context`
+   falls back to the document's "Standard" text style when the content
+   style handle is null. Necessary but not sufficient (the fatal remains).
+5. **Leader model default** — `Leader::new()` creation_type =
+   `NoAnnotation` (annot_type 3), so API-constructed leaders no longer
+   claim WithText with a dangling null association.
 
-1. `tests/gold_harness/AGENTS.md` — durable rules: gold is read-only, grep
-   BOTH `dwg.spec` and `dwg2.spec` **plus `common_entity_data.spec` and
-   `common_entity_handle_data.spec`** (the common flag pairs), and
-   `spec.h` (flag-bit names AND the VERSION/VERSIONS macro semantics);
-   verify class-block liveness (§8.1.1) before any retype;
-   version-gate every conditional; differ/ignore-list frozen; commit
-   conventions.
-2. `tests/gold_harness/IMPLEMENTATION.md` — §7 (the campaign-closing
-   chain), §8.1.0, §8.1.1, §8.1.6 (the queue banner records the
-   complete state), §8.1.6a (batches 7-44 DONE recipes).
-3. `target/probes/` — the probe library: `pk16a/b/c` (census/key-maps),
-   `pk17*` (family probes, `pk17e_rows.py <workdir>` row lists,
-   `pk17r_corpus.sh` detached corpus launcher), `pk19_*` (verification
-   waves; the Surface dossier set `pk19_42_surf.py` / `pk19_52_53_54`
-   regenerable via `pk19_55_surf_dossier.sh`; fresh-run
-   `pk19_15_run_any.sh <relpath>`; deep gates `pk19_13*`),
-   `pk18a_all_rows.py` (residue dump — currently EMPTY).
-4. `target/probes/pk18_residues_full.txt` — must be 0 lines; if not,
-   that list IS the work queue.
+## Where the remaining fault lives (the campaign's core finding)
 
-## The standing verification pass (what "complete" means)
+**Silver's WRITER emits different bitcode FORMS than authored wires.**
+Both local decoders (LibreDWG gold and silver) tolerate either form, so
+the fidelity harness stays 0/0 — but a strict consumer (BricsCAD)
+validates forms. Proof chain:
 
-1. Fresh report: `report.json` totals 0/0, per_file all-zero.
-2. `python3 tests/gold_harness/check_env.py` → "Environment looks good".
-3. `cargo build --features serde --bins` → success.
-4. Deep gates: `cargo test --features serde` → 47 ok segments
-   (roundtrip 97/0, 1312 units; the deep tests carry a KNOWN-ISSUE
-   BUDGET: `dwg_roundtrip_deep_r2000/r2013/r2018` and
-   `dwg_double_roundtrip_stability` assert `diffs <= max_known`; a NEW
-   raw-retention model field MUST get a `normalize_entity_for_
-   comparison` arm or the budget trips — the failing test names the
-   exact field) + `cargo test --features gold-harness --test
-   gold_roundtrip` → ok.
-5. Corpus (`pk17r_corpus.sh` detached + one bounded `24_wait.sh`) →
-   read 0 / write 0 across the 124 in-scope files.
+- The envelope lab (`examples/xleader_lab.rs`) loaded an authored file
+  known to warn, re-wrote it with silver, and appended one constructed
+  leader: the output still warned on the **authored-content** leader
+  (0x72E) as well as the appended one, and the mleader (732) stayed
+  fatal → the fault travels with silver's ENCODING, not the content.
+- The earlier "(40) fatal → (41) warning" progression was real progress
+  but every content theory after that failed (see FALSE LEADS): the
+  content class is now byte-complete; the residual is encoding form.
 
-If all five hold, the session's task is verification bookkeeping only
-(no commit is needed for a clean re-run). If a row resurfaced, STOP the
-patrol and open a packet: the row's `(type, field)` + per-file value
-probes via `pk19_15_run_any.sh`, gold spec block, then the §8.1.4 fix
-recipe. Never "fix" a row by touching `diff_fields.py` /
-`ignore_fields.toml`.
+## The two open defects, precisely scoped
 
-## Known out-of-scope items (do NOT reopen without user direction)
+### LEADER — warn-class (bare `(41)`), record drops at deep-load
 
-- `2013/gh44-error.dwg` — frozen exclusion (upstream-crash file; the
-  `-nan` shim once re-included it at 7689/7559 rows).
-- The §7 "Write-fidelity diff compares silver_rt" architectural note
-  (`run_roundtrip.py` builds diff_rt = gold_rt vs silver_rt rather than
-  the §3-documented gold_orig vs gold_rt) — harness design decision,
-  recorded in §7's Known-issues table.
-- Plain `cargo test` failing to compile `examples/entity_atlas.rs`
-  (pre-existing E0432, serde-feature-gated example; `cargo test
-  --features serde` is the authoritative gate).
-- The R13/R14 example files (`example_r13/r14*`) — out-of-scope format
-  versions, excluded by `run_corpus.in_scope_files`.
-- The untracked `examples/cylinder_dwg.rs` + `*.ocs.lock` in the tree
-  belong to other workstreams; leave them alone.
+Pair method: authored `2018/Leader.dwg` object 145 = handle 0x72E
+(frame: `Size: 240 [MS], Hdlsize: 0x6A [UMC], Type: 45 [BOT], Address:
+4916`) vs silver's rewrite (`Size: 241, Hdlsize: 0x6C, Address: 1968`).
+Accounting: auth 240 bytes vs rt 241; hdl 0x6A vs 0x6C (+2 bits); main
+≈ +6 bits. Byte-compare results (record data = [Address+1 ...]):
 
-## Environment
+- Byte-identical through the EED payload (73-byte DSTYLE + 41-byte
+  AnnotativeData) and again through the common entity data.
+- Divergence set: (a) the CMC alpha nibble at record-data-bit **1050**
+  (auth `0x2000056` type 2 vs rt `0x3000056` type 3 — silver's
+  `to_alpha_value` currently writes the 3-form; the authored uses 2);
+  (b) the tail bits `[1812..1894]` — raw bytes:
+  auth `... 21 00 c8 1e 01 44 41 48 1d e5 48 1c`
+  rt   `... 21 00 c3 20 78 05 11 05 20 77 95 20 73`
+- Tail field layout (validated by anchors; `@n.m` = MS bit 8n+m, most
+  prints are END-of-read positions): box_height 0.0 raw-64 (66 bits),
+  box_width −0.09 raw-64, hookline_dir B, arrowhead_on B, arrowhead_type
+  BS 322 = `'00'+RS16` (18 bits), unknown_bit_4/5. Handle slots have
+  IDENTICAL forms in both files: [xdic (3.2.780)][layer (5.1.10)]
+  [ltype (5.2.779)][assoc (5.2.731)][dimstyle (5.1.E1)].
+- ⚠ One open anomaly: the −0.09 raw-double bit pattern was NOT FOUND in
+  the sliced dump (search bug or wrong slice base — verify the slice
+  before trusting any derived bit offsets). Re-anchor by finding the
+  f64 bit patterns of the box values first.
+- CRC: auth `82F5` over [4913..5156], rt `55E4` over [1965..2209].
 
-```
-cd ~/work/cadcodec
-source "$HOME/.cargo/env"
-export GOLD_DWGREAD="$HOME/work/libredwg/programs/dwgread"
-export GOLD_TESTDATA="$HOME/work/libredwg/test/test-data"
-python3 tests/gold_harness/check_env.py   # must print "Environment looks good"
-cargo build --features serde --bins        # must succeed before any edit
-```
+### MULTILEADER — the only FATAL (`AcDbMLeader (N)`)
 
-(Windows host specifics: the repo lives in WSL; reach it via
-`\\wsl$\Ubuntu-24.04\home\sebastianschoeller\work\cadcodec` and run shell
-commands through `wsl.exe -d Ubuntu-24.04 -- bash <script>`. wsl.exe strips
-embedded quotes AND pipes (regex `\|` alternations die silently);
-single search terms through wsl.exe, multi-pattern via the grep *tool*;
-HEREDOCS via wsl.exe -c BREAK — write probe python to script files with
-the write tool, run via their absolute paths. This PowerShell has NO
-`head` and rejects `&&`, and it also INTERPOLATES `$var` inside
-double-quoted bash -c strings — loops with variables go in script files,
-never inline. Multi-pattern grep through wsl.exe needs the grep *tool*
-instead. The `read` tool's `offset` is ignored on SOME UNC paths — use
-`wsl.exe -- sed -n <start>,<end>p <file>` (no quotes needed) and the grep
-tool for multi-pattern searches. CRITICAL paths: the example_*.dwg files
-live at the test-data ROOT (`$GOLD_TESTDATA/example_2010.dwg`); PolyLine3D/
-Helix/Constraints live IN the version folders; PolyLine2D/TS1 in 2000/;
-Underlay+Surface in 2004/; LiveSection1 in 2018/; gh109_1 in 2013/;
-gh209_1 in 2010/. dwgread exit 1 + empty output usually means a wrong
-path, not a gold failure. Corpus launch: `target/probes/pk17r_corpus.sh`
-(nohup, ABSOLUTE log path, sleep 8, pgrep confirm) + bounded
-`24_wait.sh`; NEVER edit while the corpus runs (give it the full time it
-needs; a second corpus can race the report).)
+Pair: the same authored file's MULTILEADER record (833 bytes at section
+Address 5283, object 147) vs silver's rewrite (831 bytes, Address 2336;
+MS at 2333 → `[MS 2][UMC 1][BOT 1][data from Address+1]` — verified on
+both records, e.g. auth MTEXT `[..] 0.2.731`). Values decode IDENTICALLY
+under gold; the net delta = **−17 main bits**, all inside the final
+~180-bit tail, first divergent bit = record-data-bit **6367** (values
+match before it). Suspected decomposition: two 9-valued BS fields
+emitted as `'01'+RC` (10 bits each) where the authored wire uses
+`'00'+RS16` (18) = −16, plus 1 bit elsewhere. Candidates: the BS-9 pair
+(ctx.text_top/text_bottom — both are 9) and the attach trio
+(dir 271/top 273/bottom 272), spec `dwg2.spec:1449-1451` + the
+`MLEADER_CONTEXT_DATA_fields` macro at `dwg2.spec:1227`, entity block at
+`dwg2.spec:1298`. R2010+ record tail layout: `[main...][RS data_size
+16][flag bit 1][string stream (data_size bytes)][handle region
+(hdlsize)][CRC 2]`; TU strings live in the stream and consume ZERO main
+bits; handles read at their own positions.
 
-## Workflow (per packet — only if a row resurfaced)
+## FALSE LEADS — all tested and disproven, do not repeat
 
-1. Re-read the fresh report first (staleness rule).
-2. Grep the gold spec: dwg.spec + dwg2.spec (+ common_entity_data.spec,
-   common_entity_handle_data.spec, spec.h for flag semantics) — read the
-   FULL block (macro + version predicate + value guards) before any
-   retype; check §8.1.1 liveness (a typed gold record in the diff PROVES
-   liveness).
-3. Locate the silver side; pull row VALUES + both records from fresh
-   per-file runs into a fresh dir (use `target/probes/pk19_15_run_any.sh
-   <relpath>`; the residue dump pk18_residues_full.txt is the quick
-   reference).
-4. Minimal, version-gated fix: prefer normalizer projections; codec
-   (reader retention + writer echo) only when the data is not stored.
-   NEVER touch `diff_fields.py` / `ignore_fields.toml`.
-5. `cargo build --features serde --bins`.
-6. Verify per-file on ALL versions the family touches (fresh dirs) —
-   use pk17e_rows.py `<workdir>` for the row list. Multi-version stems
-   (Helix ×6 folders INCLUDING 2013+2018, Constraints ×4, PolyLine3D ×4)
-   MUST be probed on every version — the Helix era-gate regression came
-   from verifying only 2000-2010.
-7. Run the corpus LAST, detached; one bounded `24_wait.sh` call.
-8. Gates: `cargo test --features serde` (47 ok segments; roundtrip 97/0)
-   + `cargo test --features gold-harness --test gold_roundtrip` (ok).
-9. Commit `fix(harness): <packet> — <gold spec ref> + before→after
-   counts`, push. No backticks in commit-message bodies (bash command
-   substitution). If a semantic rust test encoded the OLD wire theory,
-   update the test WITH the spec citation.
+Each cost a user round-trip on 2026-09-21:
 
-## Hard-won lessons (each one cost rows — do not repeat)
+- annotation class: WithText+null-assoc vs NoAnnotation vs
+  WithText+real-MTEXT-assoc — ALL still warn.
+- EED: none vs AnnotativeData vs DSTYLE+AnnotativeData (bytes transcribed
+  from the authored leader with the embedded masked-RLL handle reference
+  repointed 0x77A→0x40) — ALL still warn. (The transcription remains in
+  the example as `const DSTYLE_EED` with `#[allow(dead_code)]`.)
+- population bits (hookline_dir=1, unknown_bit_4=1), 3-point geometry,
+  spline path, arrowhead_type 322, box 0/−0.09 — collectively
+  insufficient.
+- named linetype (ACAD_ISO02W100): its constructed table record is an
+  empty shell (no dashes) and named-reference resolution deep-loads the
+  table record — leader went back to Continuous; still warns (so this
+  was not the cause either, but keep Continuous to avoid table-record
+  dependencies).
+- DIMSTYLE "Annotative" vs "Standard" — both still warn.
+- Extension dictionary (`doc.ensure_extension_dictionary(leader_handle)`)
+  — still warns. (Witness: gold JSON `is_xdic_missing 0`, slot
+  `[3,1,66,66]`, DICTIONARY object 0x42 owned by the leader.)
+- **Mesh face-count header** — WRONG, reverted; the corpus caught it.
+- Interpreting `(N)` as anything other than a hex handle; interpreting
+  the bare warning line as a fatal.
 
-- **dwg2json/dwgread write `<stem>.json` beside the INPUT FILE by
-  default** — always redirect or you WRITE INTO THE READ-ONLY GOLD TREE.
-- **Write rows = rt-parser-parity pair (gold_rt vs silver_rt); read
-  rows = orig pair; families can be one-sided** — one file's gold values
-  can DIFFER between orig and rt reads of different wires (read-pair
-  first, then the pair you fix against).
-- **By-type tables truncate; per_file (FULL paths) is truth.** The
-  multi-version stems (Helix/Constraints) share ONE corpus workdir —
-  the pooled diff files there hold whichever version ran last; use
-  per-file fresh runs for those.
-- **The entity-common flag pair order is [ltype BB, plotstyle BB,
-  R2007: material BB + shadow RC]** (common_entity_data.spec 507-522);
-  handle-pull order is ltype, material, shadow, plotstyle
-  (common_entity_handle_data.spec 127-141).
-- **RAW beats recomposition**: retain the wire's raw values (dataflags
-  byte, LwPolyline flag, per-SEQEND common flags, encr SAT blocks, OLE
-  blob, polyline kid wire handles, mesh chain ends, vport header slots,
-  RAPIDRT's garbage come read-order) — gold prints them verbatim and any
-  value-based recomposition will differ.
-- **Gold-bug parity IS the truth** (RAPIDRT garbage is a one-bit-cursor
-  misparse; the spec block beats intent; the differ compares gold's
-  OUTPUT, not the "correct" decode).
-- **`spec.h` VERSION(v) is an EQUALITY check, VERSIONS(v1,v2) a range**
-  — "R2013 behavior" in gold's spec often means *exactly* AC1027, NOT
-  R2013+ (the RAPIDRT mis-order applies ONLY at AC1027; at R2018 gold
-  parses cleanly). Gate rust shadows with the same equality.
-- **gold's handle/BL printing**: BL prints through FORMAT_BL "%u"
-  (values > 0x7fffffff are LARGE POSITIVES); handle tuples keep their
-  raw code/size/absref through normalize_gold (the VS-code-style
-  `__handle_code__`/`__handle_target__` convention; the DIFFER compares
-  resolved targets, codes are display-only).
-- **R2000 object records start with a 2-byte little-endian size, then
-  [BS type][RL bitsize][H handle][EED...]** — the v9 trace's `Address`
-  points AT the type (bit 0 of the walk is the type's first bit; the
-  RL's value = the main-data bit-width = the handle-stream start;
-  `hdl_dat: @n.m` markers confirm; the trace's main-dat anchors are
-  END-of-read positions, MS-inclusive coordinates). The obj dat spans
-  [MS-after-2B-size .. +size bytes] with the CRC at the end — hand-walk
-  with an MSB-first cursor, RS/RL/RD byte-wise little-endian.
-- **Gold's overflow-null and valid-null prints DIFFER**: a read REFUSED
-  at the dat end prints the [0,0] null pair (bit_read_RC overflow), but
-  an EXPLICIT (5,0) null-form slot READ VALIDLY prints the full
-  [5,0,0,0] handle tuple — a spectrum that cost the Surface batch 44 a
-  verification cycle (the writer now OMITS the absent slot instead of
-  fabricating a (5,0) form).
-- **Class entities (≥500, "Extended"/ClassObject wrappers) flow through
-  the SAME entity preface** — including the entity PREVIEW block
-  (common_entity_data.spec: preview_exists B + RL/BLL size + bytes,
-  consumed via silver's has_graphic path). rebuild_block_membership
-  used to force their non-block owners into Model_Space (the
-  LAYOUTPRINTCONFIG/chain root — batch 42c).
-- **Branch placement in the entity loop matters**: pop-branches before
-  the generic field loop; stashed per-record payload keys must be
-  popped at merge time or they leak through every generic loop.
-- **normalize_gold reinterprets a 4-int list as the raw handle tuple
-  [code, size, value, absref]** — mirror that when gold prints short
-  int vectors.
-- **Fabricated constant handle codes are time bombs** (WIPEOUT); retain
-  the wire slot when gold reads it directly (VIEWPORT.vport_entity_
-  header precedent) and OMIT a slot the wire never carried (Surface
-  batch 44's null-sab echo).
-- **Both silver stream cursors are bounded by the SAME record slice**
-  (`read_record_at` hands the merged reader exactly the MS size bytes);
-  overread garbage comes from the zero-fill window that OVERLAPS the
-  last real bits, not from bytes past the record. The poison window of
-  2004/Surface was `[bit 183..191)`: the record's final bit `1` made
-  both the sab handle form byte (0x80 → code 8 → ref−1 = 1291) and
-  pbsab_status's RC (0x80 = 128).
-- **Typing divergence poisons handle-vector resolution far away**
-  (a synthesized kid that steals an existing record's handle flips
-  every resolution of that handle — the PolyLine2D LINE@512 root).
-- **Entity-common serde-skipped fields ride `_common_dwg` into
-  merge_common — pop from `fields` AFTER the merge**.
-- **Bitflags serde joins with " | "** (split it); FIELD_CAST BS→BL
-  zero-extends (0xFFCE→65486); MATERIAL rgb unsigned; wire codes
-  SOLID 31 vs TRACE 32; ACIS banner split fixed-at-15 ("%.*s").
-- **Deduplication design decisions in the MODEL can silently drop wire
-  slots** (SortEntitiesTable.add_entry folded four dead pairs;
-  whenever gold keeps repeated wire elements, wire reads append
-  verbatim — add_wire_entry precedent).
-- **Silver object payloads nest common under `common` inconsistently** —
-  location-aware extraction or records vanish.
-- **The DWG binary wire cannot carry a semantic the format lacks**
-  (constraint-group registry/class data is DXF-side) — gate by wire era.
-- **Never edit mid-corpus; never busy-poll; verify every touched version
-  folder; git-commit each wave so a regression is one revert away.**
+## Route to zero (step plan)
 
-## The commit / push convention
+1. **Tree state at this halt (committed, pushed)**: the strict-load
+   campaign's validated work landed as `30218c3`
+   (fix(dwg): strict-consumer compatibility — code + examples) and
+   `6f485f9` (test(harness): oracle-optional gold_roundtrip +
+   bootstrap), with the docs fold in the docs commit carrying this file.
+   The fidelity corpus was re-verified 0/0 on this exact tree before
+   committing. Nothing is outstanding in the working tree — start
+   straight at step 2.
+2. **Regenerate the pair artifacts** — everything below lived in /tmp
+   (volatile). Authored trace:
+   `"$GOLD_DWGREAD" -v9 "$GOLD_TESTDATA/2018/Leader.dwg" > /tmp/l18a_full.log`
+   Silver rewrite: `bash target/probes/pk19_15_run_any.sh 2018/Leader.dwg`
+   → `target/probes/pk19_Leader/Leader_rt.dwg` (the repo-root copy
+   `gen_all_rewrite_authored_2018_leader.dwg` is that file for user-side
+   UNC access); trace it the same way. Record dumps:
+   `target/debug/dump_section_bytes <file> <start> <len>` (R2000+ frame =
+   [MS 2 @Address−4][UMC 1 @Address−2][BOT 1 @Address][data @Address+1]
+   [CRC 2]; dump [Address−6, +size+12] for margin). The compare-loop
+   python probes live in `target/probes/` (pk211_firstdiv.sh,
+   pk230_lddiff.sh, pk233/234 — locally persisted, not in git).
+3. **Leader walk**: re-anchor via the box-value f64 bit patterns
+   (resolve the not-found anomaly), then walk the tail per spec
+   (`dwg.spec` LEADER block, unknown bits at SINCE(R_2000b)) and name
+   which fields' forms differ; the alpha nibble fixes itself when the
+   record matches (auth = type 2).
+4. **Mleader walk**: same, using the corrected spec sequence (strings
+   consume zero main bits; handles at their own positions). Expected
+   outcome: the BS-9 pair (and/or the attach trio) named.
+5. **Writer fix**: emit the authored byte-form in those fields
+   (a raw-16 BS write for those positions —primitive or retained-form
+   driven), keeping it surgical. The alpha form question settles toward
+   authored (2) by byte-matching.
+6. **THE LOCAL ORACLE LOOP (§18 layer 4)**: after each writer change,
+   regenerate the rewrite of 2018/Leader.dwg and byte-compare BOTH the
+   leader and mleader records against the authored file. Zero means
+   byte-identical per record (handle slots that legitimately renumber
+   compare by code/counter shape; CRC excepted). When byte-equal,
+   BricsCAD acceptance follows by construction.
+7. **Preserve the fidelity 0/0** after each writer change:
+   `cargo build --features serde --bins` → `cargo test --features serde`
+   (47 ok segments, the gold_roundtrip oracle-optional semantics are now
+   skip-mode) → corpus detached + one bounded `24_wait.sh` → residues
+   empty. Parser parity is form-blind, so the 0/0 must survive every
+   form fix — if it does not, the fix changed values, not just forms.
+8. **Regenerate + user verification**: all three GENALL files
+   (canonical; `GENALL_MLEADER_MODE=skip` variant; the
+   leader+mleader-omitted control — that one previously opened with zero
+   errors/warnings). Hand to the user with the handle table of the fresh
+   generation (defeats the stale-copy trap) and iterate. Then fold the
+   close-out into IMPLEMENTATION.md and replace this file.
 
-- Branch `gold-vs-silver`, push to `origin/gold-vs-silver` after each
-  batch. `fix(harness): <packet> — <gold spec ref> + before→after
-  counts` (per-wave when families share a mechanism), then a separate
-  `docs(harness): …` commit once §7/§8.1.6 are updated.
-- Landed 2026-09-20: `fa2cb0a..b2955a7` (7-23), `82f0225` (24-32),
-  `078c119` (33-38), `5a25bf9` (39), `c20e6fe` (40), `707e7a8` (41),
-  `604f956` (42), `e0c6f93` (43), docs `fe23963`/`e088f33`/`33d5a0e`.
-- Landed 2026-09-21: `9b1738c` (44, the Surface zero-out — campaign
-  complete) + this docs fold on top.
-- If a future session lands new batches, re-dump the residue inventory
-  (pk18a_all_rows.py) at every halt and reconcile this file against it.
+## Artifacts and tools on this machine
+
+- `examples/gen_all_entities_all_versions_dwg.rs` — the generator;
+  switches: `GENALL_LEADER_MODE=skip|annot|plain(default)`,
+  `GENALL_MLEADER_MODE=skip`. Output at repo root:
+  `gen_all_entities_all_versions.dwg` (all 30 — mleader fatal expected),
+  `gen_all_all_but_mleader.dwg` (29 — leader `(41)` warn expected),
+  `gen_all_no_leader_no_mleader.dwg` (28 — the strict-load CLEAN control
+  to re-verify after every regen).
+- `examples/xleader_lab.rs` — the envelope lab (load an accepted-context
+  file, append one constructed leader, write out; framework for
+  record-vs-envelope isolation).
+- `target/debug/dump_section_bytes` — section-aware byte dumper
+  (source `tests/gold_harness/src/bin/dump_section_bytes.rs`).
+- Probe scripts under `target/probes/` (persisted but not in git; see
+  their headers for regen inline equivalents): `pk19_15_run_any.sh`
+  (fresh per-file harness run), `pk17r_corpus.sh` + `24_wait.sh` (corpus),
+  `pk18a_all_rows.py` (residue dump), `pk19_59_gates.sh` (both cargo gates),
+  `pk19_71/72/73` (dossier builders), `pk211/230/233/234` (record
+  bit-compare patterns), `pk237_finalverify.sh` (oracle-optional matrix).
+- Gold traces + JSON dumps: ALWAYS redirect (`dwgread` writes beside
+  its INPUT otherwise — `-o /tmp/x.json` or `>`), never write into the
+  read-only gold tree.
+
+## Standing fidelity rules (from the completed 0/0 campaign)
+
+- `tests/gold_harness/AGENTS.md` governs: gold is read-only;
+  `diff_fields.py`/`ignore_fields.toml` frozen; version-gate every field
+  by gold's exact predicate; never touch dispatch/CRC/section map.
+- Baseline: corpus report `read_fidelity_total: 0` / `write_fidelity_total:
+  0` (use `per_file`, never the truncating by-type tables) on 124 files;
+  residues empty; `cargo test --features serde` 47 ok (roundtrip asserts
+  `diffs <= max_known`); `gold_roundtrip` = oracle-optional skip-mode
+  without LibreDWG (see README "Oracles" — the four validation layers).
+- Oracle layering (README + IMPLEMENTATION.md §18): layers 1–3 = parser
+  parity; layer 4 = the authored-wire byte-fidelity oracle that closes
+  the form-blind spot — the strict-load campaign's own instrument.
+
+## Environment (identical constraints carry over)
+
+The repo lives in WSL; reach via
+`\\wsl$\Ubuntu-24.04\home\sebastianschoeller\work\cadcodec`. Run shell
+commands via `wsl.exe -d Ubuntu-24.04 -- bash <script>`: inline quotes
+and pipes get stripped (single search terms only; multi-pattern via the
+grep *tool*); heredocs via `wsl.exe -c` BREAK — write scripts with the
+write tool, run by absolute path. PowerShell has no `head` and rejects
+`&&`, and interpolates `$var` inside double-quoted `bash -c` strings.
+The `read` tool's `offset` is unreliable on some UNC paths — use
+`wsl.exe -- sed -n <a>,<b>p <file>`. For the user's BricsCAD tests: the
+files open via `\\wsl.localhost\...` paths; always state the generation
+(handles) with the handoff.
+
+## Session history (2026-09-21)
+
+- Fidelity campaign close-out (committed): `9b1738c` (batch 44, the
+  Surface ASSOCPLANESURFACEACTIONBODY zero-out — corpus 0/0, campaign
+  complete), docs `bf5fc39` + typo `a113e10`.
+- Strict-load campaign (committed at this halt): `30218c`
+  (fix(dwg): leader defaults, shape/mleader style resolution, mesh
+  population bits, valid SAT topology, the example overhaul +
+  xleader_lab), `6f485f9` (test(harness): oracle-optional
+  gold_roundtrip + bootstrap_oracle.sh), and this docs fold
+  (README oracles + IMPLEMENTATION §18 + this brief).
+- Remaining open at this halt: the LEADER warn (~6+2 tail bits vs
+  authored) and the MLEADER fatal (−17 tail bits). Everything else
+  strict-loads.

@@ -3215,3 +3215,82 @@ which the existing loop covers them with **no harness changes**:
 5. **Loop integration:** drop the new files into the corpus dirs, re-run the
    Phase 4 driver, and the entity types move from "OUT OF LOOP" to covered
    automatically.
+
+---
+
+## 18. Oracles — the four validation layers
+
+The campaign uses four oracles. Layers 1–3 are the standing regression set
+(always run, in this order, after any codec change); layer 4 catches a defect
+class the others cannot see by construction.
+
+1. **Deep unit gates** (fast, per change): `cargo test --features serde` —
+   47 ok test segments; the roundtrip suite asserts `diffs <= max_known`
+   (the known-issue budget — a new raw-retention model field without a
+   `normalize_entity_for_comparison` arm trips the budget and the failing
+   test names the exact field) — fully oracle-free (no LibreDWG needed).
+   Plus `cargo test --features gold-harness --test gold_roundtrip` = ok —
+   **oracle-optional** (2026-09-21): without `GOLD_DWGREAD`/`GOLD_TESTDATA`
+   it skip-passes and writes the notice file
+   `target/gold_harness_oracle_skipped.txt`; with `GOLD_HARNESS_REQUIRE=1`
+   set, absence is a hard failure instead (CI knob); and
+   `bash tests/gold_harness/bootstrap_oracle.sh` clones and builds the
+   oracle online on demand, then prints the env exports.
+
+2. **Full corpus** (the authoritative 0/0 check; run detached, LAST):
+   `target/probes/pk17r_corpus.sh` (nohup, absolute log path, sleep 8,
+   pgrep confirm) + ONE bounded `24_wait.sh` call;
+   `target/gold_harness_corpus/report.json` must show
+   `read_fidelity_total: 0` and `write_fidelity_total: 0` (`per_file` is
+   truth — the by-type tables truncate), and
+   `python3 target/probes/pk18a_all_rows.py` must produce an empty residue
+   list.
+
+3. **Staleness rule:** re-read the fresh report before interpreting
+   anything — a second launched corpus can race the report, and no edits
+   are allowed while one runs.
+
+4. **Authored-wire byte-fidelity oracle** (added 2026-09-21 from the
+   BricsCAD strict-load campaign). Byte-compare silver's *rewrite* of an
+   authored file against the authored original, object record by object
+   record. It catches writer **form** defects — legal-but-different
+   bitcode choices (a BS emitted as `'01'+RC` where the authored wire used
+   `'00'+RS16`, BD short-forms vs raw doubles, CMC alpha-method nibbles,
+   handle-region boundary bits) — that BOTH decoders tolerate, so the
+   parser-parity diffs stay 0/0 while a strict consumer (BricsCAD,
+   AutoCAD) rejects or drops the record. The blind spot is structural:
+   the harness's rt pair compares gold's parse of silver's bytes against
+   silver's parse of the *same* bytes — two lenient readers of identical
+   bytes can never disagree about a form. Procedure, per record pair:
+
+   - Find the record in both files: `dwgread -v9` prints each object's
+     frame — `Size: N [MS], Hdlsize: 0xH [UMC], Type: T [BOT],
+     Address: A` (TCP-era records at the printed section Address).
+   - Build the silver side: `run_roundtrip.py` on the authored file
+     produces `<stem>_rt.dwg` (silver's full-file rewrite); trace it the
+     same way.
+   - Dump both records: `target/debug/dump_section_bytes <file> <A-6> <N+12>`
+     — the R2000+ record frame is [MS size, 2 bytes at Address−4]
+     [UMC Hdlsize, 1 byte at Address−2] [BOT type, 1 byte at Address]
+     [data bits from Address+1] [2-byte CRC at the end]; dump with margin
+     around the whole span.
+   - Bit-compare the two records from the data start (byte-identical
+     prefixes hold the comparison; the first divergent bit, combined with
+     a spec-ordered field walk — BS/BD/BL/CMC/H bitcode forms per
+     `dwg.spec`/`dwg2.spec` — names the culprit field and the authored
+     emission form it deviates from).
+   - Acceptance target: the rewritten record's bytes equal the authored
+     record's bytes, per record (handle slots that legitimately
+     re-number on rewrite compare by code/counter shape, not value;
+     CRC excepted). BricsCAD plain-open on the user side remains the
+     final strict-consumer confirmation.
+
+   Worked example (the LEADER pair of 2018/Leader.dwg vs its silver
+   rewrite): bit-compare pinned the deltas to a single alpha-nibble
+   value bit plus ~6 main + ~2 handle-boundary bits localized to the
+   final tail after box_width; the MULTILEADER pair pinned a −17-bit
+   main-region delta to its final ~180-bit tail (suspected short-form
+   BS emissions where the authored wire uses raw16 forms). Those
+   record-pars and the probe scripts that produced them live in the
+   strict-load campaign handover (`NEXT_SESSION.md`); the envelope-lab
+   pattern (`examples/xleader_lab.rs`) is the reusable isolation tool.

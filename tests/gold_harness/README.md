@@ -12,6 +12,23 @@ is the practical entry point: install, run, interpret.
 
 ---
 
+## Oracles — the four validation layers
+
+| # | Oracle | What it catches | Needs the gold oracle? |
+|---|---|---|---|
+| 1 | Deep unit gates — `cargo test --features serde` (47 ok segments; roundtrip asserts `diffs <= max_known`) | model/retention regressions; a new raw-retention field without a `normalize_entity_for_comparison` arm trips the budget and the failing test names it | **no** — fully hermetic |
+| 2 | Harness integration test — `cargo test --features gold-harness --test gold_roundtrip` | harness self-check + prohibited storage-only `EntityCommon` fields | **optional** — skips (with a notice written to `target/gold_harness_oracle_skipped.txt`) when `GOLD_DWGREAD`/`GOLD_TESTDATA` are absent; set `GOLD_HARNESS_REQUIRE=1` to make absence a hard failure (CI) |
+| 3 | Full corpus — `run_corpus.py` → `report.json` + the residue dump (`pk18a_all_rows.py`) | non-header field divergences; read/write 0/0 is the campaign target (`per_file` is truth; the by-type tables truncate) | yes |
+| 4 | Authored-wire byte-fidelity — byte-compare silver's *rewrite* of an authored file against the authored original, record by record | writer **form** defects both decoders tolerate (legal-but-different bitcode choices — a BS short form where the authored wire used the raw-16 form, BD shortforms vs raw doubles, alpha-method nibbles) that strict CAD consumers (BricsCAD, AutoCAD) reject | yes |
+
+Layers 1–3 keep gold-vs-silver **parser parity** at 0/0. Layer 4 closes their
+structural blind spot: the rt pair compares two lenient reads of the *same*
+silver bytes, so it can never flag an encoding *form* — only byte-for-byte
+comparison against the authored wire can. Full procedure and worked examples:
+[`IMPLEMENTATION.md` §18](./IMPLEMENTATION.md).
+
+---
+
 ## What it does
 
 For each DWG file the harness produces three diffs:
@@ -31,7 +48,7 @@ array (entities + non-entity objects) is diffed exactly.
 
 | Dependency | Purpose | Provided via |
 |---|---|---|
-| Built LibreDWG `dwgread` | gold oracle (`-O JSON`) | `GOLD_DWGREAD` env var |
+| Built LibreDWG `dwgread` | gold oracle (`-O JSON`) | `GOLD_DWGREAD` env var — **oracle-optional**: `cargo test` skips gold checks without it; fetch/build on demand with `bash tests/gold_harness/bootstrap_oracle.sh` |
 | LibreDWG `test/test-data` | DWG corpus | `GOLD_TESTDATA` env var |
 | Rust toolchain (`cargo`) | builds silver binaries | system |
 | Python 3.11+ (with `tomllib`; 3.8–3.10 need `tomli`) | normalizers + differ | system |
@@ -128,9 +145,14 @@ plus top-level `example_*`/`sample_*`) and writes an aggregated
 cargo test --features gold-harness --test gold_roundtrip
 ```
 
-Shells out to the driver for a representative subset (`2000/Line.dwg`,
-`2000/circle.dwg`) and asserts the harness runs cleanly and that no prohibited
-`EntityCommon` storage-only fields appear in the diffs.
+Oracle-optional: shells out to the driver for a representative subset
+(`2000/Line.dwg`, `2000/circle.dwg`) and asserts the harness runs cleanly and
+that no prohibited `EntityCommon` storage-only fields appear in the diffs.
+Without a LibreDWG checkout the test skip-passes and writes
+`target/gold_harness_oracle_skipped.txt`; `GOLD_HARNESS_REQUIRE=1` turns
+absence into a hard failure (CI), and
+`bash tests/gold_harness/bootstrap_oracle.sh` clones and builds the oracle
+online when you want the real fidelity run.
 
 **Strict mode** — assert zero `missing_in_silver` fields on the subset:
 
@@ -201,6 +223,7 @@ conditions.
 | `diff_fields.py` | Diff engine (`missing_in_silver`, `wrong_value`, `extra_in_silver`, `count_mismatch`) |
 | `ignore_fields.toml` | Curated fields the differ skips (**frozen** during the fix loop) |
 | `check_env.py` | Environment sanity checker |
+| `bootstrap_oracle.sh` | On-demand LibreDWG checkout + build (the gold oracle), prints the env exports |
 | `src/bin/dwg2json.rs` | Silver JSON dump (re-injects serde-skipped `EntityCommon` fields under `_common_dwg`) |
 | `src/bin/dwgrewrite.rs` | Silver read→write binary |
 | `IMPLEMENTATION.md` | The single source of truth for the plan |
