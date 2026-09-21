@@ -83,6 +83,14 @@ truth for the harness. Its §7 "How to start cold" block is the entry point;
 
 ## Session workflow (summary — details in IMPLEMENTATION.md §8.1)
 
+Both campaigns are closed at zero (parser parity 0/0 + the strict-load
+zero) — the operative procedure is the **zero-keeping regression gate**
+in `README.md` ("The zero-keeping workflow"): scope the change, run the
+required gate steps in order (hermetic cargo tests → harness self-check
+→ touched-entity pair smoke → full corpus → deterministic generation
+identity → layer-4 byte oracle for writer form changes), and only commit
+when every step holds its expected value.
+
 1. Read §7 "How to start cold" + §8.1.6 (work queue) of `IMPLEMENTATION.md`
    (this directory).
 2. Verify the environment (§8.1.0).

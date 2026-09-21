@@ -182,43 +182,159 @@ GOLD_HARNESS_STRICT=1 cargo test --features gold-harness --test gold_roundtrip
 
 ---
 
-## Running — agentic (autonomous fix loop)
+## The zero-keeping workflow — the regression gate for upstream changes
 
-The harness is designed to be driven by an implementation-capable agent that
-edits cadcodec until the covered corpus converges. The complete operating
-manual — including context-budget rules for a 128K-token window, the per-field
-decision tree, and the fix recipe — is
-[`IMPLEMENTATION.md` §8.1](./IMPLEMENTATION.md#81-subagent-execution-guide-128k-context).
+Both campaigns are closed at zero: gold-vs-silver **parser parity**
+(read 0 / write 0 across all 124 corpus files) and the **strict-load
+zero** (the generated 30-entity file opens in BricsCAD via plain
+`_open` with no modal error and no warnings). Every upstream change
+must keep both at zero. Run this gate, in order, before committing
+any reader or writer change (all commands from the repo root with the
+oracle env from [Installation](#installation) step 2 set):
 
-Minimal loop for an agent:
+### Step 0 — scope the change
+
+| change class | gate required |
+|---|---|
+| docs / probes only | nothing (this file's sections) |
+| reader / model fields | steps 1 – 3 |
+| writer (bitcode emission, forms, streams) | steps 1 – 6 |
+| entity construction / examples that emit DWG | steps 1, 2, 5 (+4 if the corpus inputs' rewrite bytes change output) |
+
+### Step 1 — hermetic layer (no oracle needed)
 
 ```bash
-cd ~/work/cadcodec
-source "$HOME/.cargo/env"
-export GOLD_DWGREAD="$HOME/work/libredwg/programs/dwgread"
-export GOLD_TESTDATA="$HOME/work/libredwg/test/test-data"
-
-# 1. Baseline over the corpus
-python3 tests/gold_harness/run_corpus.py
-
-# 2. Pick the top (entity_type, field) offender from
-#    target/gold_harness_corpus/report.md, consult the gold spec
-#    (libredwg src/dwg.spec / dwg2.spec), fix silver version-gated.
-
-# 3. Rebuild and re-verify on ALL covered versions
-cargo build --features serde --bins
-for v in 2000 2004 2007 2010 2013 2018; do
-  python3 tests/gold_harness/run_roundtrip.py \
-      "$GOLD_TESTDATA/$v/Line.dwg" "target/gold_harness_wip/$v"
-done
-
-# 4. Regression gate (must all pass, and corpus diff count must strictly drop)
-cargo test
 cargo test --features serde
+```
+
+**Expected:** every segment `ok`, zero `FAILED`. This layer names its
+own failure class: a new raw-retention field without a matching
+`normalize_silver.py` arm trips the `diffs <= max_known` budgets and
+the failing test prints the field. A deep-roundtrip asymmetry (a
+written default the walk does not read back symmetrically) fails the
+`dwg_roundtrip_deep_*` tests — the only sanctioned filter class is a
+version-inherent diff (see the `dwg_raw_tail_bits` filter for the
+canonical example).
+
+### Step 2 — harness self-check (oracle-optional)
+
+```bash
 cargo test --features gold-harness --test gold_roundtrip
 ```
 
-**Loop invariants (hard rules):**
+**Expected:** `ok` with the oracle present, or the skip-pass notice
+`target/gold_harness_oracle_skipped.txt` without. CI sets
+`GOLD_HARNESS_REQUIRE=1` to make oracle absence a hard failure;
+`bash tests/gold_harness/bootstrap_oracle.sh` brings the oracle online
+on demand.
+
+### Step 3 — touched-entity pair smoke
+
+For every entity type your change touches, run the representative
+authored file through the pair compare:
+
+```bash
+cargo build --features serde --bins
+python3 tests/gold_harness/run_roundtrip.py \
+    "$GOLD_TESTDATA/2018/Leader.dwg"      # replace with your family's specimen
+```
+
+**Expected:** `..._diff_orig.json: 0` and `..._diff_rt.json: 0` —
+gold-vs-silver on the original AND gold-vs-gold on the rewrite. Any
+nonzero count means the change dropped or corrupted a field; read the
+`missing_in_silver` / `wrong_value` / `extra_in_silver` rows in the
+diff, fix version-gated, re-run.
+
+### Step 4 — the full corpus (the parity zero)
+
+```bash
+python3 tests/gold_harness/run_corpus.py
+```
+
+**Expected** in `target/gold_harness_corpus/report.md` (and
+`report.json` — use the `per_file` totals there, never the truncating
+by-type tables):
+
+```
+Files: 124
+Read-fidelity diffs: 0
+Write-fidelity diffs: 0
+```
+
+Also inspect one diff JSON for residues: any leftover row class the
+normalizers don't host (gold-only `unknown_bits` kept residuals are
+the sanctioned exception class — see the comments in
+`normalize_silver.py`).
+
+### Step 5 — deterministic generation identity (writer/example output)
+
+```bash
+cargo run --example gen_all_entities_all_versions_dwg --features serde
+md5sum gen_all_entities_all_versions.dwg
+cargo run --example gen_all_entities_all_versions_dwg --features serde
+md5sum gen_all_entities_all_versions.dwg
+```
+
+**Expected:** both runs identical (the current zero-file identity is
+`0217fbac515a20b90e9c3aea883196e3`, 24986 bytes; LEADER 0x41 /
+MULTILEADER 0x51 — recompute and re-record the identity in
+`NEXT_SESSION.md` when an intended content change moves it, never to
+paper over a regression). Spot-verify the mleader's metafile survives
+the writer:
+
+```bash
+cargo run --bin dump_proxy_graphics -- --verify \
+    gen_all_entities_all_versions.dwg 51
+```
+
+**Expected:** `verify: decode -> encode is byte-identical`.
+
+### Step 6 — layer-4 byte oracle (writer form changes only)
+
+Byte-compare silver's *rewrite* of the authored pair against the
+authored original, record by record — the only instrument that catches
+legal-but-different bitcode forms both decoders tolerate and strict
+consumers reject:
+
+```bash
+python3 tests/gold_harness/run_roundtrip.py \
+    "$GOLD_TESTDATA/2018/Leader.dwg"          # rewrite lands in target/gold_harness/
+target/debug/dump_section_bytes "$GOLD_TESTDATA/2018/Leader.dwg" 4907 256 > /tmp/a.txt
+target/debug/dump_section_bytes target/gold_harness/*Leader_rt.dwg 1959 256 > /tmp/b.txt
+# leader record: window [Address..Address+Size) = [4916..5156); MS at
+# Address-3 (4913), UMC at Address-1 (4915); the rewrite's Address is in
+# the trace frames — re-dump around (Address-9) for the current tree —
+# then bit-compare both window byte-ranges.
+```
+
+**Expected** for the current tree: the LEADER record (240 / 0x6A)
+and the MULTILEADER record (833 / 0x76) are byte-identical to the
+authored wire, CRC included. Any divergence means the writer changed
+a *form* — find the first divergent bit, walk it against gold's
+`-v9` trace (frame facts in [Oracles](#oracles--the-four-validation-layers)),
+and remember the golden rule: the harness layers 1–3 are form-blind, so
+only this step protects the strict-load zero.
+
+### When a layer trips
+
+- **Step 1 fails** — model/normalizer/budget mismatch: the failing
+  test names the field; fix version-gated (never widen the budget to
+  silence it).
+- **Steps 3–4 fail** — parser parity regression: run the per-file
+  diff, read the offending `(entity_type, field)` rows, fix
+  version-gated against the gold spec (`libredwg src/dwg.spec /
+  dwg2.spec`). The convergence recipe — context budgeting, per-field
+  decision tree, blocked-handling — lives in
+  [`IMPLEMENTATION.md` §8.1](./IMPLEMENTATION.md#81-subagent-execution-guide-128k-context).
+- **Step 5 md5 drifts without an intended change** — nondeterminism
+  (a hash-ordered collection in a writer path: the
+  `Mesh::compute_edges` BTreeSet fix is the canonical example).
+- **Step 6 diverges** — encoding-form regression: re-derive the
+  authored convention from the census (native vs ODA families),
+  keep the value-preserving guards, and re-verify the affected
+  strict-consumer behavior.
+
+### Hard rules (inherited, unchanged)
 
 - Never edit LibreDWG — it is a read-only oracle.
 - Never edit `ignore_fields.toml` or `diff_fields.py` to make a diff pass.
@@ -226,9 +342,6 @@ cargo test --features gold-harness --test gold_roundtrip
 - Gate every fix behind the exact version predicate gold uses.
 - Each checkpoint must leave the build green.
 - Header comparison stays lax.
-
-See §8.1 for the full packet discipline, blocked-handling, and stop
-conditions.
 
 ---
 
