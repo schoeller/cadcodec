@@ -445,53 +445,43 @@ from dwg_data_store_handles (Pass 1 captures the NonEntityCommonData
 bit)); plus the deep-gate arms (batch 43, `e0c6f93`:
 normalize_entity_for_comparison clears the new vertex raw-retention
 fields on both sides — writer-allocated kid handles on constructed
-documents are bookkeeping, not payload semantics). **The only
-remaining rows: 2004/Surface.dwg 0/2 (rt) — the
-ASSOCPLANESURFACEACTIONBODY embedded PAB/SAB handle-pull pair
-(assocdep/pbsab_status) — DECODED at the dossier fold (flattened-key
-last-wins + truncated-orig overflow + reader-overread + writer-fine
-+ normalizer-fabrication); the three-edit fix, step plan, and
-verification matrix are in the §8.1.6a entry and NEXT_SESSION.md's
-"route to zero" dossier**. Batches seven through forty-three
-each carry their full recipes in their commit messages and §8.1.6).
+documents are bookkeeping, not payload semantics). **The Surface
+zero-out then landed the last pocket (batch 44, `9b1738c`): 2004/
+Surface.dwg 0/2 → 0/0 — the ASSOCPLANESURFACEACTIONBODY embedded
+PAB/SAB handle-pull pair (assocdep/pbsab_status) via gold's per-object
+dat-end clamps in the pre-2007 merged reader + the SAB-slot projection
+in the normalizer + the writer's no-slot echo of a truncated
+sab.assocdep (full recipe in the §8.1.6a DONE entry). Batches seven
+through forty-four each carry their full recipes in their commit
+messages and §8.1.6).
 gh44-error.dwg
 stays out of scope (explicit guard in `run_corpus.in_scope_files`,
 `246e60a`; the new `-nan` shim in normalize_gold had briefly re-included
 it, inflating totals to 7689/7559).
 `cargo test --features serde` = 47 ok test segments (roundtrip 97/0,
-1312 units) on 2026-09-20; `cargo test
+1312 units) on 2026-09-21; `cargo test
 --features gold-harness --test gold_roundtrip` = ok. Update these numbers after
 each packet lands.
 
-**Campaign state (2026-09-20 post-`e0c6f93` halt, third fold + dossier
-fold; campaign target IS 0 on both sides; current read 0 / write 2,
-123 of 124 files at 0/0):** the single remaining pocket is
-1. **2004/Surface.dwg — 0/2 (rt only)**:
-   ASSOCPLANESURFACEACTIONBODY.assocdep + .pbsab_status. DECODED at the
-   dossier fold (traces + byte dumps live under `target/probes/`,
-   regenerable via `pk19_55_surf_dossier.sh`; the interpreted dossier
-   with the three-edit fix is the "route to zero" section of
-   `NEXT_SESSION.md`). Key decoded truths: gold's flattened
-   `assocdep` is the **sab** slot (the embedded pab/sab slots collide
-   on one JSON key, last-wins — the pab slot 1293 prints nowhere); the
-   ORIG wire is a **truncated record** (23 data bytes; handle region =
-   exactly [owner][deps 1294][pab.assocdep 1293]) whose tail reads
-   (sab.assocdep, pbsab_status, class_version) overflow gold's own dat
-   end into NULL/0 with printed overflow errors; silver's READER
-   overreads the same truncation into garbage (model 1291/128 — the
-   pre-2007 merged reader has no record-end bounds), silver's WRITER
-   already lays out the full spec (the rt append-tail), and the
-   normalizer fabricates `assocdep=[0,0]`/`pbsab_status=0` (passes the
-   truncated-orig pair, fails the rt pair). The fix is surgical:
-   record-end guards on the two tail pulls in
-   `object_reader/associative.rs` (plus a record-end bound threaded
-   through the merged reader), project the model fields in
-   normalize_silver's SurfaceActionBody arm in place of the
-   fabrication, verify all assoc-bearing files + gates + corpus.
-   Budget 2-3 hours from the dossier alone.
+**Campaign state (2026-09-21, post-`9b1738c`: CAMPAIGN TARGET REACHED —
+read 0 / write 0 on the full 124-file corpus, 124 of 124 files at
+0/0, residues empty):** the last pocket (2004/Surface.dwg, 0/2 rt,
+ASSOCPLANESURFACEACTIONBODY.assocdep + .pbsab_status) was zeroed as
+batch 44 (`9b1738c`, 2026-09-21) — the dossier decode from the
+2026-09-20 fold held up on every point except one measured
+refinement: gold decodes an EXPLICIT (5,0) null-form slot as a real
+handle (the [5,0,0,0] tuple print), NOT the [0,0] overflow form —
+the overflow-refuse print and the valid-null print differ, so the
+writer echoes a truncated record's missing sab.assocdep slot by
+OMITTING it instead of writing a fabricated (5,0) form. The full
+recipe is the §8.1.6a DONE entry; traces + byte dumps remain
+regenerable via `pk19_55_surf_dossier.sh`. The campaign is closed:
+further sessions are verification patrols (§8.1.6's queue is empty) —
+run the corpus after any codec change and treat any resurfacing row
+with the §8.1 per-packet workflow.
 
-Done-packet recipes for batches 7-43 live in §8.1.6 below and in the
-commit messages of `fa2cb0a..e0c6f93`.
+Done-packet recipes for batches 7-44 live in §8.1.6 below and in the
+commit messages of `fa2cb0a..9b1738c`.
 ### Baseline after EntityCommon closure (2026-09-17)
 
 - **LINE entity diffs: 0** on all six versions (2000–2018), both read fidelity
@@ -894,10 +884,14 @@ Given a diff `(type, field, kind)`:
 > **Reading the counts:** corpus `report.md`/`report.json` counts are
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
 > only; verify the true per-file count with the §8.1.2 query on a concrete
-> file before committing to a packet. Current baseline (2026-09-20, after
-> the SURFACE-retypes + PLANESURFACE batch `b2955a7`): read **479** /
-> write **455** — below the 1 000 milestone, closing on the raised
-> campaign target of **0 on both sides** — and the two sides MIRROR family-for-family (the
+> file before committing to a packet. Current baseline (2026-09-21,
+> after the Surface zero-out batch `9b1738c`): read **0** / write **0**,
+> **124 of 124 files at 0/0** — THE CAMPAIGN TARGET (read AND write 0
+> on BOTH sides, raised 2026-09-20) IS COMPLETE and THIS QUEUE IS
+> EMPTY. Any row that resurfaces after a codec change goes back through
+> the per-packet §8.1.2 workflow. (Historical context: the SURFACE-
+> retypes batch `b2955a7` left read **479** / write **455**, the two
+> sides MIRRORING family-for-family (the
 > phantom-class un-masking made the write diff honest; the UNKNOWN
 > projections took −308/−324; the U2 retype map −719/−720; the
 > unknown_bits side channel −448/−448; the style-map/chain/MLINE batch
@@ -2692,33 +2686,57 @@ packets — small, well-scoped, and reproducible):
   r2000/r2013/r2018 deep tests improved past their 1-known-Shape
   budget once these cleared: roundtrip 97/0, 47 segments ok.
 
-**ASSOCPLANESURFACEACTIONBODY assocdep/pbsab_status** — DECODED,
-  ROUTED (2026-09-20 dossier fold; fix pending): 2004/Surface 0/2
-  (rt). Per-slot truth established by tracing gold on the orig wire
-  AND silver's rewrite (`target/probes/pk19_surf_orig_trace.log` /
-  `pk19_surf_rt_trace.log`, extracts ~:108638 / ~:120542): (1) the
-  JSON key `assocdep` flattens from TWO embedded slots — pab's and
-  sab's — with LAST-WINS, so gold's print is the SAB slot and the pab
-  value (1293, real on both wires) never prints; (2) the ORIG record
-  is TRUNCATED (23 data bytes; handle region exactly
-  [owner(8.0.0→1291)][deps (3.2.50E)=1294][pab.assocdep (4.2.50D)=
-  1293]) — gold's tail reads (sab.assocdep, pbsab_status,
-  class_version) OVERFLOW its own dat end, printing buffer-overflow
-  errors and clamping to NULL/0; (3) the RT wire carries the FULL
-  layout because SILVER'S WRITER already writes gold's spec (sab
-  (5.2.50B)=1291 @33.1, pbsab_status 128 in main @23.7) — the writer
-  is fine; (4) silver's READER overreads the truncated orig record
-  (no record-end bounds in the pre-2007 merged reader) into garbage
-  model values surface_body.dependency=1291 + path_status=128 — prime
-  source: the post-record bytes `AD AE 1B 00 …` (local CRC + next
-  object preface) with the stale ref_handle=1291; (5) the normalizer
-  fabricates `assocdep=[0,0]`/`pbsab_status=0`, passing the truncated
-  orig pair and failing the rt pair. THE FIX (full dossier + step
-  plan + verification matrix in NEXT_SESSION.md's "route to zero"):
-  record-end guards on the read_surface_body/read_surface_action tail
-  pulls, project the model fields in the normalizer arm, verify the
-  writer's null-form tail; 2-3 hour packet. Everything else in the
-  corpus is at 0/0.
+**ASSOCPLANESURFACEACTIONBODY assocdep/pbsab_status** — **DONE
+  (2026-09-21 forty-fourth batch, `9b1738c`; write 2 → 0 (read stayed
+  0); 2004/Surface 0/2 → 0/0; corpus read 0 / write 0, 124 of 124
+  files at 0/0 — CAMPAIGN TARGET REACHED)**: the dossier decode
+  (`pk19_55_surf_dossier.sh`; extract lines ~:108638 orig /
+  ~:120542 rt) held with ONE measured refinement. Founded truths: (1)
+  the JSON key `assocdep` flattens TWO embedded slots (pab's,
+  sab's) with LAST-WINS — gold prints the SAB slot, the pab value
+  1293 never prints; (2) the ORIG record is TRUNCATED (23 data
+  bytes; handle region exactly [owner (8.0.0)→1291][deps
+  (3.2,0x50E)=1294][pab.assocdep (4.2,0x50D)=1293] + one leftover
+  bit); (3) silver's reader overread the truncation — the garbage
+  source PINNED by the E1 walk: BOTH cursors live in the bounded
+  23-byte record slice, the poison is the PARTIAL-FILL window
+  [bit 183..191) where the record's last bit `1` (the truncation's
+  leftover) zero-fills: the sab.assocdep form byte reads 0x80 →
+  code 8, counter 0 → `ref_handle(1292) − 1 = 1291`; the
+  pbsab_status BL's `'01'` code consumes [181..183) and its RC8 reads
+  the same window = 0x80 → 128 (NOT the post-record `AD AE` CRC
+  bytes — the slice never sees them); gold refuses both via its
+  dat-end checks and prints NULL/0. (4) MEASURED REFINEMENT of the
+  dossier's forecast: gold decodes an EXPLICIT `(5,0)` null-form
+  slot as a REAL handle (the [5,0,0,0] tuple print → normalized
+  `{"__handle_code__": 5, "__handle_target__": 0}`), NOT the
+  overflow `[0,0]` — the overflow-refuse print and the valid-null
+  print are DIFFERENT wire states. THE LANDED FIX (three edits):
+  (a) reader bounds — `DwgMergedReader::record_end_bits()` /
+  `main_record_remaining_bits()` added (`handle_remaining_bits()`
+  already measured the same end); `read_surface_body`'s dependency
+  pull + `read_surface_action`'s path_status/class_version/option
+  tails read through extent-checked gold-parity helpers
+  (`handle_remaining_bits < 8` → Handle::NULL; BL: consume the
+  2-bit code when it fits, refuse the value that would cross —
+  cursor discipline mirrors gold bit-for-bit); intact records never
+  reach the guards (their final main field ends at the declared
+  bitsize, well inside the record). (b) writer — a NULL
+  sab.assocdependency is echoed by OMITTING the slot (the truncated
+  wire carried none; gold then overflow-prints [0,0] on the rewrite
+  too, and silver's guard reads its own rewrite identically — both
+  pairs converge); writing a fabricated (5,0) form would flip the rt
+  pair into a gold [5,0,0,0]-vs-silver-[0,0] row (measured before
+  the omit). (c) normalizer — the SurfaceActionBody arm projects
+  assocdep from surface_body.dependency (0/NULL → the [0,0] null
+  pair, real int → the handle dict) and pbsab_status from
+  path_status. Gates: 47 serde segments ok (roundtrip 97/0, 1312
+  units), gold_roundtrip ok; verification matrix: Surface +
+  example_2000/2004/2007/2010/2013/2018 + LiveSection1 + Dynblocks +
+  gh209_1/gh109_1 + TS1 + PolyLine2D + PolyLine3D ×4 all 0/0 both
+  pairs; corpus 0/0; residues empty. THE QUEUE IS NOW EMPTY — the
+  campaign target (read AND write 0 on both sides, raised 2026-09-20)
+  is COMPLETE.
 
 **Answer: gold specs are 100% KNOWN, but NOT 100% COVERED.** Measured
 empirically against the corpus (not just the diff report):
