@@ -2722,7 +2722,7 @@ packets — small, well-scoped, and reproducible):
   cursor discipline mirrors gold bit-for-bit); intact records never
   reach the guards (their final main field ends at the declared
   bitsize, well inside the record). (b) writer — a NULL
-  sab.assocdependency is echoed by OMITTING the slot (the truncated
+  sab.assocdep is echoed by OMITTING the slot (the truncated
   wire carried none; gold then overflow-prints [0,0] on the rewrite
   too, and silver's guard reads its own rewrite identically — both
   pairs converge); writing a fabricated (5,0) form would flip the rt
