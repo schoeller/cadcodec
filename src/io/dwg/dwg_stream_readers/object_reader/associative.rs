@@ -200,10 +200,73 @@ fn read_parameter_body(
     }
 }
 
+/// Handle pull with LibreDWG's object-dat end bound.
+///
+/// Gold's `bit_read_H` refuses a handle whose one-byte form (code<<4 |
+/// counter) would cross the record's data end and yields the null handle
+/// ("bit_read_RC buffer overflow"), which out_json prints as the [0,0]
+/// pair. The 2004/Surface.dwg ORIG record is truncated mid-payload: 23
+/// data bytes whose handle region carries exactly [owner (8.0.0)][deps
+/// ((3.2)→1294)][pab.assocdep ((4.2)→1293)] plus one leftover bit, so the
+/// sab.assocdep form starts at that very last bit — the zero-filling
+/// reader would turn it into code 8, counter 0 and resolve `ref−1`
+/// garbage (1291) where gold reads NULL. Intact records (silver's own
+/// rewrite and every non-truncated action-body record) keep every handle
+/// slot inside the record, so the guard never fires on them.
+fn surface_bounded_handle(reader: &mut DwgMergedReader) -> Handle {
+    if reader.handle_remaining_bits() < 8 {
+        return Handle::NULL;
+    }
+    handle(reader)
+}
+
+/// BitLong with LibreDWG's object-dat end bound (the action-body tails).
+///
+/// Gold's `bit_read_BL` consumes the 2-bit code and then refuses the
+/// value bytes that would cross the record's data end, printing 0 — the
+/// truncated 2004/Surface record reads pbsab_status as '01' + a byte
+/// starting at the last data bit (0-padded read would give 128) and
+/// class_version as a code starting past the end; both print 0. The
+/// cursor discipline mirrors gold: the code is consumed when it fits,
+/// everything else is left untouched. Intact records never cross.
+fn surface_bounded_bit_long(reader: &mut DwgMergedReader) -> i32 {
+    if reader.main_record_remaining_bits() < 2 {
+        return 0;
+    }
+    let first = reader.read_bit();
+    let second = reader.read_bit();
+    match (first, second) {
+        (false, false) => {
+            if reader.main_record_remaining_bits() < 32 {
+                0
+            } else {
+                reader.read_raw_long() as i32
+            }
+        }
+        (false, true) => {
+            if reader.main_record_remaining_bits() < 8 {
+                0
+            } else {
+                reader.read_byte() as i32
+            }
+        }
+        _ => 0,
+    }
+}
+
+/// Byte tail with LibreDWG's object-dat end bound (see
+/// `surface_bounded_bit_long`).
+fn surface_bounded_byte(reader: &mut DwgMergedReader) -> u8 {
+    if reader.main_record_remaining_bits() < 8 {
+        return 0;
+    }
+    reader.read_byte()
+}
+
 fn read_surface_body(reader: &mut DwgMergedReader) -> AssocSurfaceBody {
     AssocSurfaceBody {
         version: reader.read_bit_long(),
-        dependency: handle(reader),
+        dependency: surface_bounded_handle(reader),
         is_semi_associative: reader.read_bit(),
         marker: reader.read_bit_long(),
         is_semi_override: reader.read_bit(),
@@ -240,7 +303,7 @@ fn read_surface_action(
     let action_body = read_action_body(reader);
     let parameter_body = read_parameter_body(reader, version, dxf_version);
     let surface_body = read_surface_body(reader);
-    let path_status = reader.read_bit_long();
+    let path_status = surface_bounded_bit_long(reader);
     let mut value = AssocSurfaceActionBody {
         kind,
         action_body,
@@ -254,10 +317,10 @@ fn read_surface_action(
         | AssocSurfaceActionKind::Patch
         | AssocSurfaceActionKind::EdgeChamfer
         | AssocSurfaceActionKind::EdgeFillet => {}
-        _ => value.class_version = reader.read_bit_long(),
+        _ => value.class_version = surface_bounded_bit_long(reader),
     }
     match kind {
-        AssocSurfaceActionKind::Extend => value.option = reader.read_byte(),
+        AssocSurfaceActionKind::Extend => value.option = surface_bounded_byte(reader),
         AssocSurfaceActionKind::Offset => value.flags[0] = reader.read_bit(),
         AssocSurfaceActionKind::Trim => {
             value.flags[0] = reader.read_bit();

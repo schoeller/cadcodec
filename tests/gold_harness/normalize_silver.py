@@ -5300,15 +5300,34 @@ def normalize_silver(
                     and gold_type != "ASSOCPLANESURFACEACTIONBODY"):
                 # assocdep resolves one handle BEFORE the first path-param
                 # dep (verified extruded 738->737, revolved 874->873,
-                # lofted 849->848); the Plane class keeps the raw null.
+                # lofted 849->848); the Plane class reads its own slot.
                 fields["assocdep"] = normalize_handle_value(_pd2[0] - 1)
+            elif gold_type == "ASSOCPLANESURFACEACTIONBODY":
+                # dwg2.spec ASSOCPLANESURFACEACTIONBODY embeds BOTH the pab
+                # and the sab handle-pull on one flattened JSON key with
+                # last-wins: gold's assocdep = the SAB slot (the real pab
+                # slot 1293 prints nowhere). Project silver's
+                # surface_body.dependency (the sab.assocdep read): the
+                # truncated 2004/Surface ORIG record refuses that slot at
+                # gold's dat end (NULL print [0,0], mirrored by the reader
+                # guard's Handle::NULL = 0), while intact records (the
+                # rewrite and every other corpus action-body) carry the
+                # real resolved handle.
+                _sdep = _sb.get("dependency")
+                if isinstance(_sdep, int) and _sdep:
+                    fields["assocdep"] = normalize_handle_value(_sdep)
+                else:
+                    fields["assocdep"] = [0, 0]
             else:
                 fields["assocdep"] = [0, 0]
             fields["is_semi_assoc"] = 1 if _sb.get("is_semi_associative") else 0
             fields["l2"] = _sb.get("marker", 0)
             fields["is_semi_ovr"] = 1 if _sb.get("is_semi_override") else 0
             fields["grip_status"] = _sb.get("grip_status", 0)
-            fields["pbsab_status"] = 0
+            # pbsab_status: main-stream BL after the sab block; projects the
+            # reader's path_status (the truncated-orig refuse prints 0, the
+            # intact rewrite reads its written value).
+            fields["pbsab_status"] = _sab.get("path_status", 0)
             fields["class_version"] = _sab.get("class_version", 0)
 
         if silver_type == "Associative" and gold_type in (

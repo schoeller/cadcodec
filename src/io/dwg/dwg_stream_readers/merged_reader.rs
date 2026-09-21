@@ -263,6 +263,29 @@ impl DwgMergedReader {
         };
         (end - self.main.position_in_bits()).max(0)
     }
+
+    /// Exclusive end, in bits, of the record's physical data window.
+    ///
+    /// The object record handed to the merged reader is exactly the MS
+    /// byte-size slice; both stream cursors live inside that one buffer,
+    /// so `main`'s byte length is the physical end LibreDWG's per-object
+    /// dat enforces (its printed overflow errors). The declared split
+    /// (`handle_start_bit`) is NOT a read bound: a truncated record walks
+    /// its main cursor past the declared main end into the handle region,
+    /// and gold clamps only at the physical record end.
+    pub fn record_end_bits(&self) -> i64 {
+        self.main.data_len() as i64 * 8
+    }
+
+    /// Bits from the main cursor to the record's physical data end.
+    ///
+    /// Mirrors `handle_remaining_bits()` (both measure up to the same
+    /// record end, the handle reader either absolutely or in a suffix
+    /// slice). Used for gold-parity tail guards on ASSOC action-body
+    /// records whose writers truncated mid-payload (2004/Surface.dwg).
+    pub fn main_record_remaining_bits(&self) -> i64 {
+        (self.record_end_bits() - self.main.position_in_bits()).max(0)
+    }
     pub fn read_bit_short(&mut self) -> i16 {
         self.main.read_bit_short()
     }

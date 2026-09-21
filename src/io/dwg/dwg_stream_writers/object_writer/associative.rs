@@ -133,7 +133,15 @@ impl<'a> DwgObjectWriter<'a> {
         self.write_assoc_action_body(&value.action_body);
         self.write_assoc_parameter_body(&value.parameter_body);
         self.writer.write_bit_long(value.surface_body.version);
-        self.write_assoc_handle(DwgReferenceType::HardPointer, value.surface_body.dependency);
+        // A NULL sab.assocdep means no slot was read: the truncated
+        // 2004/Surface ORIG record physically ends one bit into where the
+        // slot's form byte starts, and gold's overflowing bit_read_H prints
+        // the [0,0] null pair. Echo that wire state — fabricating an
+        // explicit (5,0) null form would make gold decode a real slot
+        // ([5,0,0,0] handle-tuple print) and diverge from the orig pair.
+        if value.surface_body.dependency.is_valid() {
+            self.write_assoc_handle(DwgReferenceType::HardPointer, value.surface_body.dependency);
+        }
         self.writer
             .write_bit(value.surface_body.is_semi_associative);
         self.writer.write_bit_long(value.surface_body.marker);
