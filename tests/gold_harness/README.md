@@ -27,6 +27,26 @@ silver bytes, so it can never flag an encoding *form* — only byte-for-byte
 comparison against the authored wire can. Full procedure and worked examples:
 [`IMPLEMENTATION.md` §18](./IMPLEMENTATION.md).
 
+Layer 4's wire facts for record walking: the R2000+ object frame is
+`[MS size][R2010+ UMC hdlsize][BOT type][window]` where the window starts at
+the BOT byte; `bitsize = Size*8 − Hdlsize` is the handle-stream start, and
+gold's `-v9` trace prints per-field `@byte.bit` positions in window
+coordinates to walk against. Two harness instruments implement it:
+
+- `dump_section_bytes` — record-framed raw byte dumps for the pair compare.
+- `dump_proxy_graphics [--verify] FILE [HANDLE]` — derives + dumps the
+  entity-common proxy-graphics metafile (the ODA "Proxy Entity Graphics"
+  stream; format + type census in `acadrust::entities::proxy_graphics`), and
+  with `--verify` asserts decode→encode byte-equality against the wire
+  bytes.
+
+The layer-4 campaign result it instrumented (closed 2026-09-21): silver's
+rewrite of `2018/Leader.dwg` reproduces the LEADER and MULTILEADER records
+byte-identical to the authored wire, and the strict-load target
+(`gen_all_entities_all_versions.dwg`, 30 entities, the LEADER warn-class and
+the MULTILEADER fatal-class both rooted through form mismatches both decoders
+tolerate) opens in BricsCAD via plain `_open` with zero warnings.
+
 ---
 
 ## What it does
@@ -226,6 +246,8 @@ conditions.
 | `bootstrap_oracle.sh` | On-demand LibreDWG checkout + build (the gold oracle), prints the env exports |
 | `src/bin/dwg2json.rs` | Silver JSON dump (re-injects serde-skipped `EntityCommon` fields under `_common_dwg`) |
 | `src/bin/dwgrewrite.rs` | Silver read→write binary |
+| `src/bin/dump_section_bytes.rs` | Record-framed raw byte dumps (the layer-4 pair-compare instrument) |
+| `src/bin/dump_proxy_graphics.rs` | Proxy-graphics metafile derivation + `--verify` byte-roundtrip proof |
 | `IMPLEMENTATION.md` | The single source of truth for the plan |
 
 ## Output interpretation

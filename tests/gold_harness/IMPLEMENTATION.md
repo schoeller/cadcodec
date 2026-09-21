@@ -3289,8 +3289,108 @@ class the others cannot see by construction.
    rewrite): bit-compare pinned the deltas to a single alpha-nibble
    value bit plus ~6 main + ~2 handle-boundary bits localized to the
    final tail after box_width; the MULTILEADER pair pinned a −17-bit
-   main-region delta to its final ~180-bit tail (suspected short-form
-   BS emissions where the authored wire uses raw16 forms). Those
-   record-pars and the probe scripts that produced them live in the
-   strict-load campaign handover (`NEXT_SESSION.md`); the envelope-lab
-   pattern (`examples/xleader_lab.rs`) is the reusable isolation tool.
+   main-region delta to its final ~180-bit tail. Those record-pars and
+   the probe scripts that produced them live in the strict-load
+   campaign handover (`NEXT_SESSION.md`); the envelope-lab pattern
+   (`examples/xleader_lab.rs`) is the reusable isolation tool.
+
+   Resolution (2026-09-21, second session — the campaign's
+   corrected-frame analysis; supersede the earlier short-form-BS
+   theory): the corrected per-record frame is window = file
+   [Address..Address+Size) (chain bit 0 = MSB of the BOT byte; the BOT
+   type read consumes the first ~10 bits; window-derived bitsize =
+   Size*8 − Hdlsize equals the handle-region start, matching gold's
+   `dec_macros.h` OVERSHOOT/MISSING bookkeeping). With it:
+   - LEADER pair: main fields [10..1819) BIT-IDENTICAL in both records
+     (the box_width raw-64 sits at window bits [1731..1797) — the
+     earlier not-found-pattern anomaly was a wrong slice base); the
+     only value divergence = ONE CMC alpha-method bit (auth
+     0x2000056, type 2 vs silver's 0x3000056, type 3). Auth fix:
+     `Transparency::to_alpha_value` now packs the 2-form like
+     `to_dxf_value` (authored census: leader 0x2000056, layers
+     0x200003a; `from_alpha_value` already tolerated both). The
+     leader handle-chain offset (auth declares bitsize = main_end−5
+     and overlaps the stream tail — silver writes the sequential
+     genus) is a writer-family difference, NOT a defect: real-AutoCAD
+     authored leaders (2013/gh44-error.dwg, 3 records) use the
+     sequential +2/+3 gap genus. Silver keeps sequential.
+   - MULTILEADER pair: main fields [10..6406) BIT-IDENTICAL; strings,
+     data_size RS, has_strings flag, and the whole 9-handle chain are
+     IDENTICAL and only shifted −17 bits. The entire delta = a 17-bit
+     unparsed bit-group `00100101000010010` that ODA parks between the
+     walked spec tail (is_text_extended) and the string-stream anchor.
+     Width is content-dependent (a real-AutoCAD sample with empty text
+     carries a 9-bit group sharing the same suffix `10010`); no public
+     spec models it; gold/our reader land it in unknown_bits residue.
+     Fix: capture-and-echo — `MultiLeader.dwg_raw_tail_bits:
+     Option<(u64, u8)>` captured on read between the main cursor and
+     the string-stream anchor (merged-reader `main_data_end()`), and
+     written back verbatim; `MultiLeader::new()` seeds the ODA
+     text-content default so constructed entities (GENALL) carry the
+     authored form. After the fix, silver's Leader.dwg MULTILEADER
+     rewrite record is BYTE-IDENTICAL to the authored record (833
+     bytes, Hdlsize 0x76, CRC included), and the harness normalize
+     pops the echoed field from gold-shape projections ("residuals
+     kept": gold-only unknown_bits, now symmetric).
+   Both fixes passed the full §18 battery: cargo test 47-ok segments,
+   per-file roundtrip 0/0, corpus 124-file 0/0, residues empty.
+
+   Campaign zero achieved (2026-09-21 ~20:45Z, user-verified:
+   `gen_all_entities_all_versions.dwg` — 30 entities — "opens
+   flawlessly" via plain `_open`). The final three writer fixes, each
+   user-round verified (rounds four through six):
+   - **LEADER R2010+ underlap assembly** (`DwgMergedWriter::set_underlap_tail`):
+     the no-text flag + handle region park back inside the main tail
+     (bitsize = main_end − 6), reproducing the authored ODA layout
+     (gold reads it as the native −6 OVERSHOOT). Value-preserving
+     only: the merge verifies main tail bits == [false] ++
+     handle-head and falls back to the sequential layout otherwise
+     (bit-writer readbacks `bits_at`/`first_written_bits`/
+     `last_written_bits` were added for the check). Round five user
+     test: the `(41)` leader warning GONE on the 29-entity file.
+     After the fix silver's rewrite leader record is BYTE-IDENTICAL
+     to the authored record (240/0x6A, CRC included).
+   - **MULTILEADER hidden tail bit-group**: the native-writer constant
+     `0b000010010` (9 bits — BricsCAD + AutoCAD authored samples agree
+     bit-for-bit, content-independent; the ODA family writes a 17-bit
+     variant that rewrites must echo instead) lands between
+     is_text_extended and the string-stream anchor
+     (`MultiLeader.dwg_raw_tail_bits`, capture-echo on read).
+   - **MULTILEADER entity-common proxy-graphics blob**: the last
+     structural delta — every authored AcDbMLeader record carries the
+     entity-common graphic metafile (ODA "PROXY ENTITY GRAPHICS",
+     §29/p.270; the spec body is image-rendered in the PDF, but the
+     format derives cleanly from the specimens): `[u32 total][u32
+     record_count]` + records `[u32 size][u32 type][payload]`
+     (little-endian; `record_size` counts its own header). The
+     derivation is now implemented and tested
+     (`src/entities/proxy_graphics.rs`): typed records for the
+     12-byte state/selector words (types 16/18/19/20/22/23/51 —
+     property selectors 0x3A99/0x3A9A/0x2711/0x1389/1, state words
+     0/0x7FFF/0xC0000000), FillOff (21) and UnicodeText (36) as
+     before, and opaque passthrough for the geometry records
+     (38 = the mleader header block, 6/7 = n-point 3D primitives,
+     32 = point-forward blocks). The gold tree's own 564-byte
+     2018/Leader.dwg AcDbMLeader metafile is the embedded test
+     fixture: decode -> encode is asserted byte-identical, and the
+     census test pins the 12-record shape. The live derivation tool
+     is `dump_proxy_graphics [--verify] FILE [HANDLE]` (harness bin)
+     — verified byte-identical on the gold specimen, the BricsCAD and
+     AutoCAD samples, and the zero-file's own record; it also lists
+     every graphic-carrying entity (the gold file's IMAGE entities'
+     type-6 clip polygons decode through the same envelope). The
+     every constructed-mleader wire component is gold-tree-derivable: the
+     attach stance (0/32/4786 + extended) and the 9-bit tail group also
+     exist in the gold tree's AutoCAD-authored 2013/gh44-error.dwg.
+     Round seven (2026-09-21): the gold-tree ODA blob variant
+     ("GENALL_PROXY_BLOB=oda") opened flawlessly in BricsCAD and became
+     the DEFAULT (`MLEADER_PROXY_GRAPHIC_ODA` in the example); the
+     round-six BricsCAD-authored 448-B specimen stays as the
+     `GENALL_PROXY_BLOB=bcad` fallback. The canonical deliverable is
+     byte-identical to the user-verified variant (md5
+     0217fbac515a20b90e9c3aea883196e3). A content-synthesizing
+     generator is the remaining future step.
+   Byte-oracle end-state: silver's rewrite reproduces BOTH problem
+   records byte-identical to the authored file; the constructed records
+   carry the authored morphologies. Corpus 0/0 and residues empty on
+   every intermediate state; generation is deterministic.
