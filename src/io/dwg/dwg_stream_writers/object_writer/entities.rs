@@ -5790,6 +5790,28 @@ impl<'a> DwgObjectWriter<'a> {
         wires: &[Wire],
         silhouettes: &[Silhouette],
     ) -> bool {
+        // Constructed-wireframe guard (2026-09-22 region probe, open-read
+        // verdict): assembly paths stub display wires with the unassigned
+        // acis_index default 0 — in a body-first stream record 0 is the
+        // BODY, never a legitimate wire target, and BricsCAD's open read
+        // flags the object "Object improperly read" while the modeler
+        // geometry itself restores clean (audit normalizes silently). A
+        // wire list is a cache; the modeler data carries the truth. Drop
+        // it only for constructed entities (no captured wireframe flags,
+        // no silhouettes) whose every wire index is the unassigned 0, so
+        // captured native caches pass through byte-faithful.
+        let wires: &[Wire] = if !acis.wireframe_data_present
+            && !acis.wireframe_point_present
+            && acis.wireframe_isolines == 0
+            && !acis.wireframe_isoline_present
+            && !wires.is_empty()
+            && silhouettes.is_empty()
+            && wires.iter().all(|wire| wire.acis_index == 0)
+        {
+            &[]
+        } else {
+            wires
+        };
         // ACIS payload presence does not imply an inline wireframe cache.
         // Some valid AcDs-backed solids intentionally carry geometry only
         // (no point, isolines, wires or silhouettes). Synthesizing a cache for
