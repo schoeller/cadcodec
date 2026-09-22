@@ -95,6 +95,32 @@ impl SabWriter {
     pub fn write(doc: &SatDocument) -> Vec<u8> {
         let mut buf = Vec::with_capacity(8192);
 
+        // Restore-file record order (2026-09-22 region probe, third
+        // verdict): the strict restorer takes the leading records as
+        // the top-level entities to restore — cadkernel-assembled
+        // documents append the body last, so the restorer starts from
+        // a `point` record and reports "Data stream is empty" /
+        // "Audit Failed" while the identical inventory, body-first,
+        // audits clean. Documents whose first record is already the
+        // body — primitive-built (`SatDocument::new_body`) and
+        // captured genus alike — and documents carrying raw binary
+        // tokens are left untouched, keeping echo rewrites
+        // byte-faithful.
+        let reordered;
+        let doc = if !doc.records.is_empty()
+            && doc.records[0].entity_type != "body"
+            && doc.records.iter().any(|r| r.entity_type == "body")
+            && !doc
+                .records
+                .iter()
+                .any(|r| r.tokens.iter().any(|t| matches!(t, SatToken::Sab { .. })))
+        {
+            reordered = Self::reorder_restore_file(doc);
+            &reordered
+        } else {
+            doc
+        };
+
         // Restore-file body count: the record inventory, passed to the
         // header writer so the declaration covers what assembled
         // documents actually carry. Documents built without
@@ -269,6 +295,59 @@ impl SabWriter {
 
         // End of record
         buf.push(tags::END_OF_RECORD);
+    }
+
+    /// Restore-file record order: top-level entities first, then the
+    /// remaining records in the stable class ranking the primitive
+    /// builders emit and native streams carry (point, surfaces,
+    /// curves, vertices, edges, coedges, loops, faces, shells, lumps,
+    /// then anything else in assembly order). Position-based ids are
+    /// remapped across every pointer token and the attribute field.
+    fn reorder_restore_file(doc: &SatDocument) -> SatDocument {
+        let rank = |record: &SatRecord| match base_entity_type(&record.entity_type) {
+            "body" => 0u8,
+            "point" => 1,
+            "surface" => 2,
+            "curve" => 3,
+            "vertex" => 4,
+            "edge" => 5,
+            "coedge" => 6,
+            "loop" => 7,
+            "face" => 8,
+            "shell" => 9,
+            "lump" => 10,
+            _ => 11,
+        };
+        let mut order: Vec<usize> = (0..doc.records.len()).collect();
+        order.sort_by_key(|&old| rank(&doc.records[old]));
+        let mut old_to_new = vec![0i32; doc.records.len()];
+        for (new_pos, &old) in order.iter().enumerate() {
+            old_to_new[old] = new_pos as i32;
+        }
+        let remap = |p: SatPointer| {
+            if p.0 >= 0 && (p.0 as usize) < old_to_new.len() {
+                SatPointer::new(old_to_new[p.0 as usize])
+            } else {
+                p
+            }
+        };
+        let mut out = doc.clone();
+        out.records = order
+            .iter()
+            .enumerate()
+            .map(|(new_pos, &old)| {
+                let mut record = doc.records[old].clone();
+                record.index = new_pos as i32;
+                record.attribute = remap(record.attribute);
+                for token in record.tokens.iter_mut() {
+                    if let SatToken::Pointer(p) = token {
+                        *token = SatToken::Pointer(remap(*p));
+                    }
+                }
+                record
+            })
+            .collect();
+        out
     }
 
     /// Append the native tail tokens of assembled short-form records.
