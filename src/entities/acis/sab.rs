@@ -95,8 +95,22 @@ impl SabWriter {
     pub fn write(doc: &SatDocument) -> Vec<u8> {
         let mut buf = Vec::with_capacity(8192);
 
+        // Restore-file body count: the record inventory, passed to the
+        // header writer so the declaration covers what assembled
+        // documents actually carry. Documents built without
+        // `SatDocument::new_body()` (cadkernel's acis::append pushes
+        // records with the header left at its default 0) still declare
+        // the bodies they carry — a strict restorer (BricsCAD
+        // 2026-09-22 region probe: "Modeling operation error: missing
+        // logical in restore file") rejects a zero declaration.
+        let body_count = doc
+            .records
+            .iter()
+            .filter(|record| record.entity_type == "body")
+            .count();
+
         // Header
-        Self::write_header(&mut buf, &doc.header);
+        Self::write_header(&mut buf, &doc.header, body_count);
 
         // Entity records
         for record in &doc.records {
@@ -109,7 +123,7 @@ impl SabWriter {
         buf
     }
 
-    fn write_header(buf: &mut Vec<u8>, header: &SatHeader) {
+    fn write_header(buf: &mut Vec<u8>, header: &SatHeader, body_count: usize) {
         // Magic
         buf.extend_from_slice(SAB_MAGIC);
 
@@ -125,8 +139,17 @@ impl SabWriter {
         };
         buf.extend_from_slice(&num_records.to_le_bytes());
 
-        // num_bodies (4 bytes LE)
-        buf.extend_from_slice(&(header.num_bodies as u32).to_le_bytes());
+        // num_bodies (4 bytes LE) — the restore-file top-level body
+        // declaration: the maximum of the parsed header and the record
+        // inventory. A strict restorer (BricsCAD 2026-09-22 region
+        // probe: "Modeling operation error: missing logical in restore
+        // file") rejects a zero declaration even when the records
+        // carry bodies; captured role streams may declare MORE than
+        // the inventory (face/transform-only fragments keep their
+        // native 1) — the maximum keeps both constructed and captured
+        // genus restorable.
+        let declared = header.num_bodies.max(body_count);
+        buf.extend_from_slice(&(declared as u32).to_le_bytes());
 
         // has_history (4 bytes LE)
         let history: u32 = if header.has_history { 1 } else { 0 };
