@@ -361,7 +361,8 @@ only this step protects the strict-load zero.
   (a hash-ordered collection in a writer path: the
   `Mesh::compute_edges` BTreeSet fix is the canonical example).
 - **Step 6 diverges** — encoding-form regression: re-derive the
-  authored convention from the census (native vs ODA families),
+  authored convention from the census (attribute by specimen origin
+  stamp + content class, per [Origin quality](#origin-quality-of-the-gold-specimens)),
   keep the value-preserving guards, and re-verify the affected
   strict-consumer behavior.
 
@@ -378,8 +379,18 @@ only this step protects the strict-load zero.
 
 ## File inventory
 
+Every tracked file in this directory, plus the adjacent tracked scripts the
+harness relies on. The harness bins below are registered in the root
+`Cargo.toml` as `[[bin]]` targets (`dwg2json` with `required-features =
+["serde"]`; the rest unconditional); the `entity_atlas` example is gated
+there with `required-features = ["serde"]` alongside them.
+
 | Path | Role |
 |---|---|
+| `AGENTS.md` | Durable rules for agents working the harness (the frozen files, the version-gate rule, loop invariants, session workflow); the honor-system contract behind every commit |
+| `README.md` | This file — entry point: oracle layers, origin quality, setup, the zero-keeping workflow |
+| `NEXT_SESSION.md` | The cold-start handover brief for the next session (durable findings + census tables); self-replaced at each campaign halt |
+| `IMPLEMENTATION.md` | The single source of truth for the plan (§7 the completed fidelity campaign; §8.1 the fix-loop manual; §18 the validation layers and the strict-load campaign resolution) |
 | `run_roundtrip.py` | Single-file driver (the three diffs) |
 | `run_corpus.py` | Batch driver + aggregated report |
 | `normalize_gold.py` | LibreDWG JSON → canonical records |
@@ -392,7 +403,17 @@ only this step protects the strict-load zero.
 | `src/bin/dwgrewrite.rs` | Silver read→write binary |
 | `src/bin/dump_section_bytes.rs` | Record-framed raw byte dumps (the layer-4 pair-compare instrument) |
 | `src/bin/dump_proxy_graphics.rs` | Proxy-graphics metafile derivation + `--verify` byte-roundtrip proof |
-| `IMPLEMENTATION.md` | The single source of truth for the plan |
+
+**Adjacent tracked scripts the harness does not own** — documented for
+completeness:
+
+| Path | Role |
+|---|---|
+| root `Cargo.toml` | Workspace manifest; registers the harness bins and the feature-gated `entity_atlas` example (`[[bin]]` / `[[example]]` blocks) |
+| `tests/roundtrip.rs`, `tests/gold_roundtrip.rs` | The Rust test surfaces the workflow's steps 1–2 gate on (the harness integration test is feature-gated `gold-harness`) |
+| `tests/issue64/validate_ezdxf.py` | Issue-64 DXF validation helper (fixture pair for `issue64.rs`; not part of the gold-vs-silver harness) |
+
+---
 
 ## Output interpretation
 
