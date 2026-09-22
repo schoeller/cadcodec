@@ -27,12 +27,19 @@
      parses clean in gold/both strict-blind decoders but BricsCAD
      deep-drops it. Silver now writes the underlap (`set_underlap_tail`
      merge hint, value-preserving-guarded).
-   - **R2010+ MULTILEADER records carry a hidden 9-bit tail group**
-     (`0b000010010`) between is_text_extended and the string-stream
-     anchor — BricsCAD + AutoCAD emit it identically,
-     content-independent; the ODA-rewrite family writes a 17-bit
-     variant (`00100101000010010`). Silver captures-and-echoes on
-     rewrite and defaults constructed entities to the native 9-bit.
+   - **R2010+ MULTILEADER records carry a hidden tail bit-group**
+     between is_text_extended and the string-stream anchor — a
+     CONTENT-CLASS convention (2026-09-22 specimen-stamp census), not a
+     writer fingerprint: fresh simple-content mleaders (BricsCAD +
+     AutoCAD samples, gh44-error.dwg) carry the constant 9-bit
+     `0b000010010`, while the gold tree's Leader drawing family carries
+     the 17-bit `00100101000010010` whether saved by AutoCAD 2017/2018
+     (the 2007/2010/2013 down-saves, per their SummaryInfo stamps) or by
+     the ODA FileConverter (the 2018 variant reproducing them). Silver
+     captures-and-echoes on rewrite and defaults constructed entities
+     to the simple-content 9-bit (BricsCAD-verified round seven; copying
+     the 17-bit onto constructed content made BricsCAD's parser reject
+     the record — round five).
    - **Every authored AcDbMLeader carries the entity-common
      proxy-graphics metafile** (the "preview" in gold's trace / the
      `graphic_data` common field): `[u32 total][u32 count]` + records
@@ -52,6 +59,23 @@
    Size*8−Hdlsize = handle-region start), and chase every divergence
    to a named field/form. Silver's rewrite of 2018/Leader.dwg now
    reproduces both problem records BYTE-IDENTICAL (CRC included).
+
+## Specimen origin census (2026-09-22, for future triage)
+
+Each R2004+ gold specimen self-identifies in its `AcDb:SummaryInfo`
+ProductInformation string. For specimen triage, attribute bytes by the
+origin stamp plus content class — never by "the ODA file said so":
+
+| family | writer stamp | notes |
+|---|---|---|
+| `2018/Leader.dwg` + the named specimen set (Line, circle, Point, Arc, Ellipse, Spline, Text, Polygon, Donut, Helix, Multiline, Polyline, PolyLine3D, RAY, ConstructionLine, Constraints, Leader, …) | **ODA FileConverter** `Teigha® build 2.0 / registry 4.3, install "ODA"` | 2018/Leader's comments: *"last saved by an Open Design Alliance (ODA) application"* |
+| `2007/2010/2013/Leader.dwg` down-saves | **AutoCAD 2017** `N.51.M.5 reg 21.0` / **AutoCAD 2018** `O.48.M.294 reg 22.0` | same drawing as the 2018 variant; SAME wire conventions (17-bit group, underlap) — the conventions are content-class, not writer-class |
+| `gh44-error.dwg`, ATMOS-DC22S, gh109_1, `sample_2018`, `LiveSection1`, `example_*` | **AutoCAD**, various builds (C.608.0/17.2, M.x/20.1 2015-era, O.48.M.294/22.0) | 2015-era genera (sequential LEADER tails, 9-bit group on fresh mleaders) |
+| `2000/` and `2004/` dirs | no marker in the format | provenance decidable only structurally |
+
+The published ODA spec undersides all of these runtimes (hidden tail
+groups, underlap, proxy-graphics metafiles undocumented) — full detail in
+README "Origin quality of the gold specimens".
 
 ## Verified fix set (committed at this halt)
 

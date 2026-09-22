@@ -4648,9 +4648,12 @@ pub fn read_multileader(
     // walked spec tail (is_text_extended; attach_bottom on R2010) and the
     // string-stream anchor. Neither the public specs nor gold's walk model
     // those bits, so capture them verbatim for a byte-faithful rewrite.
-    // Census: 17 bits 0b00100101000010010 on the ODA text-content samples
-    // (2010/2013/2018 Leader.dwg), 9 bits on an empty-text AutoCAD 2013
-    // mleader — width is content-dependent, the group ends at the anchor.
+    // Census: 17 bits 0b00100101000010010 on the gold tree's Leader
+    // drawing family (AutoCAD-2017/2018-saved down-saves and the
+    // ODA-FileConverter 2018 variant, per their SummaryInfo stamps — a
+    // content-class convention, not a writer fingerprint), 9 bits on the
+    // fresh simple-content specimens (BricsCAD/AutoCAD/gh44) — the width
+    // is content-dependent, the group ends at the anchor.
     let mut raw_tail_bits = None;
     if version.r2010_plus() {
         let main_end = reader.position_in_bits();

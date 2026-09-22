@@ -989,13 +989,17 @@ pub struct MultiLeader {
     /// Extend leader to text.
     pub extend_leader_to_text: bool,
     /// Verbatim R2010+ wire bit-group parked between the walked spec tail
-    /// (is_text_extended) and the string-stream anchor. Authored wires
-    /// vary with the writer family: the ODA family writes 17 bits
-    /// (0b00100101000010010), the native writers (BricsCAD/AutoCAD,
-    /// also the gold tree's gh44-error.dwg) a constant 9 bits
-    /// (0b000010010). Captured on read for byte-faithful rewrites;
-    /// constructed entities take the native default (see `new()`,
-    /// BricsCAD-verified 2026-09-21 round seven).
+    /// (is_text_extended) and the string-stream anchor. The group is a
+    /// CONTENT-CLASS convention, not a writer fingerprint: the gold
+    /// tree's Leader drawing family (AutoCAD-2017/2018-saved down-saves
+    /// verified by their SummaryInfo stamps, plus the ODA-FileConverter
+    /// 2018 variant reproducing them) carries 17 bits
+    /// (0b00100101000010010), while fresh simple-content mleaders
+    /// (BricsCAD/AutoCAD "bla" samples and the gold tree's
+    /// gh44-error.dwg) carry the constant 9 bits (0b000010010)
+    /// regardless of writer. Captured on read for byte-faithful
+    /// rewrites; constructed entities take the simple-content default
+    /// (see `new()`, BricsCAD-verified 2026-09-21 round seven).
     #[cfg_attr(
         feature = "serde",
         serde(skip_serializing_if = "Option::is_none")
@@ -1056,16 +1060,21 @@ impl MultiLeader {
             // or a reader that missed the flag would over-scale every instance.
             enable_annotation_scale: false,
             extend_leader_to_text: false,
-            // Authoring default: the hidden post-spec bit-group the native
-            // writers park between is_text_extended and the string-stream
-            // anchor. Census: BricsCAD and AutoCAD authored samples
-            // (mleader_bcad.dwg, mleader_acad.dwg, gh44-error.dwg) all
-            // carry the constant 0b000010010 (9 bits) independent of text
-            // content; the ODA-writer family (2010/2013/2018 Leader.dwg)
-            // instead writes 17 bits. Constructed entities take the
-            // native default — the interoperable genus BricsCAD/AutoCAD
-            // themselves emit. The DWG reader overwrites this with the
-            // captured bits on rewrites.
+            // Authoring default: the hidden post-spec bit-group parked
+            // between is_text_extended and the string-stream anchor. It
+            // is a content-class convention, not a writer fingerprint
+            // (2026-09-22 specimen-stamp census): fresh simple-content
+            // mleaders — BricsCAD and AutoCAD "bla" samples and the gold
+            // tree's gh44-error.dwg — carry the constant 0b000010010
+            // (9 bits) regardless of writer, while the gold tree's
+            // Leader drawing family carries 17 bits whether saved by
+            // AutoCAD 2017/2018 (the 2007/2010/2013 down-saves, per
+            // their SummaryInfo stamps) or by the ODA FileConverter
+            // (the 2018 variant, reproducing them). Constructed
+            // entities take the simple-content default — the genus
+            // BricsCAD and AutoCAD themselves emit for such content
+            // (user-verified 2026-09-21, round seven). The DWG reader
+            // overwrites this with the captured bits on rewrites.
             dwg_raw_tail_bits: Some((0b000010010, 9)),
         }
     }

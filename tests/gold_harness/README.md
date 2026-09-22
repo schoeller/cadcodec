@@ -49,6 +49,37 @@ tolerate) opens in BricsCAD via plain `_open` with zero warnings.
 
 ---
 
+## Origin quality of the gold specimens
+
+The libredwg `test/test-data` corpus is **mixed-genus on purpose** — a
+property to keep, not a defect to fix. Each R2004+ specimen self-identifies
+in its `AcDb:SummaryInfo` ProductInformation string, and the census
+(2026-09-22) splits it:
+
+| corpus family | self-stamped writer | notes |
+|---|---|---|
+| named specimen set — `2018/Leader.dwg`, Line, circle, Point, Arc, Ellipse, Spline, Text, Polygon, Donut, Helix, Multiline, Polyline, PolyLine3D, RAY, ConstructionLine, Constraints, … | **ODA FileConverter**: `Teigha® CompanyName="Open Design Alliance" build 2.0 / registry 4.3, install "ODA"` | `2018/Leader.dwg`'s comments field literally reads *"This file was last saved by an Open Design Alliance (ODA) application or an ODA licensed application."* |
+| the Leader drawing family's down-saves (`2007/`, `2010/`, `2013/Leader.dwg`) | **AutoCAD** `N.51.M.5 reg 21.0` (2017) / `O.48.M.294 reg 22.0` (2018) | one drawing exported across versions — carrying the SAME wire conventions as the ODA-converted 2018 variant |
+| issue / real-world files — `gh44-error.dwg`, ATMOS-DC22S, gh109_1, `sample_2018`, `LiveSection1`, `example_*` | **AutoCAD**, various builds (C.608.0/17.2, M.x/20.1 2015-era, …) | different writer-generation conventions (e.g. 2015-era sequential LEADER tails vs the 2017/2018 underlap genus) |
+| pre-R2004 specimens (`2000/`, `2004/` dirs) | no marker exists in the format | provenance decidable only structurally (byte-compare conventions) |
+
+Two consequences for harness work:
+
+1. **Wire conventions are content- and generation-class facts, not writer
+   fingerprints.** The 17-bit MULTILEADER tail group and the LEADER underlap
+   appear in AutoCAD-2017/2018-saved files and the ODA FileConverter output
+   alike; the 9-bit group belongs to fresh simple-content mleaders from
+   every writer. Attribute a byte by its specimen's stamp and content
+   class, never by "the ODA file said so".
+2. **The published ODA spec undersides the runtime by design**: every
+   authored file — ODA-written or AutoCAD-written — carries wire details
+   (hidden tail groups, the underlap layout, proxy-graphics metafiles) that
+   the Open Design Specification does not document. Conformance to the
+   spec's field model is necessary; the layer-4 byte oracle against the
+   authored wire is the only sufficient check.
+
+---
+
 ## What it does
 
 For each DWG file the harness produces three diffs:

@@ -3350,12 +3350,19 @@ class the others cannot see by construction.
      test: the `(41)` leader warning GONE on the 29-entity file.
      After the fix silver's rewrite leader record is BYTE-IDENTICAL
      to the authored record (240/0x6A, CRC included).
-   - **MULTILEADER hidden tail bit-group**: the native-writer constant
-     `0b000010010` (9 bits — BricsCAD + AutoCAD authored samples agree
-     bit-for-bit, content-independent; the ODA family writes a 17-bit
-     variant that rewrites must echo instead) lands between
+   - **MULTILEADER hidden tail bit-group**: the simple-content constant
+     `0b000010010` (9 bits — BricsCAD + AutoCAD authored samples and the
+     gold tree's gh44-error.dwg agree bit-for-bit) lands between
      is_text_extended and the string-stream anchor
      (`MultiLeader.dwg_raw_tail_bits`, capture-echo on read).
+     Attribution corrected by the 2026-09-22 specimen-stamp census: the
+     17-bit variant `0b00100101000010010` is a CONTENT-CLASS convention
+     (the gold tree's Leader drawing family), NOT an ODA-writer
+     fingerprint — that family's 2007/2010/2013 down-saves self-identify
+     as AutoCAD 2017/2018 saves and carry the same group as the
+     ODA-FileConverter 2018 variant, which merely reproduces it.
+     Rewrites echo whichever bits the record carried; constructed
+     entities take the simple-content 9-bit default.
    - **MULTILEADER entity-common proxy-graphics blob**: the last
      structural delta — every authored AcDbMLeader record carries the
      entity-common graphic metafile (ODA "PROXY ENTITY GRAPHICS",

@@ -56,12 +56,16 @@ pub struct DwgMergedWriter {
     /// Set during merge, used by R2010+ record framing to compute MC handle_bits.
     handle_start_bits: i64,
     /// R2010+ "underlap" request: park the no-text flag and the handle
-    /// region `bits` positions back inside the main tail — the authored
-    /// ODA layout for LEADER records (flag at main_end−bits, handles at
-    /// main_end−(bits−1); a sequential record instead runs the main to
-    /// its end and starts the region right after). The merge applies it
-    /// only when the overlapped bits are identical in both layouts
-    /// (main tail == [false] ++ handle head); otherwise it falls back to
+    /// region `bits` positions back inside the main tail — the layout
+    /// the authored R2010+ LEADER records use (flag at main_end−bits,
+    /// handles at main_end−(bits−1); a sequential record instead runs
+    /// the main to its end and starts the region right after). The
+    /// genus is a published-spec-underside runtime convention shared by
+    /// the authored corpus (AutoCAD-2017/2018-saved Leader down-saves
+    /// and the ODA-FileConverter 2018 variant alike, per the
+    /// 2026-09-22 specimen-stamp census). The merge applies it only
+    /// when the overlapped bits are identical in both layouts (main
+    /// tail == [false] ++ handle head); otherwise it falls back to
     /// sequential so values never change.
     underlap_bits: Option<u8>,
 }
@@ -193,12 +197,15 @@ impl DwgMergedWriter {
     /// Request the authored R2010+ "underlap" record layout for the next
     /// merged object: the flag bit and the handle region start back
     /// inside the main tail (`bits` positions before its end), overlapping
-    /// the last main bits. The authored ODA LEADER records use this genus
-    /// (bitsize = main_end − 6: flag at −6, handles at −5, with the tail
-    /// bits double-reading as arrowhead tail + unknown_bit_4/5); a strict
-    /// consumer deep-loads it clean while the sequential genus warned
-    /// (2026-09-21 user test: rewrite-byte-identical-sequential leader
-    /// warned `(72E)` while the authored underlap file opened clean).
+    /// the last main bits. The authored R2010+ LEADER records use this
+    /// genus (bitsize = main_end − 6: flag at −6, handles at −5, with the
+    /// tail bits double-reading as arrowhead tail + unknown_bit_4/5) —
+    /// a runtime convention of the authored corpus shared by both its
+    /// writer families (AutoCAD 2017/2018 saves and the ODA FileConverter
+    /// output, which reproduce each other); a strict consumer deep-loads
+    /// it clean while the sequential genus warned (2026-09-21 user test:
+    /// rewrite-byte-identical-sequential leader warned `(72E)` while the
+    /// underlap-authored file opened clean).
     ///
     /// The merge verifies the overlap is value-preserving (the main's
     /// last `bits` bits must equal `[false-flag] ++ handle-head`), and

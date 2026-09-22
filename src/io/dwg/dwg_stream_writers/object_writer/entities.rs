@@ -1754,10 +1754,10 @@ impl<'a> DwgObjectWriter<'a> {
         // handle region back inside the main tail ("underlap": bitsize =
         // main_end − 6). The sequential layout parsed clean in gold but
         // BricsCAD deep-dropped the otherwise byte-verified rewrite
-        // record (user test 2026-09-21: `(72E)` warn) while the authored
-        // underlap file opened clean. The merge verifies the overlapped
-        // bits are identical in both layouts and falls back to
-        // sequential when they are not (no value ever changes).
+        // record (user test 2026-09-21: `(72E)` warn) while the
+        // underlap-authored file opened clean. The merge verifies the
+        // overlapped bits are identical in both layouts and falls back
+        // to sequential when they are not (no value ever changes).
         if self.version.r2010_plus() {
             self.writer.set_underlap_tail(6);
         }
@@ -4430,10 +4430,14 @@ impl<'a> DwgObjectWriter<'a> {
         // R2010+ wires park a hidden bit-group between the walked spec
         // tail and the string-stream anchor that no public spec models.
         // Byte-fidelity rewrites echo the captured bits verbatim;
-        // constructed entities use the native default (BricsCAD and
-        // AutoCAD both emit the constant 9-bit group on their own
-        // samples; the ODA family's 17-bit group made BricsCAD's
-        // AcDbMLeader parse reject constructed records).
+        // constructed entities use the simple-content default — the
+        // constant 9-bit group BricsCAD, AutoCAD and the gold tree's
+        // gh44-error.dwg all emit for fresh simple-content mleaders.
+        // (The 17-bit variant of the gold tree's Leader family — a
+        // content-class wire, not a writer fingerprint per the
+        // 2026-09-22 specimen-stamp census — is honored per-record via
+        // the capture; copying it onto constructed content made
+        // BricsCAD's AcDbMLeader parse reject the record.)
         if self.version.r2010_plus() {
             let (bits, count) = e
                 .dwg_raw_tail_bits
