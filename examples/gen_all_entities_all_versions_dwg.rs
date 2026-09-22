@@ -625,12 +625,33 @@ fn main() {
 
     // GENALL_MLEADER_MODE=skip omits the MULTILEADER record (BricsCAD
     // strict-load probe; see the leader mode note above).
-    if std::env::var("GENALL_MLEADER_MODE")
-        .map(|m| m.eq_ignore_ascii_case("skip"))
-        .unwrap_or(false)
-    {
+    // GENALL_MLEADER_MODE=default builds the host-analogue record: the
+    // pure `MultiLeader::new()` stance, no explicit stamps and no
+    // proxy blob (add one with GENALL_PROXY_BLOB=bcad|oda) — exactly
+    // what out-of-tree constructors such as OpenCADStudio's MLEADER
+    // command produce after the 2026-09-22 native-stance default fix.
+    let mleader_mode = std::env::var("GENALL_MLEADER_MODE").unwrap_or_default();
+    if mleader_mode.eq_ignore_ascii_case("skip") {
         println!("  SKIP MULTILEADER (GENALL_MLEADER_MODE=skip)");
     } else {
+        // A native AcDbMLeader must reference a resolvable MLEADERSTYLE —
+        // BricsCAD's audit reports "LeaderStyle Id is Null" otherwise.
+        // The default-mode probe resolves the document's seeded
+        // Standard style (created by CadDocument::new()); the native
+        // branch stays byte-faithful to the zero file. Resolved before
+        // the mutable doc borrow moves into add_entity.
+        let standard_mlstyle_handle = if mleader_mode.eq_ignore_ascii_case("default") {
+            doc.objects.iter().find_map(|(h, o)| match o {
+                acadrust::objects::ObjectType::MultiLeaderStyle(m)
+                    if m.name == "Standard" =>
+                {
+                    Some(*h)
+                }
+                _ => None,
+            })
+        } else {
+            None
+        };
         add_entity(
             &mut doc,
             "MULTILEADER",
@@ -643,13 +664,28 @@ fn main() {
                     Vector3::new(20.0, 20.0, 0.0),
                     vec![Vector3::new(0.0, 0.0, 0.0), Vector3::new(10.0, 10.0, 0.0)],
                 );
+                if mleader_mode.eq_ignore_ascii_case("default") {
+                    ml.style_handle = standard_mlstyle_handle;
+                    if let Ok(blob_mode) = std::env::var("GENALL_PROXY_BLOB") {
+                        let blob: &[u8] = if blob_mode.eq_ignore_ascii_case("bcad") {
+                            MLEADER_PROXY_GRAPHIC
+                        } else {
+                            MLEADER_PROXY_GRAPHIC_ODA
+                        };
+                        ml.common.graphic_data = Some(blob.to_vec());
+                    }
+                    return EntityType::MultiLeader(ml);
+                }
                 // Native-author stance (the gold tree's AutoCAD-authored
                 // gh44-error.dwg carries the same 0/32/4786 trio and
-                // extended-to-text state). The proxy-graphics blob
-                // defaults to the gold tree's ODA-authored specimen
-                // (2018/Leader.dwg — BricsCAD-verified 2026-09-21,
-                // round seven); GENALL_PROXY_BLOB=bcad selects the
-                // round-six BricsCAD-authored fallback.
+                // extended-to-text state) — identical to the
+                // `MultiLeader::new()` defaults since the 2026-09-22
+                // fix; kept explicit so the byte record stays
+                // self-describing. The proxy-graphics blob defaults to
+                // the gold tree's ODA-authored specimen (2018/Leader.dwg â€”
+                // BricsCAD-verified 2026-09-21, round seven);
+                // GENALL_PROXY_BLOB=bcad selects the round-six
+                // BricsCAD-authored fallback.
                 let proxy_blob: &[u8] = if std::env::var("GENALL_PROXY_BLOB")
                     .is_ok_and(|mode| mode.eq_ignore_ascii_case("bcad"))
                 {
