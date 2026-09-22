@@ -286,6 +286,23 @@ impl<'a> DwgObjectWriter<'a> {
 
     /// Write a single non-graphical object record.
     pub(super) fn write_object(&mut self, obj: &ObjectType) {
+        // SH modeler-history class records (2026-09-22 extrusion probe):
+        // the solid-history tree is carried through the class-name
+        // catch-all (DynamicBlock) under the fixed SH classes —
+        // ACSH_HISTORY_CLASS, ACSH_EXTRUSION_CLASS, the primitive SH
+        // classes. Their true DWG layouts are undocumented, and
+        // class-numbered catch-all records make strict readers refuse
+        // the WHOLE file (BricsCAD: "Cannot open file: Object
+        // improperly read: <AcDbShExtrusion> (68)"). The solid's SAT
+        // is self-contained and BCAD-verified on its own, so the
+        // catch-all SH records are elided at save; the ACIS entities'
+        // history soft-pointers are written NULL instead (see
+        // solid_history_handle_value in entities.rs).
+        if let ObjectType::DynamicBlock(d) = obj {
+            if d.dxf_name.starts_with("ACSH_") {
+                return;
+            }
+        }
         match obj {
             ObjectType::Dictionary(d) => self.write_dictionary(d),
             ObjectType::Layout(l) => self.write_layout(l),

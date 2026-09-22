@@ -5155,6 +5155,28 @@ impl<'a> DwgObjectWriter<'a> {
 
     // â”€â”€ ACIS entities (3DSOLID, REGION, BODY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+    /// History handle to write for an ACIS entity: the SH modeler-history
+    /// class records (AcDbSh* catch-alls) are elided at save - their DWG
+    /// layouts are undocumented and strict readers refuse the whole file
+    /// (BricsCAD: "Cannot open file: Object improperly read:
+    /// <AcDbShExtrusion>"). The SAT carries the geometry self-contained,
+    /// so a soft pointer to an elided target is written NULL rather than
+    /// dangling.
+    fn solid_history_handle_value(&self, target: Option<Handle>) -> u64 {
+        match target {
+            Some(handle)
+                if matches!(
+                    self.document.objects.get(&handle),
+                    Some(crate::objects::ObjectType::DynamicBlock(d))
+                        if d.dxf_name.starts_with("ACSH_")
+                ) =>
+            {
+                0
+            }
+            other => other.map(|h| h.value()).unwrap_or(0),
+        }
+    }
+
     fn write_solid3d(&mut self, e: &Solid3D) {
         // R2013+: mark the entity as data-store-backed when its geometry will be
         // emitted as a SAB blob into the AcDs section (below), so readers pair
@@ -5190,9 +5212,10 @@ impl<'a> DwgObjectWriter<'a> {
             }
         }
 
-        // 3DSOLID R2007+: history_id handle
+        // 3DSOLID R2007+: history_id handle (NULL when its target is an
+        // elided SH class record).
         if self.version.r2007_plus() {
-            let h = e.history_handle.map(|h| h.value()).unwrap_or(0);
+            let h = self.solid_history_handle_value(e.history_handle);
             self.writer.write_handle(DwgReferenceType::SoftPointer, h);
         }
 
@@ -5227,10 +5250,8 @@ impl<'a> DwgObjectWriter<'a> {
         }
 
         if self.version.r2007_plus() && !acds {
-            self.writer.write_handle(
-                DwgReferenceType::SoftPointer,
-                e.history_handle.unwrap_or(Handle::NULL).value(),
-            );
+            let h = self.solid_history_handle_value(e.history_handle);
+            self.writer.write_handle(DwgReferenceType::SoftPointer, h);
         }
         self.register_object(e.common.handle);
     }
@@ -5263,7 +5284,7 @@ impl<'a> DwgObjectWriter<'a> {
         }
 
         if self.version.r2007_plus() && !acds {
-            let h = e.history_handle.map(|h| h.value()).unwrap_or(0);
+            let h = self.solid_history_handle_value(e.history_handle);
             self.writer.write_handle(DwgReferenceType::SoftPointer, h);
         }
 

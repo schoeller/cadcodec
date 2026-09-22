@@ -75,7 +75,7 @@ fn updating_a_step_preserves_its_graph_identity() {
 }
 
 #[test]
-fn binary_brep_history_survives_r2018_dwg_roundtrip() {
+fn dwg_save_elides_sh_history_records_for_strict_loaders() {
     let sat = acadrust::entities::acis::primitives::build_planar_body(
         &[
             [0.0, 0.0, 0.0],
@@ -111,11 +111,18 @@ fn binary_brep_history_survives_r2018_dwg_roundtrip() {
 
     let bytes = DwgWriter::write_to_vec(&document).unwrap();
     let roundtrip = DwgReader::from_stream(Cursor::new(bytes)).read().unwrap();
-    let operations = roundtrip.solid_history_operations(entity).unwrap();
 
-    assert_eq!(operations.len(), 1);
-    let SolidHistoryOperation::Brep(value) = &operations[0] else {
-        panic!("history operation changed type: {:?}", operations[0]);
-    };
-    assert_eq!(value.acis_data.sab_data, sab);
+    // The catch-all SH class records are elided at save: their true DWG
+    // layouts are undocumented, and class-numbered catch-all records make
+    // strict readers refuse the WHOLE file (BricsCAD: "Cannot open file:
+    // Object improperly read: <AcDbShExtrusion>"). The modeler data
+    // lives in the entity's ACIS, so the solid itself survives while the
+    // parametric tree is gone by design.
+    assert!(matches!(
+        roundtrip.get_entity(entity),
+        Some(EntityType::Solid3D(_))
+    ));
+    assert!(roundtrip
+        .solid_history_operations(entity)
+        .map_or(true, |operations| operations.is_empty()));
 }
