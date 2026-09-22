@@ -245,12 +245,18 @@ impl Mesh {
         Self {
             common: EntityCommon::default(),
             version: 2,
-            blend_crease: true,
+            // Authored-wire population invariants (2004/Surface.dwg's
+            // MESH 0x2D0 and every authored specimen, 2026-09-22
+            // default fix): wire bit 72 — which the model calls
+            // blend_crease and gold decodes as is_watertight — is 0,
+            // and the trailing unknown_b1 is 1. Reads capture the bits
+            // verbatim, so round trips stay byte-faithful.
+            blend_crease: false,
             subdivision_level: 0,
             vertices: Vec::new(),
             faces: Vec::new(),
             edges: Vec::new(),
-            unknown_b1: false,
+            unknown_b1: true,
             unknown_b2: false,
         }
     }
@@ -822,7 +828,11 @@ mod tests {
         assert_eq!(mesh.face_count(), 0);
         assert_eq!(mesh.edge_count(), 0);
         assert_eq!(mesh.subdivision_level, 0);
-        assert!(mesh.blend_crease);
+        // Authored-wire invariants (2004/Surface.dwg census): wire bit
+        // 72 (blend_crease) is 0 and the trailing unknown_b1 is 1 in
+        // every authored specimen.
+        assert!(!mesh.blend_crease);
+        assert!(mesh.unknown_b1);
     }
 
     #[test]

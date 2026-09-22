@@ -195,7 +195,13 @@ impl Leader {
             dwg_unknown_bit1: false,
             dwg_unknown_bit2: false,
             dwg_unknown_bit3: false,
-            dwg_unknown_bit4: false,
+            // Native-stance bit (2026-09-22 default fix): the dwg.spec
+            // 3041-3045 tail bit the authored census carries set on
+            // every constructed-acceptable leader (the 2018/Leader.dwg
+            // family, byte-verified in 66c1e57; strict-load verified).
+            // Pure wire bit with no modeled semantics; reads capture it
+            // verbatim, so round trips stay byte-faithful.
+            dwg_unknown_bit4: true,
             dwg_unknown_bit5: false,
             dwg_unknown_short1: 0,
         }
