@@ -169,6 +169,28 @@ impl SabWriter {
     }
 
     fn write_record(buf: &mut Vec<u8>, record: &SatRecord) {
+        // Class-width completion (2026-09-22 region probe): assembled
+        // records can be short-form — missing the trailing role tokens
+        // natives always emit — and the SAB stream has no record
+        // terminator: every class is read as a fixed-width token list,
+        // so one short `plane-surface`, `straight-curve` or `edge`
+        // shifts every subsequent record and surfaces in strict
+        // restorers (BricsCAD regional audit: "missing logical in
+        // restore file", then "Data stream is empty"). Completion is
+        // gated on the exact assembled width of each class so
+        // captured records — full-width, including role variants
+        // like `reversed_v` — pass through untouched.
+        let completed;
+        let record = match Self::complete_class_width(&record.entity_type, &record.tokens) {
+            Some(tokens) => {
+                let mut full = record.clone();
+                full.tokens = tokens;
+                completed = full;
+                &completed
+            }
+            None => record,
+        };
+
         // Entity type — may be compound with multiple hyphens.
         // In SAB, each level of the class hierarchy is a separate tag:
         //   "plane-surface"               → 0x0E("plane") + 0x0D("surface")
@@ -247,6 +269,34 @@ impl SabWriter {
 
         // End of record
         buf.push(tags::END_OF_RECORD);
+    }
+
+    /// Append the native tail tokens of assembled short-form records.
+    /// The width gate is the captured-genus guard: only the exact
+    /// assembled widths complete, mirroring the primitive builders
+    /// (`add_plane_surface` / `add_straight_curve` / `add_edge`).
+    fn complete_class_width(entity_type: &str, tokens: &[SatToken]) -> Option<Vec<SatToken>> {
+        let tail: Vec<SatToken> = match (entity_type, tokens.len()) {
+            // `add_plane_surface` width 15: $-1 + 9 floats + role tail.
+            ("plane-surface", 10) => vec![
+                SatToken::Ident("forward_v".to_string()),
+                SatToken::Ident("I".to_string()),
+                SatToken::Ident("I".to_string()),
+                SatToken::Ident("I".to_string()),
+                SatToken::Ident("I".to_string()),
+            ],
+            // `add_straight_curve` width 9: $-1 + 6 floats + I I.
+            ("straight-curve", 7) => vec![
+                SatToken::Ident("I".to_string()),
+                SatToken::Ident("I".to_string()),
+            ],
+            // `add_edge` width 9: ... + sense + the @7 unknown tether.
+            ("edge", 8) => vec![SatToken::String("unknown".to_string())],
+            _ => return None,
+        };
+        let mut completed = tokens.to_vec();
+        completed.extend_from_slice(&tail);
+        Some(completed)
     }
 
     /// Write tokens with coordinate grouping based on entity type layout.
