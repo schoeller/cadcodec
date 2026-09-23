@@ -3297,6 +3297,11 @@ Fixture rules (deltas from the gold-tree convention above):
 | `Loft_<v>` (Phase B+) | two `CIRCLE`s + `LOFT` | `ACSH_LOFT_CLASS` | as landed |
 | `Box_<v>` / `Sphere_<v>` (Phase B+) | `BOX` / `SPHERE` | the SH primitive classes | as landed |
 | `Union_<v>` (Phase B+) | two `BOX`es + `UNION` | `ACSH_BOOLEAN_CLASS` | as landed |
+| `Wedge_<v>` / `Cylinder_<v>` (Phase C) | `WEDGE` / `CYLINDER` | the SH primitive classes | landed 2026-09-23, qualified (all 0/0) |
+| `Cone_<v>` / `Torus_<v>` (Phase C) | `CONE` / `TORUS` | the SH primitive classes | landed 2026-09-23, qualified (all 0/0) |
+| `Pyramid_<v>` (Phase C) | `PYRAMID` | `ACSH_PYRAMID_CLASS` | landed 2026-09-23, qualified (all 0/0) |
+| `Fillet_<v>` / `Chamfer_<v>` (Phase C) | `BOX` + `FILLET` / `BOX` + `CHAMFER` | the edge-modification nodes (with the parent `ACSH_BOX_CLASS` chain) | landed 2026-09-23, qualified (all 0/0) |
+| `Brep_<v>` | **DEFERRED** (2026-09-23): `ACSH_BREP_CLASS` is not reachable through any user-facing AutoCAD op — seven authored attempts (plain op, SLICE, single-op, foreign-body graft, SOLIDEDIT face edit, real-template source) all produced either parametric chains or history-stripped plain solids. The class stays elided; silver already tolerates the one real-world carrier (`ATMOS-DC22S.dwg`) at 0/0. The row re-opens if an authentic specimen surfaces (legacy SAT-era import paths). | — | — |
 
 ---
 
@@ -3642,23 +3647,29 @@ that drives the implementation.
   record present, and the strict-load elide is retired for
   HISTORY, SWEEP, EXTRUSION, LOFT, REVOLVE, SPHERE, BOX, and
   BOOLEAN.
-- **Remaining: Phase B and the Phase C authoring list.** Phase B
-  (the blob autopsy) needs NO new gold material: the four
-  raw-retained tails (sweep/extrusion/loft/revolve) decode by
-  cross-comparison across the 28 landed specimens. Phase C (the
-  full un-elide) is blocked on authored fixtures only — every
-  remaining class needs its §F2.1-convention specimen family
-  (one operation per file, 4 SAVEAS versions, gold-decode
-  qualification, .txt provenance) placed in
-  `tests/gold_harness/tests/sh_history/`:
-  `Wedge_<v>` (WEDGE), `Cylinder_<v>` (CYLINDER), `Cone_<v>`
-  (CONE), `Torus_<v>` (TORUS), `Pyramid_<v>` (PYRAMID),
-  `Fillet_<v>` (BOX + FILLET), `Chamfer_<v>` (BOX + CHAMFER),
-  `Brep_<v>` (a free-form body carrying ACSH_BREP_CLASS — e.g.
-  a converted/surfaced body). Silver's typed arms and the
-  normalizer projections already exist for these classes; each
-  un-elide is the step-5 recipe (trace-calibrate + un-elide +
-  four gates).
+- **Phase C fixture review (2026-09-23, COMPLETE):** the maintainer
+  authored all seven requested families; qualification landed them
+  all at 0/0 (28 files, `.txt` companions generated from the gold
+  `-v9` census): `Wedge_`, `Cylinder_`, `Cone_`, `Torus_`,
+  `Pyramid_`, `Fillet_` (with its parent `ACSH_BOX_CLASS` chain),
+  `Chamfer_` (same). The review found and fixed the same harness
+  gap sphere had: `ACSH_PYRAMID_CLASS` was missing from
+  `_DYNBLOCK_RETYPE` (retyped + height/sides/radius/topradius
+  projection; gold's JSON key is `topradius`); all four Pyramid
+  versions went 0/0. **BREP is DEFERRED** (maintainer's decision):
+  seven authored attempts — plain ops, SLICE (empty fresh roots),
+  a single-op variant, the foreign-body paste-graft (fully
+  parametric graft — nested BOOLEAN, disproving the ungraftable
+  theory), SOLIDEDIT face edit (history deleted outright), and a
+  real-template source (violating §F2.1 cleanliness) — never
+  produced an `ACSH_BREP_CLASS` record. The class bottoms out only
+  through paths with no user-facing command in current AutoCAD
+  (the one known carrier is `ATMOS-DC22S.dwg` in the gold tree,
+  tolerated at 0/0 today). The placeholders were removed; the row
+  re-opens if an authentic specimen surfaces. Each landed class's
+  un-elide remains the step-5 recipe (trace-calibrate + un-elide
+  via the shared list + four gates); the classes currently sit
+  correctly elided.
 
   **The complete phase map (from the original 2026-09-22 campaign
   brief; each phase gets its own NEXT_SESSION when its predecessor

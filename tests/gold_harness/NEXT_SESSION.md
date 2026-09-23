@@ -66,19 +66,21 @@ two non-oracle instruments:
    (must stay 0/0); the corpus must stay 152 files 0/0; any writer
    re-encode path additionally needs the layer-4 byte-walk.
 
-### The Phase C authoring list (for the maintainer — not blocking B)
+### Phase C fixture state (2026-09-23 review, complete)
 
-Phase C (full un-elide of Wedge, Cylinder, Cone, Torus, Pyramid,
-Fillet, Chamfer, BREP) is blocked ONLY on fixtures. Each needs a
-§F2.1-convention family in `tests/gold_harness/tests/sh_history/`
-(one operation per file, 4 SAVEAS versions 2007/2010/2013/2018,
-gold-decode qualification with zero `Error` lines, `.txt` provenance
-companion): `Wedge_<v>` (WEDGE), `Cylinder_<v>` (CYLINDER),
-`Cone_<v>` (CONE), `Torus_<v>` (TORUS), `Pyramid_<v>` (PYRAMID),
-`Fillet_<v>` (BOX + FILLET), `Chamfer_<v>` (BOX + CHAMFER),
-`Brep_<v>` (a free-form body carrying ACSH_BREP_CLASS). Silver's
-typed arms and normalizer projections already exist for these
-classes; each un-elide is the step-5 recipe (trace-calibrate with
+Seven families authored and qualified (all 0/0, `.txt` companions
+landed): `Wedge_`, `Cylinder_`, `Cone_`, `Torus_`, `Pyramid_`,
+`Fillet_`, `Chamfer_` (the latter two with their parent
+`ACSH_BOX_CLASS` chains — good edge-chain specimens). The review
+also fixed the last retype gap: `ACSH_PYRAMID_CLASS` joined
+`_DYNBLOCK_RETYPE` with its height/sides/radius/topradius
+projection. **BREP is DEFERRED** per the maintainer's decision:
+seven authored attempts never produced an `ACSH_BREP_CLASS` record
+(SLICE mints empty fresh roots; paste-grafts stay fully
+parametric; SOLIDEDIT face edits strip the history outright) —
+the class has no user-facing production path in current AutoCAD;
+the row re-opens if an authentic specimen surfaces. Each landed
+class's un-elide is the step-5 recipe (trace-calibrate with
 gold `-v9`, un-elide via the shared list, four gates).
 
 ## The wire knowledge base (condensed; §18.5 has the full records)
