@@ -230,6 +230,20 @@ target/debug/dump_section_bytes <origin.dwg> <A> <N>
 # this is the only instrument that catches "legal but different" forms.
 ```
 
+## Beyond Phase A (forward scope — see IMPLEMENTATION.md §18.5 "The complete phase map")
+
+- **Phase B — the blob autopsy**: determine the internal structure of
+  the `shsw_text`/`shsw_text2` blobs (after Phase A preserves them
+  raw), expose their semantic fields, and project them in the
+  normalizers.
+- **Phase C — the full un-elide**: implement all remaining
+  node-class layouts (primitives, Boolean, Fillet, Chamfer, BREP,
+  Loft, Revolve), remove the per-class elide, restore full-fidelity
+  SH soft-pointers, and drive the 28-fixture corpus to 0/0.
+  The "(Phase B+)" rows in IMPLEMENTATION.md §F2.3 are the
+  breakpoints. Each phase's NEXT_SESSION is written at its
+  predecessor's completion.
+
 ## Commit inventory (this halt)
 
 ```

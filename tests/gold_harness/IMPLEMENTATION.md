@@ -3529,3 +3529,46 @@ that drives the implementation.
   `3DSOLID.wires` stub (16, R2013+ shapes), `ACSH_SPHERE_CLASS`
   count (8, Sphere family), `3DSOLID.point` wrong-value (2, Revolve
   R2007/2010). See NEXT_SESSION.md for the full Phase A handover.
+
+  **The complete phase map (from the original 2026-09-22 campaign
+  brief; each phase gets its own NEXT_SESSION when its predecessor
+  completes):**
+
+  - **Phase A** (in progress): implement the oldest-critical SH
+    class wire layouts — HISTORY, SWEEP, EXTRUSION — retaining the
+    `shsw_text`/`shsw_text2` opaque blobs as raw bytes without
+    interpreting their content, un-elide each per calibration,
+    and drive the fixture diffs toward zero. Phase A is finished
+    when the Polysolid and Extrude families round-trip
+    byte-identically and the `ACSH_SWEEP/EXTRUSION` records
+    survive in the rewrite.
+  - **Phase B** — the blob autopsy: determine the internal
+    structure of the `shsw_text` and `shsw_text2` binary blobs
+    (are they serialized SAT fragments? compressed embedded
+    entity streams? raw modeler parameter arrays? — the raw bytes
+    are already byte-preserved after Phase A, so Phase B decodes
+    them by comparison across the 28 fixture specimens) and
+    implement the node-class typed fields properly: expose the
+    blob's semantic fields on the model and render them in the
+    JSON/normalizer projection. Phase B ends when the blob content
+    byte-round-trips across all 4 versions per fixture family
+    with semantic field parity in the normalize projections.
+  - **Phase C** — the full un-elide: implement the remaining
+    node-class layouts (Box, Sphere, Cylinder, Cone, Pyramid,
+    Torus — the "primitive" SH family; Boolean — the `ACSH_BOOLEAN`
+    composition records; Fillet, Chamfer — the edge-modification
+    nodes; BREP — the catch-all for free-form ACIS surfaces; Loft
+    and Revolve — the path-sweep family), remove the per-class
+    elide, restore the solid's history soft-pointers to full
+    fidelity, and drive the entire 28-fixture corpus to 0/0.
+    The fixture campaign lands here (F2.3's full table rows are
+    the Phase C coverage manifest — the "(Phase B+)" rows in
+    §F2.3 are the Phase B/C breakpoints).
+
+  Each phase follows the same discipline: the calibration
+  specimens are already landed (§F2.1), the gold spec blocks are
+  identified (§18.5's gold-spec references), and the zero-keeping
+  gate applies at every checkpoint (README "The zero-keeping
+  workflow"). Phase A's completion auto-qualifies the Phase B
+  NEXT_SESSION handover (the same pattern as the strict-load
+  campaign's per-round halt-and-brief cycle).
