@@ -264,6 +264,18 @@ impl DwgMergedReader {
         (end - self.main.position_in_bits()).max(0)
     }
 
+    /// Exclusive end bit of the main (data) section in window coordinates:
+    /// the text-present flag or, when there is no text split, the handle
+    /// stream start. Everything the record's own field walk may capture
+    /// from the current position lives before this boundary.
+    pub fn main_end_bits(&self) -> i64 {
+        if self.text_start_bit > 0 {
+            self.text_start_bit
+        } else {
+            self.handle_start_bit
+        }
+    }
+
     /// Exclusive end, in bits, of the record's physical data window.
     ///
     /// The object record handed to the merged reader is exactly the MS

@@ -1310,14 +1310,14 @@ fn dynamic_dxf_history_sweep(
     let sweep_entity = crate::io::dwg::embedded_entity::decode_embedded_entity(
         profile_type,
         profile_bits,
-        profile_bytes,
+        profile_bytes.clone(),
         dwg_version,
         dxf_version,
     );
     let path_entity = crate::io::dwg::embedded_entity::decode_embedded_entity(
         path_type,
         path_bits,
-        path_bytes,
+        path_bytes.clone(),
         dwg_version,
         dxf_version,
     );
@@ -1326,6 +1326,12 @@ fn dynamic_dxf_history_sweep(
         operation_major,
         operation_minor: fields.i32(section, 91),
         direction: fields.point(section, 10),
+        shsw_method: profile_type,
+        shsw_text: profile_bytes,
+        shsw_bl93: path_type,
+        shsw_text2: path_bytes,
+        shsw_raw_tail: Vec::new(),
+        shsw_raw_tail_bit_len: 0,
         sweep_entity,
         path_entity,
         draft_angle: fields.f64(section, 42),

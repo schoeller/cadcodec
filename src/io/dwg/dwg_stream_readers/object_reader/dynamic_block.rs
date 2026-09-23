@@ -219,69 +219,54 @@ fn read_history_node_base(reader: &mut DwgMergedReader) -> SolidHistoryNodeBase 
     }
 }
 
-fn read_history_sweep(
-    reader: &mut DwgMergedReader,
-    base: SolidHistoryNodeBase,
-    version: DwgVersion,
-    dxf_version: DxfVersion,
-) -> SolidHistorySweep {
+fn read_history_sweep(reader: &mut DwgMergedReader, base: SolidHistoryNodeBase) -> SolidHistorySweep {
     let operation_major = reader.read_bit_long();
     let operation_minor = reader.read_bit_long();
+    // Phase A raw retention: the AcDbShSweepBase/AcDbShSweep tail layout is
+    // undocumented — gold compiles the class out (its decoder refuses the
+    // walk with "Unstable Class") and the shsw blob guess of its debug spec
+    // does not match the authored wires (the size fields read 0 while
+    // option/transform/flag content follows, so per-field modeling corrupts
+    // and shrinks the record). Capture the whole tail from here to the
+    // record's main-section end and write it verbatim (shsw_raw_tail).
+    let tail_start = reader.position_in_bits();
     let direction = reader.read_3bit_double();
-    let sweep_entity_type = reader.read_bit_long();
-    let sweep_size = safe_count(reader.read_bit_long()) as usize;
-    let sweep_entity = crate::io::dwg::embedded_entity::read_embedded_entity(
-        reader,
-        sweep_entity_type,
-        sweep_size,
-        version,
-        dxf_version,
-    );
-    let path_entity_type = reader.read_bit_long();
-    let path_size = safe_count(reader.read_bit_long()) as usize;
-    let path_entity = crate::io::dwg::embedded_entity::read_embedded_entity(
-        reader,
-        path_entity_type,
-        path_size,
-        version,
-        dxf_version,
-    );
-    let draft_angle = reader.read_bit_double();
-    let start_draft_distance = reader.read_bit_double();
-    let end_draft_distance = reader.read_bit_double();
-    let scale_factor = reader.read_bit_double();
-    let twist_angle = reader.read_bit_double();
-    let align_angle = reader.read_bit_double();
-    let mut sweep_entity_transform = [0.0; 16];
-    let mut path_entity_transform = [0.0; 16];
-    for value in &mut sweep_entity_transform {
-        *value = reader.read_bit_double();
-    }
-    for value in &mut path_entity_transform {
-        *value = reader.read_bit_double();
+    reader.set_position_in_bits(tail_start);
+    let tail_bit_len = (reader.main_end_bits() - tail_start).max(0) as usize;
+    let mut raw_tail = vec![0u8; (tail_bit_len + 7) / 8];
+    for index in 0..tail_bit_len {
+        if reader.read_bit() {
+            raw_tail[index / 8] |= 1 << (7 - index % 8);
+        }
     }
     SolidHistorySweep {
         base,
         operation_major,
         operation_minor,
         direction,
-        sweep_entity,
-        path_entity,
-        draft_angle,
-        start_draft_distance,
-        end_draft_distance,
-        scale_factor,
-        twist_angle,
-        align_angle,
-        sweep_entity_transform,
-        path_entity_transform,
-        align_option: reader.read_byte(),
-        miter_option: reader.read_byte(),
-        has_align_start: reader.read_bit(),
-        bank: reader.read_bit(),
-        check_intersections: reader.read_bit(),
-        flags_294_296: [reader.read_bit(), reader.read_bit(), reader.read_bit()],
-        reference_point: reader.read_3bit_double(),
+        shsw_method: 0,
+        shsw_text: Vec::new(),
+        shsw_bl93: 0,
+        shsw_text2: Vec::new(),
+        shsw_raw_tail: raw_tail,
+        shsw_raw_tail_bit_len: tail_bit_len as u32,
+        sweep_entity: None,
+        path_entity: None,
+        draft_angle: 0.0,
+        start_draft_distance: 0.0,
+        end_draft_distance: 0.0,
+        scale_factor: 0.0,
+        twist_angle: 0.0,
+        align_angle: 0.0,
+        sweep_entity_transform: [0.0; 16],
+        path_entity_transform: [0.0; 16],
+        align_option: 0,
+        miter_option: 0,
+        has_align_start: false,
+        bank: false,
+        check_intersections: false,
+        flags_294_296: [false; 3],
+        reference_point: crate::types::Vector3::ZERO,
     }
 }
 
@@ -469,10 +454,10 @@ pub fn read_solid_history_data(
             })
         }
         "ACSH_SWEEP_CLASS" => {
-            SolidHistoryOperation::Sweep(read_history_sweep(reader, base, version, dxf_version))
+            SolidHistoryOperation::Sweep(read_history_sweep(reader, base))
         }
         "ACSH_EXTRUSION_CLASS" => {
-            SolidHistoryOperation::Extrusion(read_history_sweep(reader, base, version, dxf_version))
+            SolidHistoryOperation::Extrusion(read_history_sweep(reader, base))
         }
         "ACSH_LOFT_CLASS" => {
             let operation_major = reader.read_bit_long();

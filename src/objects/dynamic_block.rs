@@ -1086,6 +1086,22 @@ pub struct SolidHistorySweep {
     pub operation_major: i32,
     pub operation_minor: i32,
     pub direction: Vector3,
+    pub shsw_method: i32,
+    pub shsw_text: Vec<u8>,
+    pub shsw_bl93: i32,
+    pub shsw_text2: Vec<u8>,
+    /// Raw post-`op.minor` payload of a DWG-read sweep/extrusion record,
+    /// MSB-packed. Phase A raw retention: the AcDbShSweepBase/AcDbShSweep
+    /// tail layout is undocumented (gold compiles these classes out and
+    /// refuses the walk — "Unstable Class"; the shsw blob guess of the
+    /// debug spec does not match the authored wires, where the size fields
+    /// read 0 while ~130-1700 bits of option/transform/flag content
+    /// follow). The DWG writer emits these bits verbatim; the modeled
+    /// fields below are used only when the tail is empty (DXF reads).
+    pub shsw_raw_tail: Vec<u8>,
+    /// Exact bit length of `shsw_raw_tail`; trailing pad bits in the last
+    /// byte are zero and never written.
+    pub shsw_raw_tail_bit_len: u32,
     pub sweep_entity: Option<crate::entities::EmbeddedEntity>,
     pub path_entity: Option<crate::entities::EmbeddedEntity>,
     pub draft_angle: f64,

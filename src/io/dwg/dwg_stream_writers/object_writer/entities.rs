@@ -5161,9 +5161,10 @@ impl<'a> DwgObjectWriter<'a> {
     /// (BricsCAD: "Cannot open file: Object improperly read:
     /// <AcDbShExtrusion>"). The SAT carries the geometry self-contained,
     /// so a soft pointer to an elided target is written NULL rather than
-    /// dangling. ACSH_HISTORY_CLASS is now written (Phase A
-    /// 2026-09-23): pointers to it stay live; pointers to elided node
-    /// classes (EXTRUSION, SWEEP, primitives, BREP) go NULL.
+    /// dangling. ACSH_HISTORY_CLASS and ACSH_SWEEP_CLASS are now written
+    /// (Phase A 2026-09-23 steps 1-2): pointers to them stay live;
+    /// pointers to the still-elided node classes (EXTRUSION, the
+    /// primitives, BREP) go NULL.
     fn solid_history_handle_value(&self, target: Option<Handle>) -> u64 {
         match target {
             Some(handle)
@@ -5172,6 +5173,7 @@ impl<'a> DwgObjectWriter<'a> {
                     Some(crate::objects::ObjectType::DynamicBlock(d))
                         if d.dxf_name.starts_with("ACSH_")
                             && d.dxf_name != "ACSH_HISTORY_CLASS"
+                            && d.dxf_name != "ACSH_SWEEP_CLASS"
                 ) =>
             {
                 0

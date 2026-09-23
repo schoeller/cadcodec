@@ -300,12 +300,18 @@ impl<'a> DwgObjectWriter<'a> {
         //
         // Phase A (2026-09-23): ACSH_HISTORY_CLASS has a known layout
         // (gold dwg2.spec: 2 BLs + handle + BL + 2 bits, all correctly
-        // implemented on both sides) and is now WRITTEN. All the node
-        // classes (ACSH_EXTRUSION_CLASS, ACSH_SWEEP_CLASS, the
-        // primitives, and BREP) stay elided until their layouts are
-        // calibrated and verified per the sh_history fixture campaign.
+        // implemented on both sides) and is now WRITTEN, as is
+        // ACSH_SWEEP_CLASS (step 2: the shsw blobs are retained raw on
+        // the model and written directly — the sweep/path guess arms
+        // that produced empty records are gone). The remaining node
+        // classes (ACSH_EXTRUSION_CLASS, the primitives, and BREP)
+        // stay elided until their layouts are calibrated and verified
+        // per the sh_history fixture campaign.
         if let ObjectType::DynamicBlock(d) = obj {
-            if d.dxf_name.starts_with("ACSH_") && d.dxf_name != "ACSH_HISTORY_CLASS" {
+            if d.dxf_name.starts_with("ACSH_")
+                && d.dxf_name != "ACSH_HISTORY_CLASS"
+                && d.dxf_name != "ACSH_SWEEP_CLASS"
+            {
                 return;
             }
         }

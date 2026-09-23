@@ -173,33 +173,27 @@ impl<'a> DwgObjectWriter<'a> {
         self.write_solid_history_base(&value.base);
         self.writer.write_bit_long(value.operation_major);
         self.writer.write_bit_long(value.operation_minor);
+        if value.shsw_raw_tail_bit_len > 0 {
+            // Phase A raw retention: DWG-read records re-emit their captured
+            // tail bits verbatim (bit-faithful by construction; see the
+            // shsw_raw_tail model doc).
+            let bits = value.shsw_raw_tail_bit_len as usize;
+            for index in 0..bits {
+                let byte = value.shsw_raw_tail[index / 8];
+                let bit = (byte >> (7 - index % 8)) & 1;
+                self.writer.write_bit(bit == 1);
+            }
+            return;
+        }
+        // Modeled fallback (DXF-read records, no captured tail): the
+        // documented-guess field sequence.
         self.writer.write_3bit_double(value.direction);
-        if let Some(entity) = &value.sweep_entity {
-            let encoded = crate::io::dwg::embedded_entity::encode_embedded_entity(
-                entity,
-                self.version,
-                self.dxf_version,
-            );
-            self.writer.write_bit_long(encoded.type_code);
-            self.writer.write_bit_long(encoded.bytes.len() as i32);
-            crate::io::dwg::embedded_entity::write_embedded_bytes(&mut self.writer, &encoded);
-        } else {
-            self.writer.write_bit_long(0);
-            self.writer.write_bit_long(0);
-        }
-        if let Some(entity) = &value.path_entity {
-            let encoded = crate::io::dwg::embedded_entity::encode_embedded_entity(
-                entity,
-                self.version,
-                self.dxf_version,
-            );
-            self.writer.write_bit_long(encoded.type_code);
-            self.writer.write_bit_long(encoded.bytes.len() as i32);
-            crate::io::dwg::embedded_entity::write_embedded_bytes(&mut self.writer, &encoded);
-        } else {
-            self.writer.write_bit_long(0);
-            self.writer.write_bit_long(0);
-        }
+        self.writer.write_bit_long(value.shsw_method);
+        self.writer.write_bit_long(value.shsw_text.len() as i32);
+        self.writer.write_bytes(&value.shsw_text);
+        self.writer.write_bit_long(value.shsw_bl93);
+        self.writer.write_bit_long(value.shsw_text2.len() as i32);
+        self.writer.write_bytes(&value.shsw_text2);
         self.writer.write_bit_double(value.draft_angle);
         self.writer.write_bit_double(value.start_draft_distance);
         self.writer.write_bit_double(value.end_draft_distance);
