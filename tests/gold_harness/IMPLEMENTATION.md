@@ -3589,18 +3589,44 @@ that drives the implementation.
   the original's modeler point at (0.6, 0, 0.6) where gold reads
   (0, 0, 0), while the rewrite's point matches gold on both
   sides — a constructed-genus read default, Phase B territory.
-- **Remaining phase A**: the primitives un-elides (Box, Wedge,
-  Cylinder, Cone, Torus, Pyramid, Sphere — gold-LIVE layouts, so
-  calibrate each typed arm against its fixture with gold `-v9`
-  traces, the same instrument that pinned the SH skeleton; the
-  sphere count/missing packet — silver projects a different
-  `ACSH_SPHERE_CLASS` record count than gold from the same
-  drawing — is the lead mystery for the Sphere step), then BREP
-  (its ACIS body machinery is already modeled; the record framing
-  around it needs calibration), then the `3DSOLID.wires` stub
-  packet (16, R2013+R2018 — constructed-genus zero-index wire
-  cache, likely Phase B: the nodes' retained tails are in hand).
-  See NEXT_SESSION.md for the step-5 handover.
+- **Phase A step 5 — the fixture-backed primitives (2026-09-23,
+  `19308ee`)**:
+  the sphere mystery resolved as a HARNESS gap, not a codec one —
+  `ACSH_SPHERE_CLASS` was the one class missing from
+  `_DYNBLOCK_RETYPE` (its own comment predicted "stays UNKNOWN
+  until their own packets"), so silver's sphere records paired as
+  UNKNOWN_OBJ and produced the whole count/missing packet. Landed
+  the retype entry plus the projection arm (shared
+  `_acsh_node_fields` + `radius`), and un-elided the class through
+  its typed arm (the §18.5 skeleton trace had already verified the
+  layout); Sphere_2018 dropped 5→1 read rows (only its wires stub
+  row remains) with the rewrite's sphere record gold-typed and
+  L4-identical through the full 282-bit record. Then the same
+  treatment for the other fixture-backed primitives: **Box** (the
+  live `-v9` trace pins length/width/height BDs after the op pair —
+  silver's arm matches exactly; also the FIRST non-identity base
+  matrix written: L4-identical on Box_2018 at 542 bits AND Box_2007
+  at the R2007 layout) and **Boolean** (live trace: RC operation +
+  BL operand1/operand2 — silver's arm matches; L4-identical at 300
+  bits via the Union fixture). Wedge/Cylinder/Cone/Torus/Pyramid
+  and BREP have NO fixtures — they stay elided: unverified elide
+  removals are strict-reader risk. Verified: hermetic 48 ok / 0
+  failed (1561); smokes Box 0/0, Union 0/0, Sphere rows collapse
+  to the wires stub only (Sphere_2007/2010 fully 0/0); corpus 152
+  files — gold tree 0/0 held, **fixtures 26/8 → 10/8**: the
+  remaining rows are exactly the two documented
+  constructed-genus/Phase-B packets (`3DSOLID.wires` stub 8+8,
+  R2013+R2018; `3DSOLID.point` 2, Revolve_2007/2010 read-side).
+- **Remaining phase A→B**: with every fixture-backed SH class
+  round-tripping, the campaign target for the next step is the
+  two constructed-genus packets on the 3DSOLID side — driving
+  the fixture tree toward 0/0: (1) the wires stub (silver's
+  constructed-genus 3DSOLID emits a zero-index wire cache where
+  gold's wire list is empty — R2013+R2018 sweep-family files);
+  (2) the modeler-point wrong-value (silver reads (0.6, 0, 0.6)
+  where gold reads (0, 0, 0) — Revolve_2007/2010 originals).
+  Both live on the 3DSOLID model-construction defaults, not the
+  SH nodes. See NEXT_SESSION.md for the step-6 handover.
 
   **The complete phase map (from the original 2026-09-22 campaign
   brief; each phase gets its own NEXT_SESSION when its predecessor
