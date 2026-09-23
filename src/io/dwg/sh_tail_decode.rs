@@ -431,11 +431,15 @@ pub(crate) fn decode_revolve_tail(bytes: &[u8], bit_len: u32) -> Option<RevolveT
     if options.is_empty() {
         return None;
     }
-    let (mut raw_values, raw_spans) = scan_raws(&bits, head_end, bit_len);
+    let (mut raw_values, mut raw_spans) = scan_raws(&bits, head_end, bit_len);
     let revolve_angle = raw_values.first().copied();
     let angle_span = raw_spans.first().copied();
     if !raw_values.is_empty() {
         raw_values.remove(0);
+        // Keep the remaining spans index-aligned with the remaining
+        // values: raw_doubles[0] is the entry AFTER the angle, so its
+        // span must be raw_spans[0] in the render.
+        raw_spans.remove(0);
     }
     Some(RevolveTailInfo {
         view: SolidHistoryRevolveTail {

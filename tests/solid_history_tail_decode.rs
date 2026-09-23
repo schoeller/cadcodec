@@ -375,3 +375,106 @@ fn loft_and_revolve_tails_round_trip_and_edits_land() {
         "loft edits must stay inside the 5.0 entry span, got {differing:?}"
     );
 }
+
+#[test]
+fn undecodable_tails_stay_verbatim_never_modeled() {
+    // Review regression: a captured tail whose layout does NOT decode
+    // (the reserved pair heads this sample) must keep the Phase A
+    // behavior — verbatim re-emission — and NEVER fall through to the
+    // modeled fallback, which would replace the captured bits with the
+    // guess sequence and corrupt the record.
+    let opaque: Vec<u8> = vec![0b1100_0000, 0b0101_1010, 0x33, 0x55, 0x11, 0x7F];
+    let opaque_bits: u32 = 48;
+    assert!(sweep_tail_view(&opaque, opaque_bits).is_none());
+
+    let mut document = CadDocument::with_version(DxfVersion::AC1032);
+    let entity = document
+        .add_entity(EntityType::Solid3D(Solid3D::new()))
+        .unwrap();
+    document
+        .create_solid_history(
+            entity,
+            SolidHistoryOperation::Sweep(SolidHistorySweep {
+                base: SolidHistoryNodeBase::new(1),
+                shsw_raw_tail: opaque.clone(),
+                shsw_raw_tail_bit_len: opaque_bits,
+                ..SolidHistorySweep::default()
+            }),
+        )
+        .unwrap();
+    let bytes = DwgWriter::write_to_vec(&document).unwrap();
+    let roundtrip = DwgReader::from_stream(Cursor::new(bytes)).read().unwrap();
+    let SolidHistoryOperation::Sweep(sweep) =
+        &roundtrip.solid_history_operations(entity).unwrap()[0]
+    else {
+        panic!("expected a sweep operation node");
+    };
+    assert_eq!(sweep.shsw_raw_tail, opaque, "the captured bits survive verbatim");
+    assert_eq!(sweep.shsw_raw_tail_bit_len, opaque_bits);
+    assert!(sweep.tail_decode.is_none(), "no typed view is claimed");
+}
+
+#[test]
+fn revolve_raw_entry_edits_stay_out_of_the_angle_span() {
+    // Review regression: the revolve's `raw_doubles` are the entries
+    // AFTER the sweep angle — their spans must be index-aligned with
+    // the values, so editing raw_doubles[0] (the 0.2 entry) splices its
+    // own raw span (bits [118..182), bytes 14..=22) and never the
+    // angle's (bits [14..78), bytes 1..=9).
+    let revolve_tail = unhex(REVOLVE_HEX);
+    let revolve_bits = REVOLVE_BITS;
+    let mut document = CadDocument::with_version(DxfVersion::AC1032);
+    let entity = document
+        .add_entity(EntityType::Solid3D(Solid3D::new()))
+        .unwrap();
+    document
+        .create_solid_history(
+            entity,
+            SolidHistoryOperation::Revolve(SolidHistoryRevolve {
+                base: SolidHistoryNodeBase::new(1),
+                raw_tail: revolve_tail.clone(),
+                raw_tail_bit_len: revolve_bits,
+                tail_decode: revolve_tail_view(&revolve_tail, revolve_bits),
+                ..SolidHistoryRevolve::default()
+            }),
+        )
+        .unwrap();
+    let mut replacement = document.solid_history_operations(entity).unwrap()[0].clone();
+    let SolidHistoryOperation::Revolve(revolve) = &mut replacement else {
+        panic!("expected a revolve node");
+    };
+    let view = revolve
+        .tail_decode
+        .get_or_insert_with(SolidHistoryRevolveTail::default);
+    view.raw_doubles = vec![0.4];
+    document.update_solid_history_step(entity, replacement).unwrap();
+
+    let bytes = DwgWriter::write_to_vec(&document).unwrap();
+    let roundtrip = DwgReader::from_stream(Cursor::new(bytes)).read().unwrap();
+    let SolidHistoryOperation::Revolve(revolve) =
+        &roundtrip.solid_history_operations(entity).unwrap()[0]
+    else {
+        panic!("expected a revolve node");
+    };
+    let view = revolve.tail_decode.as_ref().unwrap();
+    assert_eq!(view.raw_doubles, vec![0.4], "the edited entry re-reads");
+    assert_eq!(
+        view.revolve_angle,
+        Some(3.0 * std::f64::consts::FRAC_PI_2),
+        "the angle must be untouched by a raw_doubles edit"
+    );
+    let differing: Vec<usize> = revolve
+        .raw_tail
+        .iter()
+        .zip(revolve_tail.iter())
+        .enumerate()
+        .filter(|(_, (a, b))| a != b)
+        .map(|(index, _)| index)
+        .collect();
+    assert!(!differing.is_empty(), "the edit must land somewhere");
+    assert!(
+        differing.iter().all(|index| (14..23).contains(index)),
+        "the 0.2 edit must stay inside its own span (bytes 14..=22), \
+         got {differing:?}"
+    );
+}
