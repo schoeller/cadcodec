@@ -564,6 +564,12 @@ _DYNBLOCK_RETYPE = {
     # sphere records paired as UNKNOWN_OBJ and produced the sphere-family
     # count/missing rows on every Sphere fixture.
     "ACSH_SPHERE_CLASS": "ACSH_SPHERE_CLASS",
+    # dwg2.spec (ACSH_PYRAMID_CLASS, live in gold): height BD, sides BL,
+    # radius BD, topradius BD (gold's JSON key is "topradius"). The same
+    # retype gap the sphere had — found at the Phase C fixture review:
+    # silver's pyramid records paired as UNKNOWN_OBJ on every Pyramid
+    # fixture.
+    "ACSH_PYRAMID_CLASS": "ACSH_PYRAMID_CLASS",
     "ACSH_BREP_CLASS": "ACSH_BREP_CLASS",
 }
 
@@ -4997,6 +5003,11 @@ def normalize_silver(
                     fields["minor_radius"] = normalize_float(_vv.get("minor_radius", 0.0))
                 elif gold_type == "ACSH_SPHERE_CLASS":
                     fields["radius"] = normalize_float(_vv.get("radius", 0.0))
+                elif gold_type == "ACSH_PYRAMID_CLASS":
+                    fields["height"] = normalize_float(_vv.get("height", 0.0))
+                    fields["sides"] = _vv.get("sides", 0)
+                    fields["radius"] = normalize_float(_vv.get("radius", 0.0))
+                    fields["topradius"] = normalize_float(_vv.get("top_radius", 0.0))
                 elif gold_type == "ACSH_BREP_CLASS":
                     # Gold's own BREP decode derails (garbage major, empty
                     # acis_data [""] — the 3DSOLID prologue family) and
