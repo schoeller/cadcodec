@@ -3503,11 +3503,29 @@ that drives the implementation.
   handle, the SWEEP record (gold UNKNOWN_OBJ fallback, 261 bytes)
   stays elided, corpus gold 0/0 unchanged, fixture diffs 26/8
   unchanged (the node classes remain).
-- **Remaining phase A**: ACSH_SWEEP_CLASS (the two
-  `shsw_text`/`shsw_text2` opaque blobs — the current reader guess
-  reads embedded entities where the authored wire carries blobs),
-  ACSH_EXTRUSION_CLASS (identical plus the AcDbShExtrusion subclass),
-  then the per-class un-elide. The three named fixture-diff packets:
-  `3DSOLID.wires` stub (16, R2013+ shapes), `ACSH_SPHERE_CLASS` count
-  (8, Sphere family), `3DSOLID.point` wrong-value (2, Revolve
+- **Phase A step 2 — ACSH_SWEEP_CLASS (2026-09-23 probe, resumed
+  next session)**: the READER's blob handling is proved correct —
+  `read_embedded_entity` consumes the `shsw_text_size` BL worth of
+  bytes and produces `EmbeddedEntity::Unknown` which preserves them
+  byte-for-byte. The **WRITE path loses bytes** (`write_solid_
+  history_sweep` writes `BL(0) + BL(0)` and no bytes when the model
+  carries `None` — dropping 113 bytes on the Polysolid_2018
+  calibration: the original record is 261 bytes, the probe rewrite
+  148). The fix: extend `SolidHistorySweep` with dedicated raw-blob
+  fields (`shsw_method`, `shsw_text`, `shsw_bl93`, `shsw_text2`)
+  and read/write them directly rather than through the
+  `EmbeddedEntity` wrapper; then un-elide SWEEP (two one-liner
+  elide-guard edits). The probe frame numbers for the next session's
+  byte-walk: original Size 261 / Hdlsize 0x1D / Type 520 /
+  Address 33088 vs rewrite Size 148 / Hdlsize 0x29 / Address 33017.
+  Commit `e686903` has the analysis; the NEXT_SESSION "Write-path
+  byte-loss diagnosis" block has the exact writer code and the
+  `dump_section_bytes` commands.
+- **Remaining phase A after SWEEP**: ACSH_EXTRUSION_CLASS (the
+  SWEEP layout plus the AcDbShExtrusion subclass prefix; calibrate
+  against `sh_history/Extrude_2018.dwg`), then the per-node-class
+  un-elides (Sphere, Box, Loft, Revolve, Boolean, BREP), then the
+  three named fixture-diff packets:
+  `3DSOLID.wires` stub (16, R2013+ shapes), `ACSH_SPHERE_CLASS`
+  count (8, Sphere family), `3DSOLID.point` wrong-value (2, Revolve
   R2007/2010). See NEXT_SESSION.md for the full Phase A handover.
