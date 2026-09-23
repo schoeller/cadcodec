@@ -293,9 +293,15 @@ fn matrix_to_row_major(m: &crate::types::Matrix4) -> [f64; 12] {
 /// and is written; ACSH_SWEEP_CLASS, ACSH_EXTRUSION_CLASS,
 /// ACSH_LOFT_CLASS, and ACSH_REVOLVE_CLASS are written with their
 /// undocumented tails retained raw on the model and re-emitted
-/// verbatim (steps 2-4). The remaining node classes (the primitives,
-/// and BREP) stay elided until their layouts are calibrated and
-/// verified per the sh_history fixture campaign.
+/// verbatim (steps 2-4); ACSH_SPHERE_CLASS, ACSH_BOX_CLASS, and
+/// ACSH_BOOLEAN_CLASS are written through their typed arms, each
+/// calibrated against gold's live spec walk (step 5 — the skeleton
+/// traces verified each layout: sphere = BD radius; box = length /
+/// width / height BDs (the first non-identity base matrix written);
+/// boolean = RC operation + BL operand1/operand2). The remaining
+/// node classes (Wedge, Cylinder, Cone, Torus, Pyramid, and BREP)
+/// stay elided until a fixture lands for each — unverified elide
+/// removals are strict-reader risk.
 pub(crate) fn elided_solid_history_class(dxf_name: &str) -> bool {
     dxf_name.starts_with("ACSH_")
         && dxf_name != "ACSH_HISTORY_CLASS"
@@ -303,6 +309,9 @@ pub(crate) fn elided_solid_history_class(dxf_name: &str) -> bool {
         && dxf_name != "ACSH_EXTRUSION_CLASS"
         && dxf_name != "ACSH_LOFT_CLASS"
         && dxf_name != "ACSH_REVOLVE_CLASS"
+        && dxf_name != "ACSH_SPHERE_CLASS"
+        && dxf_name != "ACSH_BOX_CLASS"
+        && dxf_name != "ACSH_BOOLEAN_CLASS"
 }
 
 impl<'a> DwgObjectWriter<'a> {

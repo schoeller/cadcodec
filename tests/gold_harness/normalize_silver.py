@@ -558,6 +558,12 @@ _DYNBLOCK_RETYPE = {
     "ACSH_CHAMFER_CLASS": "ACSH_CHAMFER_CLASS",
     "ACSH_BOOLEAN_CLASS": "ACSH_BOOLEAN_CLASS",
     "ACSH_TORUS_CLASS": "ACSH_TORUS_CLASS",
+    # dwg2.spec 2951 (ACSH_SPHERE_CLASS, live in gold): the shared node
+    # skeleton plus a single BD radius (the SPHERE_CLASSES macro: major,
+    # minor, radius). Phase A step-5 packet — until this landed, silver's
+    # sphere records paired as UNKNOWN_OBJ and produced the sphere-family
+    # count/missing rows on every Sphere fixture.
+    "ACSH_SPHERE_CLASS": "ACSH_SPHERE_CLASS",
     "ACSH_BREP_CLASS": "ACSH_BREP_CLASS",
 }
 
@@ -4982,6 +4988,8 @@ def normalize_silver(
                 elif gold_type == "ACSH_TORUS_CLASS":
                     fields["major_radius"] = normalize_float(_vv.get("major_radius", 0.0))
                     fields["minor_radius"] = normalize_float(_vv.get("minor_radius", 0.0))
+                elif gold_type == "ACSH_SPHERE_CLASS":
+                    fields["radius"] = normalize_float(_vv.get("radius", 0.0))
                 elif gold_type == "ACSH_BREP_CLASS":
                     # Gold's own BREP decode derails (garbage major, empty
                     # acis_data [""] — the 3DSOLID prologue family) and
