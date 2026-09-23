@@ -1,0 +1,31 @@
+Provenance for RevolveA_2018.dwg
+
+Author app:              Autocad 2027.1 (campaign authoring app; the file
+                         was authored to the S18.7 RevolveA recipe row —
+                         correct this line if the maintainer's notes differ)
+Authoring date:           2026-09-23
+Author session (the S18.7 differential recipe, row RevolveA):
+  new drawing on a blank/default template, zero pre-existing entities
+  set solid-history recording ON
+  drew ONE CIRCLE, center 2,0,0, radius 0.8
+  REVOLVE the circle about axis 0,0,0 -> 0,0,1, typed angle 180
+
+Save format:              DWG 2018 (AC1032)
+
+Qualification (verified by acadrust harness, 2026-09-23, at landing):
+  gold dwgread: zero Error lines
+  wire version: AC1032, codepage 30
+  object census: 142 objects, 3 UNKNOWN_OBJ (sizes [21, 14, 75])
+  ACSH_REVOLVE_CLASS: registered
+  ACSH_HISTORY_CLASS: registered
+  3DSOLID: present (handle 0x2E4, size 532)
+  gold JSON parse: ok
+  template quality: clean
+  differential invariants (S18.7):
+    quartet bit-identity: the four RevolveA versions carry
+      bit-identical 254-bit tails
+    corpus: RevolveA_2018.dwg enters at read 0 / write 0
+    tail decode (acadrust sh_tail_decode): option spine [0,0,0,0,1.0,0],
+      revolve_angle = pi, profile_center (2, 0, 0), profile_radius 0.8, trailing triple (0, 0, 1)
+
+Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): RevolveA
