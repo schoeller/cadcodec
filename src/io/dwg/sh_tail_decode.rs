@@ -160,6 +160,8 @@ fn plausible_raw(value: f64) -> bool {
 struct BdEntry {
     value: f64,
     span: Span,
+    /// Raw ('00' + LE64) form vs one of the short pair codes.
+    raw: bool,
 }
 
 /// Read one BD at `pos`. Returns the entry or `None` when the form does
@@ -176,19 +178,23 @@ fn read_bd(bits: &TailBits, pos: u32) -> Option<BdEntry> {
                     start: pos,
                     len: 66,
                 },
+                raw: true,
             })
         }
         0b01 => Some(BdEntry {
             value: 1.0,
             span: Span { start: pos, len: 2 },
+            raw: false,
         }),
         0b10 => Some(BdEntry {
             value: 0.0,
             span: Span { start: pos, len: 2 },
+            raw: false,
         }),
         _ => Some(BdEntry {
             value: 0.0,
             span: Span { start: pos, len: 2 },
+            raw: false,
         }),
     }
 }
@@ -420,6 +426,105 @@ pub(crate) struct RevolveTailInfo {
     pub option_spans: Vec<Span>,
     pub angle_span: Option<Span>,
     pub raw_spans: Vec<Span>,
+    /// Structural profile block (§18.7 RevolveA/R analysis): the BD
+    /// spans of [profile center 3BD][profile radius BD] plus the
+    /// optional trailing 3BD present in the torus class. Spans cover
+    /// the whole BD form (marker-inclusive for raws, pair for
+    /// shorts); *_raw[] records the form for same-form splices.
+    pub profile_spans: Option<ProfileFieldSpans>,
+}
+
+/// Spans of the structurally parsed profile block.
+pub(crate) struct ProfileFieldSpans {
+    pub center: [Span; 3],
+    pub center_raw: [bool; 3],
+    pub radius: Span,
+    pub radius_raw: bool,
+    pub trailing: Option<[Span; 3]>,
+    pub trailing_raw: [bool; 3],
+}
+
+/// Strict structural parse of the profile block after the mid-region:
+/// [profile center 3BD][profile radius BD] and, in the torus class,
+/// a trailing 3BD ((0,0,1) in every landed specimen), ending exactly
+/// at the final two bits. EVIDENCE (all landed specimens):
+///
+/// - RevolveA/R (torus class, 254-bit tails): [mid 32] +
+///   [center.x raw 2.0][y 0.0][z 0.0][radius RAW 0.8/1.25] +
+///   [trailing (0,0,1)] + 2 flag bits.
+/// - The drag-authored original (axis-crossing class, 190 bits):
+///   [mid 38] + [center.x raw 0.2][y 0.0][z 0.0] +
+///   [radius SHORT '01' = 1.0] + 2 flag bits — no trailing trio,
+///   and the radius fits the two-bit short form.
+///
+/// The trailing trio's presence/absence and the mid-region's length
+/// differences are the two class markers the §18.7 C/I/F stems probe.
+fn parse_profile_block(
+    bits: &TailBits,
+    x_bd_span: Span,
+) -> Option<ProfileFieldSpans> {
+    let end_2 = bits.bit_len.checked_sub(2)?;
+    let mut spans = [Span { start: 0, len: 0 }; 3];
+    let mut raw_forms = [false; 3];
+    spans[0] = x_bd_span;
+    // The scan hands us the raw VALUE span; the block works with
+    // marker-inclusive BD spans.
+    raw_forms[0] = true;
+    let mut pos = x_bd_span.start + x_bd_span.len;
+    for axis in 1..3 {
+        let entry = read_bd(bits, pos)?;
+        if entry.span.start + entry.span.len > end_2 {
+            return None;
+        }
+        spans[axis] = entry.span;
+        raw_forms[axis] = entry.raw;
+        pos = entry.span.start + entry.span.len;
+    }
+    let radius = read_bd(bits, pos)?;
+    if radius.span.start + radius.span.len > end_2 {
+        return None;
+    }
+    let radius_span = radius.span;
+    let radius_raw = radius.raw;
+    pos = radius.span.start + radius.span.len;
+    // Optional trailing 3BD: three BDs must land exactly at
+    // bit_len - 2; a partial trail or a longer remainder rejects the
+    // structural parse (named fields stay None, positional view only).
+    let mut has_trailing = true;
+    let mut trail_spans = [Span { start: 0, len: 0 }; 3];
+    let mut trailing_raw = [false; 3];
+    let mut tpos = pos;
+    for axis in 0..3 {
+        let entry = match read_bd(bits, tpos) {
+            Some(entry) => entry,
+            None => {
+                has_trailing = false;
+                break;
+            }
+        };
+        if entry.span.start + entry.span.len > end_2 {
+            has_trailing = false;
+            break;
+        }
+        trail_spans[axis] = entry.span;
+        trailing_raw[axis] = entry.raw;
+        tpos = entry.span.start + entry.span.len;
+    }
+    let trailing = if has_trailing && tpos == end_2 {
+        Some(trail_spans)
+    } else if !has_trailing && pos == end_2 {
+        None
+    } else {
+        return None;
+    };
+    Some(ProfileFieldSpans {
+        center: spans,
+        center_raw: raw_forms,
+        radius: radius_span,
+        radius_raw,
+        trailing,
+        trailing_raw,
+    })
 }
 
 pub(crate) fn decode_revolve_tail(bytes: &[u8], bit_len: u32) -> Option<RevolveTailInfo> {
@@ -434,11 +539,48 @@ pub(crate) fn decode_revolve_tail(bytes: &[u8], bit_len: u32) -> Option<RevolveT
     let (mut raw_values, mut raw_spans) = scan_raws(&bits, head_end, bit_len);
     let revolve_angle = raw_values.first().copied();
     let angle_span = raw_spans.first().copied();
+    // The center x is the first post-angle raw; the structural parse
+    // continues from its span end (the value span; recover the BD span
+    // by including the two marker bits).
+    let mut profile = None;
+    if let Some(x_value_span) = raw_spans.get(1) {
+        let x_bd_span = Span {
+            start: x_value_span.start - 2,
+            len: x_value_span.len + 2,
+        };
+        if let Some(field_spans) = parse_profile_block(&bits, x_bd_span) {
+            let center = [
+                field_spans.center_raw[0]
+                    .then(|| bits.le64(field_spans.center[0].start + 2))
+                    .flatten()
+                    .unwrap_or_default(),
+                bd_value_at(&bits, field_spans.center[1], field_spans.center_raw[1]),
+                bd_value_at(&bits, field_spans.center[2], field_spans.center_raw[2]),
+            ];
+            let radius = bd_value_at(&bits, field_spans.radius, field_spans.radius_raw);
+            let trailing = field_spans.trailing.map(|_| {
+                [
+                    bd_value_at(&bits, field_spans.trailing.unwrap()[0], field_spans.trailing_raw[0]),
+                    bd_value_at(&bits, field_spans.trailing.unwrap()[1], field_spans.trailing_raw[1]),
+                    bd_value_at(&bits, field_spans.trailing.unwrap()[2], field_spans.trailing_raw[2]),
+                ]
+            });
+            profile = Some((field_spans, center, radius, trailing));
+        }
+    }
+    let (profile_spans, center, radius, trailing) = match profile {
+        Some((spans, center, radius, trailing)) => {
+            (Some(spans), Some(center), Some(radius), trailing)
+        }
+        None => (None, None, None, None),
+    };
     if !raw_values.is_empty() {
         raw_values.remove(0);
         // Keep the remaining spans index-aligned with the remaining
         // values: raw_doubles[0] is the entry AFTER the angle, so its
-        // span must be raw_spans[0] in the render.
+        // span must be raw_spans[0] in the render. (The center x and
+        // the raw radius are still in here positionally — they live in
+        // the named fields too, same spans.)
         raw_spans.remove(0);
     }
     Some(RevolveTailInfo {
@@ -446,11 +588,26 @@ pub(crate) fn decode_revolve_tail(bytes: &[u8], bit_len: u32) -> Option<RevolveT
             option_doubles: options,
             revolve_angle,
             raw_doubles: raw_values,
+            profile_center: center,
+            profile_radius: radius,
+            trailing_triple: trailing,
         },
         option_spans,
         angle_span,
         raw_spans,
+        profile_spans,
     })
+}
+
+/// Value of a BD field given its span and form.
+fn bd_value_at(bits: &TailBits, span: Span, raw: bool) -> f64 {
+    if raw {
+        bits.le64(span.start + 2).unwrap_or(0.0)
+    } else if bits.code(span.start) == Some(0b01) {
+        1.0
+    } else {
+        0.0
+    }
 }
 
 /// Public per-family entry points used by the reader to populate the
@@ -557,7 +714,47 @@ pub(crate) fn render_revolve_tail(
         }
     }
     splice_raw_run(&mut bits, &info.raw_spans, &view.raw_doubles, &info.view.raw_doubles);
+    if let Some(spans) = &info.profile_spans {
+        if let Some(new) = &view.profile_center {
+            for axis in 0..3 {
+                if let Some(old) = &info.view.profile_center {
+                    if new[axis] != old[axis] {
+                        splice_bd_field(&mut bits, spans.center[axis], spans.center_raw[axis], new[axis]);
+                    }
+                }
+            }
+        }
+        if let (Some(new), Some(old)) = (view.profile_radius, info.view.profile_radius) {
+            if new != old {
+                splice_bd_field(&mut bits, spans.radius, spans.radius_raw, new);
+            }
+        }
+        if let Some(trail_spans) = spans.trailing {
+            if let Some(new) = &view.trailing_triple {
+                if let Some(old) = &info.view.trailing_triple {
+                    for axis in 0..3 {
+                        if new[axis] != old[axis] {
+                            splice_bd_field(&mut bits, trail_spans[axis], spans.trailing_raw[axis], new[axis]);
+                        }
+                    }
+                }
+            }
+        }
+    }
     Some(bits.bytes)
+}
+
+/// Splice one BD field: raw spans take any f64 (bit-exact in their 64
+/// value bits); short spans flip only the same-form 0.0/1.0 pair (a
+/// form change would shift the stream — outside the Phase B rule).
+fn splice_bd_field(bits: &mut TailBits, span: Span, raw: bool, value: f64) {
+    if raw {
+        let _ = bits.set_le64(span.start + 2, value);
+    } else if value == 0.0 {
+        let _ = bits.set_pair(span.start, 0b10);
+    } else if value == 1.0 {
+        let _ = bits.set_pair(span.start, 0b01);
+    }
 }
 
 fn slice_pairs(

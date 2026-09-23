@@ -1306,9 +1306,26 @@ pub struct SolidHistoryRevolveTail {
     /// resolves it; do not over-rely on the field name until then.
     pub option_doubles: Vec<f64>,
     /// First raw BD entry after the option spine: the revolve sweep
-    /// angle in radians (Revolve fixtures: 3*pi/2 = 270°).
+    /// angle in radians — CONFIRMED on two independent values (the
+    /// original's 3*pi/2 = 270°, the typed RevolveA/R's pi = 180°).
     pub revolve_angle: Option<f64>,
-    /// Remaining raw BD entries in stream order (Revolve fixtures:
-    /// [0.2]).
+    /// Remaining raw BD entries in stream order, positional: the
+    /// original crossing-class lists [center.x = 0.2]; the RevolveA/R
+    /// torus class [center.x 2.0, radius raw]. The named fields below
+    /// carry the structural semantics.
     pub raw_doubles: Vec<f64>,
+    /// The profile circle's center as parsed from the structural block
+    /// `[center 3BD][radius BD]` after the mid-region (§18.7 evidence:
+    /// original (0.2, 0, 0), RevolveA/R (2, 0, 0)). Whether the x is
+    /// world-X or axis-relative distance is decided by the RevolveO
+    /// stem (offset axis).
+    pub profile_center: Option<[f64; 3]>,
+    /// The profile circle's radius (RevolveA 0.8, RevolveR 1.25, and
+    /// the ORIGINAL 1.0 — stored in the two-bit short BD form, which
+    /// is why it was invisible to the raw scans).
+    pub profile_radius: Option<f64>,
+    /// Optional trailing 3BD after the radius ((0, 0, 1) in the
+    /// RevolveA/R torus class; ABSENT in the original's axis-crossing
+    /// class): the axis-direction candidate — RevolveT decides.
+    pub trailing_triple: Option<[f64; 3]>,
 }

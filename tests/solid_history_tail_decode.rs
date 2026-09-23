@@ -42,6 +42,12 @@ const LOFT_BITS: u32 = 492;
 
 const REVOLVE_HEX: &str = "AA634884CDFDF3644902AA912541A26A666666666724FE90";
 const REVOLVE_BITS: u32 = 190;
+const REVOLVE_A_HEX: &str = "AA6060B51153EC842502AA9126400000000000000040A26A6666666667A4FE90";
+const REVOLVE_A_BITS: u32 = 254;
+
+const REVOLVE_R_HEX: &str = "AA6060B51153EC842502AA9126400000000000000040A0000000000003D0FE90";
+const REVOLVE_R_BITS: u32 = 254;
+
 
 
 #[test]
@@ -128,9 +134,109 @@ fn revolve_tail_decodes_the_pinned_semantics() {
         .expect("the revolve tail must decode");
     assert_eq!(view.option_doubles, vec![0.0, 0.0, 0.0, 0.0, 1.0, 0.0]);
     // The first raw entry is the revolve sweep angle: 3*pi/2 (270
-    // degrees) in every Revolve fixture.
+    // degrees) in the original fixture; the typed 180-degree A/R
+    // matrix stems read pi — two independent values.
     assert_eq!(view.revolve_angle, Some(3.0 * std::f64::consts::FRAC_PI_2));
     assert_eq!(view.raw_doubles, vec![0.2]);
+    // The structural profile block (§18.7 pipeline outcome): the
+    // original is the axis-crossing class — profile circle centered
+    // (0.2, 0, 0) with radius 1.0 stored in the two-bit short BD form
+    // (invisible to the raw scans that saw only the 0.2 x), and NO
+    // trailing trio.
+    assert_eq!(view.profile_center, Some([0.2, 0.0, 0.0]));
+    assert_eq!(view.profile_radius, Some(1.0));
+    assert_eq!(view.trailing_triple, None);
+}
+
+#[test]
+fn revolve_matrix_stems_decode_the_structural_profile() {
+    // The §18.7 RevolveA/R torus-class quads (landed 2026-09-23,
+    // bit-identical across their four DWG versions): the structural
+    // block carries the profile center (2, 0, 0), the radius as a raw
+    // BD, and the (0, 0, 1) trailing trio the crossing class lacks.
+    let view = revolve_tail_view(&unhex(REVOLVE_A_HEX), REVOLVE_A_BITS)
+        .expect("the RevolveA tail must decode");
+    assert_eq!(view.option_doubles, vec![0.0, 0.0, 0.0, 0.0, 1.0, 0.0]);
+    assert_eq!(view.revolve_angle, Some(std::f64::consts::PI));
+    assert_eq!(view.raw_doubles, vec![2.0, 0.8]);
+    assert_eq!(view.profile_center, Some([2.0, 0.0, 0.0]));
+    assert_eq!(view.profile_radius, Some(0.8));
+    assert_eq!(view.trailing_triple, Some([0.0, 0.0, 1.0]));
+
+    let view = revolve_tail_view(&unhex(REVOLVE_R_HEX), REVOLVE_R_BITS)
+        .expect("the RevolveR tail must decode");
+    assert_eq!(view.revolve_angle, Some(std::f64::consts::PI));
+    assert_eq!(view.raw_doubles, vec![2.0, 1.25]);
+    assert_eq!(view.profile_center, Some([2.0, 0.0, 0.0]));
+    // The radius-only variable: A 0.8 vs R 1.25 at the same span.
+    assert_eq!(view.profile_radius, Some(1.25));
+    assert_eq!(view.trailing_triple, Some([0.0, 0.0, 1.0]));
+}
+
+#[test]
+fn revolve_profile_edits_land_bit_locally() {
+    // The structural fields are splice-backed like every other named
+    // field: editing the profile radius on the RevolveA tail lands
+    // inside its raw value span only (bits [182..246), bytes 22..=30).
+    let tail = unhex(REVOLVE_A_HEX);
+    let mut document = CadDocument::with_version(DxfVersion::AC1032);
+    let entity = document
+        .add_entity(EntityType::Solid3D(Solid3D::new()))
+        .unwrap();
+    document
+        .create_solid_history(
+            entity,
+            SolidHistoryOperation::Revolve(SolidHistoryRevolve {
+                base: SolidHistoryNodeBase::new(1),
+                raw_tail: tail.clone(),
+                raw_tail_bit_len: REVOLVE_A_BITS,
+                tail_decode: revolve_tail_view(&tail, REVOLVE_A_BITS),
+                ..SolidHistoryRevolve::default()
+            }),
+        )
+        .unwrap();
+    let mut replacement = document.solid_history_operations(entity).unwrap()[0].clone();
+    let SolidHistoryOperation::Revolve(revolve) = &mut replacement else {
+        panic!("expected a revolve node");
+    };
+    let view = revolve
+        .tail_decode
+        .get_or_insert_with(SolidHistoryRevolveTail::default);
+    view.profile_radius = Some(0.75);
+    document.update_solid_history_step(entity, replacement).unwrap();
+
+    let bytes = DwgWriter::write_to_vec(&document).unwrap();
+    let roundtrip = DwgReader::from_stream(Cursor::new(bytes)).read().unwrap();
+    let SolidHistoryOperation::Revolve(revolve) =
+        &roundtrip.solid_history_operations(entity).unwrap()[0]
+    else {
+        panic!("expected a revolve node");
+    };
+    assert_eq!(
+        revolve.tail_decode.as_ref().unwrap().profile_radius,
+        Some(0.75),
+        "the radius edit re-reads"
+    );
+    // The structural neighbors are untouched.
+    let view = revolve.tail_decode.as_ref().unwrap();
+    assert_eq!(view.profile_center, Some([2.0, 0.0, 0.0]));
+    assert_eq!(view.revolve_angle, Some(std::f64::consts::PI));
+    assert_eq!(view.trailing_triple, Some([0.0, 0.0, 1.0]));
+    assert_eq!(revolve.raw_tail.len(), tail.len());
+    let differing: Vec<usize> = revolve
+        .raw_tail
+        .iter()
+        .zip(tail.iter())
+        .enumerate()
+        .filter(|(_, (a, b))| a != b)
+        .map(|(index, _)| index)
+        .collect();
+    assert!(!differing.is_empty());
+    assert!(
+        differing.iter().all(|index| (22..31).contains(index)),
+        "radius edits must stay inside the radius span (bytes 22..=30), \
+         got {differing:?}"
+    );
 }
 
 #[test]
