@@ -4071,6 +4071,8 @@ impl<'a> SectionReader<'a> {
                         flag_290: fields.bool(section, 290),
                         close_to_axis: fields.bool(section, 291),
                         sweep_entity,
+                        raw_tail: Vec::new(),
+                        raw_tail_bit_len: 0,
                     },
                 ))
             }

@@ -50,18 +50,6 @@ fn preserves_embedded_body(
     (encoded.bit_length..bit_length).all(|bit| bytes[bit / 8] & (1 << (7 - bit % 8)) == 0)
 }
 
-/// Read one embedded entity body directly from an enclosing DWG bitstream.
-pub(crate) fn read_embedded_entity(
-    reader: &mut DwgMergedReader,
-    type_code: i32,
-    byte_length: usize,
-    version: DwgVersion,
-    dxf_version: DxfVersion,
-) -> Option<EmbeddedEntity> {
-    let bytes = reader.read_bytes(byte_length);
-    decode_embedded_entity(type_code, byte_length * 8, bytes, version, dxf_version)
-}
-
 /// Read an embedded entity whose size prefix is a meaningful bit count.
 pub(crate) fn read_embedded_entity_bits(
     reader: &mut DwgMergedReader,

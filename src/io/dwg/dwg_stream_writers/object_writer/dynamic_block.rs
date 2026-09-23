@@ -169,24 +169,31 @@ impl<'a> DwgObjectWriter<'a> {
             .write_handle(DwgReferenceType::HardPointer, value.material.value());
     }
 
+    /// Emit a captured undocumented node-class tail verbatim (Phase A raw
+    /// retention). Returns false when the model carries no tail — the byte
+    /// vector is the authority, so a deserialized record with a declared
+    /// but inconsistent bit_len also falls back — letting the caller run
+    /// its modeled arm instead. See `SolidHistorySweep::shsw_raw_tail`.
+    fn write_undocumented_tail(&mut self, bytes: &[u8], bit_len: u32) -> bool {
+        let bits = (bit_len as usize).min(bytes.len() * 8);
+        if bits == 0 {
+            return false;
+        }
+        for index in 0..bits {
+            let byte = bytes[index / 8];
+            let bit = (byte >> (7 - index % 8)) & 1;
+            self.writer.write_bit(bit == 1);
+        }
+        true
+    }
+
     fn write_solid_history_sweep(&mut self, value: &SolidHistorySweep) {
         self.write_solid_history_base(&value.base);
         self.writer.write_bit_long(value.operation_major);
         self.writer.write_bit_long(value.operation_minor);
-        // The byte vector is the authority: a deserialized or programmatically
-        // constructed model can carry bit_len past the bytes (pub fields, no
-        // validation), so clamp to what can actually be emitted. A model with
-        // a declared-but-empty tail falls through to the modeled arm below.
-        let tail_bits = (value.shsw_raw_tail_bit_len as usize).min(value.shsw_raw_tail.len() * 8);
-        if tail_bits > 0 {
+        if self.write_undocumented_tail(&value.shsw_raw_tail, value.shsw_raw_tail_bit_len) {
             // Phase A raw retention: DWG-read records re-emit their captured
-            // tail bits verbatim (bit-faithful by construction; see the
-            // shsw_raw_tail model doc).
-            for index in 0..tail_bits {
-                let byte = value.shsw_raw_tail[index / 8];
-                let bit = (byte >> (7 - index % 8)) & 1;
-                self.writer.write_bit(bit == 1);
-            }
+            // tail bits verbatim (bit-faithful by construction).
             return;
         }
         // Modeled fallback (DXF-read records, no captured tail): the
@@ -329,6 +336,11 @@ impl<'a> DwgObjectWriter<'a> {
                 self.write_solid_history_base(&value.base);
                 self.writer.write_bit_long(value.operation_major);
                 self.writer.write_bit_long(value.operation_minor);
+                if self.write_undocumented_tail(&value.raw_tail, value.raw_tail_bit_len) {
+                    return;
+                }
+                // Modeled fallback (DXF-read records, no captured tail): the
+                // documented-guess field sequence.
                 self.writer
                     .write_bit_long(value.cross_sections.len() as i32);
                 for entity in &value.cross_sections {
@@ -363,6 +375,11 @@ impl<'a> DwgObjectWriter<'a> {
                 self.write_solid_history_base(&value.base);
                 self.writer.write_bit_long(value.operation_major);
                 self.writer.write_bit_long(value.operation_minor);
+                if self.write_undocumented_tail(&value.raw_tail, value.raw_tail_bit_len) {
+                    return;
+                }
+                // Modeled fallback (DXF-read records, no captured tail): the
+                // documented-guess field sequence.
                 self.writer.write_3bit_double(value.axis_point);
                 self.writer.write_3raw_double(value.direction);
                 self.writer.write_bit_double(value.revolve_angle);

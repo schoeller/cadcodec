@@ -290,16 +290,19 @@ fn matrix_to_row_major(m: &crate::types::Matrix4) -> [f64; 12] {
 /// or dead references that make strict readers refuse the whole file.
 ///
 /// Phase A state (2026-09-23): ACSH_HISTORY_CLASS has a verified layout
-/// and is written; ACSH_SWEEP_CLASS and ACSH_EXTRUSION_CLASS are written
-/// with their undocumented tails retained raw on the model and re-emitted
-/// verbatim (steps 2-3). The remaining node classes (LOFT, REVOLVE, the
-/// primitives, and BREP) stay elided until their layouts are calibrated
-/// and verified per the sh_history fixture campaign.
+/// and is written; ACSH_SWEEP_CLASS, ACSH_EXTRUSION_CLASS,
+/// ACSH_LOFT_CLASS, and ACSH_REVOLVE_CLASS are written with their
+/// undocumented tails retained raw on the model and re-emitted
+/// verbatim (steps 2-4). The remaining node classes (the primitives,
+/// and BREP) stay elided until their layouts are calibrated and
+/// verified per the sh_history fixture campaign.
 pub(crate) fn elided_solid_history_class(dxf_name: &str) -> bool {
     dxf_name.starts_with("ACSH_")
         && dxf_name != "ACSH_HISTORY_CLASS"
         && dxf_name != "ACSH_SWEEP_CLASS"
         && dxf_name != "ACSH_EXTRUSION_CLASS"
+        && dxf_name != "ACSH_LOFT_CLASS"
+        && dxf_name != "ACSH_REVOLVE_CLASS"
 }
 
 impl<'a> DwgObjectWriter<'a> {

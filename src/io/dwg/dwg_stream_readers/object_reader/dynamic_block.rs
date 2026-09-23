@@ -219,6 +219,25 @@ fn read_history_node_base(reader: &mut DwgMergedReader) -> SolidHistoryNodeBase 
     }
 }
 
+/// Capture an undocumented SH node-class tail: the bits from the current
+/// position to the record's main-section end, MSB-packed. The declared
+/// splits are attacker-controlled framing (a hostile UMC hdlsize or
+/// pre-R2010 raw-long can lie), so the end is clamped to the physical
+/// record window — gold clamps only at the physical record end too. See
+/// `SolidHistorySweep::shsw_raw_tail` for the Phase A rationale.
+fn capture_undocumented_tail(reader: &mut DwgMergedReader) -> (Vec<u8>, u32) {
+    let tail_start = reader.position_in_bits();
+    let tail_end = reader.main_end_bits().min(reader.record_end_bits());
+    let tail_bit_len = (tail_end - tail_start).max(0) as usize;
+    let mut bytes = vec![0u8; (tail_bit_len + 7) / 8];
+    for index in 0..tail_bit_len {
+        if reader.read_bit() {
+            bytes[index / 8] |= 1 << (7 - index % 8);
+        }
+    }
+    (bytes, tail_bit_len as u32)
+}
+
 fn read_history_sweep(reader: &mut DwgMergedReader, base: SolidHistoryNodeBase) -> SolidHistorySweep {
     let operation_major = reader.read_bit_long();
     let operation_minor = reader.read_bit_long();
@@ -227,23 +246,13 @@ fn read_history_sweep(reader: &mut DwgMergedReader, base: SolidHistoryNodeBase) 
     // walk with "Unstable Class") and the shsw blob guess of its debug spec
     // does not match the authored wires (the size fields read 0 while
     // option/transform/flag content follows, so per-field modeling corrupts
-    // and shrinks the record). Capture the whole tail from here to the
-    // record's main-section end and write it verbatim (shsw_raw_tail).
+    // and shrinks the record). Capture the whole tail from here (including
+    // the direction bits, for verbatim re-emission) and write it verbatim
+    // (shsw_raw_tail). The direction below is a semantic peek only.
     let tail_start = reader.position_in_bits();
     let direction = reader.read_3bit_double();
     reader.set_position_in_bits(tail_start);
-    // The declared split is attacker-controlled framing (a hostile UMC
-    // hdlsize or pre-R2010 raw-long can claim a main end far beyond, or
-    // before, the physical window): clamp to the record end — gold
-    // clamps only at the physical record end too.
-    let tail_end = reader.main_end_bits().min(reader.record_end_bits());
-    let tail_bit_len = (tail_end - tail_start).max(0) as usize;
-    let mut raw_tail = vec![0u8; (tail_bit_len + 7) / 8];
-    for index in 0..tail_bit_len {
-        if reader.read_bit() {
-            raw_tail[index / 8] |= 1 << (7 - index % 8);
-        }
-    }
+    let (raw_tail, tail_bit_len) = capture_undocumented_tail(reader);
     SolidHistorySweep {
         base,
         operation_major,
@@ -254,7 +263,7 @@ fn read_history_sweep(reader: &mut DwgMergedReader, base: SolidHistoryNodeBase) 
         shsw_bl93: 0,
         shsw_text2: Vec::new(),
         shsw_raw_tail: raw_tail,
-        shsw_raw_tail_bit_len: tail_bit_len as u32,
+        shsw_raw_tail_bit_len: tail_bit_len,
         sweep_entity: None,
         path_entity: None,
         draft_angle: 0.0,
@@ -467,82 +476,48 @@ pub fn read_solid_history_data(
         "ACSH_LOFT_CLASS" => {
             let operation_major = reader.read_bit_long();
             let operation_minor = reader.read_bit_long();
-            let cross_count = safe_count(reader.read_bit_long());
-            let mut cross_sections = Vec::with_capacity(cross_count as usize);
-            for _ in 0..cross_count {
-                let entity_type = reader.read_bit_long();
-                let byte_length = safe_count(reader.read_bit_long()) as usize;
-                if let Some(entity) = crate::io::dwg::embedded_entity::read_embedded_entity(
-                    reader,
-                    entity_type,
-                    byte_length,
-                    version,
-                    dxf_version,
-                ) {
-                    cross_sections.push(entity);
-                }
-            }
-            let guide_count = safe_count(reader.read_bit_long());
-            let mut guides = Vec::with_capacity(guide_count as usize);
-            for _ in 0..guide_count {
-                let entity_type = reader.read_bit_long();
-                let byte_length = safe_count(reader.read_bit_long()) as usize;
-                if let Some(entity) = crate::io::dwg::embedded_entity::read_embedded_entity(
-                    reader,
-                    entity_type,
-                    byte_length,
-                    version,
-                    dxf_version,
-                ) {
-                    guides.push(entity);
-                }
-            }
+            // Phase A raw retention: the LOFT tail layout is
+            // gold-undocumented (DEBUGGING_CLASS, no oracle) and the
+            // guessed cross-section/guide walk does not match the
+            // authored wires. Capture verbatim (see shsw_raw_tail).
+            let (raw_tail, raw_tail_bit_len) = capture_undocumented_tail(reader);
             SolidHistoryOperation::Loft(SolidHistoryLoft {
                 base,
                 operation_major,
                 operation_minor,
-                cross_sections,
-                guides,
+                cross_sections: Vec::new(),
+                guides: Vec::new(),
                 parameters: None,
+                raw_tail,
+                raw_tail_bit_len,
             })
         }
         "ACSH_REVOLVE_CLASS" => {
             let operation_major = reader.read_bit_long();
             let operation_minor = reader.read_bit_long();
-            let axis_point = reader.read_3bit_double();
-            let direction = reader.read_3raw_double();
-            let revolve_angle = reader.read_bit_double();
-            let start_angle = reader.read_bit_double();
-            let draft_angle = reader.read_bit_double();
-            let field_44 = reader.read_bit_double();
-            let field_45 = reader.read_bit_double();
-            let twist_angle = reader.read_bit_double();
-            let flag_290 = reader.read_bit();
-            let close_to_axis = reader.read_bit();
-            let entity_type = reader.read_bit_long();
-            let byte_length = safe_count(reader.read_bit_long()) as usize;
-            let sweep_entity = crate::io::dwg::embedded_entity::read_embedded_entity(
-                reader,
-                entity_type,
-                byte_length,
-                version,
-                dxf_version,
-            );
+            // Phase A raw retention: the REVOLVE tail layout is
+            // gold-undocumented and the guessed walk was disproven by
+            // budget alone — its fixed 192-bit raw-direction triple
+            // exceeds the entire remaining tail of every Revolve
+            // fixture record. Capture verbatim (see shsw_raw_tail).
+            let (raw_tail, raw_tail_bit_len) = capture_undocumented_tail(reader);
             SolidHistoryOperation::Revolve(SolidHistoryRevolve {
                 base,
                 operation_major,
                 operation_minor,
-                axis_point,
-                direction,
-                revolve_angle,
-                start_angle,
-                draft_angle,
-                field_44,
-                field_45,
-                twist_angle,
-                flag_290,
-                close_to_axis,
-                sweep_entity,
+                axis_point: crate::types::Vector3::ZERO,
+                direction: crate::types::Vector3::ZERO,
+                revolve_angle: 0.0,
+                start_angle: 0.0,
+                draft_angle: 0.0,
+                field_44: 0.0,
+                field_45: 0.0,
+                twist_angle: 0.0,
+                flag_290: false,
+                close_to_axis: false,
+                sweep_entity: None,
+                raw_tail,
+                raw_tail_bit_len,
             })
         }
         _ => return None,

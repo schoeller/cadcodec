@@ -1133,6 +1133,14 @@ pub struct SolidHistoryLoft {
     /// The native history stream remains unchanged for other consumers.
     #[cfg_attr(feature = "serde", serde(default))]
     pub parameters: Option<SolidHistoryLoftParameters>,
+    /// Raw post-`op.minor` payload of a DWG-read loft record, MSB-packed
+    /// (Phase A raw retention — same rationale and boundary as
+    /// `SolidHistorySweep::shsw_raw_tail`: the tail layout is
+    /// gold-undocumented and the modeled fields above are the DXF /
+    /// modeled-fallback channel only).
+    pub raw_tail: Vec<u8>,
+    /// Exact bit length of `raw_tail`; trailing pad bits are zero.
+    pub raw_tail_bit_len: u32,
 }
 
 /// Parametric loft settings. Angles are radians; magnitudes are nonnegative.
@@ -1200,4 +1208,14 @@ pub struct SolidHistoryRevolve {
     pub flag_290: bool,
     pub close_to_axis: bool,
     pub sweep_entity: Option<crate::entities::EmbeddedEntity>,
+    /// Raw post-`op.minor` payload of a DWG-read revolve record,
+    /// MSB-packed (Phase A raw retention — same rationale and boundary
+    /// as `SolidHistorySweep::shsw_raw_tail`: the tail layout is
+    /// gold-undocumented; the modeled fields above are the DXF /
+    /// modeled-fallback channel only. The guessed walk was disproven by
+    /// budget alone — the fixed 192-bit raw-direction triple exceeds the
+    /// entire remaining tail of every Revolve fixture record).
+    pub raw_tail: Vec<u8>,
+    /// Exact bit length of `raw_tail`; trailing pad bits are zero.
+    pub raw_tail_bit_len: u32,
 }
