@@ -141,7 +141,6 @@ target/debug/dump_section_bytes <file> <A> <N>
 ## Commit inventory (this halt)
 
 ```
-<step-6 commits: code, plan, this handover>
 14f9a4a  docs(harness): Phase A step-5 closure — primitives record + 3DSOLID packet queue
 19308ee  fix(harness): land the sphere projection and un-elide Box/Boolean/Sphere — Phase A step 5
 91c6cd3  docs(harness): review corrections — step-4 autopsy phrasing and position-bookkeeping note
