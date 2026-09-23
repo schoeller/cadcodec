@@ -8,7 +8,15 @@ Author session (the S18.7 differential recipe, row RevolveR):
   new drawing on a blank/default template, zero pre-existing entities
   set solid-history recording ON
   drew ONE CIRCLE, center 2,0,0, radius 1.25
-  REVOLVE the circle about axis 0,0,0 -> 0,0,1, typed angle 180
+  REVOLVE the circle about the Y axis (typed axis points on +Y,
+                        e.g. 0,0,0 -> 0,1,0), typed angle 180
+  NOTE (2026-09-23 correction): this landing record first wrote
+  'axis 0,0,0 -> 0,0,1' from the recipe draft — the typed Z axis is
+  not a workable pick in the plan view and the actual authoring
+  used the Y axis. Footprint-verified by the harness from the
+  3DSOLID wires: the y extent is the minor one and the XZ span
+  equals the torus major radius (A/R: |y| <= 0.8/1.25, |x|,|z|
+  up to 2.8/3.25).
 
 Save format:              DWG 2013 (AC1027)
 
@@ -25,7 +33,10 @@ Qualification (verified by acadrust harness, 2026-09-23, at landing):
     quartet bit-identity: the four RevolveR versions carry
       bit-identical 254-bit tails
     corpus: RevolveR_2013.dwg enters at read 0 / write 0
-    tail decode (acadrust sh_tail_decode): option spine [0,0,0,0,1.0,0],
+    tail decode (acadrust sh_tail_decode): head [0,0,0,0,1.0,0]
+                        (the axis_pt/axis_dir-pair reading is the
+                        evidence-led interpretation — the '01' = dir.Y
+                        of the Y axis; see S18.7),
       revolve_angle = pi, profile_center (2, 0, 0), profile_radius 1.25, trailing triple (0, 0, 1)
 
 Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): RevolveR

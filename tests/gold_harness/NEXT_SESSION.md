@@ -35,9 +35,15 @@ capture; `None` when the anchor layout doesn't hold):
   overlap that names the semantics).
 - **Loft** (`SolidHistoryLoftTail`): head `[1.0]` + raw run
   `[2.0, 2.0, 5.0, 0.3, π/2, π/2]` (positional).
-- **Revolve** (`SolidHistoryRevolveTail`): option spine
-  `[0,0,0,0,1.0,0]`, then `revolve_angle = 3π/2` (270°, the one
-  confirmed named angle), then raws `[0.2]`.
+- **Revolve** (`SolidHistoryRevolveTail`): head
+  `[0,0,0,0,1.0,0]` (evidence-led reading: `[axis_pt
+  (0,0,0)][axis_dir (0,1,0)]` — every landed specimen is a +Y
+  revolution, footprint-verified), then `revolve_angle` (confirmed
+  on two values: the original's 3π/2 and the A/R quads' π), then
+  the structural `[profile center 3BD][radius BD]` block — the
+  original (0.2, 0, 0) r 1.0 (radius in the short BD form), the
+  A/R tori (2, 0, 0) r 0.8/1.25 raw + the `(0,0,1)` trailing
+  3BD the crossing class lacks.
 
 **The write rule holds**: the captured bits are the authority;
 `render_*_tail` re-decodes the stored tail and splices ONLY the
@@ -62,18 +68,27 @@ splice + the section checksum).
    in the two-bit short BD form; the torus class (A/R) adds a
    `(0,0,1)` trailing 3BD the crossing class lacks. The model now
    exposes `profile_center`/`profile_radius`/`trailing_triple`
-   (splice-backed, bit-locally edited). **Still owed by the recipe**
+   (splice-backed, bit-locally edited). **The 2026-09-23 authoring
+   constraint: the typed Z axis is NOT workable in the plan view —
+   all revolve rows use Y-family axes (footprint-verified: A/R and
+   the original are all +Y revolutions). Still owed by the recipe**
    (author per §18.7, land in `sh_history/`): the remaining revolve
-   matrix stems **RevolveC** (center-only: is the first raw really
-   the center.x?), **RevolveI** (crossing-class: the trailing-trio
-   absence + the mid-region), **RevolveO** (axis point delta:
-   world-X vs axis-relative distance + the head '01' pivot),
-   **RevolveT** (axis direction delta — settles the options-vs-
-   axis-pair reading of the head), **RevolveF** (the 360 form and
-   the trailing flags); plus the sweep/extrude/loft stems
-   **PolysolidX/D**, **ExtrudeH/R/T/P**, **Loft3/H/R** (§18.7 rows,
-   unchanged). The next session runs the same pipeline on each
-   landing: dump, quartet-identity check, decode, position-diff,
+   matrix stems **RevolveC** (center `4,0,0` r 0.8, Y axis —
+   center-only: is the first raw really the center.x?),
+   **RevolveI** (center `0.6,0,0` r 0.8 crossing the Y axis — the
+   trailing-trio absence + the mid-region + the twice-named
+   predictions: profile (0.6, 0.8) both raw, no trio), **RevolveO**
+   (axis `2.375,0,0` → `2.375,5,0`, Y-PARALLEL offset — world-X vs
+   axis-relative distance for the center + the head's raw-2.375
+   test of the `[axis_pt][axis_dir]` reading), **RevolveT** (axis
+   `0,0,0` → `3.75,2.5,0`, an in-plane tilt — the head GROWS ~128
+   raw bits iff `[axis_pt][axis_dir]`, stays ~12 bits iff options:
+   a size arbitration), **RevolveF** (Y axis, angle typed 360 —
+   the full-turn encoding and the trailing flags); plus the
+   sweep/extrude/loft stems **PolysolidX/D**, **ExtrudeH/R/T/P**,
+   **Loft3/H/R** (§18.7 rows). The next session runs the same
+   pipeline on each landing: dump, QUARTET-IDENTITY + the
+   FOOTPRINT-AXIS CHECK (the A/R lesson), decode, position-diff,
    extend `sh_tail_decode.rs`, pin, four gates.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.

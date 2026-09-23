@@ -3770,10 +3770,20 @@ wireframe values on the same modeler backing).
   32][center (2,0,0) — x raw][y,z '10'][radius RAW 0.8/1.25]
   [trailing (0,0,1) 3BD][2 bits]`. The mid-length and the
   trailing-trio presence are the two class markers the remaining
-  matrix stems (C/I/F) probe; the head is still read TWO ways
-  (options-with-scale vs `[axis_pt][axis_dir]` — every specimen
-  revolves about an origin/Z axis, so the pivot pair never moves);
-  `RevolveO`/`RevolveT` resolve it.
+  matrix stems (C/I/F) probe. NOTE the 2026-09-23 footprint
+  correction: ALL THREE landed specimens revolve about the **+Y
+  axis** (wire extents verified: the original's XZ imprint
+  [−0.85, 1.2] = center.x 0.2 ± radius 1.0 with |y| minor; A/R's
+  |y| minor at the radius, XZ at the torus major radius; the
+  typed Z axis is un-workable in the plan view — see the §18.7
+  authoring constraint). The head's `'01'` therefore reads
+  EVIDENCE-LED as `[axis_pt (0,0,0)][axis_dir (0,1,0)]`'s dir.Y
+  (the pivot '01' has never moved because every specimen to date
+  is a +Y revolution), and the `(0,0,1)` trailing triple is NOT
+  the axis direction but the profile-plane normal / revolve
+  reference candidate. `RevolveO`/`RevolveT` (both typeable in
+  the plan view per the constraint) make the two head readings
+  diverge and settle it.
 
 **Wire-format corollaries confirmed along the way:** the
 tails' raw BD entries are plain LE doubles per DWG byte order
@@ -3895,25 +3905,47 @@ workdirs cleanly):
 | P1 | `ExtrudeR_<v>` | `CIRCLE` center `0,0,0` radius `3.125`; `EXTRUDE` height `2` | radius 1→3.125 (height unchanged) | does the 64-bit payload encode the profile? (3.125 has a long non-repeating mantissa — it must show bit-exactly if stored as a raw double) |
 | P1 | `ExtrudeT_<v>` | `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` with the `Taper angle` option, taper `15`, height `2` | draft/taper 0→15° (the only sweep-option variable reachable from a command) | the sweep option spine after the direction: [0,0,0,0,1.0,0,…]. A nonzero draft has to appear as a short-adjacent BD or a raw entry — whichever moves names the spine slots (and settles the same scale-vs-vector confound the revolve head carries); if NOTHING in the tail moves, the spine is NOT options and the taper went elsewhere — also decisive |
 **The revolve set is a seven-stem matrix, not a pair** (2026-09-23
-sufficiency review below the table): the two-stem design left the
-tail's head semantics unresolved, because every revolve specimen —
-the drag-authored original included — rotates about an origin/Z
-axis, so the head's `'01'` pair never moves and TWO readings stay
-alive: "option spine whose `BD('01')` is the scale factor" vs
-"`[axis_pt (0,0,0) 3BD][axis_dir (0,0,1)-form 3BD]`" — the
-Phase A budget disproof (a raw `2RD` direction cannot fit in 190
-bits) rules out raw direction storage but is exactly consistent
-with BD-short axis storage in the head. The matrix axes are the
-three profile variables (radius, center-distance, crossing-class)
-and the two axis variables (point, direction):
+sufficiency review, then corrected by the footprint evidence):
+the two-stem design left the tail's head semantics unresolved,
+because every revolve specimen — the drag-authored original
+included — rotates about an origin axis through (0,0,0) with a
+PLAN-VIEW-TYPEABLE direction, so the head's `'01'` pair at the
+4th pair-position never moves and TWO readings stay alive:
+"option spine whose `BD('01')` is the scale factor" vs
+"`[axis_pt (0,0,0) 3BD][axis_dir]`". The 2026-09-23 wire-footprint
+check SETTLED several facts and reseated the debate: **all three
+landed specimens revolve about the +Y axis** (A/R: |y| ≤ 0.8/1.25
+minor with the XZ span = the torus major radius; the original:
+|y| ≤ 0.2 with the XZ imprint [−0.85, 1.2] = the predicted
+center.x 0.2 ± radius 1.0 footprint) — so the evidence-led head
+reading is now `[axis_pt (0,0,0)][axis_dir (0,1,0)]` with the
+`'01'` = dir.Y, and the A/R's trailing `(0,0,1)` triple is NOT the
+axis direction (it is the profile-plane-normal / revolve-reference
+candidate — absent in the crossing-class original; RevolveI
+decides). The Phase A budget disproof (a raw `2RD` direction
+cannot fit in 190 bits) still rules out RAW direction storage;
+BD-short or BD-mixed axis storage in the head fits every landed
+tail exactly. `RevolveO`/`RevolveT` make the two readings diverge
+(O: a raw 2.375 vs an unmoved options head; T: the head GROWS by
+~128 raw bits iff pt/dir, stays ~12 bits iff options). The matrix
+axes are the three profile variables (radius, center-distance,
+crossing-class) and the two axis variables (point, direction):
 
-| ~~P1~~ **LANDED 2026-09-23** | `RevolveA_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; `REVOLVE` the circle about axis `0,0,0` → `0,0,1`, typed angle `180` | (anchor) typed torus revolve: center-distance 2, r 0.8, bore \|2−0.8\|=1.2 | **OBSERVED at landing (quad bit-identical, corpus 0/0): 254-bit tail; `revolve_angle` = π ✓; the structural block decoded as `[mid 32][center (2,0,0)][radius RAW 0.8][trailing (0,0,1)][2 bits]`** — the radius raw and the (0,0,1) trailing trio are fields the crossing-class original does NOT carry |
-| ~~P1~~ **LANDED 2026-09-23** | `RevolveR_<v>` | `CIRCLE` center `2,0,0` radius `1.25`; same axis, angle `180` | radius 0.8→1.25 only | **OBSERVED: radius-only delta works perfectly — the radius slot reads 1.25 at the same span bits, everything else byte-equal to A. The old "0.2 entry" question RESOLVED: the A/R raw slots are [profile_center.x, profile_radius]; the original's single 0.2 = ITS profile_center.x, and its radius 1.0 hides in the two-bit short BD form — invisible to raw scans** |
-| P1 | `RevolveC_<v>` | `CIRCLE` center `4,0,0` radius `0.8`; axis `0,0,0` → `0,0,1`, angle `180` | center-distance 2→4 only | separates center-distance (→4) from bore (→3.2): completes the radius/bore/center matrix with R |
-| P1 | `RevolveI_<v>` | `CIRCLE` center `0.6,0,0` radius `0.8` (the profile CROSSES the axis — AutoCAD accepts; the drag-authored original is this shape class, inferred center 0.6/r 0.8); axis `0,0,0` → `0,0,1`, angle `180` | axis-crossing profile class | the typed mirror of the original's geometry: the bore theory predicts the 0.2-class entry reads \|0.6−0.8\| = 0.2 again — falsifiable per stem below; the crossing flags (candidates for the mid-region bits and the 2 trailing bits) get their only moving sample |
-| P1 | `RevolveO_<v>` | `CIRCLE` center `6,0,0` radius `0.8`; `REVOLVE` about axis `2.375,0,0` → `2.375,0,5` (Z-parallel, offset from origin), angle `180` | axis POINT (0,0,0)→(2.375,0,0) only; direction stays (0,0,1) | if the head's leading three shorts are `axis_pt`, a raw 2.375 lands at bit 0 region and the `[8]` '01' STAYS (direction untouched) — point-name vs direction-name separation |
-| P1 | `RevolveT_<v>` | `CIRCLE` center `1,6,0` radius `0.8` (perpendicular distance to the axis ≈ 4.44 — no crossing); axis `0,0,0` → `3.75,2.5,0` (tilted out of Z), angle `180` | axis DIRECTION only: unit (0.8333…, 0.5555…, 0) — long-mantissa if stored unit, or the raw delta (3.75, 2.5, 0) if stored as typed | THE pivot resolver: if the `[8]` pair moves/changes with the direction → the head is `[axis_pt][axis_dir]` and `option_doubles` was a mis-naming to correct in the model docs; if `[8]` stays `'01'` while raw direction doubles appear elsewhere → the spine really is options and the axis lives in the mid-region |
-| P2 | `RevolveF_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; axis `0,0,0` → `0,0,1`, typed angle `360` | sweep angle 180→360 (full) | the closed/full encoding: `revolve_angle` = 2π (6.283185307179586, mantissa-rich) or a special 0/flag; the trailing flag bits' only second sample. If AutoCAD refuses 360, type `359.9` and record it |
+**A 2026-09-23 authoring constraint (in force for every remaining
+row): the typed Z axis is NOT workable in the plan view — REVOLVE
+axis picks must be typeable, i.e. both endpoints in the XY plane.
+The landed A/R quads were therefore authored about the +Y axis
+(footprint-verified below); every revolve row below uses Y-family
+axes and the profile circles stay in the plan-view XY plane
+(coplanar with the axis, as REVOLVE requires).**
+
+| ~~P1~~ **LANDED 2026-09-23** | `RevolveA_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; `REVOLVE` about the **Y axis** — typed points on +Y, e.g. `0,0,0` → `0,1,0` (the landing record first wrote `0,0,0` → `0,0,1`; the Z axis is un-typeable in the plan view — companions corrected) — angle `180` | (anchor) typed torus revolve about +Y: center-distance 2, r 0.8 | **OBSERVED (quad bit-identical, corpus 0/0): 254-bit tail; `revolve_angle` = π ✓; the structural block `[mid 32][center (2,0,0)][radius RAW 0.8][trailing (0,0,1)][2 bits]`; WIRE FOOTPRINT: \|y\| ≤ 0.8 (minor), \|x\|,\|z\| to 2.8 = the torus major radius — a Y-axis revolution** |
+| ~~P1~~ **LANDED 2026-09-23** | `RevolveR_<v>` | `CIRCLE` center `2,0,0` radius `1.25`; same Y axis, angle `180` | radius 0.8→1.25 only | **OBSERVED: radius-only delta — the radius slot reads 1.25 at the same span bits, everything else byte-equal to A; footprint \|y\| ≤ 1.25, XZ to 3.25 ✓. The old "0.2 entry" RESOLVED: the A/R raw slots are [profile_center.x, profile_radius]; the original's single 0.2 = ITS profile_center.x, and its radius 1.0 hides in the two-bit short BD form — invisible to raw scans** |
+| P1 | `RevolveC_<v>` | `CIRCLE` center `4,0,0` radius `0.8`; axis `0,0,0` → `0,1,0` (Y), angle `180` | center-distance 2→4 only | confirms the first structural raw is the profile center.x as a coordinate ([4.0, 0.8] predicted) and tests the mid-region with a bigger center value |
+| P1 | `RevolveI_<v>` | `CIRCLE` center `0.6,0,0` radius `0.8` — the profile CROSSES the Y axis (0.6 < 0.8); axis `0,0,0` → `0,1,0`, angle `180` | axis-crossing profile class | the typed mirror of the original's class (the original: center.x 0.2, radius 1.0 — also crossing, footprint-verified: XZ imprint [−0.85, 1.2], \|y\| ≤ 0.2). SHARP PREDICTIONS: profile (0.6, 0.8) both raw, the mid-region takes the crossing-class length (~38 bits), and the (0,0,1) trailing trio is ABSENT — the three class markers in one typed stem |
+| P1 | `RevolveO_<v>` | `CIRCLE` center `6,0,0` radius `0.8`; axis `2.375,0,0` → `2.375,5,0` (**Y-PARALLEL, offset from origin** — both endpoints typeable in the plan view), angle `180` | axis POINT (0,0,0)→(2.375,0,0) only; the direction stays +Y | if the head is `[axis_pt][axis_dir]` (the evidence-led reading — see the footprint note below), a raw 2.375 lands in the head's first three pairs and the `'01'` pair (pairs 3–5 = the direction) STAYS; if the head is really an options spine it cannot absorb 2.375 at all. ALSO decides whether the structural `[center]` raw is the world X (→6.0) or the axis-relative distance (→3.625) |
+| P1 | `RevolveT_<v>` | `CIRCLE` center `1,6,0` radius `0.8` (perpendicular distance to the axis ≈ 4.44 — no crossing); axis `0,0,0` → `3.75,2.5,0` (an in-plane tilt — typeable, z=0 both ends), angle `180` | axis DIRECTION only: the linear axis (3.75, 2.5, 0) — unit (0.8333…, 0.5555…, 0) if stored normalized, long-mantissa either way | THE pivot resolver and a SIZE arbitration: under the `[axis_pt][axis_dir]` reading the head must GROW (~128 raw bits for the dir components vs the 6-pair head of the Y stems); under the options reading the head stays ~12 bits and the head's `'01'` cannot move with the direction. Whichever way the record grows, the answer is self-evident from the tail length alone |
+| P2 | `RevolveF_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; axis `0,0,0` → `0,1,0` (Y), typed angle `360` | sweep angle 180→360 (full) | the closed/full encoding: `revolve_angle` = 2π (6.283185307179586, mantissa-rich) or a special 0/flag; the trailing flag bits' only second sample. If AutoCAD refuses 360, type `359.9` and record it |
 | P2 | `Loft3_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,2.5` r `1` + `CIRCLE` `0,0,5` r `1`; `LOFT` all three | section count 2→3 | the sharpest probe for the Loft's opaque leading 68-bit region (count-derived?) and the per-section slot repetitions |
 | P2 | `LoftH_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,7` r `1`; `LOFT` both | top z 5→7 | which `raw_doubles` slot is the section height (expect 5.0 → 7.0) |
 | P2 | `LoftR_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,5` r `2.5`; `LOFT` both | radii 1,1 → 1,2.5 | do the 2.0 / 0.3 slots track the section radii? |
@@ -3954,19 +3986,27 @@ pairs land — keep this with the recipe):
 
 1. Dump the new tails (`dwg2json`) and re-verify the quartet
    identity per stem.
-2. Run the Phase B decoder over every new tail; the confirmed
-   anchors (option spine, revolve angle, corners, segment end)
-   should land named already; print the residual.
-3. Position-diff the partner tails bit-by-bit against each other
+2. **Footprint-verify the intended geometry** (the A/R lesson:
+   the authoring session and the recipe rows disagreed about the
+   axis): on the R2007/R2010 gold reads, check the 3DSOLID wire
+   extents against the intended footprint (e.g. a Y-axis torus
+   shows the minor extent in y and the torus major radius in XZ).
+   The R2013+/R2018 wire walks are the known phantom-bit garbage —
+   do not use them for the footprint.
+3. Run the Phase B decoder over every new tail; the confirmed
+   anchors (head, revolve angle, profile block, corners, segment
+   end) should land named already; print the residual.
+4. Position-diff the partner tails bit-by-bit against each other
    (and against the landed originals where the variable matches):
    every entry that CHANGED with the varied geometry is now
    attributed — extend `sh_tail_decode.rs` (collectors for newly
    named entries, spans for their raws), promote typed fields,
    pin hermetic tests on the new pair, and re-run the gates.
-4. Between P1 stakes, `PolysolidX`+`PolysolidD` crack the frame
+5. Between P1 stakes, `PolysolidX`+`PolysolidD` crack the frame
    blocks (the largest opaque mass), `ExtrudeH`/`ExtrudeR` the
    64-bit payload, `ExtrudeT` the option spine, and the revolve
-   matrix the head/axis/0.2 questions; the P2 stems then name the
+   matrix the head/axis questions (the old 0.2 question is closed:
+   the profile block); the P2 stems then name the
    Loft slots — the campaign's blob-autopsy pack closes when every
    raw BD entry in every specimen decodes to a typed field with a
    pinned test.

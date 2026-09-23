@@ -1298,12 +1298,14 @@ pub struct SolidHistoryRevolve {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SolidHistoryRevolveTail {
     /// All-short BD head run ([0, 0, 0, 0, 1.0, 0] in every specimen).
-    /// PROVISIONALLY named "option doubles" with the BD('01') member
-    /// read as the scale factor; the equally-consistent reading is
-    /// [axis_pt (0,0,0)][axis_dir with a unit component] — every
-    /// specimen to date revolves about an origin/Z axis, so the two
-    /// readings never diverge. The §18.7 revolve matrix (RevolveO/T)
-    /// resolves it; do not over-rely on the field name until then.
+    /// PROVISIONALLY named "option doubles"; the EVIDENCE-LED reading
+    /// (2026-09-23 wire-footprint correction: every landed specimen is
+    /// a +Y-axis revolution, so the '01' pair = dir.Y) is
+    /// [axis_pt (0,0,0)][axis_dir (0,1,0)] — the scale reading has
+    /// never been able to diverge because the pair never moves. The
+    /// §18.7 RevolveO/RevolveT stems settle it (O: a raw 2.375 in the
+    /// head iff pt/dir; T: the head grows ~128 raw bits iff pt/dir);
+    /// do not over-rely on the field name until they land.
     pub option_doubles: Vec<f64>,
     /// First raw BD entry after the option spine: the revolve sweep
     /// angle in radians — CONFIRMED on two independent values (the
@@ -1318,7 +1320,8 @@ pub struct SolidHistoryRevolveTail {
     /// `[center 3BD][radius BD]` after the mid-region (§18.7 evidence:
     /// original (0.2, 0, 0), RevolveA/R (2, 0, 0)). Whether the x is
     /// world-X or axis-relative distance is decided by the RevolveO
-    /// stem (offset axis).
+    /// stem (offset axis); for the landed origin-Y specimens the two
+    /// coincide.
     pub profile_center: Option<[f64; 3]>,
     /// The profile circle's radius (RevolveA 0.8, RevolveR 1.25, and
     /// the ORIGINAL 1.0 — stored in the two-bit short BD form, which
@@ -1326,6 +1329,9 @@ pub struct SolidHistoryRevolveTail {
     pub profile_radius: Option<f64>,
     /// Optional trailing 3BD after the radius ((0, 0, 1) in the
     /// RevolveA/R torus class; ABSENT in the original's axis-crossing
-    /// class): the axis-direction candidate — RevolveT decides.
+    /// class). NOT the axis direction — the landed specimens revolve
+    /// about +Y (wire-footprint-verified); the leading candidate is
+    /// the profile-plane normal / revolve reference. RevolveI decides
+    /// (same-plane crossing profile, predicted to lack the trio).
     pub trailing_triple: Option<[f64; 3]>,
 }
