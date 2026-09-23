@@ -1,202 +1,128 @@
-# Zero-context prompt — ACS/SH solid-history Phase A (in progress)
+# Zero-context prompt — ACS/SH solid-history Phase A (step 3: EXTRUSION)
 
-> Campaign state 2026-09-23 ~14:00Z. The strict-load campaign is closed
+> Campaign state 2026-09-23 ~17:30Z. The strict-load campaign is closed
 > at zero (2026-09-21, user-verified round seven; see IMPLEMENTATION.md
 > §18.4). The F2 fixture tree landed (2026-09-23: 28 .dwg + 28 .txt in
 > `tests/gold_harness/tests/sh_history/`, all qualified, committed as
-> `fc9f235`). This brief covers the **ACS/AcDbSh solid-history Phase A**
-> — implementing the SH wire layouts so the elided-at-save node classes
-> round-trip. Read `tests/gold_harness/AGENTS.md` first (durable rules),
-> then the §F2.1–F2.3 spec in `IMPLEMENTATION.md` (the fixture tree,
-> its gates, and its provenance convention), then this file top to
-> bottom. Read only these three files cold — everything routes from
-> here.
+> `fc9f235`). Phase A steps 1–2 are DONE (HISTORY + SWEEP un-elided;
+> SWEEP carries raw-tail retention). This brief covers step 3 — the
+> EXTRUSION un-elide — and the remaining Phase A packets. Read
+> `tests/gold_harness/AGENTS.md` first (durable rules), then the
+> §F2.1–F2.3 spec and §18.5 in `IMPLEMENTATION.md` (fixture gates +
+> the step-2 autopsy record), then this file top to bottom. Read only
+> these three files cold — everything routes from here.
 
 ## Task
 
-**Phase A goal**: implement the ACSH_SWEEP_CLASS and ACSH_EXTRUSION_CLASS
-wire layouts (the two classes with the opaque `shsw_text`/`shsw_text2`
-blobs), un-elide them per calibration, and drive the sh_history fixture
-diffs from 26/8 toward 0/0 while holding the gold baseline at 0/0.
+**Phase A step 3**: un-elide `ACSH_EXTRUSION_CLASS`. No reader/writer
+work remains — `read_history_sweep` / `write_solid_history_sweep`
+already serve the EXTRUSION dxf-name through the step-2 raw-tail
+retention (the model's `shsw_raw_tail` + `shsw_raw_tail_bit_len`).
+Step 3 is two one-liner guard edits plus the four-gate verification
+against `sh_history/Extrude_2018.dwg`.
 
-### Current state
+### What already landed (do not redo)
 
-- **Step 1 DONE** (commit `b926053`): ACSH_HISTORY_CLASS un-elided.
-  Its layout was already correct on both sides (6 fields: 2 BLs +
-  handle + BL + 2 Bs); the elide guard and the
-  `solid_history_handle_value` nuller now allow HISTORY records
-  through while all node classes (EXTRUSION, SWEEP, the primitives,
-  BREP) stay elided. Verified: the Polysolid_2018 fixture round-trips
-  the HISTORY root at handle 0x2ED; the SWEEP record (261 bytes)
-  stays elided; corpus 152 files, gold 0/0, fixtures 26/8.
-- **Step 2 NEXT** (probe analysis 2026-09-23, resumed here):
-  ACSH_SWEEP_CLASS. The READER is **proved correct** — the probe
-  confirmed `read_embedded_entity` consumes exactly the right bytes
-  and produces `EmbeddedEntity::Unknown { type_code, bit_count, bytes }`
-  which preserves the blob bytes. The **WRITE path loses bytes**: the
-  temporary un-elide probe on `Polysolid_2018.dwg` produced a record
-  that gold decodes at 148 bytes vs the original's 261 bytes (−113).
-  Layer-4 frame comparison:
-  - original: Object 137, Size 261, Hdlsize 0x1D, Type 520, Address 33088
-  - rewrite:  Object 137, Size 148, Hdlsize 0x29, Type 520, Address 33017
-  **The fix**: the writer arm in `write_solid_history_sweep` calls
-  `encode_embedded_entity` on `value.sweep_entity` and writes
-  `type_code(BL) + bytes.len()(BL) + bytes`. The else-arm writes
-  `write_bit_long(0); write_bit_long(0);` with NO bytes — dropping the
-  blob content when the model carries `None`. The `safe_count` clamp
-  and the `type_code == 0` early-exit in `decode_embedded_entity` can
-  both produce `None` even though the reader consumed the bytes. The
-  model must retain the consumed bytes: extend `SolidHistorySweep`
-  with `shsw_method: i32`, `shsw_text: Vec<u8>`, `shsw_bl93: i32`,
-  `shsw_text2: Vec<u8>` and have the reader/writer read/write them
-  directly (not via the `EmbeddedEntity` wrapper). Then un-elide SWEEP
-  (two one-liner elide-guard edits: add
-  `&& d.dxf_name != "ACSH_SWEEP_CLASS"` to both
-  `objects.rs::write_object` and
-  `entities.rs::solid_history_handle_value`).
-- **Step 3**: ACSH_EXTRUSION_CLASS — the SWEEP layout plus the
-  Extrusion subclass marker. Calibrate against
-  `sh_history/Extrude_2018.dwg`.
+- `b926053` (step 1): ACSH_HISTORY_CLASS un-elided; layout 6 fields
+  (2 BLs + handle + BL + 2 Bs), round-trips at 0/0.
+- `ba7d112` (step 2): ACSH_SWEEP_CLASS un-elided with **raw-tail
+  retention** — the SWEEP/EXTRUSION wire tail is undocumented (gold
+  registers the classes `DEBUGGING_CLASS`, and even a
+  `-DDEBUG_CLASSES` build stops the walk at `history_node.color.flag`
+  and dumps the remainder as raw unknown_bits — see §18.5). The
+  reader captures the whole post-`op.minor` payload to the record's
+  main-section end (`DwgMergedReader::main_end_bits()`, text-flag
+  aware) into `shsw_raw_tail` (MSB-packed) + `shsw_raw_tail_bit_len`;
+  the writer re-emits the bits verbatim (arm gated on
+  `shsw_raw_tail_bit_len > 0`; the modeled `shsw_method`/`shsw_text`/
+  `shsw_bl93`/`shsw_text2` fields are the DXF / modeled-fallback
+  channel only). Verified: layer-4 bit-identical data sections on
+  Polysolid_2018 and _2010; corpus 152 files gold 0/0 unchanged,
+  fixtures 26/8 unchanged; the only record delta is silver's
+  corpus-wide owner-handle form (`(4,2,abs)` vs authored `(6,0,+1)`,
+  same identity) — pre-existing everywhere, tolerated.
+- `d36e553`: §18.5 step-2 closure (autopsy + design + verification).
 
-### Write-path byte-loss diagnosis (ready for the next session)
+### Step 3 mechanics
 
-The probe confirmed the reader and writer consume the same blob bytes
-through `EmbeddedEntity::Unknown` (which preserves them byte-for-byte).
-The 113-byte loss comes from the write arms:
+1. `src/io/dwg/dwg_stream_writers/object_writer/objects.rs` elide
+   guard (~line 310): add
+   `&& d.dxf_name != "ACSH_EXTRUSION_CLASS"`.
+2. `src/io/dwg/dwg_stream_writers/object_writer/entities.rs`
+   `solid_history_handle_value()` (~line 5175): the same one-liner.
+3. Update the two guard comments (they name the still-elided set).
+4. Gates (all four, in order):
+   - `cargo test --features serde` (48 ok segments, 0 failed);
+   - smoke `sh_history/Extrude_2018.dwg` — expect 0/0 WITH the record
+     present: original Size 70 / Hdlsize 0x1F / handle 0x2E5 (dec
+     741) / `-v9` frame `Type: 520` in that file; the rewrite should
+     be Size ≈ 72 (the same +2 owner-handle form bytes as step 2)
+     with a bit-identical data section;
+   - full corpus (152 files) — gold tree 0/0 must hold, fixtures
+     expected 26/8 unchanged;
+   - layer-4 byte-walk: `dump_section_bytes` both record windows
+     (Address−9 margin), anchor on the parentid `BLd(-1)` bit pattern
+     (`00` + 32 one-bits — the data anchors at frame-end, frame is
+     40 bits R2018 / 39 bits R2010), compare [data .. data-end);
+     identical is expected (data end: [0..Size×8−40−Hds−1) plus the
+     text-flag bit; the handle region may differ by the known form
+     delta only).
 
-```rust
-// src/io/dwg/dwg_stream_writers/object_writer/dynamic_block.rs,
-// fn write_solid_history_sweep, ~line 177:
-if let Some(entity) = &value.sweep_entity {
-    let encoded = encode_embedded_entity(entity, self.version, self.dxf_version);
-    self.writer.write_bit_long(encoded.type_code);
-    self.writer.write_bit_long(encoded.bytes.len() as i32);
-    write_embedded_bytes(&mut self.writer, &encoded);
-} else {
-    self.writer.write_bit_long(0);   // ← type_code=0
-    self.writer.write_bit_long(0);   // ← size=0 (NO BYTES!)
-}
-```
-
-If `sweep_entity` / `path_entity` are `None` (from `safe_count`
-clamping the size to 0, or `decode_embedded_entity` returning `None`
-on `type_code == 0 || bit_length == 0`), the writer produces
-`BL(0) + BL(0)` and no bytes — a **113-byte hole** in the record.
-
-**The byte-walk addresses for the next session**:
-
-```bash
-# dump the SWEEP record from both sides (Address−9 for margin):
-target/debug/dump_section_bytes \
-    tests/gold_harness/tests/sh_history/Polysolid_2018.dwg 33079 270
-target/debug/dump_section_bytes \
-    /tmp/f2_smoke/Polysolid_2018_rt.dwg 33008 157
-# bitwalk from the first divergence: the original's record starts at
-# Address 33088, the rewrite at 33017 — find where the 113 bytes vanish
-```
+**After EXTRUSION, the fixture-diff rows it contributes do not
+change** — the Extrude-family diffs are the `3DSOLID.wires` stub and
+`3DSOLID.point` packets below (the harness clears the SWEEP-class
+payload projection on both sides, so elide-vs-un-elide is invisible
+to the diff numbers; the operative evidence for the record is the
+layer-4 walk + gold's clean decode of the rewrite). Do not expect
+26/8 to drop from step 3.
 
 ## The 26/8 fixture diffs decompose into three packets
 
-From the 2026-09-23 corpus run (152 files, gold tree 124 at 0/0,
-fixture tree 28 at 26 read / 8 write):
+From the 2026-09-23 post-step-2 corpus run (152 files, gold tree at
+0/0, fixture tree 28 files):
 
 | packet | rows | files | route |
 |---|---|---|---|
-| `3DSOLID.wires` stub | 16 | Extrude/Loft/Revolve/Sphere (R2013+R2018) | the constructed-genus zero-index wire cache — `33ce739` addressed other shape inputs; these may need the node-class blob bytes to produce real wires |
+| `3DSOLID.wires` stub | 16 (8 read + 8 write) | Extrude/Loft/Revolve/Sphere (R2013+R2018) | the constructed-genus zero-index wire cache — `33ce739` addressed other shape inputs; these may need the node-class blob semantics (Phase B autopsy) to produce real wires |
 | `ACSH_SPHERE_CLASS` count + `UNKNOWN_OBJ` count | 8 | all 4 Sphere files | the sphere node-class ordinal alignment: silver produces a different record count than gold on the same drawing |
 | `3DSOLID.point` wrong-value | 2 | Revolve_2007/2010 only | silver reads the modeler point at (0.6, 0, 0.6) where gold reads (0, 0, 0) — a constructed-genus default |
 
-Step 2 (SWEEP) directly affects the Polysolid family (whose diffs are
-currently zero through the elide). The subsequent un-elides (Sphere,
-Extrusion, Loft, Revolve) follow once the SWEEP write-path fix is
-proven.
+## The wire knowledge base (step-2 autopsy; §18.5 has the full record)
 
-## The gold spec (wire layout source — verbatim)
-
-File: `~/work/libredwg/src/dwg2.spec` (read-only oracle; NEVER edit):
-
-```
-DWG_OBJECT (ACSH_SWEEP_CLASS)   // line ~4175 in dwg2.spec
-  HANDLE_UNKNOWN_BITS;
-  AcDbEvalExpr_fields;           // nodeid BC, parentid BLd, value_code BSd
-                                  // + union, nodeid BL
-  AcDbShHistoryNode_fields;      // major BL, minor BL, 16 BD transform,
-                                  // CMC color, step_id BL, material handle
-  SUBCLASS (AcDbShPrimitive)
-  SUBCLASS (AcDbShSweepBase)
-  major BL                        // instance value 33
-  minor BL                        // instance value 29
-  direction 3BD                   // 0, 0, 0
-  method BL                       // 77
-  shsw_text_size BL               // 744 <-- opaque blob, NOT in DXF
-  shsw_text BINARY                // blob bytes, size = shsw_text_size
-  shsw_bl93 BL                    // 77
-  shsw_text2_size BL              // 480 <-- opaque blob, NOT in DXF
-  shsw_text2 BINARY               // blob bytes, size = shsw_text2_size
-  draft_angle BD                  // 0.0
-  start_draft_dist BD             // 0.0
-  end_draft_dist BD               // 0.0
-  scale_factor BD                 // 1.0
-  twist_angle BD                  // 0.0
-  align_angle BD                  // 0.0
-  sweepentity_transform 16 BD
-  pathentity_transform 16 BD
-  align_option RC                 // 2
-  miter_option RC                 // 2
-  has_align_start B               // 1
-  bank B                          // 1
-  check_intersections B           // 0
-  shsw_b294 B                     // 1
-  shsw_b295 B                     // 1
-  shsw_b296 B                     // 1
-  pt2 3BD                         // 0, 0, 0
-  SUBCLASS (AcDbShSweep)
-  START_OBJECT_HANDLE_STREAM;
-DWG_OBJECT_END
-```
-
-(`ACSH_EXTRUSION_CLASS` at ~4222 is identical plus the Extrusion subclass
-marker before the handle stream; `AcDbEvalExpr_fields` and
-`AcDbShHistoryNode_fields` macros at ~1800 and ~1855. Gold's
-classes.c registry: ACSH_HISTORY = 513, ACSH_SWEEP = 518, type 520 on
-the wire = the fixture's dynamic mapping for SWEEP.)
-
-**Blob interpretation note**: the two blob fields carry serialized sweep
-options and sweep/path profiles. They MAY contain an embedded entity
-stream internally, but Phase A **retains them raw** — do NOT attempt
-to parse or interpret the blob content until the raw round-trip is
-byte-faithful (Phase B autopsy determines internal structure).
-
-## Code state (at HEAD)
-
-| location | current state |
-|---|---|
-| model: `src/objects/dynamic_block.rs` line ~970 | `SolidHistorySweep` has the current-guess fields (`sweep_entity: Option<EmbeddedEntity>`, `path_entity: Option<EmbeddedEntity>`, etc.) — **lacks** dedicated blob fields; for the fix: add `shsw_method: i32`, `shsw_text: Vec<u8>`, `shsw_bl93: i32`, `shsw_text2: Vec<u8>` fields |
-| reader: `src/io/dwg/dwg_stream_readers/object_reader/dynamic_block.rs` line ~240 | `read_history_sweep()` reads the current guess — `sweep_entity_type` BL, `sweep_size` BL, `sweep_entity` via `read_embedded_entity()`; **the blob bytes are consumed correctly** (aligned) but stored inside the `EmbeddedEntity::Unknown` wrapper; for the fix: replace the embedded-entity reads with direct `read_bit_long + read_bytes` for the 4-blob field set |
-| writer: `src/io/dwg/dwg_stream_writers/object_writer/dynamic_block.rs` line ~172 | `write_solid_history_sweep()` calls `encode_embedded_entity` and writes `type_code(BL) + bytes.len()(BL) + bytes` — when sweep_entity is None the blob bytes are LOST (the −113); for the fix: write the 4-blob field set directly from the new model fields |
-| elide: `src/io/dwg/dwg_stream_writers/object_writer/objects.rs` line ~310 | the write guard elides all `ACSH_*` except `ACSH_HISTORY_CLASS`; for step 2: add `&& d.dxf_name != "ACSH_SWEEP_CLASS"` to the guard |
-| pointer nuller: `src/io/dwg/dwg_stream_writers/object_writer/entities.rs` line ~5175 | `solid_history_handle_value()` nulls pointers to elided SH records; for step 2: same one-liner — allow `ACSH_SWEEP_CLASS` through |
-| embedded reader/writer: `src/io/dwg/embedded_entity.rs` | the `EmbeddedEntity::Unknown` encode/decode (lines ~99, ~246, ~331) preserves raw bytes; NOT modified — used by other entities too |
-
-## Calibration specimens (all qualified and landed)
-
-All 28 fixtures in `tests/gold_harness/tests/sh_history/` —
-one operation per file, 4 versions (2007/2010/2013/2018) per operation,
-142–207 objects per file, zero gold Error lines, zero AECC/AEC
-template junk, each carrying a `.txt` provenance companion with
-the gold-decode qualification receipts.
-
-| calibration target | fixture file | wire object |
-|---|---|---|
-| ACSH_SWEEP_CLASS | `Polysolid_2018.dwg` | handle 0x2EB, 261 bytes, gold's UNKNOWN_OBJ fallback, Type 520 on the wire |
-| ACSH_EXTRUSION_CLASS | `Extrude_2018.dwg` | (probe not yet done) |
-| Wire-frame facts | README "Oracles" | record window [Address..Address+Size); bitsize = Size×8−Hds |
+- The SH skeleton is verified via gold's live sphere trace: parentid
+  `BLd(-1)` ('00'+LE32), eval major/minor BL (33/427), value_code
+  BSd (-9999 as `00`+LE16 0xD8F1), nodeid BL(1), hist major/minor
+  (33/427), 16 BD transform, CMC (44 bits — index 0, rgb c0000000,
+  ByLayer), step_id BL(1), material in the handle stream, then op
+  major/minor BL (33/427). The node-class tail after that is
+  gold-undocumented.
+- Record windows: R2018 frame = 40 bits, R2010 = 39 bits (the data
+  section ends at Size×8−frame−Hds−1 with a 1-bit text-present flag
+  before the handle stream; `bitsize` in gold's -v9 print is the
+  handle-stream start in window bits).
+- Raw-short/raw-long/raw-double on the DWG wire are LITTLE-endian;
+  BD prefixes `00`/`01`/`10` = raw64/1.0/0.0.
+- Payload version-portability: the same record is bit-identical
+  across 2007/2010/2013/2018 except handle tails — version diffs
+  are a cheap structural check.
+- If Phase B (tail autopsy) needs gold traces anyway: a scratch
+  `cp -a ~/work/libredwg /tmp/lredwg-debug && ./configure CFLAGS=
+  "-g -O0 -DDEBUG_CLASSES" && make -C src && make -C programs
+  dwgread` build STILL refuses the SWEEP-family walk (the classes
+  are `DEBUGGING_CLASS` in `src/classes.inc`) — it stops at
+  `color.flag` and dumps `unknown_bits`; only the skeleton is
+  traceable. The scratch build is disposable — NEVER point
+  GOLD_DWGREAD at it, and never edit the libredwg checkout.
+- The captured tails live in the model (`shsw_raw_tail`) and in
+  silver's `unknown_bits_by_handle` side channel for the
+  unmodeled-class records; the side-channel hex is bit-exact with
+  gold's own `unknown_bits` dump for the same record.
 
 ## Environment (complete)
 
 The repo lives in WSL. From Windows:
 `\\wsl.localhost\Ubuntu-24.04\home\sebastianschoeller\work\cadcodec`.
-Shell commands run via:
+Shell commands run via
 `wsl.exe -d Ubuntu-24.04 -- bash <script>` — write scripts with
 the write tool and run by absolute path (PowerShell quoting caveats:
 inline `&&`, heredocs via `wsl.exe -c`, `&&`, `$var`, pipes, and
@@ -215,38 +141,25 @@ export GOLD_TESTDATA="$HOME/work/libredwg/test/test-data"
 # 1. Build gates (all segments green)
 cargo test --features serde
 
-# 2. Single-fixture smoke (0/0 expected with record present)
-GOLD_DWGREAD=... GOLD_TESTDATA=... \
+# 2. Single-fixture smoke
 python3 tests/gold_harness/run_roundtrip.py \
-    tests/gold_harness/tests/sh_history/Polysolid_2018.dwg /tmp/smoke
+    tests/gold_harness/tests/sh_history/<FIXTURE>.dwg /tmp/smoke
 
-# 3. Full corpus (gold tree 0/0 must stay; fixture diffs may improve)
-#    Detached launch (10+ min, use nohup):
-nohup python3 tests/gold_harness/run_corpus.py > /tmp/corpus.log 2>&1 &
+# 3. Full corpus (blocking, ~10 min; prints "[i/152]" per file, writes
+#    target/gold_harness_corpus/report.md)
+python3 tests/gold_harness/run_corpus.py
 
 # 4. Layer-4 bytewise check (writer form changes only):
 target/debug/dump_section_bytes <origin.dwg> <A> <N>
-# Verify the rewrite's SWEEP record bit-walk matches the original's —
-# this is the only instrument that catches "legal but different" forms.
+# anchor both windows on the parentid BLd(-1) pattern, compare
+# [data .. data end) bit-for-bit; handles compare by identity.
 ```
-
-## Beyond Phase A (forward scope — see IMPLEMENTATION.md §18.5 "The complete phase map")
-
-- **Phase B — the blob autopsy**: determine the internal structure of
-  the `shsw_text`/`shsw_text2` blobs (after Phase A preserves them
-  raw), expose their semantic fields, and project them in the
-  normalizers.
-- **Phase C — the full un-elide**: implement all remaining
-  node-class layouts (primitives, Boolean, Fillet, Chamfer, BREP,
-  Loft, Revolve), remove the per-class elide, restore full-fidelity
-  SH soft-pointers, and drive the 28-fixture corpus to 0/0.
-  The "(Phase B+)" rows in IMPLEMENTATION.md §F2.3 are the
-  breakpoints. Each phase's NEXT_SESSION is written at its
-  predecessor's completion.
 
 ## Commit inventory (this halt)
 
 ```
+d36e553  docs(harness): Phase A step-2 closure — SWEEP layout autopsy + queue update
+ba7d112  fix(dwg): un-elide ACSH_SWEEP_CLASS — Phase A step 2, raw-tail retention
 1f06d9d  chore: retire first-session scratch — the ocs.lock rules and the cylinder example
 e686903  docs(harness): Phase A step-2 probe findings — the SWEEP write path loses 113 bytes
 989860d  fix(docs): NEXT_SESSION encoding cleanup
@@ -267,4 +180,5 @@ b9211d0  fix(entities): constructed-genus constructor defaults
 5891cc1  chore(harness): retire stale scripts and pycache
 ```
 
-The branch is pushed to `origin/gold-vs-silver` at `1f06d9d`.
+The branch sits at `d36e553` on top of `1f06d9d` (previously pushed
+to `origin/gold-vs-silver`; push only when asked).
