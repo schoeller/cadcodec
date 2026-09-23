@@ -1,10 +1,10 @@
 Provenance for RevolveR_2013.dwg
 
 Author app:              Autocad 2027.1 (campaign authoring app; the file
-                         was authored to the S18.7 RevolveR recipe row —
+                         was authored to the §18.7 RevolveR recipe row —
                          correct this line if the maintainer's notes differ)
 Authoring date:           2026-09-23
-Author session (the S18.7 differential recipe, row RevolveR):
+Author session (the §18.7 differential recipe, row RevolveR):
   new drawing on a blank/default template, zero pre-existing entities
   set solid-history recording ON
   drew ONE CIRCLE, center 2,0,0, radius 1.25
@@ -29,14 +29,15 @@ Qualification (verified by acadrust harness, 2026-09-23, at landing):
   3DSOLID: present (handle 0x2E4, size 532)
   gold JSON parse: ok
   template quality: clean
-  differential invariants (S18.7):
+  differential invariants (§18.7):
     quartet bit-identity: the four RevolveR versions carry
       bit-identical 254-bit tails
     corpus: RevolveR_2013.dwg enters at read 0 / write 0
-    tail decode (acadrust sh_tail_decode): head [0,0,0,0,1.0,0]
-                        (the axis_pt/axis_dir-pair reading is the
-                        evidence-led interpretation — the '01' = dir.Y
-                        of the Y axis; see S18.7),
-      revolve_angle = pi, profile_center (2, 0, 0), profile_radius 1.25, trailing triple (0, 0, 1)
+    tail decode (acadrust sh_tail_decode; the §18.6 CALL
+                        grammar — closed by the full-tree scan):
+      axis_point (0, 0, 0), axis_vector (0, 1, 0),
+      revolve_angle = pi, option run [0 x6],
+      profile circle (CALL BL 18 / BL 144): center (2, 0, 0),
+      radius 1.25, normal (0, 0, 1), flags 00
 
-Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): RevolveR
+Covered campaign rows (see IMPLEMENTATION.md §18.7 + F2.3): RevolveR

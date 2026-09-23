@@ -35,16 +35,18 @@ capture; `None` when the anchor layout doesn't hold):
   overlap that names the semantics).
 - **Loft** (`SolidHistoryLoftTail`): head `[1.0]` + raw run
   `[2.0, 2.0, 5.0, 0.3, π/2, π/2]` (positional).
-- **Revolve** (`SolidHistoryRevolveTail`): head
-  `[0,0,0,0,1.0,0]` (evidence-led reading: `[axis_pt
-  (0,0,0)][axis_dir (0,1,0)]` — every landed specimen is a +Y
-  revolution, wire-regression-verified), then `revolve_angle`
-  (confirmed on two values: the original's 3π/2 and the A/R
-  quads' π), then the structural profile block — the A/R quads
-  store the circle AS DRAWN (center (2,0,0), radius raw, plane
-  normal (0,0,1) trailing); the original is a different profile
-  FORM (the wire-proven non-crossing torus M 1.0/m 0.2 — its
-  slots carry (0.2 raw, 1.0 short), no normal trio).
+- **Revolve** (`SolidHistoryRevolveTail`) — **CLOSED by the
+  2026-09-23 full-tree libredwg scan** (§18.6): the grammar is
+  `[axis_pt (0,0,0)][axis_vec (0,1,0)][revolve_angle raw][6
+  BD0 options][CALL: BL 18 = OBJ_CIRCLE, BL bit-length][the
+  embedded profile circle: center 3BD / radius BD / normal 3BD]
+  [2 flag bits]` — every landed tail accounts bit-exactly. The
+  original's circle = center (1.0, 0, 0) — the x stored in the
+  two-bit short form, which is what the raw-scan misread —
+  radius 0.2, normal (0,0,1): the as-drawn profile, no "different
+  form" ever existed. The model carries axis_point/axis_vector/
+  revolve_angle/option_doubles/profile_center/profile_radius/
+  profile_normal, all splice-backed.
 
 **The write rule holds**: the captured bits are the authority;
 `render_*_tail` re-decodes the stored tail and splices ONLY the
@@ -58,51 +60,30 @@ splice + the section checksum).
 
 ## The open rows (what re-opens work — no defined phase remains)
 
-1. **The opaque mid-regions — the differential queue is LIVE.** The
-   §18.7 recipe's first two revolve stems (RevolveA/R) are LANDED,
-   QUALIFIED and DECODED (2026-09-23): both quads are bit-identical
-   across their four versions, the corpus took them at 0/0 (188 files
-   now), they confirmed `revolve_angle` on a second value (π), and
-   they resolved the old "0.2 entry" — twice-removed: the A/R
-   records store the profile circle AS DRAWN (`[center (2,0,0)]
-   [radius][plane normal (0,0,1)]` — the circle form, wire-verified
-   as the torus M 2.0/m 0.8-1.25), while the original — a
-   NON-crossing torus (M 1.0, m 0.2) about origin-Y by the wire
-   ladder — is a DIFFERENT PROFILE FORM whose same slots carry its
-   (minor, major) = (0.2 raw, 1.0 in the short BD form), with no
-   normal trio. The model now exposes
-   `profile_center`/`profile_radius`/`trailing_triple`
-   (splice-backed, bit-locally edited; the names carry the A/R-form
-   reading). **The 2026-09-23 authoring
-   constraint: the typed Z axis is NOT workable in the plan view —
-   all revolve rows use Y-family axes (wire-regression-verified: A/R
-   and the original are all +Y revolutions). **RevolveI died** —
-   AutoCAD refuses axis-crossing profiles outright ("The object
-   should be on one side of the axis"), which also killed the
-   crossing-class theory of the original: the wire ladder pins it
-   as a NON-crossing torus (M 1.0, m 0.2) about origin-Y whose
-   record is a DIFFERENT PROFILE FORM (slots (0.2, 1.0) = its
-   minor/major; no plane-normal trio). Still owed by the recipe**
+1. **The differential queue, re-designed after the revolve closure.**
+   The 2026-09-23 full-tree libredwg scan (§18.6) closed the
+   revolve grammar completely (axis pair / angle / options /
+   CALL-embedded profile circle / flags — every tail bit
+   accounted) and rewired the recipe. **Still owed by the recipe**
    (author per §18.7, land in `sh_history/`): the revolve stems
-   **RevolveP** (a PERPENDICULAR-plane profile — front view/UCS
-   rotated; same torus (2, 0.8) as A through the original's form:
-   THE form experiment), **RevolveW** (the typed mirror of the
-   original's inferred geometry — `CIRCLE 1,0,0` r 0.2, Y axis,
-   angle 270: near-bit-identity to the original would close it),
-   **RevolveN** (angle 270 vs A's 180), **RevolveS** (radius
-   exactly 1.0 — the short-form probe), **RevolveC** (center
-   `4,0,0` r 0.8 — center-only), **RevolveO** (axis `2.375,0,0` →
-   `2.375,5,0`, Y-PARALLEL offset — the head's raw-2.375 test of
-   the `[axis_pt][axis_dir]` reading), **RevolveT** (axis
-   `0,0,0` → `3.75,2.5,0`, an in-plane tilt — the head GROWS ~128
-   raw bits iff `[axis_pt][axis_dir]`, stays ~12 bits iff
-   options: a size arbitration), **RevolveF** (angle typed 360);
-   plus the sweep/extrude/loft stems **PolysolidX/D**,
-   **ExtrudeH/R/T/P**, **Loft3/H/R** (§18.7 rows). The next
-   session runs the same pipeline on each landing: dump,
-   QUARTET-IDENTITY + the
-   FOOTPRINT-AXIS CHECK (the A/R lesson), decode, position-diff,
-   extend `sh_tail_decode.rs`, pin, four gates.
+   **RevolveC** (circle `4,0,0` r 0.8 — grammar regression
+   anchor), **RevolveW** (the typed mirror `1,0,0` r 0.2, angle
+   270 — predicted BIT-IDENTICAL to the original), **RevolveO**
+   (axis `2.375,0,0` → `2.375,5,0` — the axis_point raw),
+   **RevolveT** (axis `0,0,0` → `3.75,2.5,0` — the axis_vector
+   raws), **RevolveF** (angle 360), **RevolveM** (the SURFACE-twin
+   anchor: `MOde Surface` — gold parses the REVOLVEDSURFACE typed
+   r2007+ and the ASSOC body's named parameters even in R2004);
+   DEAD stems: RevolveI (crossing refused), RevolveP
+   (perpendicular-plane refused), RevolveN/S (targets closed by
+   the scan). Plus the sweep/extrude/loft stems: **PolysolidX/D**,
+   **ExtrudeH/R/P/T/M**, **Loft3/H/R/M** (the M-rows = the
+   surface-twin anchors for their families — the SWEEPOPTIONS
+   macro's named fields + the ASSOC bodies give typed semantic
+   anchors for their still-opaque regions, §18.6). Each landing
+   runs the pipeline: dump, quartet identity, wire-ladder check,
+   decode, position-diff, extend `sh_tail_decode.rs`, pin, four
+   gates.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.
 3. Campaign closure prose (§18.5's phase map now fully checked):
