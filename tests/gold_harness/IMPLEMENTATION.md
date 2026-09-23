@@ -3544,18 +3544,39 @@ that drives the implementation.
   authored `(6,0,+1)`: Size 261→263, Hdlsize 0x1D→0x2D, same
   identity — pre-existing for every rewritten object, tolerated by
   gold and all 152 files).
-- **Remaining phase A after SWEEP**: ACSH_EXTRUSION_CLASS is now
+- **Phase A step 3 — ACSH_EXTRUSION_CLASS (2026-09-23, `8c41aa6`)**:
   mechanical — `read_history_sweep`/`write_solid_history_sweep`
-  already serve the EXTRUSION dxf-name with the same raw-tail
-  retention, so step 3 is the two elide-guard/nuller one-liners
-  plus the four-gate verification against
-  `sh_history/Extrude_2018.dwg` (record: Size 70, Hdlsize 0x1F,
-  handle 0x2E5). Then the per-node-class un-elides (Sphere, Box,
-  Loft, Revolve, Boolean, BREP), then the three named fixture-diff
-  packets: `3DSOLID.wires` stub (16, R2013+ shapes),
-  `ACSH_SPHERE_CLASS` count (8, Sphere family), `3DSOLID.point`
-  wrong-value (2, Revolve R2007/2010). See NEXT_SESSION.md for the
-  full Phase A handover.
+  already served the EXTRUSION dxf-name through the step-2 raw-tail
+  retention, so the step was the two elide-guard/nuller one-liners.
+  Verified on Extrude_2018: rewrite record present (Size 70→72,
+  Hdlsize 0x1F→0x2F — only the corpus-wide owner-handle form
+  delta), gold decodes it cleanly, the smoke shows no new rows (the
+  file's two surviving rows = its pre-existing `3DSOLID.wires`
+  stub pair), layer-4: data section bit-identical through the full
+  488-bit record plus the text flag (divergence only in the handle
+  region, same known form delta); corpus 152 files — gold tree 0/0
+  held, fixtures 26/8 unchanged packet-for-packet. The sweep-shaped
+  family (Polysolid→SWEEP, Extrude→EXTRUSION) now round-trips its
+  records byte-faithfully.
+- **Remaining phase A**: extend the raw-tail retention to
+  ACSH_LOFT_CLASS and ACSH_REVOLVE_CLASS — their
+  `read_solid_history_data` arms still model guessed
+  embedded-entity/typed layouts (cross-section/guides, revolve
+  axis + twin angles + embedded sweep entity); autopsy one record
+  of each against `Loft_2018`/`Revolve_2018` (cross-section method
+  from the step-2 record) before switching the arms to capture,
+  then un-elide both. Then the primitives un-elides (Box, Wedge,
+  Cylinder, Cone, Torus, Pyramid, Sphere — gold-LIVE layouts, so
+  calibrate each against its fixture with gold `-v9` traces, the
+  same instrument that pinned the SH skeleton), then BREP (its
+  ACIS body machinery is already modeled; the record framing around
+  it needs calibration), then the three named fixture-diff packets:
+  `3DSOLID.wires` stub (16, R2013+R2018 shapes),
+  `ACSH_SPHERE_CLASS` count (8, Sphere family — likely touched by
+  the Sphere un-elide), `3DSOLID.point` wrong-value (2, Revolve
+  R2007/2010 — likely the constructed-genus default, will surface
+  in the Revolve autopsy). See NEXT_SESSION.md for the step-4
+  handover.
 
   **The complete phase map (from the original 2026-09-22 campaign
   brief; each phase gets its own NEXT_SESSION when its predecessor
