@@ -5156,25 +5156,20 @@ impl<'a> DwgObjectWriter<'a> {
     // â”€â”€ ACIS entities (3DSOLID, REGION, BODY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// History handle to write for an ACIS entity: the SH modeler-history
-    /// class records (AcDbSh* catch-alls) are elided at save - their DWG
-    /// layouts are undocumented and strict readers refuse the whole file
-    /// (BricsCAD: "Cannot open file: Object improperly read:
-    /// <AcDbShExtrusion>"). The SAT carries the geometry self-contained,
-    /// so a soft pointer to an elided target is written NULL rather than
-    /// dangling. ACSH_HISTORY_CLASS, ACSH_SWEEP_CLASS, and
-    /// ACSH_EXTRUSION_CLASS are now written (Phase A 2026-09-23 steps
-    /// 1-3): pointers to them stay live; pointers to the still-elided
-    /// node classes (LOFT, REVOLVE, the primitives, BREP) go NULL.
+    /// class records (AcDbSh* catch-alls) that are still elided at save
+    /// have their soft pointers written NULL rather than dangling to a
+    /// record the rewrite does not carry (strict readers refuse the
+    /// whole file otherwise — BricsCAD: "Object improperly read:
+    /// <AcDbShExtrusion>"). The elision verdict is the single shared
+    /// list `elided_solid_history_class` in objects.rs — keep the Phase
+    /// A class status in sync there, never here.
     fn solid_history_handle_value(&self, target: Option<Handle>) -> u64 {
         match target {
             Some(handle)
                 if matches!(
                     self.document.objects.get(&handle),
                     Some(crate::objects::ObjectType::DynamicBlock(d))
-                        if d.dxf_name.starts_with("ACSH_")
-                            && d.dxf_name != "ACSH_HISTORY_CLASS"
-                            && d.dxf_name != "ACSH_SWEEP_CLASS"
-                            && d.dxf_name != "ACSH_EXTRUSION_CLASS"
+                        if super::objects::elided_solid_history_class(&d.dxf_name)
                 ) =>
             {
                 0

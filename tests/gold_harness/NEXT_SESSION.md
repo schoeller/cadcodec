@@ -68,10 +68,13 @@ authored wires, and the fix is the same raw-tail capture.
    in their arms right after `op.minor` (same boundary expression as
    `read_history_sweep`), writer arms gated on the tail (modeled
    fallback preserved for DXF, like the sweep).
-3. **Un-elide both** — the two guard sites:
-   `src/io/dwg/dwg_stream_writers/object_writer/objects.rs` and
-   `entities.rs::solid_history_handle_value` (one class at a time:
-   LOFT first, gate it, then REVOLVE).
+3. **Un-elide both** — edit the single shared authority
+   `elided_solid_history_class` in
+   `src/io/dwg/dwg_stream_writers/object_writer/objects.rs` (it
+   serves BOTH the write guard and the pointer nuller; there is no
+   second list to keep in sync anymore — drop the class from that
+   one list and update its Phase A doc comment; one class at a
+   time: LOFT first, gate it, then REVOLVE).
 4. **Gates** (each class): hermetic tests; the single-fixture smoke
    (expect 0 new rows — each file's surviving rows are its
    `3DSOLID.wires` stub pair); full corpus (gold tree 0/0 must hold,

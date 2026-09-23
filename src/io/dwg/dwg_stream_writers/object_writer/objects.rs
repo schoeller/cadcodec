@@ -281,6 +281,27 @@ fn matrix_to_row_major(m: &crate::types::Matrix4) -> [f64; 12] {
     out
 }
 
+/// The SH classes that are still elided at save — the single authority
+/// for BOTH decisions that must agree: whether a record is written
+/// (`write_object` here) and whether pointers to it stay live
+/// (`solid_history_handle_value` in entities.rs). A class present in
+/// this list must never appear in a written record, and a class absent
+/// must never have its pointers nulled; either drift produces dangling
+/// or dead references that make strict readers refuse the whole file.
+///
+/// Phase A state (2026-09-23): ACSH_HISTORY_CLASS has a verified layout
+/// and is written; ACSH_SWEEP_CLASS and ACSH_EXTRUSION_CLASS are written
+/// with their undocumented tails retained raw on the model and re-emitted
+/// verbatim (steps 2-3). The remaining node classes (LOFT, REVOLVE, the
+/// primitives, and BREP) stay elided until their layouts are calibrated
+/// and verified per the sh_history fixture campaign.
+pub(crate) fn elided_solid_history_class(dxf_name: &str) -> bool {
+    dxf_name.starts_with("ACSH_")
+        && dxf_name != "ACSH_HISTORY_CLASS"
+        && dxf_name != "ACSH_SWEEP_CLASS"
+        && dxf_name != "ACSH_EXTRUSION_CLASS"
+}
+
 impl<'a> DwgObjectWriter<'a> {
     // ── Object dispatch ─────────────────────────────────────────────
 
@@ -298,21 +319,11 @@ impl<'a> DwgObjectWriter<'a> {
         // written NULL instead (see solid_history_handle_value in
         // entities.rs).
         //
-        // Phase A (2026-09-23): ACSH_HISTORY_CLASS has a known layout
-        // (gold dwg2.spec: 2 BLs + handle + BL + 2 bits, all correctly
-        // implemented on both sides) and is now WRITTEN, as are
-        // ACSH_SWEEP_CLASS and ACSH_EXTRUSION_CLASS (steps 2-3: the
-        // undocumented tail is retained raw on the model and written
-        // verbatim — the sweep/path guess arms that produced empty
-        // records are gone). The remaining node classes (LOFT, REVOLVE,
-        // the primitives, and BREP) stay elided until their layouts are
-        // calibrated and verified per the sh_history fixture campaign.
+        // The elision verdict and the pointer-nulling verdict share one
+        // authority: elided_solid_history_class above (see its doc for
+        // the Phase A state of each class).
         if let ObjectType::DynamicBlock(d) = obj {
-            if d.dxf_name.starts_with("ACSH_")
-                && d.dxf_name != "ACSH_HISTORY_CLASS"
-                && d.dxf_name != "ACSH_SWEEP_CLASS"
-                && d.dxf_name != "ACSH_EXTRUSION_CLASS"
-            {
+            if elided_solid_history_class(&d.dxf_name) {
                 return;
             }
         }
