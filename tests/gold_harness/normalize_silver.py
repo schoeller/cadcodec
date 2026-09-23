@@ -3710,7 +3710,14 @@ def normalize_silver(
                            "point_present", "point", "isolines", "isoline_present",
                            "acis_empty_bit",
                            "has_revision_guid", "revision_major", "revision_minor1",
-                           "revision_minor2", "revision_bytes", "end_marker"):
+                           "revision_minor2", "revision_bytes", "end_marker",
+                           # the wire/silhouette structs live behind the
+                           # isoline-present flag in gold's walk: derailed
+                           # R2013+ reads never reach them, so gold emits
+                           # nothing — silver's deeper parse (real wire
+                           # geometry from the ds-backing) has no gold
+                           # counterpart (the 8-file wires stub packet).
+                           "wires", "silhouettes"):
                     fields.pop(fk, None)
             for sk in ("uid", "point_of_reference", "acis_data", "wires",
                        "silhouettes", "history_handle"):

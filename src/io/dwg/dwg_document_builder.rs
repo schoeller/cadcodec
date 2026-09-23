@@ -4704,11 +4704,15 @@ impl DwgDocumentBuilder {
                     e.acis_data.extra_acis_data = data.extra_acis_data.map(Box::new);
                     e.acis_data.wireframe_isolines = data.isolines;
                     e.acis_data.encr_sat_data = data.encr_sat_data;
-                    // The wireframe anchor AutoCAD bakes in (point_present +
-                    // 3BD) is the body's bounding-box centre — the natural
-                    // reference point. Empty/degenerate bodies (no anchor) fall
-                    // back to the geometry centre, then the SAT placement.
-                    e.point_of_reference = if data.point != crate::types::Vector3::ZERO {
+                    // The wireframe anchor (point_present + 3BD) is VERBATIM
+                    // wire data — gold re-emits it as parsed, including the
+                    // zero anchor (Revolve_2007/2010 bake in (0,0,0); the old
+                    // zero-swap-to-geometry-centre was the wrong-value packet).
+                    // The geometry-centre fallback is only for records with
+                    // no anchor at all (point_present = 0).
+                    e.point_of_reference = if data.wireframe_point_present
+                        || data.point != crate::types::Vector3::ZERO
+                    {
                         data.point
                     } else {
                         e.acis_data
@@ -4759,7 +4763,9 @@ impl DwgDocumentBuilder {
                     // 3BD) is the body's bounding-box centre — the natural
                     // reference point. Empty/degenerate bodies (no anchor) fall
                     // back to the geometry centre, then the SAT placement.
-                    e.point_of_reference = if data.point != crate::types::Vector3::ZERO {
+                    e.point_of_reference = if data.wireframe_point_present
+                        || data.point != crate::types::Vector3::ZERO
+                    {
                         data.point
                     } else {
                         e.acis_data
@@ -4801,7 +4807,9 @@ impl DwgDocumentBuilder {
                     // 3BD) is the body's bounding-box centre — the natural
                     // reference point. Empty/degenerate bodies (no anchor) fall
                     // back to the geometry centre, then the SAT placement.
-                    e.point_of_reference = if data.point != crate::types::Vector3::ZERO {
+                    e.point_of_reference = if data.wireframe_point_present
+                        || data.point != crate::types::Vector3::ZERO
+                    {
                         data.point
                     } else {
                         e.acis_data
