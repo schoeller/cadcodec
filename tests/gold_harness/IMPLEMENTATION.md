@@ -3302,6 +3302,7 @@ Fixture rules (deltas from the gold-tree convention above):
 | `Pyramid_<v>` (Phase C) | `PYRAMID` | `ACSH_PYRAMID_CLASS` | landed 2026-09-23, qualified (all 0/0) |
 | `Fillet_<v>` / `Chamfer_<v>` (Phase C) | `BOX` + `FILLET` / `BOX` + `CHAMFER` | the edge-modification nodes (with the parent `ACSH_BOX_CLASS` chain) | landed 2026-09-23, qualified (all 0/0) |
 | `Brep_<v>` | **DEFERRED** (2026-09-23): `ACSH_BREP_CLASS` is not reachable through any user-facing AutoCAD op — seven authored attempts (plain op, SLICE, single-op, foreign-body graft, SOLIDEDIT face edit, real-template source) all produced either parametric chains or history-stripped plain solids. The class stays elided; silver already tolerates the one real-world carrier (`ATMOS-DC22S.dwg`) at 0/0. The row re-opens if an authentic specimen surfaces (legacy SAT-era import paths). | — | — |
+| *(differential queue — 2026-09-23)* | `PolysolidX/D`, `ExtrudeH/R/P`, `Loft3/H/R`, `RevolveA/R` — the Phase B follow-up set: ten single-variable typed stems to finish naming the raw-tail mid-regions. **The full authoring recipe is §18.7**; the rows enter the table as each stem lands (qualification per §F2.1/F2.2 + the §18.7 differential invariants). | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, as landed |
 
 ---
 
@@ -3756,20 +3757,34 @@ wireframe values on the same modeler backing).
 - **Revolve** (`raw_tail`): the sweep-family option spine
   `[0,0,0,0,1.0,0]` directly at bit 0, then the first raw BD entry
   = the revolve sweep ANGLE — 3*pi/2 (270°) in every Revolve
-  fixture (bits 14..78, the one field the guessed spec walk placed
-  years too late) — followed by 6 BD zeros, some flag bits, and a
-  further raw entry (0.2).
+  fixture (value bits 14..78 — the one field the guessed spec walk
+  placed far downstream in its field sequence) — followed by 6 BD
+  zeros, some flag bits, and a further raw entry (0.2).
 
 **Wire-format corollaries confirmed along the way:** the
 tails' raw BD entries are plain LE doubles per DWG byte order
 (bytes little-endian, each byte MSB-first on the wire — the same
 convention as `read_raw_double`; an early decoder draft reversed
 the within-byte order and produced garbage values, caught by
-re-validating against gold's `unknown_bits` window); zero values
-are never stored raw (`'00'`-marked zeros are misaligned aliases —
-the wire uses the short `'10'` form); and the byte-aligned
-geometry blocks cannot be BD-form (their doubles sit 64 bits
-apart, not 66).
+re-dumping the fixture tails and pinning the decodes against the
+extraction probes' known values); zero values are never stored raw
+(`'00'`-marked zeros are misaligned aliases — the wire uses the
+short `'10'` form); and the byte-aligned geometry blocks cannot be
+BD-form (their doubles sit 64 bits apart, not 66).
+
+**Review pass (same halt):** two defects found and fixed before
+the campaign was declared complete. (1) A captured tail whose
+layout does NOT decode fell through the Phase B writer arm into
+the modeled fallback, which would have replaced the captured bits
+with the guess sequence and corrupted the record — the fixed rule:
+render when decodable, verbatim when not, modeled arm strictly
+reserved for records with no captured tail (pinned by
+`undecodable_tails_stay_verbatim_never_modeled`). (2) The revolve
+decoder's `raw_spans` kept the angle's span at index 0 while the
+angle value was removed from `raw_doubles` — editing
+`raw_doubles[0]` would have spliced into the angle's bits; spans
+now shift in lockstep with the values (pinned by
+`revolve_raw_entry_edits_stay_out_of_the_angle_span`).
 
 **Implementation** (all gates green at halt):
 
@@ -3831,4 +3846,97 @@ untouched by the writer; naming them needs the differential
 instrument the brief predicts (a second specimen per family with
 different geometry — the fixture tree has one distinct specimen
 per family, and the strict-load gold tree carries no other
-sweep-family members).
+sweep-family members). **The authoring recipe for that set is §18.7**
+(ten single-variable typed stems with qualification checks and the
+processing pipeline); once those pairs land, the next session runs
+the §18.7 pipeline and the remainder closes.
+
+### 18.7 The differential specimen recipe — authoring the Phase B follow-up set
+
+Phase B's one instrument gap is mass: one distinct specimen per
+family means every unnamed entry is un-correlated. The specimens
+below close that with **single-variable typed pairs** — each new
+stem is authored with EXACT TYPED geometry (no drags; the landed
+originals were drag-authored, which is why their coordinates read
+like 1532.5039681547414), and each varies exactly one geometric
+variable against its partner so the next session's bit-diff
+attributes every changed unknown entry to that variable. Author in
+AutoCAD (the originals are AutoCAD 2027.1; BricsCAD is acceptable
+— record which, per F2.2 step 6), one operation per file, blank
+default template, solid-history recording ON, then SAVEAS to all
+four versions (2007/2010/2013/2018 — verify each kept the ACSH
+records per the F2.1/F2.2 qualification; the SH genus persists
+R2007+).
+
+**The stems** (globally unique, so `run_corpus.py` keys per-file
+workdirs cleanly):
+
+| priority | stem | typed geometry (one op, blank template) | varies vs its partner | designed to answer |
+|---|---|---|---|---|
+| P1 | `PolysolidX_<v>` | `POLYSOLID` → `Height` 5 → `width` 3; path `0,0,0` → `12,0,0`, ENTER to end | (pair anchor) axis-aligned path, typed profile | the two 288-bit frame blocks with unit direction (1,0): do the −0.9446/−1689439-class unnamed entries become clean {0, ±1} values (direction-derived) or keep their shape (derived from something else)?; corners should decode (±1.5, {0,5}) — a second profile confirming `profile_corners`; which singles track W vs H (the 4.0002-class entry) |
+| P1 | `PolysolidD_<v>` | same profile (`Height` 5, `width` 3); path `0,0,0` → `10,10,0` | 45° path (unit (0.7071…, 0.7071…)) vs X | the direction slots of the frame blocks (second sample separates direction entries from constants); the segment-end slot = (10,10) |
+| P1 | `ExtrudeH_<v>` | `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` the circle, height `5` | height 2→5 (radius unchanged) | does the 64-bit payload after the option spine change with height? direction z decodes 5.0; the 36-bit trailer |
+| P1 | `ExtrudeR_<v>` | `CIRCLE` center `0,0,0` radius `3.125`; `EXTRUDE` height `2` | radius 1→3.125 (height unchanged) | does the 64-bit payload encode the profile? (3.125 has a long non-repeating mantissa — it must show bit-exactly if stored as a raw double) |
+| P1 | `RevolveA_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; `REVOLVE` the circle about axis `0,0,0` → `0,0,1`, typed angle `180` | (pair anchor) typed 180° revolve | `revolve_angle` decodes π (second angle sample); which flag bits between the angle and the raw 0.2-class entry change vs the 270° original; a typed baseline for the R pair |
+| P1 | `RevolveR_<v>` | `CIRCLE` center `2,0,0` radius `1.25`; same axis, angle `180` | radius 0.8→1.25, all else equal to A | does the 0.2-class raw entry track the profile radius? |
+| P2 | `Loft3_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,2.5` r `1` + `CIRCLE` `0,0,5` r `1`; `LOFT` all three | section count 2→3 | the sharpest probe for the Loft's opaque leading 68-bit region (count-derived?) and the per-section slot repetitions |
+| P2 | `LoftH_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,7` r `1`; `LOFT` both | top z 5→7 | which `raw_doubles` slot is the section height (expect 5.0 → 7.0) |
+| P2 | `LoftR_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,5` r `2.5`; `LOFT` both | radii 1,1 → 1,2.5 | do the 2.0 / 0.3 slots track the section radii? |
+| P2 | `ExtrudeP_<v>` | closed `PLINE` rectangle `0,0` → `4,0` → `4,3` → `0,3` → `Close`; `EXTRUDE` the polyline, height `2` | circle → rectangle profile | is the 64-bit payload profile-shape-dependent (entity serialization) or constant? NOTE: do NOT convert the polyline to a `REGION` or `JOIN` anything — a closed LWPOLYLINE is a valid EXTRUDE profile as-is, and converting changes the record shape |
+
+**Authoring mechanics** (per stem, mirroring the landed `.txt`
+companions): new drawing on a blank default template, zero
+pre-existing entities, solid-history recording ON, perform the ONE
+typed operation, `SAVEAS` to `DWG 2007` / `DWG 2010` / `DWG 2013`
+/ `DWG 2018` (one file each — the SAVEAS keeps the ACSH records on
+all four; if any version drops them, emit no fixture for that
+version and RECORD IT — that fact is itself evidence). Command
+prompt order may differ slightly per AutoCAD release; record what
+was actually typed in the `.txt` companion (the exact command
+sequence + the resulting geometry). Land as
+`tests/gold_harness/tests/sh_history/<Stem>_<version>.dwg` with
+the companion `<Stem>_<version>.txt`; the root `.gitignore`
+already negates the fixture tree.
+
+**Qualification** (the landing gate, per file): the F2.1 checks
+(gold `dwgread -O JSON` zero `Error` lines; the family's ACSH class
+present; minimal census) PLUS the differential invariants, checked
+before committing:
+
+1. The four versions of a stem carry **bit-identical tails** —
+   extract with `target/debug/dwg2json` (the
+   `shsw_raw_tail`/`raw_tail` byte arrays), compare. The landed
+   families are all bit-identical across versions; a new stem must
+   be too, or the tail needs re-inspection before it can serve as
+   a decode anchor.
+2. The corpus must take every file at **0/0** — these classes are
+   write-verbatim, so a well-formed specimen cannot fail unless
+   the authoring produced something structurally new (which then
+   is the interesting fact — record it).
+
+**The processing pipeline** (what the next session runs once the
+pairs land — keep this with the recipe):
+
+1. Dump the new tails (`dwg2json`) and re-verify the quartet
+   identity per stem.
+2. Run the Phase B decoder over every new tail; the confirmed
+   anchors (option spine, revolve angle, corners, segment end)
+   should land named already; print the residual.
+3. Position-diff the partner tails bit-by-bit against each other
+   (and against the landed originals where the variable matches):
+   every entry that CHANGED with the varied geometry is now
+   attributed — extend `sh_tail_decode.rs` (collectors for newly
+   named entries, spans for their raws), promote typed fields,
+   pin hermetic tests on the new pair, and re-run the gates.
+4. Between P1 stakes, `PolysolidX`+`PolysolidD` crack the frame
+   blocks (the largest opaque mass), `ExtrudeH`/`ExtrudeR` crack
+   the 64-bit payload, `RevolveA`+`RevolveR` the 0.2 entry; the P2
+   stems then name the Loft slots — the campaign's blob-autopsy
+   pack closes when every raw BD entry in every specimen decodes
+   to a typed field with a pinned test.
+
+The `0.3` and `2.0, 2.0` Loft slots and the sweep single-values
+are EXPECTED to resolve here; the recipe deliberately uses values
+with long mantissas (3.125, 1.25, 2.5) so stored raw doubles are
+recognizable bit-exactly rather than confusable with round
+constants.

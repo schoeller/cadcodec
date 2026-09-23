@@ -46,18 +46,20 @@ splice + the section checksum).
 
 ## The open rows (what re-opens work — no defined phase remains)
 
-1. **The opaque mid-regions.** The sweep frame blocks' un-named
-   remainder (the −0.9446…/−1689439.46-class entries), the
-   Extrusion's 64-bit payload, and the Loft's leading 68-bit
-   region round-trip verbatim and stay untouched; naming them
-   needs the differential instrument the brief predicted — a
-   second specimen per family with DIFFERENT geometry (the fixture
-   tree has one distinct specimen per family; the strict-load gold
-   tree carries no other sweep-family members). **A maintainer
-   action:** author e.g. a slanted two-segment POLYSOLID, a
-   tapered EXTRUDE, a three-section LOFT, a 180° REVOLVE (with
-   .txt companions per §F2.2), land them in `sh_history/`, and the
-   next session runs the differential decode off those pairs.
+1. **The opaque mid-regions — now a concrete recipe.** The sweep
+   frame blocks' un-named remainder (the −0.9446…/−1689439.46-class
+   entries), the Extrusion's 64-bit payload, and the Loft's leading
+   68-bit region round-trip verbatim and stay untouched; naming them
+   needs the differential instrument — differently-geared specimens.
+   **`IMPLEMENTATION.md` §18.7 IS THE RECIPE**: ten single-variable
+   typed stems (`PolysolidX/D`, `ExtrudeH/R/P`, `Loft3/H/R`,
+   `RevolveA/R`), the authoring mechanics per stem, the
+   qualification invariants (quartet bit-identity + corpus 0/0), and
+   the processing pipeline the next session runs once they land.
+   **A maintainer action:** author that set in AutoCAD per §18.7 and
+   land it in `sh_history/`; the next session then runs the
+   position-diff pipeline and extends `sh_tail_decode.rs` until every
+   raw BD entry in every specimen decodes to a typed field.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.
 3. Campaign closure prose (§18.5's phase map now fully checked):
@@ -108,8 +110,15 @@ gate 1.
 ## Commit inventory (this halt)
 
 ```
-<docs>  docs(harness): Phase B COMPLETE — the blob autopsy record + halt refresh
-<code>  fix(dwg): Phase B blob autopsy — SH tail decoders, typed views, re-encode rule
+<this-halt docs + review pass>
+<prev>  7f2a77f docs(harness): Phase B COMPLETE — the blob autopsy record + halt refresh
+<prev>  9a260ae fix(dwg): Phase B blob autopsy — SH tail decoders, typed views, re-encode rule
+<prev>  aeb59ed docs(harness): handover refresh — counts, tail-anchor precision, commit inventory
+e1dff05  docs(harness): Phase C fixture review closure — seven families landed, BREP deferred
 ```
 
-(Push only when asked; `1f06d9d` remains the last remote head.)
+(The review-pass commit fixes two writer defects found on re-read —
+the undecodable-tail verbatim fallback and the revolve span
+alignment — and lands the §18.7 recipe with the closure docs; see
+§18.6's "Review pass" note. Push only when asked; `1f06d9d`
+remains the last remote head.)
