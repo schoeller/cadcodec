@@ -126,3 +126,54 @@ fn dwg_save_elides_sh_history_records_for_strict_loaders() {
         .solid_history_operations(entity)
         .map_or(true, |operations| operations.is_empty()));
 }
+
+#[test]
+fn dwg_save_writes_history_root_but_elides_operation_nodes() {
+    let sat = acadrust::entities::acis::primitives::build_box(
+        [0.0, 0.0, 0.0],
+        2.0,
+        3.0,
+        4.0,
+    );
+    let sab = acadrust::SabWriter::write(&sat);
+    let operation = SolidHistoryOperation::Brep(SolidHistoryBrep {
+        base: SolidHistoryNodeBase::new(1),
+        acis_data: acadrust::entities::AcisData::from_sab(sab.clone()),
+        ..SolidHistoryBrep::default()
+    });
+    let mut document = CadDocument::with_version(DxfVersion::AC1032);
+    let entity = document
+        .add_entity(EntityType::Solid3D(Solid3D::new()))
+        .unwrap();
+    document.create_solid_history(entity, operation).unwrap();
+
+    let bytes = DwgWriter::write_to_vec(&document).unwrap();
+    let roundtrip = DwgReader::from_stream(Cursor::new(bytes)).read().unwrap();
+
+    // The solid survives (SAT self-contained).
+    assert!(matches!(
+        roundtrip.get_entity(entity),
+        Some(EntityType::Solid3D(_))
+    ));
+    // The HISTORY root record is now written (Phase A 2026-09-23, per
+    // gold dwg2.spec ACSH_HISTORY_CLASS: 2 BLs + handle + BL + 2 Bs):
+    // the entity's history soft-pointer must survive the round-trip
+    // as non-null (it was the elide that wrote it NULL).
+    match roundtrip.get_entity(entity) {
+        Some(EntityType::Solid3D(s)) => {
+            assert!(
+                s.history_handle.map_or(false, |h| h.value() != 0),
+                "the ACSH_HISTORY_CLASS root pointer must survive \
+                 the round-trip (not written NULL): got {:?}",
+                s.history_handle
+            );
+        }
+        other => panic!("expected Solid3D, got {other:?}"),
+    }
+    // The BREP operation node is still elided: its layout is not yet
+    // calibrated, so the node classes stay behind the elide and the
+    // operations (node tree) remain empty.
+    assert!(roundtrip
+        .solid_history_operations(entity)
+        .map_or(true, |operations| operations.is_empty()));
+}

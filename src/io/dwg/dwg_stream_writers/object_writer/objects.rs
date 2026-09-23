@@ -288,18 +288,24 @@ impl<'a> DwgObjectWriter<'a> {
     pub(super) fn write_object(&mut self, obj: &ObjectType) {
         // SH modeler-history class records (2026-09-22 extrusion probe):
         // the solid-history tree is carried through the class-name
-        // catch-all (DynamicBlock) under the fixed SH classes —
-        // ACSH_HISTORY_CLASS, ACSH_EXTRUSION_CLASS, the primitive SH
-        // classes. Their true DWG layouts are undocumented, and
-        // class-numbered catch-all records make strict readers refuse
-        // the WHOLE file (BricsCAD: "Cannot open file: Object
-        // improperly read: <AcDbShExtrusion> (68)"). The solid's SAT
-        // is self-contained and BCAD-verified on its own, so the
-        // catch-all SH records are elided at save; the ACIS entities'
-        // history soft-pointers are written NULL instead (see
-        // solid_history_handle_value in entities.rs).
+        // catch-all (DynamicBlock) under the fixed SH classes.
+        // Their true DWG layouts are undocumented, and class-numbered
+        // catch-all records make strict readers refuse the WHOLE file
+        // (BricsCAD: "Cannot open file: Object improperly read:
+        // <AcDbShExtrusion> (68)"). The solid's SAT is self-contained
+        // and BCAD-verified on its own, so the catch-all SH records are
+        // elided at save; the ACIS entities' history soft-pointers are
+        // written NULL instead (see solid_history_handle_value in
+        // entities.rs).
+        //
+        // Phase A (2026-09-23): ACSH_HISTORY_CLASS has a known layout
+        // (gold dwg2.spec: 2 BLs + handle + BL + 2 bits, all correctly
+        // implemented on both sides) and is now WRITTEN. All the node
+        // classes (ACSH_EXTRUSION_CLASS, ACSH_SWEEP_CLASS, the
+        // primitives, and BREP) stay elided until their layouts are
+        // calibrated and verified per the sh_history fixture campaign.
         if let ObjectType::DynamicBlock(d) = obj {
-            if d.dxf_name.starts_with("ACSH_") {
+            if d.dxf_name.starts_with("ACSH_") && d.dxf_name != "ACSH_HISTORY_CLASS" {
                 return;
             }
         }
