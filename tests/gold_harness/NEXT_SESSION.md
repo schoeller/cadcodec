@@ -1,15 +1,20 @@
 # Zero-context prompt — the ACS/SH campaign halt: all three phases COMPLETE
 
 > Campaign state 2026-09-23 (late). **The three-phase ACS/SH campaign is
-> COMPLETE at 0/0: the corpus stands at 180 files, read 0, write 0.**
-> Phase A (typed SH wire layouts, raw-tail retention) closed at
+> COMPLETE at 0/0: the corpus stands at 188 files, read 0, write 0**
+> (180 + the landed §18.7 differential quads RevolveA/R ×4 versions
+> each). Phase A (typed SH wire layouts, raw-tail retention) closed at
 > `f368fce`→`e1dff05`; Phase C (the seven fixture families) closed at
 > `9cf8e0f`→`e1dff05`; **Phase B (the blob autopsy) closed at this
-> halt** — the four raw-retained node tails now carry typed semantic
-> views with the captured bits still the write authority. Read
-> `tests/gold_harness/AGENTS.md` first, then §F2.1–F2.3 and §18.5–18.6
-> in `IMPLEMENTATION.md` (§18.6 is the Phase B record), then this
-> file top to bottom.
+> halt** — the four raw-retained node tails carry typed semantic views
+> with the captured bits still the write authority, and the §18.7
+> differential pipeline is now landing follow-up decode rows live
+> (RevolveA/R processed: the structural profile block +
+> `profile_center`/`profile_radius`/`trailing_triple` on the model).
+> Read `tests/gold_harness/AGENTS.md` first, then §F2.1–F2.3 and
+> §18.5–18.7 in `IMPLEMENTATION.md` (§18.6 is the Phase B record,
+> §18.7 the differential recipe + its live outcomes), then this file
+> top to bottom.
 
 ## What this halt landed (Phase B in one paragraph)
 
@@ -46,25 +51,30 @@ splice + the section checksum).
 
 ## The open rows (what re-opens work — no defined phase remains)
 
-1. **The opaque mid-regions — now a concrete recipe.** The sweep
-   frame blocks' un-named remainder (the −0.9446…/−1689439.46-class
-   entries), the Extrusion's 64-bit payload, and the Loft's leading
-   68-bit region round-trip verbatim and stay untouched; naming them
-   needs the differential instrument — differently-geared specimens.
-   **`IMPLEMENTATION.md` §18.7 IS THE RECIPE**: sixteen
-   single-variable typed stems (`PolysolidX/D`, `ExtrudeH/R/P/T`,
-   `Loft3/H/R`, `RevolveA/R/C/I/O/T/F` — the revolve set is a
-   seven-stem MATRIX after the 2026-09-23 sufficiency review: the
-   pair alone left the head's '01' pivot ambiguous between a scale
-   factor and the axis point/direction pair, and the 0.2 entry
-   confounded radius/bore/center-distance), the authoring mechanics
-   per stem, the qualification invariants (quartet bit-identity +
-   corpus 0/0), the 0.2-entry falsification table, and the
-   processing pipeline the next session runs once they land.
-   **A maintainer action:** author that set in AutoCAD per §18.7 and
-   land it in `sh_history/`; the next session then runs the
-   position-diff pipeline and extends `sh_tail_decode.rs` until every
-   raw BD entry in every specimen decodes to a typed field.
+1. **The opaque mid-regions — the differential queue is LIVE.** The
+   §18.7 recipe's first two revolve stems (RevolveA/R) are LANDED,
+   QUALIFIED and DECODED (2026-09-23): both quads are bit-identical
+   across their four versions, the corpus took them at 0/0 (188 files
+   now), they confirmed `revolve_angle` on a second value (π), and
+   they resolved the old "0.2 entry": the revolve tail carries a
+   structural `[profile center 3BD][profile radius BD]` block — the
+   original's 0.2 is its profile center.x, and its radius 1.0 hides
+   in the two-bit short BD form; the torus class (A/R) adds a
+   `(0,0,1)` trailing 3BD the crossing class lacks. The model now
+   exposes `profile_center`/`profile_radius`/`trailing_triple`
+   (splice-backed, bit-locally edited). **Still owed by the recipe**
+   (author per §18.7, land in `sh_history/`): the remaining revolve
+   matrix stems **RevolveC** (center-only: is the first raw really
+   the center.x?), **RevolveI** (crossing-class: the trailing-trio
+   absence + the mid-region), **RevolveO** (axis point delta:
+   world-X vs axis-relative distance + the head '01' pivot),
+   **RevolveT** (axis direction delta — settles the options-vs-
+   axis-pair reading of the head), **RevolveF** (the 360 form and
+   the trailing flags); plus the sweep/extrude/loft stems
+   **PolysolidX/D**, **ExtrudeH/R/T/P**, **Loft3/H/R** (§18.7 rows,
+   unchanged). The next session runs the same pipeline on each
+   landing: dump, quartet-identity check, decode, position-diff,
+   extend `sh_tail_decode.rs`, pin, four gates.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.
 3. Campaign closure prose (§18.5's phase map now fully checked):
@@ -95,11 +105,12 @@ export GOLD_TESTDATA="$HOME/work/libredwg/test/test-data"
 # 1. Build gates
 cargo test --features serde
 
-# 2. Family smokes (16: 4 families x 4 versions, all 0/0)
+# 2. Family smokes (24 fixtures: the 16 campaign quads + the landed
+#    differential quads, all 0/0)
 python3 tests/gold_harness/run_roundtrip.py \
     tests/gold_harness/tests/sh_history/<FIXTURE>.dwg /tmp/smoke
 
-# 3. Full corpus (must stay 180 files 0/0)
+# 3. Full corpus (must stay 188 files 0/0, growing with each landed pair)
 python3 tests/gold_harness/run_corpus.py
 
 # 4. Layer-4 byte-walk for any writer re-encode path
