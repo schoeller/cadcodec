@@ -3216,6 +3216,88 @@ which the existing loop covers them with **no harness changes**:
    Phase 4 driver, and the entity types move from "OUT OF LOOP" to covered
    automatically.
 
+### F2.1 In-repo fixture tree — `tests/gold_harness/tests/`
+
+Authored fixtures that are **not part of libredwg** live in-repo, so the
+corpus can regress them without touching the read-only oracle:
+
+```
+tests/gold_harness/tests/
+  README.md                    — the fixture conventions (in place)
+  <campaign>/                  — one directory per coverage campaign
+    <Entity>_<version>.dwg     — one operation per file
+    <Entity>_<version>.txt     — provenance companion (F2 step 4)
+```
+
+First resident campaign: `sh_history/` (the ACS/`AcDbSh*` solid-history
+family). Its wire layouts are documented in the gold spec — the live
+`DWG_OBJECT` blocks in `~/work/libredwg/src/dwg2.spec` (ACSH_HISTORY_CLASS
+~line 3077, ACSH_SWEEP_CLASS ~4175, ACSH_EXTRUSION_CLASS ~4222, the
+primitive/boolean/loft/revolve siblings around 2910–3300 and 4170–4400;
+class-number registry in `src/classes.c`) — and the current interim state
+is the save-elide for strict loaders (commit `459bc74`, asserted by
+`tests/solid_history.rs::dwg_save_elides_sh_history_records_for_strict_loaders`):
+silver writes no ACSH_* records yet, and 3DSOLID/REGION/BODY history
+soft-pointers go NULL. The Downloads `Polysolid.dwg` stays the byte-
+**calibration** specimen, NOT a corpus fixture: it is a 35k-object
+real-world working drawing, far past the minimality bar.
+
+Fixture rules (deltas from the gold-tree convention above):
+
+- **Version-suffixed stems** (`Polysolid_2018.dwg`), not per-version
+  directories: `run_corpus.py` keys per-file workdirs by path stem, and
+  the gold tree's per-version `Leader.dwg` stems collide (the known
+  count inflation). Fixture stems are globally unique.
+- **Git tracking**: the root `.gitignore` carries a blanket `*.dwg`
+  (line 28); the fixture tree must be negated in
+  (`!tests/gold_harness/tests/**/*.dwg`) or the files silently never
+  commit.
+- **Qualification is per file, before landing**: (a) `dwgread -O JSON`
+  decodes with zero `Error` lines; (b) the target class/entity is
+  present in the JSON (grep it); (c) the object census is minimal — a
+  one-operation drawing is tens of objects, not thousands; reject
+  real-world-scale files.
+- **Version scope**: only versions where the feature natively
+  persists. SH solid history is the 2007+ genus — SAVEAS down to
+  R2000/R2004 flattens the ACSH records away. Verify each save by
+  grepping the class in the JSON; emit no fixture for versions that
+  dropped it.
+
+### F2.2 Authoring checklist (per fixture)
+
+1. **Fresh drawing**: default template, layer 0, empty canvas.
+2. **Perform exactly ONE operation** from the campaign table (F2.3).
+3. **SAVEAS** to the target DWG version — one file per version.
+4. **Qualify** per F2.1: no `Error` in `dwgread -O JSON`, target class
+   present, minimal object census.
+5. **Land it**: copy to
+   `\\wsl.localhost\Ubuntu-24.04\home\sebastianschoeller\work\cadcodec\tests\gold_harness\tests\<campaign>\<Entity>_<version>.dwg`.
+6. **Provenance**: write the sibling `<Entity>_<version>.txt` — author
+   app + build, date, the exact command sequence, the save format, and
+   the qualification result. Either AutoCAD or BricsCAD may author
+   (both are native writers; record which — see the origin-quality
+   census in README).
+7. **Driver extension (one-time)**: `run_corpus.py::in_scope_files`
+   gains the fixture source after the gold-tree collection:
+   `files.extend(sorted((SCRIPT_DIR / "tests").rglob("*.dwg")))`.
+   Until it lands, fixtures run through `run_roundtrip.py` singly.
+8. **Re-run the corpus** and confirm each new file appears with the
+   per-file counts the campaign expects. SH fixtures enter as known
+   nonzero until the ACS/SH campaign's Phase A lands — that is the
+   loop working, not a bug; the fixtures become the regression anchors
+   that keep the landed layouts at zero.
+
+### F2.3 First campaign table — `sh_history/`
+
+| stem | operation (command) | covers | versions |
+|---|---|---|---|
+| `Polysolid_<v>` | `POLYSOLID` — draw one straight segment | `ACSH_SWEEP_CLASS`, `ACSH_HISTORY_CLASS`, `3DSOLID` | 2007/2010/2013/2018 — verify each SAVEAS keeps the ACSH records |
+| `Extrude_<v>` | `CIRCLE`, then `EXTRUDE` the circle | `ACSH_EXTRUSION_CLASS` (Phase A target), `ACSH_HISTORY_CLASS`, `3DSOLID` | same |
+| `Revolve_<v>` (Phase B+) | `CIRCLE` + `REVOLVE` | `ACSH_REVOLVE_CLASS` | as landed |
+| `Loft_<v>` (Phase B+) | two `CIRCLE`s + `LOFT` | `ACSH_LOFT_CLASS` | as landed |
+| `Box_<v>` / `Sphere_<v>` (Phase B+) | `BOX` / `SPHERE` | the SH primitive classes | as landed |
+| `Union_<v>` (Phase B+) | two `BOX`es + `UNION` | `ACSH_BOOLEAN_CLASS` | as landed |
+
 ---
 
 ## 18. Oracles — the four validation layers

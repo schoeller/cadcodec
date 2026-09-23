@@ -48,6 +48,12 @@ def in_scope_files(testdata: Path) -> List[Path]:
                 if "r13" in lower or "r14" in lower:
                     continue
                 files.append(p)
+    # In-repo authored fixtures (IMPLEMENTATION.md §F2.1): one operation
+    # per file, version-suffixed stems, qualified per the §F2.1 gates
+    # before landing. Collected after the gold tree so a fixture stem
+    # colliding with a gold stem stays visible in the report (stems
+    # are required globally unique; a collision is a fixture bug).
+    files.extend(sorted((SCRIPT_DIR / "tests").rglob("*.dwg")))
     return sorted(set(files))
 
 

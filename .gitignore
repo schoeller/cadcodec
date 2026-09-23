@@ -31,6 +31,10 @@ __pycache__/
 *.dmp
 /crash_report.txt
 
+# Authored gold fixtures (in-repo corpus extensions) — see
+# tests/gold_harness/tests/README.md
+!tests/gold_harness/tests/**/*.dwg
+
 
 # Documentation
 /docs/site/
