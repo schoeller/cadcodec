@@ -1142,6 +1142,9 @@ pub struct SolidHistorySweepTail {
     /// The post-direction BD-short option run (all-short run until the
     /// first raw/reserved form). Sweep tails list [0,0,0,0,1.0,0,0,0];
     /// extrusion tails the same spine minus the two trailing zeros.
+    /// The BD('01') member is provisionally the scale factor (the
+    /// same confound the revolve head carries until the §18.7
+    /// ExtrudeT/O/T specimens land).
     pub option_doubles: Vec<f64>,
     /// Raw BD ('00'-marked LE64) entries of the mid-region: the sweep
     /// frame/transform components. The Polysolid specimen stores the
@@ -1294,8 +1297,13 @@ pub struct SolidHistoryRevolve {
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SolidHistoryRevolveTail {
-    /// All-short BD head run ([0, 0, 0, 0, 1.0, 0] in every specimen;
-    /// the BD('01') member is the sweep scale factor).
+    /// All-short BD head run ([0, 0, 0, 0, 1.0, 0] in every specimen).
+    /// PROVISIONALLY named "option doubles" with the BD('01') member
+    /// read as the scale factor; the equally-consistent reading is
+    /// [axis_pt (0,0,0)][axis_dir with a unit component] — every
+    /// specimen to date revolves about an origin/Z axis, so the two
+    /// readings never diverge. The §18.7 revolve matrix (RevolveO/T)
+    /// resolves it; do not over-rely on the field name until then.
     pub option_doubles: Vec<f64>,
     /// First raw BD entry after the option spine: the revolve sweep
     /// angle in radians (Revolve fixtures: 3*pi/2 = 270°).

@@ -3302,7 +3302,7 @@ Fixture rules (deltas from the gold-tree convention above):
 | `Pyramid_<v>` (Phase C) | `PYRAMID` | `ACSH_PYRAMID_CLASS` | landed 2026-09-23, qualified (all 0/0) |
 | `Fillet_<v>` / `Chamfer_<v>` (Phase C) | `BOX` + `FILLET` / `BOX` + `CHAMFER` | the edge-modification nodes (with the parent `ACSH_BOX_CLASS` chain) | landed 2026-09-23, qualified (all 0/0) |
 | `Brep_<v>` | **DEFERRED** (2026-09-23): `ACSH_BREP_CLASS` is not reachable through any user-facing AutoCAD op — seven authored attempts (plain op, SLICE, single-op, foreign-body graft, SOLIDEDIT face edit, real-template source) all produced either parametric chains or history-stripped plain solids. The class stays elided; silver already tolerates the one real-world carrier (`ATMOS-DC22S.dwg`) at 0/0. The row re-opens if an authentic specimen surfaces (legacy SAT-era import paths). | — | — |
-| *(differential queue — 2026-09-23)* | `PolysolidX/D`, `ExtrudeH/R/P`, `Loft3/H/R`, `RevolveA/R` — the Phase B follow-up set: ten single-variable typed stems to finish naming the raw-tail mid-regions. **The full authoring recipe is §18.7**; the rows enter the table as each stem lands (qualification per §F2.1/F2.2 + the §18.7 differential invariants). | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, as landed |
+| *(differential queue — 2026-09-23)* | `PolysolidX/D`, `ExtrudeH/R/P/T`, `Loft3/H/R`, `RevolveA/R/C/I/O/T/F` — the Phase B follow-up set: sixteen single-variable typed stems to finish naming the raw-tail mid-regions (the revolve set is a seven-stem matrix after the sufficiency review — see §18.7). **The full authoring recipe is §18.7**; the rows enter the table as each stem lands (qualification per §F2.1/F2.2 + the §18.7 differential invariants). | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, as landed |
 
 ---
 
@@ -3754,12 +3754,20 @@ wireframe values on the same modeler backing).
   pi/2])` — the 5.0 top height matches the wire geometry (wires
   run z 0..5) and the two pi/2 entries are the 90-degree draft
   angles. Exposed positionally (`raw_doubles`).
-- **Revolve** (`raw_tail`): the sweep-family option spine
-  `[0,0,0,0,1.0,0]` directly at bit 0, then the first raw BD entry
-  = the revolve sweep ANGLE — 3*pi/2 (270°) in every Revolve
-  fixture (value bits 14..78 — the one field the guessed spec walk
-  placed far downstream in its field sequence) — followed by 6 BD
-  zeros, some flag bits, and a further raw entry (0.2).
+- **Revolve** (`raw_tail`): a six-short head `[0,0,0,0,1.0,0]`
+  directly at bit 0, then the first raw BD entry = the revolve
+  sweep ANGLE — 3*pi/2 (270°) in every Revolve fixture (value bits
+  14..78 — the one field the guessed spec walk placed far
+  downstream in its field sequence) — followed by 6 BD zeros,
+  some flag bits, and a further raw entry (0.2). NOTE: the head is
+  read TWO ways until the §18.7 revolve matrix lands — "option
+  spine whose BD('01') is the scale factor" (the Phase B
+  provisional naming) or `[axis_pt (0,0,0) 3BD]` +
+  `[axis_dir 3BD with a unit component]`: every specimen to date
+  revolves about an origin/Z axis, so the pivot pair never moves.
+  The Phase A budget disproof already rules raw `2RD` direction
+  storage out; BD-short axis storage in the head fits the 190-bit
+  budget exactly. `RevolveO`/`RevolveT` resolve it.
 
 **Wire-format corollaries confirmed along the way:** the
 tails' raw BD entries are plain LE doubles per DWG byte order
@@ -3847,9 +3855,11 @@ instrument the brief predicts (a second specimen per family with
 different geometry — the fixture tree has one distinct specimen
 per family, and the strict-load gold tree carries no other
 sweep-family members). **The authoring recipe for that set is §18.7**
-(ten single-variable typed stems with qualification checks and the
-processing pipeline); once those pairs land, the next session runs
-the §18.7 pipeline and the remainder closes.
+(sixteen single-variable typed stems with qualification checks and
+the processing pipeline; the 2026-09-23 sufficiency review
+expanded the revolve set from a pair to the seven-stem matrix —
+see §18.7); once those pairs land, the next session runs the
+§18.7 pipeline and the remainder closes.
 
 ### 18.7 The differential specimen recipe — authoring the Phase B follow-up set
 
@@ -3877,8 +3887,27 @@ workdirs cleanly):
 | P1 | `PolysolidD_<v>` | same profile (`Height` 5, `width` 3); path `0,0,0` → `10,10,0` | 45° path (unit (0.7071…, 0.7071…)) vs X | the direction slots of the frame blocks (second sample separates direction entries from constants); the segment-end slot = (10,10) |
 | P1 | `ExtrudeH_<v>` | `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` the circle, height `5` | height 2→5 (radius unchanged) | does the 64-bit payload after the option spine change with height? direction z decodes 5.0; the 36-bit trailer |
 | P1 | `ExtrudeR_<v>` | `CIRCLE` center `0,0,0` radius `3.125`; `EXTRUDE` height `2` | radius 1→3.125 (height unchanged) | does the 64-bit payload encode the profile? (3.125 has a long non-repeating mantissa — it must show bit-exactly if stored as a raw double) |
-| P1 | `RevolveA_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; `REVOLVE` the circle about axis `0,0,0` → `0,0,1`, typed angle `180` | (pair anchor) typed 180° revolve | `revolve_angle` decodes π (second angle sample); which flag bits between the angle and the raw 0.2-class entry change vs the 270° original; a typed baseline for the R pair |
-| P1 | `RevolveR_<v>` | `CIRCLE` center `2,0,0` radius `1.25`; same axis, angle `180` | radius 0.8→1.25, all else equal to A | does the 0.2-class raw entry track the profile radius? |
+| P1 | `ExtrudeT_<v>` | `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` with the `Taper angle` option, taper `15`, height `2` | draft/taper 0→15° (the only sweep-option variable reachable from a command) | the sweep option spine after the direction: [0,0,0,0,1.0,0,…]. A nonzero draft has to appear as a short-adjacent BD or a raw entry — whichever moves names the spine slots (and settles the same scale-vs-vector confound the revolve head carries); if NOTHING in the tail moves, the spine is NOT options and the taper went elsewhere — also decisive |
+**The revolve set is a seven-stem matrix, not a pair** (2026-09-23
+sufficiency review below the table): the two-stem design left the
+tail's head semantics unresolved, because every revolve specimen —
+the drag-authored original included — rotates about an origin/Z
+axis, so the head's `'01'` pair never moves and TWO readings stay
+alive: "option spine whose `BD('01')` is the scale factor" vs
+"`[axis_pt (0,0,0) 3BD][axis_dir (0,0,1)-form 3BD]`" — the
+Phase A budget disproof (a raw `2RD` direction cannot fit in 190
+bits) rules out raw direction storage but is exactly consistent
+with BD-short axis storage in the head. The matrix axes are the
+three profile variables (radius, center-distance, crossing-class)
+and the two axis variables (point, direction):
+
+| P1 | `RevolveA_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; `REVOLVE` the circle about axis `0,0,0` → `0,0,1`, typed angle `180` | (anchor) typed torus revolve: center-distance 2, r 0.8, bore \|2−0.8\|=1.2 | `revolve_angle` decodes π (second angle sample); the typed baseline every other revolve stem diffs against |
+| P1 | `RevolveR_<v>` | `CIRCLE` center `2,0,0` radius `1.25`; same axis, angle `180` | radius 0.8→1.25 only | the 0.2-class raw entry: radius-like (→1.25), bore-like (→0.75), or center-like (→2)? — A vs R separates the three by direction of change |
+| P1 | `RevolveC_<v>` | `CIRCLE` center `4,0,0` radius `0.8`; axis `0,0,0` → `0,0,1`, angle `180` | center-distance 2→4 only | separates center-distance (→4) from bore (→3.2): completes the radius/bore/center matrix with R |
+| P1 | `RevolveI_<v>` | `CIRCLE` center `0.6,0,0` radius `0.8` (the profile CROSSES the axis — AutoCAD accepts; the drag-authored original is this shape class, inferred center 0.6/r 0.8); axis `0,0,0` → `0,0,1`, angle `180` | axis-crossing profile class | the typed mirror of the original's geometry: the bore theory predicts the 0.2-class entry reads \|0.6−0.8\| = 0.2 again — falsifiable per stem below; the crossing flags (candidates for the mid-region bits and the 2 trailing bits) get their only moving sample |
+| P1 | `RevolveO_<v>` | `CIRCLE` center `6,0,0` radius `0.8`; `REVOLVE` about axis `2.375,0,0` → `2.375,0,5` (Z-parallel, offset from origin), angle `180` | axis POINT (0,0,0)→(2.375,0,0) only; direction stays (0,0,1) | if the head's leading three shorts are `axis_pt`, a raw 2.375 lands at bit 0 region and the `[8]` '01' STAYS (direction untouched) — point-name vs direction-name separation |
+| P1 | `RevolveT_<v>` | `CIRCLE` center `1,6,0` radius `0.8` (perpendicular distance to the axis ≈ 4.44 — no crossing); axis `0,0,0` → `3.75,2.5,0` (tilted out of Z), angle `180` | axis DIRECTION only: unit (0.8333…, 0.5555…, 0) — long-mantissa if stored unit, or the raw delta (3.75, 2.5, 0) if stored as typed | THE pivot resolver: if the `[8]` pair moves/changes with the direction → the head is `[axis_pt][axis_dir]` and `option_doubles` was a mis-naming to correct in the model docs; if `[8]` stays `'01'` while raw direction doubles appear elsewhere → the spine really is options and the axis lives in the mid-region |
+| P2 | `RevolveF_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; axis `0,0,0` → `0,0,1`, typed angle `360` | sweep angle 180→360 (full) | the closed/full encoding: `revolve_angle` = 2π (6.283185307179586, mantissa-rich) or a special 0/flag; the trailing flag bits' only second sample. If AutoCAD refuses 360, type `359.9` and record it |
 | P2 | `Loft3_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,2.5` r `1` + `CIRCLE` `0,0,5` r `1`; `LOFT` all three | section count 2→3 | the sharpest probe for the Loft's opaque leading 68-bit region (count-derived?) and the per-section slot repetitions |
 | P2 | `LoftH_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,7` r `1`; `LOFT` both | top z 5→7 | which `raw_doubles` slot is the section height (expect 5.0 → 7.0) |
 | P2 | `LoftR_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,5` r `2.5`; `LOFT` both | radii 1,1 → 1,2.5 | do the 2.0 / 0.3 slots track the section radii? |
@@ -3929,14 +3958,35 @@ pairs land — keep this with the recipe):
    named entries, spans for their raws), promote typed fields,
    pin hermetic tests on the new pair, and re-run the gates.
 4. Between P1 stakes, `PolysolidX`+`PolysolidD` crack the frame
-   blocks (the largest opaque mass), `ExtrudeH`/`ExtrudeR` crack
-   the 64-bit payload, `RevolveA`+`RevolveR` the 0.2 entry; the P2
-   stems then name the Loft slots — the campaign's blob-autopsy
-   pack closes when every raw BD entry in every specimen decodes
-   to a typed field with a pinned test.
+   blocks (the largest opaque mass), `ExtrudeH`/`ExtrudeR` the
+   64-bit payload, `ExtrudeT` the option spine, and the revolve
+   matrix the head/axis/0.2 questions; the P2 stems then name the
+   Loft slots — the campaign's blob-autopsy pack closes when every
+   raw BD entry in every specimen decodes to a typed field with a
+   pinned test.
 
 The `0.3` and `2.0, 2.0` Loft slots and the sweep single-values
 are EXPECTED to resolve here; the recipe deliberately uses values
-with long mantissas (3.125, 1.25, 2.5) so stored raw doubles are
-recognizable bit-exactly rather than confusable with round
-constants.
+with long mantissas (3.125, 1.25, 2.375, 3.75, 2.5) so stored raw
+doubles are recognizable bit-exactly rather than confusable with
+round constants.
+
+**The 0.2-entry falsification table** (the bore theory — the
+original's inferred geometry, center 0.6 / r 0.8, gives
+\|0.6−0.8\| = 0.2, EXACTLY the observed 0.2; each stem's tail
+must agree or the theory dies):
+
+| stem | center distance | radius | bore \|center−r\| | predicted 0.2-slot if bore | if radius | if center |
+|---|---|---|---|---|---|---|
+| original (observed) | 0.6 | 0.8 | 0.2 | **0.2 (observed)** | would need r=0.2 ✗ | would need 0.2 ✗ |
+| `RevolveA` | 2 | 0.8 | 1.2 | 1.2 | 0.8 | 2.0 |
+| `RevolveR` | 2 | 1.25 | 0.75 | 0.75 | 1.25 | 2.0 |
+| `RevolveC` | 4 | 0.8 | 3.2 | 3.2 | 0.8 | 4.0 |
+| `RevolveI` | 0.6 | 0.8 | −0.2 (crossing) | 0.2 (as absolute) or the sign-mode shows | 0.8 | 0.6 |
+
+A vs R already separate the three theories by DIRECTION of change
+(radius↑, bore↓, center constant); C breaks the bore/center
+tie; I cross-checks against the original and reveals the
+crossing-class signing. If NONE match, the 0.2 is op semantics
+(a setback/deflection) and the mid-region flags are its mode —
+record the matrix outcome in the pipeline notes either way.

@@ -51,11 +51,16 @@ splice + the section checksum).
    entries), the Extrusion's 64-bit payload, and the Loft's leading
    68-bit region round-trip verbatim and stay untouched; naming them
    needs the differential instrument — differently-geared specimens.
-   **`IMPLEMENTATION.md` §18.7 IS THE RECIPE**: ten single-variable
-   typed stems (`PolysolidX/D`, `ExtrudeH/R/P`, `Loft3/H/R`,
-   `RevolveA/R`), the authoring mechanics per stem, the
-   qualification invariants (quartet bit-identity + corpus 0/0), and
-   the processing pipeline the next session runs once they land.
+   **`IMPLEMENTATION.md` §18.7 IS THE RECIPE**: sixteen
+   single-variable typed stems (`PolysolidX/D`, `ExtrudeH/R/P/T`,
+   `Loft3/H/R`, `RevolveA/R/C/I/O/T/F` — the revolve set is a
+   seven-stem MATRIX after the 2026-09-23 sufficiency review: the
+   pair alone left the head's '01' pivot ambiguous between a scale
+   factor and the axis point/direction pair, and the 0.2 entry
+   confounded radius/bore/center-distance), the authoring mechanics
+   per stem, the qualification invariants (quartet bit-identity +
+   corpus 0/0), the 0.2-entry falsification table, and the
+   processing pipeline the next session runs once they land.
    **A maintainer action:** author that set in AutoCAD per §18.7 and
    land it in `sh_history/`; the next session then runs the
    position-diff pipeline and extends `sh_tail_decode.rs` until every
