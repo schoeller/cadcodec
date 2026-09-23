@@ -3503,32 +3503,59 @@ that drives the implementation.
   handle, the SWEEP record (gold UNKNOWN_OBJ fallback, 261 bytes)
   stays elided, corpus gold 0/0 unchanged, fixture diffs 26/8
   unchanged (the node classes remain).
-- **Phase A step 2 — ACSH_SWEEP_CLASS (2026-09-23 probe, resumed
-  next session)**: the READER's blob handling is proved correct —
-  `read_embedded_entity` consumes the `shsw_text_size` BL worth of
-  bytes and produces `EmbeddedEntity::Unknown` which preserves them
-  byte-for-byte. The **WRITE path loses bytes** (`write_solid_
-  history_sweep` writes `BL(0) + BL(0)` and no bytes when the model
-  carries `None` — dropping 113 bytes on the Polysolid_2018
-  calibration: the original record is 261 bytes, the probe rewrite
-  148). The fix: extend `SolidHistorySweep` with dedicated raw-blob
-  fields (`shsw_method`, `shsw_text`, `shsw_bl93`, `shsw_text2`)
-  and read/write them directly rather than through the
-  `EmbeddedEntity` wrapper; then un-elide SWEEP (two one-liner
-  elide-guard edits). The probe frame numbers for the next session's
-  byte-walk: original Size 261 / Hdlsize 0x1D / Type 520 /
-  Address 33088 vs rewrite Size 148 / Hdlsize 0x29 / Address 33017.
-  Commit `e686903` has the analysis; the NEXT_SESSION "Write-path
-  byte-loss diagnosis" block has the exact writer code and the
-  `dump_section_bytes` commands.
-- **Remaining phase A after SWEEP**: ACSH_EXTRUSION_CLASS (the
-  SWEEP layout plus the AcDbShExtrusion subclass prefix; calibrate
-  against `sh_history/Extrude_2018.dwg`), then the per-node-class
-  un-elides (Sphere, Box, Loft, Revolve, Boolean, BREP), then the
-  three named fixture-diff packets:
-  `3DSOLID.wires` stub (16, R2013+ shapes), `ACSH_SPHERE_CLASS`
-  count (8, Sphere family), `3DSOLID.point` wrong-value (2, Revolve
-  R2007/2010). See NEXT_SESSION.md for the full Phase A handover.
+- **Phase A step 2 — ACSH_SWEEP_CLASS (2026-09-23, DONE)**: the
+  handover's blob-field model was disproven by the layer-4 autopsy
+  before implementation. On the authored wires the presumed
+  `method`/`shsw_text_size` BL positions read 0 (`'10'` runs) while
+  1733 bits of real option/transform/flag content follow to the
+  record end — a per-field model built on gold's debug-spec guess
+  would corrupt and shrink the record (the probe rewrite was 148
+  bytes vs 261; the old "aligned reader" belief was an artifact of
+  record-boundary jumps, and the spec's `//744` blob comment is
+  from a different genus). Gold has no oracle for these classes at
+  all: `src/classes.inc` registers them `DEBUGGING_CLASS`, so even
+  a `-DDEBUG_CLASSES` build refuses the body walk ("Unstable Class
+  object … (0x80)") and stops right after `history_node.color.flag`,
+  emitting the rest as `unknown_bits`. What IS oracled is the shared
+  skeleton — the live sphere class (`-v9` trace) pins: parentid
+  BLd(-1), eval major/minor 33/427, value_code BSd(-9999), nodeid 1,
+  hist major/minor 33/427, 16 BD transform, CMC (44 bits: index 0,
+  rgb `c0000000`, ByLayer), step_id BL(1), material in the handle
+  stream, op major/minor 33/427 — identical anchors on every SH
+  node specimen, and the payloads are version-portable (the
+  Extrude record is bit-identical across 2007/2010/2013/2018
+  except handle tails). The design consequence: **Phase A retains
+  the whole post-`op.minor` payload raw** — `shsw_raw_tail`
+  (MSB-packed) plus `shsw_raw_tail_bit_len`, captured by the reader
+  to the record's main-section end (new
+  `DwgMergedReader::main_end_bits()`, text-flag aware, taken from
+  the current position after `op.minor`) and re-emitted verbatim by
+  the writer; the modeled fields (`shsw_method`/`shsw_text`/
+  `shsw_bl93`/`shsw_text2`, `direction`, the option BDs) remain on
+  the model as the DXF / modeled-fallback channel only (the writer
+  arms on `shsw_raw_tail_bit_len > 0`). Verified: hermetic suite
+  48 ok / 0 failed (1561 passed); Polysolid_2018 smoke 0/0 WITH
+  the record present (rewrite Size 263; gold decodes it cleanly as
+  UNKNOWN_OBJ); corpus 152 files — gold tree 0/0 held, fixture
+  26/8 unchanged packet-for-packet; layer-4: rewrite data
+  sections BIT-IDENTICAL through the full 2018-bit window on both
+  Polysolid_2018 and Polysolid_2010. The only record delta is the
+  owner-handle form (silver's corpus-wide `(4,2,abs)` vs the
+  authored `(6,0,+1)`: Size 261→263, Hdlsize 0x1D→0x2D, same
+  identity — pre-existing for every rewritten object, tolerated by
+  gold and all 152 files).
+- **Remaining phase A after SWEEP**: ACSH_EXTRUSION_CLASS is now
+  mechanical — `read_history_sweep`/`write_solid_history_sweep`
+  already serve the EXTRUSION dxf-name with the same raw-tail
+  retention, so step 3 is the two elide-guard/nuller one-liners
+  plus the four-gate verification against
+  `sh_history/Extrude_2018.dwg` (record: Size 70, Hdlsize 0x1F,
+  handle 0x2E5). Then the per-node-class un-elides (Sphere, Box,
+  Loft, Revolve, Boolean, BREP), then the three named fixture-diff
+  packets: `3DSOLID.wires` stub (16, R2013+ shapes),
+  `ACSH_SPHERE_CLASS` count (8, Sphere family), `3DSOLID.point`
+  wrong-value (2, Revolve R2007/2010). See NEXT_SESSION.md for the
+  full Phase A handover.
 
   **The complete phase map (from the original 2026-09-22 campaign
   brief; each phase gets its own NEXT_SESSION when its predecessor
