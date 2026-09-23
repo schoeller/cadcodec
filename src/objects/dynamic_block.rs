@@ -1119,6 +1119,44 @@ pub struct SolidHistorySweep {
     pub check_intersections: bool,
     pub flags_294_296: [bool; 3],
     pub reference_point: Vector3,
+    /// Phase B typed view of `shsw_raw_tail` (see `SolidHistorySweepTail`).
+    /// Populated on DWG reads whose tail matches the pinned anchor layout;
+    /// `None` for modeled/DXF records or tails the autopsy grammar does
+    /// not fully explain. The raw tail stays the write authority.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub tail_decode: Option<SolidHistorySweepTail>,
+}
+
+/// Phase B decode of a sweep/extrusion raw tail (`shsw_raw_tail`).
+///
+/// The autopsy (Extrude/Polysolid x 4 DWG versions, all bit-identical)
+/// found a mixed bitcode stream: a 3BD direction head, an all-short BD
+/// option run whose `BD('01')` member is the sweep scale factor (1.0 in
+/// every specimen), a mid-region of raw BD entries carrying the sweep
+/// frame, and byte-aligned LE64 blocks carrying the profile geometry.
+/// Only the cross-specimen-confirmed anchors are typed; the rest of the
+/// tail stays opaque and is re-emitted verbatim.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SolidHistorySweepTail {
+    /// The post-direction BD-short option run (all-short run until the
+    /// first raw/reserved form). Sweep tails list [0,0,0,0,1.0,0,0,0];
+    /// extrusion tails the same spine minus the two trailing zeros.
+    pub option_doubles: Vec<f64>,
+    /// Raw BD ('00'-marked LE64) entries of the mid-region: the sweep
+    /// frame/transform components. The Polysolid specimen stores the
+    /// path unit direction there — [+u_y, -u_x, -u_x, -u_y], twice —
+    /// confirmed against the live-oracle anchor geometry.
+    pub raw_doubles: Vec<f64>,
+    /// Byte-aligned LE64 `(x, height)` corner pairs of the swept profile
+    /// (Polysolid rectangle: [(2.5, 0), (-2.5, 0), (-2.5, 2), (2.5, 2)];
+    /// gold's 3DSOLID wireframe anchor z = 1.0 is the pair-height mid).
+    pub profile_corners: Vec<[f64; 2]>,
+    /// Final byte-aligned LE64 pair ending at the tail end: the sweep
+    /// path's segment end in the record frame (the Polysolid ends at
+    /// (3065.007936309483, 1463.5113930448078); gold's R2010 wireframe
+    /// anchor point reads exactly its half — the live-oracle overlap).
+    pub segment_end: Option<[f64; 2]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -1141,6 +1179,28 @@ pub struct SolidHistoryLoft {
     pub raw_tail: Vec<u8>,
     /// Exact bit length of `raw_tail`; trailing pad bits are zero.
     pub raw_tail_bit_len: u32,
+    /// Phase B typed view of `raw_tail` (see `SolidHistoryLoftTail`).
+    /// Populated on DWG reads whose tail matches the pinned anchor
+    /// layout; the raw tail stays the write authority.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub tail_decode: Option<SolidHistoryLoftTail>,
+}
+
+/// Phase B decode of a loft raw tail (`SolidHistoryLoft::raw_tail`).
+///
+/// The autopsy (Loft x 4 DWG versions, bit-identical tails) found an
+/// all-short BD head followed by a run of raw BD ('00'-marked LE64)
+/// entries: the specimen carries [2.0, 2.0, 5.0, 0.3, pi/2, pi/2] — the
+/// loft top height 5.0 and the two 90-degree draft angles match the
+/// live-oracle wire geometry. The entries are exposed positionally.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SolidHistoryLoftTail {
+    /// All-short BD head run ([1.0] in every specimen).
+    pub option_doubles: Vec<f64>,
+    /// Raw BD entries in stream order (Loft fixtures:
+    /// [2.0, 2.0, 5.0, 0.3, pi/2, pi/2]).
+    pub raw_doubles: Vec<f64>,
 }
 
 /// Parametric loft settings. Angles are radians; magnitudes are nonnegative.
@@ -1218,4 +1278,29 @@ pub struct SolidHistoryRevolve {
     pub raw_tail: Vec<u8>,
     /// Exact bit length of `raw_tail`; trailing pad bits are zero.
     pub raw_tail_bit_len: u32,
+    /// Phase B typed view of `raw_tail` (see `SolidHistoryRevolveTail`).
+    /// Populated on DWG reads whose tail matches the pinned anchor
+    /// layout; the raw tail stays the write authority.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub tail_decode: Option<SolidHistoryRevolveTail>,
+}
+
+/// Phase B decode of a revolve raw tail (`SolidHistoryRevolve::raw_tail`).
+///
+/// The autopsy (Revolve x 4 DWG versions, bit-identical tails) found
+/// the sweep-family option spine ([0,0,0,0,1.0,0]) directly at tail
+/// bit 0, followed by the raw BD revolve sweep angle — 3*pi/2 (270°)
+/// in every specimen — and a further raw entry (0.2).
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SolidHistoryRevolveTail {
+    /// All-short BD head run ([0, 0, 0, 0, 1.0, 0] in every specimen;
+    /// the BD('01') member is the sweep scale factor).
+    pub option_doubles: Vec<f64>,
+    /// First raw BD entry after the option spine: the revolve sweep
+    /// angle in radians (Revolve fixtures: 3*pi/2 = 270°).
+    pub revolve_angle: Option<f64>,
+    /// Remaining raw BD entries in stream order (Revolve fixtures:
+    /// [0.2]).
+    pub raw_doubles: Vec<f64>,
 }

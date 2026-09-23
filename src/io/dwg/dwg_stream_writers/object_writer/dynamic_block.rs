@@ -191,10 +191,23 @@ impl<'a> DwgObjectWriter<'a> {
         self.write_solid_history_base(&value.base);
         self.writer.write_bit_long(value.operation_major);
         self.writer.write_bit_long(value.operation_minor);
-        if self.write_undocumented_tail(&value.shsw_raw_tail, value.shsw_raw_tail_bit_len) {
-            // Phase A raw retention: DWG-read records re-emit their captured
-            // tail bits verbatim (bit-faithful by construction).
-            return;
+        // Phase B write rule: re-encode only when a decoded field was
+        // programmatically modified, else verbatim (bit-identical by
+        // construction — `render_sweep_tail` splices the current model
+        // values into the stored bits and the unmodified decode round-trips
+        // bit-exact). Same rule for the loft/revolve arms below.
+        let tail = crate::io::dwg::sh_tail_decode::render_sweep_tail(
+            &value.shsw_raw_tail,
+            value.shsw_raw_tail_bit_len,
+            [value.direction.x, value.direction.y, value.direction.z],
+            value.tail_decode.as_ref(),
+        );
+        if let Some(tail) = tail {
+            if self.write_undocumented_tail(&tail, value.shsw_raw_tail_bit_len) {
+                // Phase A raw retention: DWG-read records re-emit their captured
+                // tail bits verbatim (bit-faithful by construction).
+                return;
+            }
         }
         // Modeled fallback (DXF-read records, no captured tail): the
         // documented-guess field sequence.
@@ -336,8 +349,15 @@ impl<'a> DwgObjectWriter<'a> {
                 self.write_solid_history_base(&value.base);
                 self.writer.write_bit_long(value.operation_major);
                 self.writer.write_bit_long(value.operation_minor);
-                if self.write_undocumented_tail(&value.raw_tail, value.raw_tail_bit_len) {
-                    return;
+                let tail = crate::io::dwg::sh_tail_decode::render_loft_tail(
+                    &value.raw_tail,
+                    value.raw_tail_bit_len,
+                    value.tail_decode.as_ref(),
+                );
+                if let Some(tail) = tail {
+                    if self.write_undocumented_tail(&tail, value.raw_tail_bit_len) {
+                        return;
+                    }
                 }
                 // Modeled fallback (DXF-read records, no captured tail): the
                 // documented-guess field sequence.
@@ -375,8 +395,15 @@ impl<'a> DwgObjectWriter<'a> {
                 self.write_solid_history_base(&value.base);
                 self.writer.write_bit_long(value.operation_major);
                 self.writer.write_bit_long(value.operation_minor);
-                if self.write_undocumented_tail(&value.raw_tail, value.raw_tail_bit_len) {
-                    return;
+                let tail = crate::io::dwg::sh_tail_decode::render_revolve_tail(
+                    &value.raw_tail,
+                    value.raw_tail_bit_len,
+                    value.tail_decode.as_ref(),
+                );
+                if let Some(tail) = tail {
+                    if self.write_undocumented_tail(&tail, value.raw_tail_bit_len) {
+                        return;
+                    }
                 }
                 // Modeled fallback (DXF-read records, no captured tail): the
                 // documented-guess field sequence.

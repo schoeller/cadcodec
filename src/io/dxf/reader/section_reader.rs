@@ -1353,6 +1353,7 @@ fn dynamic_dxf_history_sweep(
             fields.bool(section, 296),
         ],
         reference_point: fields.point(section, 11),
+        tail_decode: None,
     }
 }
 
@@ -4073,6 +4074,7 @@ impl<'a> SectionReader<'a> {
                         sweep_entity,
                         raw_tail: Vec::new(),
                         raw_tail_bit_len: 0,
+                        tail_decode: None,
                     },
                 ))
             }

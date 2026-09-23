@@ -253,6 +253,10 @@ fn read_history_sweep(reader: &mut DwgMergedReader, base: SolidHistoryNodeBase) 
     let direction = reader.read_3bit_double();
     reader.set_position_in_bits(tail_start);
     let (raw_tail, tail_bit_len) = capture_undocumented_tail(reader);
+    // Phase B blob autopsy: project the pinned anchors of the captured
+    // tail into the typed view (the raw tail stays the write authority).
+    let tail_decode =
+        crate::io::dwg::sh_tail_decode::sweep_tail_view(&raw_tail, tail_bit_len);
     SolidHistorySweep {
         base,
         operation_major,
@@ -279,8 +283,9 @@ fn read_history_sweep(reader: &mut DwgMergedReader, base: SolidHistoryNodeBase) 
         has_align_start: false,
         bank: false,
         check_intersections: false,
-        flags_294_296: [false; 3],
+        flags_294_296: [false, false, false],
         reference_point: crate::types::Vector3::ZERO,
+        tail_decode,
     }
 }
 
@@ -481,6 +486,9 @@ pub fn read_solid_history_data(
             // guessed cross-section/guide walk does not match the
             // authored wires. Capture verbatim (see shsw_raw_tail).
             let (raw_tail, raw_tail_bit_len) = capture_undocumented_tail(reader);
+            // Phase B blob autopsy: typed view of the pinned anchors.
+            let tail_decode =
+                crate::io::dwg::sh_tail_decode::loft_tail_view(&raw_tail, raw_tail_bit_len);
             SolidHistoryOperation::Loft(SolidHistoryLoft {
                 base,
                 operation_major,
@@ -490,6 +498,7 @@ pub fn read_solid_history_data(
                 parameters: None,
                 raw_tail,
                 raw_tail_bit_len,
+                tail_decode,
             })
         }
         "ACSH_REVOLVE_CLASS" => {
@@ -501,6 +510,11 @@ pub fn read_solid_history_data(
             // exceeds the entire remaining tail of every Revolve
             // fixture record. Capture verbatim (see shsw_raw_tail).
             let (raw_tail, raw_tail_bit_len) = capture_undocumented_tail(reader);
+            // Phase B blob autopsy: typed view of the pinned anchors —
+            // the first raw entry is the revolve sweep angle (3*pi/2 in
+            // every Revolve fixture, see sh_tail_decode).
+            let tail_decode =
+                crate::io::dwg::sh_tail_decode::revolve_tail_view(&raw_tail, raw_tail_bit_len);
             SolidHistoryOperation::Revolve(SolidHistoryRevolve {
                 base,
                 operation_major,
@@ -518,6 +532,7 @@ pub fn read_solid_history_data(
                 sweep_entity: None,
                 raw_tail,
                 raw_tail_bit_len,
+                tail_decode,
             })
         }
         _ => return None,

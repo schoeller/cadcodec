@@ -55,6 +55,7 @@ mod legacy_viewport;
 mod parallel;
 pub mod preview;
 pub mod reed_solomon;
+pub mod sh_tail_decode;
 
 pub use dwg_reader::DwgReadOptions;
 pub use dwg_reader::DwgReader;
