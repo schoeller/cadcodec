@@ -160,8 +160,6 @@ fn plausible_raw(value: f64) -> bool {
 struct BdEntry {
     value: f64,
     span: Span,
-    /// Raw ('00' + LE64) form vs one of the short pair codes.
-    raw: bool,
 }
 
 /// Read one BD at `pos`. Returns the entry or `None` when the form does
@@ -178,23 +176,19 @@ fn read_bd(bits: &TailBits, pos: u32) -> Option<BdEntry> {
                     start: pos,
                     len: 66,
                 },
-                raw: true,
             })
         }
         0b01 => Some(BdEntry {
             value: 1.0,
             span: Span { start: pos, len: 2 },
-            raw: false,
         }),
         0b10 => Some(BdEntry {
             value: 0.0,
             span: Span { start: pos, len: 2 },
-            raw: false,
         }),
         _ => Some(BdEntry {
             value: 0.0,
             span: Span { start: pos, len: 2 },
-            raw: false,
         }),
     }
 }
@@ -423,191 +417,196 @@ pub(crate) fn decode_loft_tail(bytes: &[u8], bit_len: u32) -> Option<LoftTailInf
 /// Decode spans + view of a revolve tail.
 pub(crate) struct RevolveTailInfo {
     pub view: SolidHistoryRevolveTail,
-    pub option_spans: Vec<Span>,
+    pub axis_point_spans: [Span; 3],
+    pub axis_vector_spans: [Span; 3],
     pub angle_span: Option<Span>,
-    pub raw_spans: Vec<Span>,
-    /// Structural profile block (§18.7 RevolveA/R analysis): the BD
-    /// spans of [profile center 3BD][profile radius BD] plus the
-    /// optional trailing 3BD present in the torus class. Spans cover
-    /// the whole BD form (marker-inclusive for raws, pair for
-    /// shorts); *_raw[] records the form for same-form splices.
-    pub profile_spans: Option<ProfileFieldSpans>,
+    pub option_spans: Vec<Span>,
+    pub center_spans: Option<[Span; 3]>,
+    pub radius_span: Option<Span>,
+    pub normal_spans: Option<[Span; 3]>,
 }
 
-/// Spans of the structurally parsed profile block.
-pub(crate) struct ProfileFieldSpans {
-    pub center: [Span; 3],
-    pub center_raw: [bool; 3],
-    pub radius: Span,
-    pub radius_raw: bool,
-    pub trailing: Option<[Span; 3]>,
-    pub trailing_raw: [bool; 3],
-}
+/// The embedded profile sub-entity's type code for a circle (the
+/// `OBJ_CIRCLE` constant in the object readers' common tables; gold
+/// records embedded sub-entities through a CALL:
+/// [BL type][BL bit-length][body]).
+const PROFILE_CIRCLE: i64 = 18;
 
-/// Strict structural parse of the profile block after the mid-region:
-/// [profile center 3BD][profile radius BD] and, in the torus class,
-/// a trailing 3BD ((0,0,1) in every landed specimen), ending exactly
-/// at the final two bits. EVIDENCE (all landed specimens):
-///
-/// - RevolveA/R (torus class, 254-bit tails): [mid 32] +
-///   [center.x raw 2.0][y 0.0][z 0.0][radius RAW 0.8/1.25] +
-///   [trailing (0,0,1)] + 2 flag bits.
-/// - The drag-authored original (axis-crossing class, 190 bits):
-///   [mid 38] + [center.x raw 0.2][y 0.0][z 0.0] +
-///   [radius SHORT '01' = 1.0] + 2 flag bits — no trailing trio,
-///   and the radius fits the two-bit short form.
-///
-/// The trailing trio's presence/absence and the mid-region's length
-/// differences are the two class markers the §18.7 C/I/F stems probe.
-fn parse_profile_block(
-    bits: &TailBits,
-    x_bd_span: Span,
-) -> Option<ProfileFieldSpans> {
-    let end_2 = bits.bit_len.checked_sub(2)?;
-    let mut spans = [Span { start: 0, len: 0 }; 3];
-    let mut raw_forms = [false; 3];
-    spans[0] = x_bd_span;
-    // The scan hands us the raw VALUE span; the block works with
-    // marker-inclusive BD spans.
-    raw_forms[0] = true;
-    let mut pos = x_bd_span.start + x_bd_span.len;
-    for axis in 1..3 {
-        let entry = read_bd(bits, pos)?;
-        if entry.span.start + entry.span.len > end_2 {
-            return None;
-        }
-        spans[axis] = entry.span;
-        raw_forms[axis] = entry.raw;
-        pos = entry.span.start + entry.span.len;
-    }
-    let radius = read_bd(bits, pos)?;
-    if radius.span.start + radius.span.len > end_2 {
-        return None;
-    }
-    let radius_span = radius.span;
-    let radius_raw = radius.raw;
-    pos = radius.span.start + radius.span.len;
-    // Optional trailing 3BD: three BDs must land exactly at
-    // bit_len - 2; a partial trail or a longer remainder rejects the
-    // structural parse (named fields stay None, positional view only).
-    let mut has_trailing = true;
-    let mut trail_spans = [Span { start: 0, len: 0 }; 3];
-    let mut trailing_raw = [false; 3];
-    let mut tpos = pos;
-    for axis in 0..3 {
-        let entry = match read_bd(bits, tpos) {
-            Some(entry) => entry,
-            None => {
-                has_trailing = false;
-                break;
+/// Read one BL at `pos` (all four bitcode forms).
+fn read_bl(bits: &TailBits, pos: u32) -> Option<(i64, u32)> {
+    match bits.code(pos)? {
+        0b00 => {
+            if pos.checked_add(34)? > bits.bit_len {
+                return None;
             }
-        };
-        if entry.span.start + entry.span.len > end_2 {
-            has_trailing = false;
-            break;
+            // Four wire bytes (each MSB-first), little-endian order -
+            // the same convention as le64.
+            let mut value = 0u32;
+            for j in 0..4u32 {
+                let mut byte = 0u8;
+                for k in 0..8u32 {
+                    let bit = bits.get(pos + 2 + j * 8 + (7 - k))?;
+                    byte |= u8::from(bit) << k;
+                }
+                value |= u32::from(byte) << (8 * j);
+            }
+            Some((value as i32 as i64, pos + 34))
         }
-        trail_spans[axis] = entry.span;
-        trailing_raw[axis] = entry.raw;
-        tpos = entry.span.start + entry.span.len;
+        0b01 => {
+            if pos.checked_add(10)? > bits.bit_len {
+                return None;
+            }
+            // One RC byte, MSB-first on the wire.
+            let mut byte = 0u8;
+            for k in 0..8u32 {
+                let bit = bits.get(pos + 2 + (7 - k))?;
+                byte |= u8::from(bit) << k;
+            }
+            Some((byte as i64, pos + 10))
+        }
+        0b10 => Some((0, pos + 2)),
+        _ => Some((256, pos + 2)),
     }
-    let trailing = if has_trailing && tpos == end_2 {
-        Some(trail_spans)
-    } else if !has_trailing && pos == end_2 {
-        None
-    } else {
+}
+
+/// The embedded profile circle, parsed through the CALL grammar and
+/// REQUIRED to account the tail exactly: [BL type == 18][BL len]
+/// followed by [center 3BD][radius BD][normal 3BD] and two flag
+/// bits, with the consumed span == len and the tail boundary at
+/// bit_len. Return `None` when the chain does not close - the tail
+/// then keeps its verbatim-only behavior.
+struct ProfileCircle {
+    center: [f64; 3],
+    center_spans: [Span; 3],
+    radius: f64,
+    radius_span: Span,
+    normal: [f64; 3],
+    normal_spans: [Span; 3],
+}
+
+fn try_profile_circle(bits: &TailBits, pos: u32) -> Option<ProfileCircle> {
+    let (kind, after_type) = read_bl(bits, pos)?;
+    if kind != PROFILE_CIRCLE {
         return None;
-    };
-    Some(ProfileFieldSpans {
-        center: spans,
-        center_raw: raw_forms,
-        radius: radius_span,
-        radius_raw,
-        trailing,
-        trailing_raw,
+    }
+    let (len, body_start) = read_bl(bits, after_type)?;
+    if len <= 0 || body_start.checked_add(len as u32)? != bits.bit_len {
+        return None;
+    }
+    let mut p = body_start;
+    let mut center = [0.0f64; 3];
+    let mut center_spans = [Span { start: 0, len: 0 }; 3];
+    for axis in 0..3 {
+        let entry = read_bd(bits, p)?;
+        center[axis] = entry.value;
+        center_spans[axis] = entry.span;
+        p = entry.span.start + entry.span.len;
+    }
+    let radius = read_bd(bits, p)?;
+    let radius_span = radius.span;
+    p = radius.span.start + radius.span.len;
+    let mut normal = [0.0f64; 3];
+    let mut normal_spans = [Span { start: 0, len: 0 }; 3];
+    for axis in 0..3 {
+        let entry = read_bd(bits, p)?;
+        normal[axis] = entry.value;
+        normal_spans[axis] = entry.span;
+        p = entry.span.start + entry.span.len;
+    }
+    // The CALL bit-length covers the circle body plus the two final
+    // flag bits (the landed specimens' spans: A/R 144 = 142 body +
+    // 2; the original 80 = 78 + 2).
+    if p.checked_add(2)? != bits.bit_len {
+        return None;
+    }
+    if p + 2 - body_start != len as u32 {
+        return None;
+    }
+    Some(ProfileCircle {
+        center,
+        center_spans,
+        radius: radius.value,
+        radius_span,
+        normal,
+        normal_spans,
     })
 }
 
 pub(crate) fn decode_revolve_tail(bytes: &[u8], bit_len: u32) -> Option<RevolveTailInfo> {
-    if bit_len < 2 || bytes.len() * 8 < bit_len as usize {
+    if bit_len < 14 || bytes.len() * 8 < bit_len as usize {
         return None;
     }
     let bits = TailBits::new(bytes, bit_len);
-    let (options, option_spans, head_end) = read_head_shorts(&bits, 0);
-    if options.is_empty() {
+    let mut pos = 0u32;
+    // Head: [axis_point 3BD][axis_vector 3BD] - the REVOLVEDSURFACE
+    // twin's field order (axis_point, axis_vector, revolve_angle...).
+    let mut axis_point = [0.0f64; 3];
+    let mut axis_pt_spans = [Span { start: 0, len: 0 }; 3];
+    for axis in 0..3 {
+        let entry = read_bd(&bits, pos)?;
+        axis_point[axis] = entry.value;
+        axis_pt_spans[axis] = entry.span;
+        pos = entry.span.start + entry.span.len;
+    }
+    let mut axis_vector = [0.0f64; 3];
+    let mut axis_vec_spans = [Span { start: 0, len: 0 }; 3];
+    for axis in 0..3 {
+        let entry = read_bd(&bits, pos)?;
+        axis_vector[axis] = entry.value;
+        axis_vec_spans[axis] = entry.span;
+        pos = entry.span.start + entry.span.len;
+    }
+    if pos >= bits.bit_len {
         return None;
     }
-    let (mut raw_values, mut raw_spans) = scan_raws(&bits, head_end, bit_len);
-    let revolve_angle = raw_values.first().copied();
-    let angle_span = raw_spans.first().copied();
-    // The center x is the first post-angle raw; the structural parse
-    // continues from its span end (the value span; recover the BD span
-    // by including the two marker bits).
-    let mut profile = None;
-    if let Some(x_value_span) = raw_spans.get(1) {
-        let x_bd_span = Span {
-            start: x_value_span.start - 2,
-            len: x_value_span.len + 2,
-        };
-        if let Some(field_spans) = parse_profile_block(&bits, x_bd_span) {
-            let center = [
-                field_spans.center_raw[0]
-                    .then(|| bits.le64(field_spans.center[0].start + 2))
-                    .flatten()
-                    .unwrap_or_default(),
-                bd_value_at(&bits, field_spans.center[1], field_spans.center_raw[1]),
-                bd_value_at(&bits, field_spans.center[2], field_spans.center_raw[2]),
-            ];
-            let radius = bd_value_at(&bits, field_spans.radius, field_spans.radius_raw);
-            let trailing = field_spans.trailing.map(|_| {
-                [
-                    bd_value_at(&bits, field_spans.trailing.unwrap()[0], field_spans.trailing_raw[0]),
-                    bd_value_at(&bits, field_spans.trailing.unwrap()[1], field_spans.trailing_raw[1]),
-                    bd_value_at(&bits, field_spans.trailing.unwrap()[2], field_spans.trailing_raw[2]),
-                ]
-            });
-            profile = Some((field_spans, center, radius, trailing));
+    let angle = read_bd(&bits, pos)?;
+    let angle_span = angle.span;
+    pos = angle.span.start + angle.span.len;
+    // Options: all-short BD run between the angle and the profile
+    // CALL; at every boundary attempt the CALL chain, which must
+    // close the tail exactly (this handles the ambiguity that the
+    // CALL's '01' marker is also a legal short BD 1.0).
+    let mut options: Vec<f64> = Vec::new();
+    let mut option_spans: Vec<Span> = Vec::new();
+    let mut profile = try_profile_circle(&bits, pos);
+    while profile.is_none() && options.len() < MAX_HEAD {
+        match bits.code(pos) {
+            Some(0b01) => {
+                options.push(1.0);
+                option_spans.push(Span { start: pos, len: 2 });
+                pos += 2;
+            }
+            Some(0b10) => {
+                options.push(0.0);
+                option_spans.push(Span { start: pos, len: 2 });
+                pos += 2;
+            }
+            _ => return None,
         }
-    }
-    let (profile_spans, center, radius, trailing) = match profile {
-        Some((spans, center, radius, trailing)) => {
-            (Some(spans), Some(center), Some(radius), trailing)
+        if pos.checked_add(2)? > bits.bit_len - 2 {
+            return None;
         }
-        None => (None, None, None, None),
-    };
-    if !raw_values.is_empty() {
-        raw_values.remove(0);
-        // Keep the remaining spans index-aligned with the remaining
-        // values: raw_doubles[0] is the entry AFTER the angle, so its
-        // span must be raw_spans[0] in the render. (The center x and
-        // the raw radius are still in here positionally — they live in
-        // the named fields too, same spans.)
-        raw_spans.remove(0);
+        profile = try_profile_circle(&bits, pos);
     }
+    let profile = profile?;
     Some(RevolveTailInfo {
         view: SolidHistoryRevolveTail {
+            axis_point: Some(axis_point),
+            axis_vector: Some(axis_vector),
+            revolve_angle: Some(angle.value),
             option_doubles: options,
-            revolve_angle,
-            raw_doubles: raw_values,
-            profile_center: center,
-            profile_radius: radius,
-            trailing_triple: trailing,
+            profile_center: Some(profile.center),
+            profile_radius: Some(profile.radius),
+            profile_normal: Some(profile.normal),
         },
+        axis_point_spans: axis_pt_spans,
+        axis_vector_spans: axis_vec_spans,
+        angle_span: Some(angle_span),
         option_spans,
-        angle_span,
-        raw_spans,
-        profile_spans,
+        center_spans: Some(profile.center_spans),
+        radius_span: Some(profile.radius_span),
+        normal_spans: Some(profile.normal_spans),
     })
-}
-
-/// Value of a BD field given its span and form.
-fn bd_value_at(bits: &TailBits, span: Span, raw: bool) -> f64 {
-    if raw {
-        bits.le64(span.start + 2).unwrap_or(0.0)
-    } else if bits.code(span.start) == Some(0b01) {
-        1.0
-    } else {
-        0.0
-    }
 }
 
 /// Public per-family entry points used by the reader to populate the
@@ -706,38 +705,65 @@ pub(crate) fn render_revolve_tail(
     }
     let view = view?;
     let mut bits = TailBits::new(bytes, bit_len);
-    splice_short_run(&mut bits, &info.option_spans, &view.option_doubles, &info.view.option_doubles);
-    if let (Some(new), Some(old), Some(span)) = (view.revolve_angle, info.view.revolve_angle, info.angle_span)
-    {
-        if new != old {
-            let _ = bits.set_le64(span.start, new);
+    // Axis pair: same-form splices per component (raw spans take any
+    // f64; short spans only the 0.0/1.0 pair flips).
+    for (spans, new, old) in [
+        (&info.axis_point_spans, view.axis_point, info.view.axis_point),
+        (&info.axis_vector_spans, view.axis_vector, info.view.axis_vector),
+    ] {
+        if let (Some(new), Some(old)) = (new, old) {
+            for axis in 0..3 {
+                if new[axis] != old[axis] {
+                    let span = spans[axis];
+                    splice_bd_field(&mut bits, span, span.len == 66, new[axis]);
+                }
+            }
         }
     }
-    splice_raw_run(&mut bits, &info.raw_spans, &view.raw_doubles, &info.view.raw_doubles);
-    if let Some(spans) = &info.profile_spans {
-        if let Some(new) = &view.profile_center {
-            for axis in 0..3 {
-                if let Some(old) = &info.view.profile_center {
-                    if new[axis] != old[axis] {
-                        splice_bd_field(&mut bits, spans.center[axis], spans.center_raw[axis], new[axis]);
-                    }
-                }
+    // The sweep angle.
+    if let (Some(new), Some(old), Some(span)) =
+        (view.revolve_angle, info.view.revolve_angle, info.angle_span)
+    {
+        if new != old {
+            splice_bd_field(&mut bits, span, span.len == 66, new);
+        }
+    }
+    // The options run.
+    splice_short_run(
+        &mut bits,
+        &info.option_spans,
+        &view.option_doubles,
+        &info.view.option_doubles,
+    );
+    // The embedded profile circle.
+    if let (Some(spans), Some(new), Some(old)) = (
+        &info.center_spans,
+        &view.profile_center,
+        &info.view.profile_center,
+    ) {
+        for axis in 0..3 {
+            if new[axis] != old[axis] {
+                let span = spans[axis];
+                splice_bd_field(&mut bits, span, span.len == 66, new[axis]);
             }
         }
-        if let (Some(new), Some(old)) = (view.profile_radius, info.view.profile_radius) {
-            if new != old {
-                splice_bd_field(&mut bits, spans.radius, spans.radius_raw, new);
-            }
+    }
+    if let (Some(new), Some(old), Some(span)) =
+        (view.profile_radius, info.view.profile_radius, info.radius_span)
+    {
+        if new != old {
+            splice_bd_field(&mut bits, span, span.len == 66, new);
         }
-        if let Some(trail_spans) = spans.trailing {
-            if let Some(new) = &view.trailing_triple {
-                if let Some(old) = &info.view.trailing_triple {
-                    for axis in 0..3 {
-                        if new[axis] != old[axis] {
-                            splice_bd_field(&mut bits, trail_spans[axis], spans.trailing_raw[axis], new[axis]);
-                        }
-                    }
-                }
+    }
+    if let (Some(spans), Some(new), Some(old)) = (
+        &info.normal_spans,
+        &view.profile_normal,
+        &info.view.profile_normal,
+    ) {
+        for axis in 0..3 {
+            if new[axis] != old[axis] {
+                let span = spans[axis];
+                splice_bd_field(&mut bits, span, span.len == 66, new[axis]);
             }
         }
     }

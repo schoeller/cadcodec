@@ -1290,51 +1290,60 @@ pub struct SolidHistoryRevolve {
 
 /// Phase B decode of a revolve raw tail (`SolidHistoryRevolve::raw_tail`).
 ///
-/// The autopsy (Revolve x 4 DWG versions, bit-identical tails) found
-/// the sweep-family option spine ([0,0,0,0,1.0,0]) directly at tail
-/// bit 0, followed by the raw BD revolve sweep angle — 3*pi/2 (270°)
-/// in every specimen — and a further raw entry (0.2).
+/// CLOSED 2026-09-23 by the full-tree libredwg scan (§18.6): the
+/// tail is [axis_pt 3BD][axis_vec 3BD][revolve_angle BD][six all-
+/// short BD options][PROFILE CALL: BL 18 = OBJ_CIRCLE, BL bit-
+/// length, then the embedded circle's center 3BD / radius BD /
+/// normal 3BD][2 flag bits] — every landed specimen accounts
+/// bit-exactly. The original's circle is center (1.0, 0, 0) — an
+/// exactly-1.0 x in the two-bit short BD — radius 0.2, normal
+/// (0,0,1): the profile AS DRAWN.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SolidHistoryRevolveTail {
-    /// All-short BD head run ([0, 0, 0, 0, 1.0, 0] in every specimen).
-    /// PROVISIONALLY named "option doubles"; the EVIDENCE-LED reading
-    /// (2026-09-23 wire-footprint correction: every landed specimen is
-    /// a +Y-axis revolution, so the '01' pair = dir.Y) is
-    /// [axis_pt (0,0,0)][axis_dir (0,1,0)] — the scale reading has
-    /// never been able to diverge because the pair never moves. The
-    /// §18.7 RevolveO/RevolveT stems settle it (O: a raw 2.375 in the
-    /// head iff pt/dir; T: the head grows ~128 raw bits iff pt/dir);
-    /// do not over-rely on the field name until they land.
-    pub option_doubles: Vec<f64>,
-    /// First raw BD entry after the option spine: the revolve sweep
-    /// angle in radians — CONFIRMED on two independent values (the
-    /// original's 3*pi/2 = 270°, the typed RevolveA/R's pi = 180°).
+    /// The revolution axis point, as the head's first 3BD -
+    /// [axis_pt (0,0,0)] in every landed specimen (the axis passes
+    /// through the origin). Settled by the full-tree scan: the
+    /// REVOLVEDSURFACE spec twin reads axis_point *before*
+    /// axis_vector *before* revolve_angle - the same order this tail
+    /// carries - and the §18.7 RevolveO stem (offset axis) drives the
+    /// raw form here.
+    pub axis_point: Option<[f64; 3]>,
+    /// The revolution axis direction, as the head's second 3BD -
+    /// [axis_vector (0,1,0)] in every landed specimen: the '01' pair
+    /// is dir.Y, ALL three are +Y-axis revolutions (wire-regression
+    /// verified, §18.6/§18.7). The earlier scale-factor reading is
+    /// dead: this is the axis pair, displaced only when RevolveO/T
+    /// vary the axis.
+    pub axis_vector: Option<[f64; 3]>,
+    /// The revolve sweep angle in radians - CONFIRMED on two
+    /// independent values (the original's 3*pi/2 = 270 degrees, the
+    /// typed RevolveA/R quads' pi = 180 degrees).
     pub revolve_angle: Option<f64>,
-    /// Remaining raw BD entries in stream order, positional: the
-    /// original's profile FORM lists [0.2]; the RevolveA/R circle
-    /// form lists [2.0, radius raw]. The named fields below carry
-    /// the structural semantics (with the form caveat noted).
-    pub raw_doubles: Vec<f64>,
-    /// The structural block's first 3BD after the FORM mid-region.
-    /// For the RevolveA/R quads (the as-drawn circle form) this IS the
-    /// profile circle's drawn center (2, 0, 0); the original's record
-    /// is a DIFFERENT profile form whose same slots carry (0.2, 0, 0)
-    /// = its torus MINOR radius per the wire regression (a
-    /// non-crossing torus M 1.0/m 0.2 — crossing profiles are refused
-    /// by AutoCAD outright). The form question is §18.7's RevolveP/W
-    /// business; treat the field names as the A/R-form reading.
+    /// The six all-short BDs between the angle and the profile CALL -
+    /// all zeros in every landed specimen (candidates: start_angle /
+    /// draft_angle / draft distances / twist - the REVOLVEDSURFACE
+    /// twin's post-angle field list; the §18.7 stems with nonzero
+    /// drafts would name them).
+    pub option_doubles: Vec<f64>,
+    /// The embedded PROFILE sub-entity (a CALL: [BL type = 18 =
+    /// OBJ_CIRCLE][BL bit-length][circle]) - the circle's center
+    /// 3BD. The full-tree scan resolved the whole family: A/R =
+    /// (2.0, 0, 0); the original = (1.0, 0, 0), a two-bit SHORT form
+    /// (BD '01' encodes exactly 1.0) which is why the earlier
+    /// raw-scan read its radius as the center and saw a "different
+    /// form" that never existed.
     pub profile_center: Option<[f64; 3]>,
-    /// The structural block's BD after the center 3BD. RevolveA 0.8 /
-    /// RevolveR 1.25 = the as-drawn radii; the ORIGINAL's 1.0 (stored
-    /// in the two-bit short BD form — invisible to raw scans) is its
-    /// torus MAJOR per the wires. Same form caveat as `profile_center`.
+    /// The profile circle's radius: RevolveA 0.8 / RevolveR 1.25 /
+    /// the original 0.2 - for the original this is the raw BD the
+    /// Phase B raw-scan mislabeled as "the 0.2 entry"; there is no
+    /// separate bore/major parameter, the record stores the profile
+    /// AS DRAWN.
     pub profile_radius: Option<f64>,
-    /// Optional trailing 3BD after the radius: (0, 0, 1) in the
-    /// RevolveA/R circle form = the profile's PLANE NORMAL (plan-drawn
-    /// ⇒ +Z), NOT the axis direction (all landed specimens revolve
-    /// about +Y, wire-regression-verified). ABSENT in the original's
-    /// different profile form (a perpendicular-plane profile's normal
-    /// would degenerate onto the axis) — §18.7's RevolveP decides.
-    pub trailing_triple: Option<[f64; 3]>,
+    /// The profile circle's plane normal, the CALL's closing 3BD -
+    /// (0, 0, 1) in every landed specimen (plan-drawn circles). NOTE
+    /// this replaces the earlier 'trailing_triple' reading - the
+    /// scan+BL-len accounting proves the trio is INSIDE the embedded
+    /// circle's span, not an axis-direction candidate.
+    pub profile_normal: Option<[f64; 3]>,
 }
