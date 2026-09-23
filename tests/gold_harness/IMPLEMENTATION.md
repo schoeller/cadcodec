@@ -3618,16 +3618,47 @@ that drives the implementation.
   remaining rows are exactly the two documented
   constructed-genus/Phase-B packets (`3DSOLID.wires` stub 8+8,
   R2013+R2018; `3DSOLID.point` 2, Revolve_2007/2010 read-side).
-- **Remaining phase A→B**: with every fixture-backed SH class
-  round-tripping, the campaign target for the next step is the
-  two constructed-genus packets on the 3DSOLID side — driving
-  the fixture tree toward 0/0: (1) the wires stub (silver's
-  constructed-genus 3DSOLID emits a zero-index wire cache where
-  gold's wire list is empty — R2013+R2018 sweep-family files);
-  (2) the modeler-point wrong-value (silver reads (0.6, 0, 0.6)
-  where gold reads (0, 0, 0) — Revolve_2007/2010 originals).
-  Both live on the 3DSOLID model-construction defaults, not the
-  SH nodes. See NEXT_SESSION.md for the step-6 handover.
+- **Phase A step 6 — the last two 3DSOLID packets (2026-09-23,
+  `f368fce`, PHASE A COMPLETE)**: (1) the wires stub was an
+  emission asymmetry, not a fabrication — silver parses the
+  R2013+/R2018 ds-backed wireframe wire structures (real
+  silhouette/edge geometry: RC type, BLd marker, BL color, BLd
+  acis_index, BL point count, 3BD points) that gold's derailed
+  walk never reaches, so gold emits nothing; the fix adds
+  `wires`/`silhouettes` to the established ds-backed
+  prologue-divergence drop (the isolines stay — gold's R2018
+  record reads them before derailing). (2) the point wrong-value
+  was a deliberate synthesis: the wire-frame anchor IS verbatim
+  wire data (Revolve_2007/2010 bake in (0, 0, 0); gold
+  re-emits it as parsed), but the document builder swapped
+  zero anchors for the SAT geometry centre; the anchor is now
+  wire-verbatim whenever `point_present` was set (all three
+  sites: solid, region, body), and the synthesis survives only
+  for genuinely anchorless records. All ten packet files
+  smoke 0/0; **corpus 152 files: read 0, write 0 — the gold
+  tree AND the entire 28-fixture sh_history tree are at zero.**
+  Phase A is complete per its own definition and beyond: every
+  fixture-backed SH class round-trips byte-faithfully with its
+  record present, and the strict-load elide is retired for
+  HISTORY, SWEEP, EXTRUSION, LOFT, REVOLVE, SPHERE, BOX, and
+  BOOLEAN.
+- **Remaining: Phase B and the Phase C authoring list.** Phase B
+  (the blob autopsy) needs NO new gold material: the four
+  raw-retained tails (sweep/extrusion/loft/revolve) decode by
+  cross-comparison across the 28 landed specimens. Phase C (the
+  full un-elide) is blocked on authored fixtures only — every
+  remaining class needs its §F2.1-convention specimen family
+  (one operation per file, 4 SAVEAS versions, gold-decode
+  qualification, .txt provenance) placed in
+  `tests/gold_harness/tests/sh_history/`:
+  `Wedge_<v>` (WEDGE), `Cylinder_<v>` (CYLINDER), `Cone_<v>`
+  (CONE), `Torus_<v>` (TORUS), `Pyramid_<v>` (PYRAMID),
+  `Fillet_<v>` (BOX + FILLET), `Chamfer_<v>` (BOX + CHAMFER),
+  `Brep_<v>` (a free-form body carrying ACSH_BREP_CLASS — e.g.
+  a converted/surfaced body). Silver's typed arms and the
+  normalizer projections already exist for these classes; each
+  un-elide is the step-5 recipe (trace-calibrate + un-elide +
+  four gates).
 
   **The complete phase map (from the original 2026-09-22 campaign
   brief; each phase gets its own NEXT_SESSION when its predecessor
