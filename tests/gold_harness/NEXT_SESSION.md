@@ -1,11 +1,14 @@
 # Zero-context prompt — Phase B: the blob autopsy (Phase A is COMPLETE at 0/0)
 
-> Campaign state 2026-09-23 ~21:00Z. **Phase A is COMPLETE: the corpus
-> stands at 152 files, read 0, write 0** — the strict-load gold tree and
-> the entire 28-fixture `sh_history/` tree are at zero (`f368fce`,
-> `14bca7e`). Every fixture-backed SH class (HISTORY, SWEEP, EXTRUSION,
-> LOFT, REVOLVE, SPHERE, BOX, BOOLEAN) round-trips byte-faithfully with
-> its record present; the wires/point 3DSOLID packets are closed. This
+> Campaign state 2026-09-23 ~21:30Z. **Phase A is COMPLETE: the corpus
+> stands at 180 files, read 0, write 0** — the strict-load gold tree and
+> the entire 56-fixture `sh_history/` tree (the seven Phase C families
+> landed and qualified) are at zero (`f368fce` → `e1dff05`). Every
+> fixture-backed SH class (HISTORY, SWEEP, EXTRUSION, LOFT, REVOLVE,
+> SPHERE, BOX, BOOLEAN, plus the typed reads of WEDGE, CYLINDER, CONE,
+> TORUS, PYRAMID, FILLET, CHAMFER) round-trips at zero with its
+> record behavior verified; the wires/point 3DSOLID packets are
+> closed. This
 > brief opens **Phase B: the blob autopsy** — decoding the raw-retained
 > node tails into semantic model fields. Read `tests/gold_harness/
 > AGENTS.md` first, then §F2.1–F2.3 and §18.5 in `IMPLEMENTATION.md`
@@ -16,8 +19,9 @@
 
 **Phase B**: determine the internal structure of the four raw-retained
 tails — the payloads captured verbatim on `SolidHistorySweep`
-(`shsw_raw_tail`), `SolidHistoryLoft` and `SolidHistoryRevolve`
- (`raw_tail`, per-model) — and implement the typed fields behind them.
+(`shsw_raw_tail`, serving both SWEEP and EXTRUSION), plus
+`SolidHistoryLoft` and `SolidHistoryRevolve` (`raw_tail` each) —
+and implement the typed fields behind them.
 Phase B ends when the blob content round-trips across all 4 versions
 per family with semantic field parity in the normalize projections.
 
@@ -29,7 +33,7 @@ the rest as `unknown_bits`. The guessed field walks were disproven
 (§18.5: the sweep blob-size model, the REVOLVE 192-bit budget proof).
 Phase A retained the bytes verbatim; Phase B now DECODES them, using
 two non-oracle instruments:
-1. **Cross-specimen comparison**: 28 fixtures, 4 DWG versions; the
+1. **Cross-specimen comparison**: 56 fixtures, 4 DWG versions; the
    same operation's records are bit-identical across versions except
    handle tails (verified in Phase A) — so the payload structure is
    version-portable and derivable from the specimens alone.
@@ -46,11 +50,14 @@ two non-oracle instruments:
    captured tails (`dwg2json` on the fixture; the model carries
    `shsw_raw_tail`/`raw_tail` as byte arrays plus `bit_len`). Start
    with the 4 Polysolid records + the 4 Extrude records.
-2. **Map the anchor structure**: tails begin with `BD('10')`-run
-   zero options + `BD('01')` scale + raw BD entries (the sweep
-   autopsy). Use the bitcode tables in the knowledge base; compose
-   field walks that land exactly at each record's
-   `bit_len - text_flag` boundary; cross-check across versions.
+2. **Map the anchor structure**: the tails are captured from just
+   after `op.minor`, so byte 0 is the direction 3BD (Polysolid:
+   `'10'×3` = three zero pairs; Extrude: `'10','10','00'+raw64` —
+   raw little-endian) followed by option BD runs, `BD('01')` scale,
+   and raw BD entries (the sweep autopsy). Use the bitcode tables
+   in the knowledge base; compose field walks that land exactly at
+   each record's `bit_len - text_flag` boundary; cross-check across
+   versions.
 3. **Hypothesize semantics from the operation**: the Polysolid's
    sweep = rectangle profile swept along a segment: expect a
    profile transform (4×4), sweep options (draft/twist/align flags),
@@ -63,7 +70,7 @@ two non-oracle instruments:
    re-encode ONLY when the model was programmatically modified, else
    verbatim).
 5. **Gates per family**: hermetic tests; the family's four smokes
-   (must stay 0/0); the corpus must stay 152 files 0/0; any writer
+   (must stay 0/0); the corpus must stay 180 files 0/0; any writer
    re-encode path additionally needs the layer-4 byte-walk.
 
 ### Phase C fixture state (2026-09-23 review, complete)
@@ -140,7 +147,7 @@ cargo test --features serde
 python3 tests/gold_harness/run_roundtrip.py \
     tests/gold_harness/tests/sh_history/<FIXTURE>.dwg /tmp/smoke
 
-# 3. Full corpus (must stay 152 files 0/0)
+# 3. Full corpus (must stay 180 files 0/0)
 python3 tests/gold_harness/run_corpus.py
 
 # 4. Layer-4 byte-walk for any writer re-encode path
@@ -150,6 +157,10 @@ target/debug/dump_section_bytes <file> <A> <N>
 ## Commit inventory (this halt)
 
 ```
+e1dff05  docs(harness): Phase C fixture review closure — seven families landed, BREP deferred
+9cf8e0f  test(harness): Phase C fixture families — seven new genus families, qualified
+7757724  fix(harness): land the pyramid retype and projection — the last retype gap
+bc230a3  docs(harness): Phase B handover — NEXT_SESSION replaced (the blob autopsy)
 14bca7e  docs(harness): Phase A COMPLETE — corpus 152 files at 0/0; Phase C authoring list
 f368fce  fix(harness): the last two 3DSOLID packets — Phase A step 6, fixtures 0/0
 bf5f299  docs(harness): step-5 review pass — R2010 sphere L4 closes the version matrix
@@ -161,8 +172,11 @@ df551cb  fix(docs): drop a leftover placeholder line from the step-6 inventory
 36af6fb  docs(harness): Phase A step-4 closure — LOFT/REVOLVE record + primitives queue
 20d472b  fix(dwg): un-elide ACSH_LOFT/REVOLVE_CLASS — Phase A step 4, shared raw-tail helpers
 2ed92ae  refactor(dwg): share the SH elide exception list between guard and nuller
+48ca14a  docs(harness): Phase A step-3 closure — §18.5 record + step-4 queue
+8c41aa6  fix(dwg): un-elide ACSH_EXTRUSION_CLASS — Phase A step 3
+c96355f  fix(dwg): clamp sweep raw-tail capture and emit bounds (review)
 ```
 
-The branch head is this handover commit (this file); the commits
-above are its parents. `1f06d9d` was the last push to
-`origin/gold-vs-silver` (push only when asked).
+The branch head is this handover-refresh commit (this file); the
+Phase B content above it is the brief itself. `1f06d9d` was the last
+push to `origin/gold-vs-silver` (push only when asked).
