@@ -173,12 +173,16 @@ impl<'a> DwgObjectWriter<'a> {
         self.write_solid_history_base(&value.base);
         self.writer.write_bit_long(value.operation_major);
         self.writer.write_bit_long(value.operation_minor);
-        if value.shsw_raw_tail_bit_len > 0 {
+        // The byte vector is the authority: a deserialized or programmatically
+        // constructed model can carry bit_len past the bytes (pub fields, no
+        // validation), so clamp to what can actually be emitted. A model with
+        // a declared-but-empty tail falls through to the modeled arm below.
+        let tail_bits = (value.shsw_raw_tail_bit_len as usize).min(value.shsw_raw_tail.len() * 8);
+        if tail_bits > 0 {
             // Phase A raw retention: DWG-read records re-emit their captured
             // tail bits verbatim (bit-faithful by construction; see the
             // shsw_raw_tail model doc).
-            let bits = value.shsw_raw_tail_bit_len as usize;
-            for index in 0..bits {
+            for index in 0..tail_bits {
                 let byte = value.shsw_raw_tail[index / 8];
                 let bit = (byte >> (7 - index % 8)) & 1;
                 self.writer.write_bit(bit == 1);

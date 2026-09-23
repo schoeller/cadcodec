@@ -232,7 +232,12 @@ fn read_history_sweep(reader: &mut DwgMergedReader, base: SolidHistoryNodeBase) 
     let tail_start = reader.position_in_bits();
     let direction = reader.read_3bit_double();
     reader.set_position_in_bits(tail_start);
-    let tail_bit_len = (reader.main_end_bits() - tail_start).max(0) as usize;
+    // The declared split is attacker-controlled framing (a hostile UMC
+    // hdlsize or pre-R2010 raw-long can claim a main end far beyond, or
+    // before, the physical window): clamp to the record end — gold
+    // clamps only at the physical record end too.
+    let tail_end = reader.main_end_bits().min(reader.record_end_bits());
+    let tail_bit_len = (tail_end - tail_start).max(0) as usize;
     let mut raw_tail = vec![0u8; (tail_bit_len + 7) / 8];
     for index in 0..tail_bit_len {
         if reader.read_bit() {
