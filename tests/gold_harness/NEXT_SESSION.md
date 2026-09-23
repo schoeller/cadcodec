@@ -158,8 +158,11 @@ target/debug/dump_section_bytes <origin.dwg> <A> <N>
 ## Commit inventory (this halt)
 
 ```
+c1200a0  docs(harness): Phase A step-3 handover — NEXT_SESSION replaced
 d36e553  docs(harness): Phase A step-2 closure — SWEEP layout autopsy + queue update
 ba7d112  fix(dwg): un-elide ACSH_SWEEP_CLASS — Phase A step 2, raw-tail retention
+1652af2  docs(harness): document the full Phase A/B/C plan — every phase defined
+96673ec  docs(harness): zero-context completeness — full Phase A handover in NEXT_SESSION + §18.5 step-2 findings
 1f06d9d  chore: retire first-session scratch — the ocs.lock rules and the cylinder example
 e686903  docs(harness): Phase A step-2 probe findings — the SWEEP write path loses 113 bytes
 989860d  fix(docs): NEXT_SESSION encoding cleanup
@@ -180,5 +183,5 @@ b9211d0  fix(entities): constructed-genus constructor defaults
 5891cc1  chore(harness): retire stale scripts and pycache
 ```
 
-The branch sits at `d36e553` on top of `1f06d9d` (previously pushed
-to `origin/gold-vs-silver`; push only when asked).
+The branch sits at `c1200a0`; `1f06d9d` was the last push to
+`origin/gold-vs-silver` (push only when asked).
