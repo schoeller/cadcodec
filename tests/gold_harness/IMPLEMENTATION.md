@@ -3713,3 +3713,122 @@ that drives the implementation.
   workflow"). Phase A's completion auto-qualifies the Phase B
   NEXT_SESSION handover (the same pattern as the strict-load
   campaign's per-round halt-and-brief cycle).
+
+### 18.6 ACS/SH solid-history Phase B — the blob autopsy (complete 2026-09-23)
+
+Phase B decoded the raw-retained node tails into typed model fields
+per family, keeping the captured bits as the write authority. Every
+class is still `DEBUGGING_CLASS` in gold (no oracle walk past
+`history_node.color.flag`), so the decode rests on the two non-oracle
+instruments named in the brief: cross-specimen comparison (the 16
+tails are bit-identical across DWG 2007/2010/2013/2018 — verified
+again this step) and the R2010 live-oracle fragment (gold's 3DSOLID
+wireframe values on the same modeler backing).
+
+**What is actually inside the tails** (the autopsy record):
+
+- **Sweep family** (`shsw_raw_tail`, serving SWEEP and EXTRUSION):
+  a direction 3BD head (Polysolid semantically (0,0,0); Extrude
+  (0, 0, 2.0) — the extrusion length vector matching the circle
+  2-tall live-oracle wires), then an all-short BD option run whose
+  `BD('01')` member IS the scale factor — the brief's "option BD
+  runs, `BD('01')` scale" anchor, Polysolid listing two more
+  trailing zeros than Extrude. After the head: a mid-region of
+  raw BD (`'00'`-marked LE64) entries — the Polysolid carries the
+  path unit direction `[+u_y, -u_x, -u_x, -u_y]` twice (unit
+  (0.9024047208179184, 0.4308894520007826), re-derived from the
+  segment end below) in two repeated 288-bit frame blocks — and
+  finally two byte-aligned LE64 blocks: the swept profile's corner
+  pairs `(x, height)` — the Polysolid rectangle
+  `[(2.5,0), (-2.5,0), (-2.5,2), (2.5,2)]` (5 wide × 2 tall;
+  gold's 3DSOLID anchor z = 1.0 is exactly the corner-height mid) —
+  and the segment end `(3065.007936309483, 1463.5113930448078)`,
+  of which gold's R2010 wireframe point (1532.5039681547414,
+  731.755696522404, 1.0) is EXACTLY the half (the anchor is the
+  segment midpoint — the live-oracle overlap in full). The
+  Extrusion tail has none of these blocks (its payload stays
+  opaque beyond the head).
+- **Loft** (`raw_tail`): an all-short `[1.0]` head, then a run of
+  raw BD entries `(Loft fixtures: [2.0, 2.0, 5.0, 0.3, pi/2,
+  pi/2])` — the 5.0 top height matches the wire geometry (wires
+  run z 0..5) and the two pi/2 entries are the 90-degree draft
+  angles. Exposed positionally (`raw_doubles`).
+- **Revolve** (`raw_tail`): the sweep-family option spine
+  `[0,0,0,0,1.0,0]` directly at bit 0, then the first raw BD entry
+  = the revolve sweep ANGLE — 3*pi/2 (270°) in every Revolve
+  fixture (bits 14..78, the one field the guessed spec walk placed
+  years too late) — followed by 6 BD zeros, some flag bits, and a
+  further raw entry (0.2).
+
+**Wire-format corollaries confirmed along the way:** the
+tails' raw BD entries are plain LE doubles per DWG byte order
+(bytes little-endian, each byte MSB-first on the wire — the same
+convention as `read_raw_double`; an early decoder draft reversed
+the within-byte order and produced garbage values, caught by
+re-validating against gold's `unknown_bits` window); zero values
+are never stored raw (`'00'`-marked zeros are misaligned aliases —
+the wire uses the short `'10'` form); and the byte-aligned
+geometry blocks cannot be BD-form (their doubles sit 64 bits
+apart, not 66).
+
+**Implementation** (all gates green at halt):
+
+- `src/io/dwg/sh_tail_decode.rs`: the pure decoder module —
+  per-family tail views + the writer's span bookkeeping, plus the
+  Phase B re-encode (`render_*_tail`).
+- Model: new typed views on the three classes —
+  `SolidHistorySweep::tail_decode` (`SolidHistorySweepTail`:
+  `option_doubles`, `raw_doubles`, `profile_corners`,
+  `segment_end`), `SolidHistoryLoft::tail_decode`
+  (`option_doubles`, `raw_doubles`), `SolidHistoryRevolve::tail_decode`
+  (`option_doubles`, `revolve_angle`, `raw_doubles`). The modeled
+  (DXF-fallback) fields stay where they were; the DXF reader
+  constructors set the views to `None`.
+- Reader: populates the views right after `capture_undocumented_tail`
+  (the capture boundary itself is untouched — silver's tails still
+  appear verbatim inside gold's `unknown_bits`).
+- Writer — **the Phase B write rule**: re-encode ONLY when a
+  decoded field was programmatically modified, else verbatim.
+  `render_*_tail` re-decodes the stored tail, compares the model's
+  current values against that decode, and splices the differing
+  spans into the stored bits: untouched records re-emit
+  bit-identically by construction (an unmodified render round-trips
+  byte-exact — pinned in tests), while an edit lands bit-locally
+  and the tail — and therefore the record and section size — never
+  changes. Raw LE64 spans take any f64; short spans splice only
+  same-form `0.0`/`1.0` flips (a short→raw form change would
+  shift the stream and stays unsupported in Phase B, documented in
+  the module).
+
+**Phase B gates (halt state):**
+
+1. Hermetic: `tests/solid_history_tail_decode.rs` (8 tests — the
+   four family decode pins from the real fixture tails embedded as
+   hex, malformed-tail guards, and the full-stack round-trips:
+   raw tails survive byte-identically, decoded views re-derive,
+   segment-end / revolve-angle / loft-height edits land exactly
+   inside their raw spans — bytes 201..216, 1..10 and 25..34 of
+   the respective tails) + 4 module tests (render-unmodified ==
+   verbatim, splice forms) + the existing 87 roundtrip suite: all
+   green, no feature-gated skips added.
+2. Family smokes: all 16 (4 families × 4 versions) at 0/0
+   read+write fidelity.
+3. Corpus: 180 files, read 0, write 0.
+4. Layer-4 byte-walk for the re-encode path: an
+   unmodified-vs-edited document pair differs in the objects
+   section at EXACTLY two 16-byte rows — the segment-end splice
+   (LE bytes of 1000.0/2000.0 visible in place) plus the section
+   checksum; the record size is unchanged.
+
+**What Phase B did NOT solve (the honest remainder):** the full
+bit-grammar of the mid-regions — the 288-bit sweep frame blocks
+carry the unit direction in a repeating pattern whose un-named
+remainder (the -0.9446..., -1689439.46-class entries) stays
+opaque, the Extrusion's 64-bit payload after its option spine is
+undecoded, and the Loft's leading 68-bit region before its raw run
+is likewise opaque. Those bits round-trip verbatim and stay
+untouched by the writer; naming them needs the differential
+instrument the brief predicts (a second specimen per family with
+different geometry — the fixture tree has one distinct specimen
+per family, and the strict-load gold tree carries no other
+sweep-family members).
