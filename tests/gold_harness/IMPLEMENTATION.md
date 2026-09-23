@@ -3235,10 +3235,10 @@ family). Its wire layouts are documented in the gold spec — the live
 ~line 3077, ACSH_SWEEP_CLASS ~4175, ACSH_EXTRUSION_CLASS ~4222, the
 primitive/boolean/loft/revolve siblings around 2910–3300 and 4170–4400;
 class-number registry in `src/classes.c`) — and the current interim state
-is the save-elide for strict loaders (commit `459bc74`, asserted by
-`tests/solid_history.rs::dwg_save_elides_sh_history_records_for_strict_loaders`):
-silver writes no ACSH_* records yet, and 3DSOLID/REGION/BODY history
-soft-pointers go NULL. The Downloads `Polysolid.dwg` stays the byte-
+is the per-class elide (commit `459bc74`; ACSH_HISTORY_CLASS has since
+been un-elided by Phase A `b926053` — the node classes EXTRUSION,
+SWEEP, the primitives, and BREP remain elided; their 3DSOLID/REGION/
+BODY history soft-pointers go NULL until each lands). The Downloads `Polysolid.dwg` stays the byte-
 **calibration** specimen, NOT a corpus fixture: it is a 35k-object
 real-world working drawing, far past the minimality bar.
 
@@ -3483,3 +3483,31 @@ class the others cannot see by construction.
    records byte-identical to the authored file; the constructed records
    carry the authored morphologies. Corpus 0/0 and residues empty on
    every intermediate state; generation is deterministic.
+
+### 18.5 ACS/SH solid-history Phase A (started 2026-09-23)
+
+The next campaign after the zero. The SH family
+(`AcDbSh*` catch-all modeler-history objects, carried under
+`DynamicBlock` with ACSH_* `dxf_name`) was elided at save
+(`459bc74`, after a 2026-09-22 extrusion probe made strict readers
+refuse the whole file) pending true wire layouts. The F2 fixture
+tree (`fc9f235`, §F2.1–F2.3) landed the authored calibration set
+that drives the implementation.
+
+- **Phase A step 1 — ACSH_HISTORY_CLASS (`b926053`)**: the root
+  record (the simplest SH layout: 2 BLs + handle + BL + 2 Bs) was
+  already correctly implemented on both sides; the elide guard and
+  the entity-pointer nuller now allow it through. All node classes
+  (EXTRUSION, SWEEP, the primitives, BREP) stay elided. Verified on
+  the Polysolid_2018 fixture: the record round-trips at the same
+  handle, the SWEEP record (gold UNKNOWN_OBJ fallback, 261 bytes)
+  stays elided, corpus gold 0/0 unchanged, fixture diffs 26/8
+  unchanged (the node classes remain).
+- **Remaining phase A**: ACSH_SWEEP_CLASS (the two
+  `shsw_text`/`shsw_text2` opaque blobs — the current reader guess
+  reads embedded entities where the authored wire carries blobs),
+  ACSH_EXTRUSION_CLASS (identical plus the AcDbShExtrusion subclass),
+  then the per-class un-elide. The three named fixture-diff packets:
+  `3DSOLID.wires` stub (16, R2013+ shapes), `ACSH_SPHERE_CLASS` count
+  (8, Sphere family), `3DSOLID.point` wrong-value (2, Revolve
+  R2007/2010). See NEXT_SESSION.md for the full Phase A handover.

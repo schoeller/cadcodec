@@ -1,174 +1,183 @@
-# Zero-context prompt — BricsCAD strict-load campaign (COMPLETE)
+# Zero-context prompt — ACS/SH solid-history Phase A (in progress)
 
-> Campaign state 2026-09-21 ~21:45Z: **ZERO ACHIEVED, GOLD-TREE-SOURCED,
-> AND USER-VERIFIED THROUGH ROUND SEVEN**.
-> `gen_all_entities_all_versions.dwg` (AC1032/R2018, 30 entities,
-> md5 0217fbac515a20b90e9c3aea883196e3) opens flawlessly in BricsCAD via
-> plain `_open`. Every constructed-mleader wire component now derives
-> from the gold tree (2018/Leader.dwg + gh44-error.dwg). This file is
-> the post-campaign handover. New campaigns bootstrap from
-> `tests/gold_harness/AGENTS.md` (durable rules), `IMPLEMENTATION.md` §7
-> (the completed 0/0 fidelity campaign) and §18 (the validation layers
-> incl. the layer-4 authored-wire byte-fidelity oracle).
+> Campaign state 2026-09-23 ~13:00Z. The strict-load campaign is closed
+> at zero (2026-09-21, user-verified round seven; see IMPLEMENTATION.md
+> §18.4). The F2 fixture tree landed (2026-09-23: 28 .dwg + 28 .txt in
+> `tests/gold_harness/tests/sh_history/`, all qualified, committed as
+> `fc9f235`). This brief covers the **ACS/AcDbSh solid-history Phase A**
+> — implementing the SH wire layouts so the elided-at-save node classes
+> round-trip. Read `tests/gold_harness/AGENTS.md` first (durable rules),
+> then the §F2.1–F2.3 spec in `IMPLEMENTATION.md` (the fixture tree,
+> its gates, and its provenance convention), then this file top to bottom.
 
-## What the campaign established (do not re-derive)
+## Task
 
-1. **The strict consumer's real wire spec** is the BINARY convention set
-   of the native writers, and it is derivable by byte-comparison:
-   - BricsCAD message semantics: modal `Unable to load drawing ...
-     Object improperly read: <Class> (N)` = parse-class FATAL at the
-     first unparseable record, (N) = HEX handle; bare
-     `Object improperly read (N)` = non-fatal deep-load drop.
-   - **R2010+ LEADER records use the ODA underlap genus**: bitsize =
-     main_end − 6, the no-text flag + handle region park back inside
-     the main tail, and the overlapped bits double-read (the authored
-     record's arrowhead RS16 tail + unknown_bit_4/5 coincide with the
-     xdic form head `00110` by construction). The sequential layout
-     parses clean in gold/both strict-blind decoders but BricsCAD
-     deep-drops it. Silver now writes the underlap (`set_underlap_tail`
-     merge hint, value-preserving-guarded).
-   - **R2010+ MULTILEADER records carry a hidden tail bit-group**
-     between is_text_extended and the string-stream anchor — a
-     CONTENT-CLASS convention (2026-09-22 specimen-stamp census), not a
-     writer fingerprint: fresh simple-content mleaders (BricsCAD +
-     AutoCAD samples, gh44-error.dwg) carry the constant 9-bit
-     `0b000010010`, while the gold tree's Leader drawing family carries
-     the 17-bit `00100101000010010` whether saved by AutoCAD 2017/2018
-     (the 2007/2010/2013 down-saves, per their SummaryInfo stamps) or by
-     the ODA FileConverter (the 2018 variant reproducing them). Silver
-     captures-and-echoes on rewrite and defaults constructed entities
-     to the simple-content 9-bit (BricsCAD-verified round seven; copying
-     the 17-bit onto constructed content made BricsCAD's parser reject
-     the record — round five).
-   - **Every authored AcDbMLeader carries the entity-common
-     proxy-graphics metafile** (the "preview" in gold's trace / the
-     `graphic_data` common field): `[u32 total][u32 count]` + records
-     `[u32 size][u32 type][payload]`. Census from four specimens
-     (authored 2018/Leader.dwg 564 B; mleader_bcad.dwg 448 B;
-     mleader_acad.dwg 636 B; gh44-error.dwg): types 18/19 = property
-     selectors (dwords 0x3999/0x399A/0x2711/0x1389/1/0x7FFF),
-     20/22/23/51/16 = state toggles, 38 = geometry block (f64 pairs +
-     zero padding), 6/7/32 = indexed blobs, 21 = FillOff,
-     36 = UnicodeText — ODA spec §29 "PROXY ENTITY GRAPHICS" (p. 270;
-     the PDF renders that section's body as images, but the envelope
-     and types derive cleanly from the specimens).
-2. The byte-oracle methodology that closed the campaign: trace gold
-   (-v9), dump records (`dump_section_bytes`), bit-compare per-record
-   with the corrected frame (window = [Address..Address+Size) from the
-   BOT byte; MS at Address−3, UMC at Address−1; bitsize =
-   Size*8−Hdlsize = handle-region start), and chase every divergence
-   to a named field/form. Silver's rewrite of 2018/Leader.dwg now
-   reproduces both problem records BYTE-IDENTICAL (CRC included).
+**Phase A goal**: implement the ACSH_SWEEP_CLASS and ACSH_EXTRUSION_CLASS
+wire layouts (the two classes with the opaque `shsw_text`/`shsw_text2`
+blobs), un-elide them per calibre, and drive the sh_history fixture
+diffs from 26/8 toward 0/0 while holding the gold baseline at 0/0.
 
-## Specimen origin census (2026-09-22, for future triage)
+Current state:
+- **Step 1 DONE** (commit `b926053`): ACSH_HISTORY_CLASS un-elided. Its
+  layout was already correct on both sides (6 fields: 2 BLs + handle +
+  BL + 2 Bs); the elide guard and the `solid_history_handle_value`
+  pointer-nuler now allow HISTORY records through while all node
+  classes (EXTRUSION, SWEEP, primitives, BREP) stay elided. Verified:
+  the Polysolid_2018 fixture round-trips the HISTORY root at handle
+  0x2ED; the SWEEP record (261 bytes) stays elided; corpus 152 files,
+  gold 0/0, fixtures 26/8 (unchanged — the HISTORY step adds nothing,
+  the remaining diffs are all node-class).
+- **Step 2 NEXT**: ACSH_SWEEP_CLASS — the reader currently guesses the
+  field sequence but misses the two length-prefixed opaque binary
+  blobs (`shsw_text_size` BL + `shsw_text` bytes + `shsw_bl93` BL +
+  `shsw_text2_size` BL + `shsw_text2` bytes). The guess causes mid-record
+  desync on native files (Polysolid_2018.dwg object 0x2EB = 261 bytes
+  of UNKNOWN_OBJ — gold's own SWEEP decode falls back for this record).
+- **Step 3**: ACSH_EXTRUSION_CLASS — the SWEEP layout plus the
+  `SUBCLASS (AcDbShExtrusion)` prefix (`ACSH_SWEEP_CLASS is identical,
+  plus SUBCLASS (AcDbShSweep) before the handle stream` per dwg2.spec
+  ~4200). Calibrate against `sh_history/Extrude_2018.dwg`.
 
-Each R2004+ gold specimen self-identifies in its `AcDb:SummaryInfo`
-ProductInformation string. For specimen triage, attribute bytes by the
-origin stamp plus content class — never by "the ODA file said so":
+## The 26/8 fixture diffs decompose into three packets
 
-| family | writer stamp | notes |
-|---|---|---|
-| `2018/Leader.dwg` + the named specimen set (Line, circle, Point, Arc, Ellipse, Spline, Text, Polygon, Donut, Helix, Multiline, Polyline, PolyLine3D, RAY, ConstructionLine, Constraints, Leader, …) | **ODA FileConverter** `Teigha® build 2.0 / registry 4.3, install "ODA"` | 2018/Leader's comments: *"last saved by an Open Design Alliance (ODA) application"* |
-| `2007/2010/2013/Leader.dwg` down-saves | **AutoCAD 2017** `N.51.M.5 reg 21.0` / **AutoCAD 2018** `O.48.M.294 reg 22.0` | same drawing as the 2018 variant; SAME wire conventions (17-bit group, underlap) — the conventions are content-class, not writer-class |
-| `gh44-error.dwg`, ATMOS-DC22S, gh109_1, `sample_2018`, `LiveSection1`, `example_*` | **AutoCAD**, various builds (C.608.0/17.2, M.x/20.1 2015-era, O.48.M.294/22.0) | 2015-era genera (sequential LEADER tails, 9-bit group on fresh mleaders) |
-| `2000/` and `2004/` dirs | no marker in the format | provenance decidable only structurally |
+From the 2026-09-23 corpus run (152 files, gold tree 124 at 0/0,
+fixture tree 28 at 26 read / 8 write):
 
-The published ODA spec undersides all of these runtimes (hidden tail
-groups, underlap, proxy-graphics metafiles undocumented) — full detail in
-README "Origin quality of the gold specimens".
+| packet | rows | files | route |
+|---|---|---|---|
+| `3DSOLID.wires` stub | 16 | Extrude/Loft/Revolve/Sphere (R2013+R2018) | the constructed-genus zero-index wire cache — `33ce739` addressed other shape inputs; these may share the same path or need the node-class blob bytes to produce real wires |
+| `ACSH_SPHERE_CLASS` count + `UNKNOWN_OBJ` count | 8 | all 4 Sphere files | the sphere node-class ordinal alignment: silver produces a different record count than gold on the same drawing |
+| `3DSOLID.point` wrong-value | 2 | Revolve_2007/2010 only | a genuine field divergence: silver reads the modeler point at (0.6, 0, 0.6) where gold reads (0, 0, 0) |
 
-## Verified fix set (committed at this halt)
+Step 2 (SWEEP) only directly affects the Polysolid family (whose
+diffs are currently zero through the elide). The Sphere count and the
+Extrude/Loft/Revolve wire stubs need the corresponding node classes
+(Sphere primitive, Extrusion, Loft) in addition to the SWEEP blob
+work — but the subsequent un-elides will follow the same per-class
+pattern once the blob-byte model is proven on SWEEP first.
 
-Committed 2026-09-21 ~22:05Z as
-`66c1e57` (fix(dwg): strict-consumer wire compatibility — leader
-underlap, mleader tail group, alpha 2-form) and
-`bfa0ed8` (feat(harness): proxy-graphics derivation — typed state
-records, gold-tree fixture, dump_proxy_graphics bin), with this docs
-fold as the third commit of the set.
+## The gold spec (wire layout source)
 
-- `src/types/transparency.rs` — CMC alpha 2-form (authored census).
-- `src/entities/multileader.rs` — `dwg_raw_tail_bits: Option<(u64,u8)>`
-  capture-echo + native 9-bit default in `new()`.
-- `src/io/dwg/dwg_stream_readers/merged_reader.rs` — `main_data_end()`
-  + `peek_window_bits()` (tail capture support).
-- `src/io/dwg/dwg_stream_readers/object_reader/entities.rs` — the
-  R2010+ tail capture between main cursor and string anchor.
-- `src/io/dwg/dwg_stream_writers/bit_writer.rs` — readbacks
-  (`bits_at`, `first/last_written_bits`).
-- `src/io/dwg/dwg_stream_writers/merged_writer.rs` —
-  `underlap_bits` + `set_underlap_tail()` + the value-preserving merge
-  hook.
-- `src/io/dwg/dwg_stream_writers/object_writer/entities.rs` —
-  `write_multileader` native group emission + tail;
-  `write_leader` underlap request.
-- `src/io/dwg/dwg_document_builder.rs` — capture wiring.
-- `src/entities/mesh.rs` — `compute_edges` BTreeSet (deterministic
-  generation).
-- `examples/gen_all_entities_all_versions_dwg.rs` — the mleader
-  proxy-graphics blob: **default =
-  `MLEADER_PROXY_GRAPHIC_ODA`** (the gold tree's 564-B
-  2018/Leader.dwg specimen, round-seven BricsCAD-verified) with
-  `GENALL_PROXY_BLOB=bcad` selecting the round-six BricsCAD 448-B
-  fallback (`MLEADER_PROXY_GRAPHIC`), + native stance (attach
-  0/32/4786, extended=1; also present in the gold tree's gh44).
-- `tests/roundtrip.rs` — r2000 filter for the
-  version-inherent `dwg_raw_tail_bits` diff.
-- `tests/gold_harness/normalize_silver.py` — pops
-  `dwg_raw_tail_bits` (entity arm + payload loop) and `graphic_data`
-  for MultiLeader.
-- `tests/gold_harness/IMPLEMENTATION.md` §18.4 — the full resolution
-  record.
+`~/work/libredwg/src/dwg2.spec` (read-only oracle):
 
-## Handoff artifacts (repo root, all regenerated & deterministic)
+```
+DWG_OBJECT (ACSH_SWEEP_CLASS)   // line ~4175
+  HANDLE_UNKNOWN_BITS;
+  AcDbEvalExpr_fields;           // nodeid (BL) [DXF-only], parentid BLd,
+                                 // major/minor BL, value_code BSd + union,
+                                 // nodeid BL
+  AcDbShHistoryNode_fields;      // major BL, minor BL, 16×BD transform, CMC,
+                                 // step_id BL, material handle
+  SUBCLASS (AcDbShPrimitive)
+  SUBCLASS (AcDbShSweepBase)
+  major BL                       // instance value 33
+  minor BL                       // instance value 29
+  direction 3BD                  // 0,0,0
+  method BL                     // 77
+  shsw_text_size BL             // 744  <-- opaque blob, NOT in DXF
+  shsw_text BINARY              // blob bytes, size = shsw_text_size
+  shsw_bl93 BL                  // 77
+  shsw_text2_size BL            // 480  <-- opaque blob, NOT in DXF
+  shsw_text2 BINARY            // blob bytes, size = shsw_text2_size
+  draft_angle BD                // 0.0
+  start_draft_dist BD          // 0.0
+  end_draft_dist BD           // 0.0
+  scale_factor BD             // 1.0
+  twist_angle BD              // 0.0
+  align_angle BD              // 0.0
+  sweepentity_transform 16×BD
+  pathentity_transform 16×BD
+  align_option RC              // 2
+  miter_option RC             // 2
+  has_align_start B           // 1
+  bank B                     // 1
+  check_intersections B      // 0
+  shsw_b294 B               // 1
+  shsw_b295 B              // 1
+  shsw_b296 B              // 1
+  pt2 3BD                  // 0,0,0
+  SUBCLASS (AcDbShSweep)
+  START_OBJECT_HANDLE_STREAM;
+DWG_OBJECT_END
+```
 
-- `gen_all_entities_all_versions.dwg` — 24986 B, md5
-  0217fbac515a20b90e9c3aea883196e3 — the ZERO file in its round-seven
-  form (30 entities, the gold-tree ODA blob as the default since the
-  round-seven BricsCAD verification). The default generation is
-  byte-identical to the user-tested `gen_all_mleader_oda_blob.dwg`.
-- `gen_all_mleader_oda_blob.dwg` — the round-seven test artifact
-  (byte-identical to the canonical; kept as the tested byte-record).
-- `gen_all_all_but_mleader.dwg` — 24507 B (29, LEADER clean at 0x41).
-- `gen_all_no_leader_no_mleader.dwg` — 24283 B (28, the control).
-- `gen_all_rewrite_authored_2018_leader.dwg` — silver's byte-oracle
-  rewrite (LEADER 0x72E / MTEXT 0x731 / MULTILEADER 0x732 all
-  byte-identical to the authored records).
-- User-provided native samples (KEEP): `mleader_bcad.dwg`,
-  `mleader_acad.dwg` — the byte-oracles for native conventions. The
-  example's `GENALL_PROXY_BLOB=bcad` fallback selects the round-six
-  BricsCAD specimen.
+(`ACSH_EXTRUSION_CLASS` ~4222 is identical plus the Extrusion subclass
+marker before the handle stream. `AcDbEvalExpr_fields` and
+`AcDbShHistoryNode_fields` macros — see spec ~1800 and ~1855.)
 
-## Follow-up opportunities (none block the zero)
+**Key deviation from the current guess**: the existing
+`read_history_sweep` (in `src/io/dwg/dwg_stream_readers/object_reader/
+dynamic_block.rs` line 240) reads `sweep_entity` / `path_entity` as
+embedded enti�ties (with `sweep_entity_type` BL + `sweep_size` BL +
+the `read_embedded_entity` call). **This is WRONG per the authored
+wire** — the spec shows two opaque BLOB fields (`shsw_text` /
+`shsw_text2`), not embedded entities. The blobs carry the serialized
+sweep options and sweep/path profiles (they may contain an embedded
+entity stream — Phase B autopsy determines that). For Phase A: retain
+the blobs raw (`Vec<u8>` on the model), do NOT attempt to parse them.
 
-1. **DONE (derivation layer)**: `src/entities/proxy_graphics.rs` now
-   types the 12-byte state/selector records (`State { record_type,
-   value }`; census selectors 0x3A99/0x3A9A/0x2711/0x1389) with the
-   full format + type table in its module docs, the gold tree's own
-   564-byte 2018/Leader.dwg AcDbMleader metafile is the embedded
-   derivation fixture (decode→encode asserted byte-identical + census
-   shape tests), and `dump_proxy_graphics [--verify] FILE [HANDLE]`
-   derives the table live from any DWG (verified byte-identical on
-   the gold specimen, mleader_bcad/mleader_acad, and the zero-file's
-   own record; the gold file's IMAGE type-6 clip polygons decode the
-   same way). **Remaining future step**: a content-synthesizing
-   generator (model the type-38 header block + 6/7/32 geometry) to
-   replace the example's borrowed `MLEADER_PROXY_GRAPHIC` specimen.
-2. **DONE (committed 2026-09-21 ~22:05Z)**: the campaign landed as
-   `66c1e57` (writer fixes + example + harness arm) and `bfa0ed8`
-   (proxy-graphics derivation) plus this docs fold commit. The
-   untracked scratch (examples/cylinder_dwg.rs, the .ocs.lock files)
-   stays untracked; all *.dwg artifacts are gitignored by the
-   established rule and regenerate from the committed tree.
-3. The mleader's content stance (attach trio, extended flag) in the
-   example now mirrors the natives; the remaining value-differences
-   (text "Label" vs the borrowed "bla"-shaped blob) are invisible to
-   strict load.
+## Code state (commit `b926053`)
 
-## Environment (unchanged)
+- Model (`src/objects/dynamic_block.rs`): `SolidHistorySweep` has the
+  current guess fields (sweep_entity, path_entity as
+  `Option<EmbeddedEntity>`, etc.) — **lacks** the blob retention fields
+  (`shsw_text: Vec<u8>`, `shsw_text2: Vec<u8>`, `shsw_bl93: i32`).
+  Extend, do not replace.
+- Reader (`dynamic_block.rs` line ~288): `read_solid_history_data()`
+  dispatches by dxf_name; `read_history_sweep()` (line ~240) reads the
+  current guess. **The SWEEP path needs a rewrite per the spec block
+  above**.
+- Writer (`object_writer/dynamic_block.rs` line ~172):
+  `write_solid_history_sweep()` mirrors the current guess. **Same
+  rewrite needed**.
+- Elide: `objects.rs::write_object` (line ~310) — the guard now allows
+  `ACSH_HISTORY_CLASS` through; all other `ACSH_*` stay elided. For
+  step 2: add `ACSH_SWEEP_CLASS` to the allowed set once the layout is
+  calibrated.
+- Pointer-nuler: `entities.rs::solid_history_handle_value` (~line 5175)
+  — same: allow HISTORY, null the rest.
 
-Repo in WSL at `~/work/cadcodec`; gold tree at `~/work/libredwg`
-(read-only); run via `wsl.exe -d Ubuntu-24.04 -- bash <script>` with
-the quoting caveats (write scripts with the write tool, run by
-absolute path; heredocs via `wsl.exe -c` BREAK; `read` tool offset
-unreliable on UNC paths — use `wsl.exe -- sed -n`). Probes live in
-`target/probes/pk30_*` … `pk34_*` (the campaign's analysis toolchain).
+## Calibration specimens (all qualified + landed)
+
+All 28 fixtures in `tests/gold_harness/tests/sh_history/` —
+one operation per file, 4 versions (2007/2010/2013/2018) per operation,
+142–207 objects per file, zero gold Error lines, zero AECC/AEC
+template junk. SWEEP target: `Polysolid_2018.dwg` object 0x2EB (261
+bytes, gold's UNKNOWN_OBJ fallback). EXTRUSION target:
+`Extrude_2018.dwg`. Wire-frame facts (envelope, MS/UMC/BOT, bitsize =
+Size×8−Hds) in README "Oracles" + IMPLEMENTATION.md §18.4.
+
+## Environment
+
+Same as always: repo at `~/work/cadcodec` (WSL Ubuntu-24.04; from
+Windows: `\\wsl.localhost\Ubuntu-24.04\home\sebastianschoeller\work\cadcodec`),
+gold tree at `~/work/libredwg` (read-only), oracles via env vars.
+
+## Verification gate for every Phase A step
+
+- `cargo test --features serde` (all segments green)
+- One-fixture smoke: `run_roundtrip.py` on the calibration specimen
+  (expect 0/0 with the record present in the rewrite)
+- Full corpus: gold 0/0, fixture_count may improve (the SWEEP un-elide
+  will change the Polysolid count but not yet the other families)
+- `dump_section_bytes` on the calibration object for byte-walks
+- `dump_proxy_graphics` unaffected (different common entity family)
+
+## Commit inventory (this halt)
+
+```
+b926053  fix(dwg): un-elide ACSH_HISTORY_CLASS — Phase A step 1
+fc9f235  test(harness): F2 in-repo fixture tree — sh_history campaign
+459bc74  fix(dwg): elide SH modeler-history class records at save
+33ce739  fix(dwg): constructed wireframe guard — drop stub zero-index wire caches
+2c92b70  fix(acis): SAB restore-file record order
+06756bf  fix(acis): SAB class-width completion
+96d6707  fix(acis): SAB restore-file body declaration
+b9211d0  fix(entities): constructed-genus constructor defaults
+94533a3  fix(mleader): constructed-native stance in MultiLeader::new
+21889f1  fix(build): plain cargo test clean (feature gates)
+34bc702  docs(harness): zero-keeping regression gate
+34a0ed9  docs(harness): specimen origin census
+9dd2cd5  docs(harness): file-inventory completeness
+5891cc1  chore(harness): retire stale scripts and pycache
+```
