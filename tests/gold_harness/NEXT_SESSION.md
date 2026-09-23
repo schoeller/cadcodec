@@ -90,9 +90,10 @@ duplication/dedup difference, not just a layout issue.
   Anchor comparisons on the parentid pattern, never on offsets.
 - Wire primitives: raw-short/long/double are LITTLE-endian; BD
   prefixes `00`/`01`/`10` = raw64 / 1.0 / 0.0; BL `00`/`01`/`10`/`11`
-  = LE32 / RC / 0 / 256. `Main_start` bookkeeping: silver positions
-  ≡ window bits (frame-inclusive); `unknown_bits_by_handle` ≡ gold's
-  `unknown_bits` bit-for-bit.
+  = LE32 / RC / 0 / 256. Position bookkeeping: silver reader
+  positions are window bits (frame-inclusive, ≡ gold's `-v9`
+  positions); `unknown_bits_by_handle` ≡ gold's `unknown_bits`
+  bit-for-bit.
 - Sweep-family tails are retained raw (`raw_tail`/`shsw_raw_tail`);
   the primitives will NOT need that — their fields are oracle-live.
 - The remaining packets after step 4: `3DSOLID.wires` stub (16,

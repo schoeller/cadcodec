@@ -3563,9 +3563,11 @@ that drives the implementation.
   were wrong. REVOLVE provably by budget alone: its modeled fixed
   192-bit raw-direction triple exceeds the entire remaining tail of
   every Revolve fixture record (470-bit data section); LOFT by the
-  same undocumented-content texture the sweep showed (cross-section
-  counts reading as `01`/RC forms while ~470 bits of real content
-  follow, `0xCC`-run and 16-bit-group entropy in the tail). The
+  same undocumented-content texture the sweep showed — the skeleton
+  anchors verified, the op pair reads small RC-form values where
+  the sweep family read (33, 427), and the ~470-bit tail is genuine
+  content (`0xCC`-runs plus repeating 16-bit-group patterns), not
+  the modeled count-prefixed embedded-entity list. The
   sweep design was generalized rather than duplicated: shared
   helpers `capture_undocumented_tail` (reader;
   physical-window-clamped like gold) and `write_undocumented_tail`
