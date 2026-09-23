@@ -138,11 +138,14 @@ fn revolve_tail_decodes_the_pinned_semantics() {
     // matrix stems read pi — two independent values.
     assert_eq!(view.revolve_angle, Some(3.0 * std::f64::consts::FRAC_PI_2));
     assert_eq!(view.raw_doubles, vec![0.2]);
-    // The structural profile block (§18.7 pipeline outcome): the
-    // original is the axis-crossing class — profile circle centered
-    // (0.2, 0, 0) with radius 1.0 stored in the two-bit short BD form
-    // (invisible to the raw scans that saw only the 0.2 x), and NO
-    // trailing trio.
+    // The structural profile block (§18.7 pipeline outcome + wire
+    // regression): the original's record is a DIFFERENT PROFILE FORM
+    // from the A/R circle-form — a non-crossing torus (major 1.0,
+    // minor 0.2) about the origin +Y axis whose same slots carry its
+    // (minor, major) as (0.2-raw x, 1.0 in the two-bit short BD form
+    // — invisible to the raw scans), with NO plane-normal trio.
+    // (The crossing-class reading is dead: AutoCAD refuses crossing
+    // profiles outright.)
     assert_eq!(view.profile_center, Some([0.2, 0.0, 0.0]));
     assert_eq!(view.profile_radius, Some(1.0));
     assert_eq!(view.trailing_triple, None);
@@ -150,10 +153,11 @@ fn revolve_tail_decodes_the_pinned_semantics() {
 
 #[test]
 fn revolve_matrix_stems_decode_the_structural_profile() {
-    // The §18.7 RevolveA/R torus-class quads (landed 2026-09-23,
-    // bit-identical across their four DWG versions): the structural
-    // block carries the profile center (2, 0, 0), the radius as a raw
-    // BD, and the (0, 0, 1) trailing trio the crossing class lacks.
+    // The §18.7 RevolveA/R quads (landed 2026-09-23, bit-identical
+    // across their four DWG versions): the as-drawn circle-form
+    // record — the structural block carries the drawn center
+    // (2, 0, 0), the drawn radius as a raw BD, and the profile's
+    // plane normal (0, 0, 1) as the trailing trio.
     let view = revolve_tail_view(&unhex(REVOLVE_A_HEX), REVOLVE_A_BITS)
         .expect("the RevolveA tail must decode");
     assert_eq!(view.option_doubles, vec![0.0, 0.0, 0.0, 0.0, 1.0, 0.0]);

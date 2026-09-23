@@ -38,12 +38,13 @@ capture; `None` when the anchor layout doesn't hold):
 - **Revolve** (`SolidHistoryRevolveTail`): head
   `[0,0,0,0,1.0,0]` (evidence-led reading: `[axis_pt
   (0,0,0)][axis_dir (0,1,0)]` — every landed specimen is a +Y
-  revolution, footprint-verified), then `revolve_angle` (confirmed
-  on two values: the original's 3π/2 and the A/R quads' π), then
-  the structural `[profile center 3BD][radius BD]` block — the
-  original (0.2, 0, 0) r 1.0 (radius in the short BD form), the
-  A/R tori (2, 0, 0) r 0.8/1.25 raw + the `(0,0,1)` trailing
-  3BD the crossing class lacks.
+  revolution, wire-regression-verified), then `revolve_angle`
+  (confirmed on two values: the original's 3π/2 and the A/R
+  quads' π), then the structural profile block — the A/R quads
+  store the circle AS DRAWN (center (2,0,0), radius raw, plane
+  normal (0,0,1) trailing); the original is a different profile
+  FORM (the wire-proven non-crossing torus M 1.0/m 0.2 — its
+  slots carry (0.2 raw, 1.0 short), no normal trio).
 
 **The write rule holds**: the captured bits are the authority;
 `render_*_tail` re-decodes the stored tail and splices ONLY the
@@ -62,32 +63,44 @@ splice + the section checksum).
    QUALIFIED and DECODED (2026-09-23): both quads are bit-identical
    across their four versions, the corpus took them at 0/0 (188 files
    now), they confirmed `revolve_angle` on a second value (π), and
-   they resolved the old "0.2 entry": the revolve tail carries a
-   structural `[profile center 3BD][profile radius BD]` block — the
-   original's 0.2 is its profile center.x, and its radius 1.0 hides
-   in the two-bit short BD form; the torus class (A/R) adds a
-   `(0,0,1)` trailing 3BD the crossing class lacks. The model now
-   exposes `profile_center`/`profile_radius`/`trailing_triple`
-   (splice-backed, bit-locally edited). **The 2026-09-23 authoring
+   they resolved the old "0.2 entry" — twice-removed: the A/R
+   records store the profile circle AS DRAWN (`[center (2,0,0)]
+   [radius][plane normal (0,0,1)]` — the circle form, wire-verified
+   as the torus M 2.0/m 0.8-1.25), while the original — a
+   NON-crossing torus (M 1.0, m 0.2) about origin-Y by the wire
+   ladder — is a DIFFERENT PROFILE FORM whose same slots carry its
+   (minor, major) = (0.2 raw, 1.0 in the short BD form), with no
+   normal trio. The model now exposes
+   `profile_center`/`profile_radius`/`trailing_triple`
+   (splice-backed, bit-locally edited; the names carry the A/R-form
+   reading). **The 2026-09-23 authoring
    constraint: the typed Z axis is NOT workable in the plan view —
-   all revolve rows use Y-family axes (footprint-verified: A/R and
-   the original are all +Y revolutions). Still owed by the recipe**
-   (author per §18.7, land in `sh_history/`): the remaining revolve
-   matrix stems **RevolveC** (center `4,0,0` r 0.8, Y axis —
-   center-only: is the first raw really the center.x?),
-   **RevolveI** (center `0.6,0,0` r 0.8 crossing the Y axis — the
-   trailing-trio absence + the mid-region + the twice-named
-   predictions: profile (0.6, 0.8) both raw, no trio), **RevolveO**
-   (axis `2.375,0,0` → `2.375,5,0`, Y-PARALLEL offset — world-X vs
-   axis-relative distance for the center + the head's raw-2.375
-   test of the `[axis_pt][axis_dir]` reading), **RevolveT** (axis
+   all revolve rows use Y-family axes (wire-regression-verified: A/R
+   and the original are all +Y revolutions). **RevolveI died** —
+   AutoCAD refuses axis-crossing profiles outright ("The object
+   should be on one side of the axis"), which also killed the
+   crossing-class theory of the original: the wire ladder pins it
+   as a NON-crossing torus (M 1.0, m 0.2) about origin-Y whose
+   record is a DIFFERENT PROFILE FORM (slots (0.2, 1.0) = its
+   minor/major; no plane-normal trio). Still owed by the recipe**
+   (author per §18.7, land in `sh_history/`): the revolve stems
+   **RevolveP** (a PERPENDICULAR-plane profile — front view/UCS
+   rotated; same torus (2, 0.8) as A through the original's form:
+   THE form experiment), **RevolveW** (the typed mirror of the
+   original's inferred geometry — `CIRCLE 1,0,0` r 0.2, Y axis,
+   angle 270: near-bit-identity to the original would close it),
+   **RevolveN** (angle 270 vs A's 180), **RevolveS** (radius
+   exactly 1.0 — the short-form probe), **RevolveC** (center
+   `4,0,0` r 0.8 — center-only), **RevolveO** (axis `2.375,0,0` →
+   `2.375,5,0`, Y-PARALLEL offset — the head's raw-2.375 test of
+   the `[axis_pt][axis_dir]` reading), **RevolveT** (axis
    `0,0,0` → `3.75,2.5,0`, an in-plane tilt — the head GROWS ~128
-   raw bits iff `[axis_pt][axis_dir]`, stays ~12 bits iff options:
-   a size arbitration), **RevolveF** (Y axis, angle typed 360 —
-   the full-turn encoding and the trailing flags); plus the
-   sweep/extrude/loft stems **PolysolidX/D**, **ExtrudeH/R/T/P**,
-   **Loft3/H/R** (§18.7 rows). The next session runs the same
-   pipeline on each landing: dump, QUARTET-IDENTITY + the
+   raw bits iff `[axis_pt][axis_dir]`, stays ~12 bits iff
+   options: a size arbitration), **RevolveF** (angle typed 360);
+   plus the sweep/extrude/loft stems **PolysolidX/D**,
+   **ExtrudeH/R/T/P**, **Loft3/H/R** (§18.7 rows). The next
+   session runs the same pipeline on each landing: dump,
+   QUARTET-IDENTITY + the
    FOOTPRINT-AXIS CHECK (the A/R lesson), decode, position-diff,
    extend `sh_tail_decode.rs`, pin, four gates.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an

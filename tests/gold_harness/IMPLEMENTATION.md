@@ -3302,7 +3302,7 @@ Fixture rules (deltas from the gold-tree convention above):
 | `Pyramid_<v>` (Phase C) | `PYRAMID` | `ACSH_PYRAMID_CLASS` | landed 2026-09-23, qualified (all 0/0) |
 | `Fillet_<v>` / `Chamfer_<v>` (Phase C) | `BOX` + `FILLET` / `BOX` + `CHAMFER` | the edge-modification nodes (with the parent `ACSH_BOX_CLASS` chain) | landed 2026-09-23, qualified (all 0/0) |
 | `Brep_<v>` | **DEFERRED** (2026-09-23): `ACSH_BREP_CLASS` is not reachable through any user-facing AutoCAD op — seven authored attempts (plain op, SLICE, single-op, foreign-body graft, SOLIDEDIT face edit, real-template source) all produced either parametric chains or history-stripped plain solids. The class stays elided; silver already tolerates the one real-world carrier (`ATMOS-DC22S.dwg`) at 0/0. The row re-opens if an authentic specimen surfaces (legacy SAT-era import paths). | — | — |
-| *(differential queue — 2026-09-23)* | `PolysolidX/D`, `ExtrudeH/R/P/T`, `Loft3/H/R`, `RevolveC/I/O/T/F` — the Phase B follow-up set: fourteen remaining single-variable typed stems to finish naming the raw-tail mid-regions (the revolve set is a seven-stem matrix after the sufficiency review — see §18.7). **RevolveA/R LANDED 2026-09-23** (qualified, bit-identical quads, corpus 0/0, decoded: the structural profile block + the trailing-trio class marker; see §18.6/§18.7). **The full authoring recipe is §18.7**; the rows enter the table as each stem lands (qualification per §F2.1/F2.2 + the §18.7 differential invariants). | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, as landed |
+| *(differential queue — 2026-09-23)* | `PolysolidX/D`, `ExtrudeH/R/P/T`, `Loft3/H/R`, `RevolveC/S/N/P/W/O/T/F` — the Phase B follow-up set: sixteen remaining typed stems to finish naming the raw-tail mid-regions (the revolve matrix re-designed after the A/R landing: the crossing-class stem RevolveI proved impossible per AutoCAD's "the object should be on one side of the axis" — see §18.7's form stems P/W/N/S). **RevolveA/R LANDED 2026-09-23** (qualified, bit-identical quads, corpus 0/0, decoded + wire-regressed: the as-drawn circle-form record + the original's different profile form; see §18.6/§18.7). **The full authoring recipe is §18.7**; the rows enter the table as each stem lands (qualification per §F2.1/F2.2 + the §18.7 differential invariants). | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, as landed |
 
 ---
 
@@ -3758,32 +3758,38 @@ wireframe values on the same modeler backing).
   directly at bit 0, then the first raw BD entry = the revolve
   sweep ANGLE — confirmed on TWO independent values (the original's
   3*pi/2 = 270°; the typed RevolveA/R matrix quads' pi = 180°) —
-  then a flag mid-region, then the STRUCTURAL PROFILE BLOCK
+  then a FORM mid-region, then the STRUCTURAL PROFILE BLOCK
   (§18.7 pipeline outcome, RevolveA/R landed 2026-09-23):
-  `[profile center 3BD][profile radius BD]` with an optional
-  trailing 3BD before the final two bits. The original
-  (axis-crossing class): `[mid 38][center (0.2,0,0)][radius SHORT
-  '01' = 1.0][2 bits]` — the radius hides in the two-bit short
-  BD form, which is why it was invisible to the raw scans; the
-  single 0.2 phase-B raw is the profile center.x. The RevolveA/R
-  torus quads (254-bit, bit-identical x4 versions each): `[mid
-  32][center (2,0,0) — x raw][y,z '10'][radius RAW 0.8/1.25]
-  [trailing (0,0,1) 3BD][2 bits]`. The mid-length and the
-  trailing-trio presence are the two class markers the remaining
-  matrix stems (C/I/F) probe. NOTE the 2026-09-23 footprint
-  correction: ALL THREE landed specimens revolve about the **+Y
-  axis** (wire extents verified: the original's XZ imprint
-  [−0.85, 1.2] = center.x 0.2 ± radius 1.0 with |y| minor; A/R's
-  |y| minor at the radius, XZ at the torus major radius; the
-  typed Z axis is un-workable in the plan view — see the §18.7
-  authoring constraint). The head's `'01'` therefore reads
-  EVIDENCE-LED as `[axis_pt (0,0,0)][axis_dir (0,1,0)]`'s dir.Y
-  (the pivot '01' has never moved because every specimen to date
-  is a +Y revolution), and the `(0,0,1)` trailing triple is NOT
-  the axis direction but the profile-plane normal / revolve
-  reference candidate. `RevolveO`/`RevolveT` (both typeable in
-  the plan view per the constraint) make the two head readings
-  diverge and settle it.
+  the RevolveA/R quads (254-bit, bit-identical x4 versions each)
+  store the profile AS DRAWN: `[mid 32][center (2,0,0) — x raw]
+  [y,z '10'][radius RAW 0.8/1.25][trailing (0,0,1) 3BD][2 bits]`
+  — the A-3BD = the circle's drawn center, the B = its drawn
+  radius, and the trailing trio = the circle's PLANE NORMAL
+  (plan-drawn circles ⇒ +Z). The original's record (190 bits):
+  `[mid 38][(0.2,0,0) raw-x][y,z '10'][BD '01' = 1.0][2 bits]` —
+  no trailing trio, and its slots are NOT an as-drawn
+  non-crossing circle about the axis: AutoCAD REFUSES crossing
+  profiles outright ("The object should be on one side of the
+  axis" — the 2026-09-23 RevolveI authoring attempt), and the
+  wire regression pins the original as a NON-crossing torus
+  about the origin +Y axis with **major 1.0 / minor 0.2**
+  (distance ladder [0.8, 0.9, 1.0, 1.02, 1.2]; axis unique by
+  point-line solve) — so its (0.2, 1.0) slots correlate with its
+  (minor, major) in a DIFFERENT profile form (its mid-region is
+  38 bits vs 32 — a form header), most plausibly a profile drawn
+  perpendicular to the axis (front-view circle, normal = the
+  axis ⇒ the normal trio degenerate/elided) storing
+  `[radius][center-distance]`. The mid-length and the
+  trailing-trio presence are the FORM markers the remaining
+  matrix stems (P/W/N/S/C/F) probe. NOTE the 2026-09-23
+  footprint correction: ALL THREE landed specimens revolve about
+  the **+Y axis** (the typed Z axis is un-workable in the plan
+  view — see the §18.7 authoring constraint). The head's `'01'`
+  therefore reads EVIDENCE-LED as `[axis_pt (0,0,0)][axis_dir
+  (0,1,0)]`'s dir.Y (the pivot '01' has never moved because
+  every specimen to date is a +Y revolution). `RevolveO`/
+  `RevolveT` (both typeable in the plan view) make the two head
+  readings diverge and settle it.
 
 **Wire-format corollaries confirmed along the way:** the
 tails' raw BD entries are plain LE doubles per DWG byte order
@@ -3912,24 +3918,25 @@ included — rotates about an origin axis through (0,0,0) with a
 PLAN-VIEW-TYPEABLE direction, so the head's `'01'` pair at the
 4th pair-position never moves and TWO readings stay alive:
 "option spine whose `BD('01')` is the scale factor" vs
-"`[axis_pt (0,0,0) 3BD][axis_dir]`". The 2026-09-23 wire-footprint
-check SETTLED several facts and reseated the debate: **all three
-landed specimens revolve about the +Y axis** (A/R: |y| ≤ 0.8/1.25
-minor with the XZ span = the torus major radius; the original:
-|y| ≤ 0.2 with the XZ imprint [−0.85, 1.2] = the predicted
-center.x 0.2 ± radius 1.0 footprint) — so the evidence-led head
-reading is now `[axis_pt (0,0,0)][axis_dir (0,1,0)]` with the
-`'01'` = dir.Y, and the A/R's trailing `(0,0,1)` triple is NOT the
-axis direction (it is the profile-plane-normal / revolve-reference
-candidate — absent in the crossing-class original; RevolveI
-decides). The Phase A budget disproof (a raw `2RD` direction
-cannot fit in 190 bits) still rules out RAW direction storage;
-BD-short or BD-mixed axis storage in the head fits every landed
-tail exactly. `RevolveO`/`RevolveT` make the two readings diverge
-(O: a raw 2.375 vs an unmoved options head; T: the head GROWS by
-~128 raw bits iff pt/dir, stays ~12 bits iff options). The matrix
-axes are the three profile variables (radius, center-distance,
-crossing-class) and the two axis variables (point, direction):
+"`[axis_pt (0,0,0) 3BD][axis_dir]`". The 2026-09-23 wire
+regressions SETTLED several facts and reseated the debate: **all
+three landed specimens revolve about the +Y axis** (distance
+ladders: A [1.2, 2.8] ⇒ M 2.0/m 0.8; R [0.75, 3.25] ⇒ M 2.0/m
+1.25 — exactly the drawn circles; the original [0.8, 1.2] ⇒ M
+1.0/m 0.2, axis unique by point-line solve) — so the evidence-led
+head reading is `[axis_pt (0,0,0)][axis_dir (0,1,0)]` with the
+`'01'` = dir.Y, and the A/R's trailing `(0,0,1)` triple is NOT
+the axis direction (it is the as-drawn profile circle's PLANE
+NORMAL — plan-drawn ⇒ +Z; the original's different profile form
+carries no normal trio; RevolveP decides). The Phase A budget
+disproof (a raw `2RD` direction cannot fit in 190 bits) still
+rules out RAW direction storage; BD-short or BD-mixed axis
+storage in the head fits every landed tail exactly. `RevolveO`/
+`RevolveT` make the two readings diverge (O: a raw 2.375 vs an
+unmoved options head; T: the head GROWS by ~128 raw bits iff
+pt/dir, stays ~12 bits iff options). The matrix axes are the
+profile variables (radius, center-distance, PROFILE FORM) and
+the two axis variables (point, direction):
 
 **A 2026-09-23 authoring constraint (in force for every remaining
 row): the typed Z axis is NOT workable in the plan view — REVOLVE
@@ -3942,7 +3949,11 @@ axes and the profile circles stay in the plan-view XY plane
 | ~~P1~~ **LANDED 2026-09-23** | `RevolveA_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; `REVOLVE` about the **Y axis** — typed points on +Y, e.g. `0,0,0` → `0,1,0` (the landing record first wrote `0,0,0` → `0,0,1`; the Z axis is un-typeable in the plan view — companions corrected) — angle `180` | (anchor) typed torus revolve about +Y: center-distance 2, r 0.8 | **OBSERVED (quad bit-identical, corpus 0/0): 254-bit tail; `revolve_angle` = π ✓; the structural block `[mid 32][center (2,0,0)][radius RAW 0.8][trailing (0,0,1)][2 bits]`; WIRE FOOTPRINT: \|y\| ≤ 0.8 (minor), \|x\|,\|z\| to 2.8 = the torus major radius — a Y-axis revolution** |
 | ~~P1~~ **LANDED 2026-09-23** | `RevolveR_<v>` | `CIRCLE` center `2,0,0` radius `1.25`; same Y axis, angle `180` | radius 0.8→1.25 only | **OBSERVED: radius-only delta — the radius slot reads 1.25 at the same span bits, everything else byte-equal to A; footprint \|y\| ≤ 1.25, XZ to 3.25 ✓. The old "0.2 entry" RESOLVED: the A/R raw slots are [profile_center.x, profile_radius]; the original's single 0.2 = ITS profile_center.x, and its radius 1.0 hides in the two-bit short BD form — invisible to raw scans** |
 | P1 | `RevolveC_<v>` | `CIRCLE` center `4,0,0` radius `0.8`; axis `0,0,0` → `0,1,0` (Y), angle `180` | center-distance 2→4 only | confirms the first structural raw is the profile center.x as a coordinate ([4.0, 0.8] predicted) and tests the mid-region with a bigger center value |
-| P1 | `RevolveI_<v>` | `CIRCLE` center `0.6,0,0` radius `0.8` — the profile CROSSES the Y axis (0.6 < 0.8); axis `0,0,0` → `0,1,0`, angle `180` | axis-crossing profile class | the typed mirror of the original's class (the original: center.x 0.2, radius 1.0 — also crossing, footprint-verified: XZ imprint [−0.85, 1.2], \|y\| ≤ 0.2). SHARP PREDICTIONS: profile (0.6, 0.8) both raw, the mid-region takes the crossing-class length (~38 bits), and the (0,0,1) trailing trio is ABSENT — the three class markers in one typed stem |
+| ~~P1~~ **IMPOSSIBLE 2026-09-23** | `RevolveI_<v>` | `CIRCLE` center `0.6,0,0` radius `0.8` (crosses the axis); axis `0,0,0` → `0,1,0`, angle `180` | ~~axis-crossing profile class~~ | **AutoCAD REFUSES axis-crossing profiles outright**: *"The object should be on one side of the axis. Unable to revolve the selected object."* The stem is dead — and so is the crossing-class theory of the original: the wire regression pins the original as a NON-crossing torus (major 1.0, minor 0.2) about the origin +Y axis, whose (0.2, 1.0) record slots are a DIFFERENT PROFILE FORM, not an as-drawn circle. The I purposes re-split into the four replacement stems below (P/N/S/W) |
+| P1 | `RevolveP_<v>` | a **PERPENDICULAR-PLANE profile** (the original-form candidate): switch to a front view / rotate the UCS (e.g. `UCS` → `X` → `90`), `CIRCLE` center `2,0,0` radius `0.8` — the circle now lies in the world XZ plane, perpendicular to the axis — then `UCS` → `World`, `REVOLVE` about axis `0,0,0` → `0,1,0`, angle `180` (verify the circle's world coordinates and plane with `LIST` before revolving) | the profile's PLANE, nothing else: same (M, m) = (2.0, 0.8) as RevolveA | **the form experiment**: A stores the as-drawn [center (2,0,0)][radius 0.8][normal (0,0,1)]; P — same torus through a perpendicular profile — should store the OTHER form (the original's): a ~38-bit mid, the slots reading (0.8, 2.0)-ish ([radius][center-distance]-order), and NO normal trio (its plane normal = the axis ⇒ degenerate). If P matches the original's shape, the profile-form question closes; either way the diff against A names the form fields |
+| P1 | `RevolveW_<v>` | the **typed mirror of the original's inferred geometry**: `CIRCLE` center `1,0,0` radius `0.2` (plan view); `REVOLVE` about axis `0,0,0` → `0,1,0`, angle typed `270` | all of the original's geometry, typed | the ultimate check: if the original = exactly this torus, W's tail should come out near-bit-identical to the original's (same form, same (0.2, 1.0) slots, same 38-bit form mid); every remaining difference is drag-vs-typed noise or the form delta — the position-diff IS the original's last unknown |
+| P1 | `RevolveN_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; axis `0,0,0` → `0,1,0`, angle typed `270` | sweep angle 180→270 only (the original's angle!) | isolates whether the 3*pi/2 angle (vs pi) moves the mid-region or the trailing trio — the original shares 270° with no other named variable |
+| P1 | `RevolveS_<v>` | `CIRCLE` center `2,0,0` radius **`1.0`**; axis `0,0,0` → `0,1,0`, angle `180` | the radius VALUE AND FORM: 0.8 raw → 1.0 (the two-bit short BD!) | the original's B-slot is the short form; S tests whether a radius exactly 1.0 takes the short form in the A/R-form record too (expect [2.0][1.0-short] + the trio still present) — separates the FORM correlation from the value |
 | P1 | `RevolveO_<v>` | `CIRCLE` center `6,0,0` radius `0.8`; axis `2.375,0,0` → `2.375,5,0` (**Y-PARALLEL, offset from origin** — both endpoints typeable in the plan view), angle `180` | axis POINT (0,0,0)→(2.375,0,0) only; the direction stays +Y | if the head is `[axis_pt][axis_dir]` (the evidence-led reading — see the footprint note below), a raw 2.375 lands in the head's first three pairs and the `'01'` pair (pairs 3–5 = the direction) STAYS; if the head is really an options spine it cannot absorb 2.375 at all. ALSO decides whether the structural `[center]` raw is the world X (→6.0) or the axis-relative distance (→3.625) |
 | P1 | `RevolveT_<v>` | `CIRCLE` center `1,6,0` radius `0.8` (perpendicular distance to the axis ≈ 4.44 — no crossing); axis `0,0,0` → `3.75,2.5,0` (an in-plane tilt — typeable, z=0 both ends), angle `180` | axis DIRECTION only: the linear axis (3.75, 2.5, 0) — unit (0.8333…, 0.5555…, 0) if stored normalized, long-mantissa either way | THE pivot resolver and a SIZE arbitration: under the `[axis_pt][axis_dir]` reading the head must GROW (~128 raw bits for the dir components vs the 6-pair head of the Y stems); under the options reading the head stays ~12 bits and the head's `'01'` cannot move with the direction. Whichever way the record grows, the answer is self-evident from the tail length alone |
 | P2 | `RevolveF_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; axis `0,0,0` → `0,1,0` (Y), typed angle `360` | sweep angle 180→360 (full) | the closed/full encoding: `revolve_angle` = 2π (6.283185307179586, mantissa-rich) or a special 0/flag; the trailing flag bits' only second sample. If AutoCAD refuses 360, type `359.9` and record it |
@@ -4022,17 +4033,21 @@ when the original's geometry was INFERRED as center 0.6 / r 0.8 and
 the 0.2 read as a single opaque raw; the A/R landing RESOLVED it —
 see below):
 
-| stem | center distance | radius | bore \|center−r\| | predicted 0.2-slot if bore | if radius | if center | OBSERVED (A/R landed) |
+| stem | center distance | radius | bore \|center−r\| | predicted 0.2-slot if bore | if radius | if center | OBSERVED (wire regressions, 2026-09-23) |
 |---|---|---|---|---|---|---|---|
-| original (observed) | 0.6 | 0.8 | 0.2 | **0.2 (observed)** | would need r=0.2 ✗ | would need 0.2 ✗ | **RESOLVED: the raw IS the profile center.x — and the "inferred (0.6, 0.8) geometry" was WRONG: the original stores center.x = 0.2 with radius 1.0 in the short form** (imprint range −0.8..1.2, consistent with the recorded wire values) |
-| `RevolveA` | 2 | 0.8 | 1.2 | 1.2 | 0.8 | 2.0 | **center.x 2.0 + radius 0.8 — both slots stored** |
-| `RevolveR` | 2 | 1.25 | 0.75 | 0.75 | 1.25 | 2.0 | **radius slot 1.25 at the same span — radius-only delta byte-clean** |
-| `RevolveC` | 4 | 0.8 | 3.2 | 3.2 | 0.8 | 4.0 | still to author — confirms center.x as the first raw + tests the mid-region |
-| `RevolveI` | 0.6 | 0.8 | −0.2 (crossing) | 0.2 (as absolute) or the sign-mode shows | 0.8 | 0.6 | still to author — **now the sharp prediction: center.x 0.6 raw, radius 0.8 raw, and (per the original-as-crossing-class) probably NO trailing trio** — it directly contrasts the crossing/trailing questions |
+| original (observed) | — | — | — | **0.2 (observed)** | would need r=0.2 ✗ | would need 0.2 ✗ | **RESOLVED TWICE-REMOVED: the original is a NON-CROSSING torus (M 1.0, m 0.2) about the origin +Y axis (distance ladder [0.8..1.2], axis unique); its stored (0.2, 1.0) slots = its own profile FORM's (minor, major) — NOT an as-drawn circle (crossing would be refused; the earlier "(0.6, 0.8) drawing" and "center 0.2 r 1.0" geometries were both wrong reading of one specimen)** |
+| `RevolveA` | 2 | 0.8 | 1.2 | 1.2 | 0.8 | 2.0 | **M 2.0 / m 0.8 confirmed by ladder [1.2, 2.8]; slots = the AS-DRAWN [center (2,0,0)][radius 0.8][normal (0,0,1)] — the circle-form record** |
+| `RevolveR` | 2 | 1.25 | 0.75 | 0.75 | 1.25 | 2.0 | **M 2.0 / m 1.25 by ladder [0.75, 3.25]; radius-only delta byte-clean at the same span** |
+| `RevolveC` | 4 | 0.8 | 3.2 | 3.2 | 0.8 | 4.0 | still to author — confirms the center slot as the drawn center (+ the mid) |
+| ~~`RevolveI`~~ | — | — | — | — | — | — | **dead: AutoCAD refuses crossing profiles** (maintainer report, 2026-09-23) — replaced by P/N/S/W |
 
-The bore theory DIED cleanly: the original's stored x 0.2 was a
-coordinate, not a bore; the bore is derivable, not stored. The
-matrix still owes the class/axis questions to C (center-only),
-I (crossing-class + trailing-trio absence), O (axis point —
-world-X vs axis-relative), T (axis direction + the head '01'
-pivot), F (the 360 form and the trailing flags).
+The bore theory died, THEN the crossing-class theory died with it.
+What stands after the wire regressions: the A/R record stores the
+profile circle AS DRAWN (center/radius/plane-normal — the
+coplanar-circle form, 32-bit form mid); the original's record is a
+DIFFERENT form (38-bit form mid, slots (0.2, 1.0) = its torus
+(m, M), no normal trio) — the form question is now the matrix's
+center of gravity, owned by **RevolveP (perpendicular-plane
+profile), RevolveW (the typed original mirror), RevolveN (the
+270° angle), RevolveS (the short-form radius)**, plus the axis
+stems O (point) and T (direction) and the angle stem F (360).

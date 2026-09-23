@@ -1312,26 +1312,29 @@ pub struct SolidHistoryRevolveTail {
     /// original's 3*pi/2 = 270°, the typed RevolveA/R's pi = 180°).
     pub revolve_angle: Option<f64>,
     /// Remaining raw BD entries in stream order, positional: the
-    /// original crossing-class lists [center.x = 0.2]; the RevolveA/R
-    /// torus class [center.x 2.0, radius raw]. The named fields below
-    /// carry the structural semantics.
+    /// original's profile FORM lists [0.2]; the RevolveA/R circle
+    /// form lists [2.0, radius raw]. The named fields below carry
+    /// the structural semantics (with the form caveat noted).
     pub raw_doubles: Vec<f64>,
-    /// The profile circle's center as parsed from the structural block
-    /// `[center 3BD][radius BD]` after the mid-region (§18.7 evidence:
-    /// original (0.2, 0, 0), RevolveA/R (2, 0, 0)). Whether the x is
-    /// world-X or axis-relative distance is decided by the RevolveO
-    /// stem (offset axis); for the landed origin-Y specimens the two
-    /// coincide.
+    /// The structural block's first 3BD after the FORM mid-region.
+    /// For the RevolveA/R quads (the as-drawn circle form) this IS the
+    /// profile circle's drawn center (2, 0, 0); the original's record
+    /// is a DIFFERENT profile form whose same slots carry (0.2, 0, 0)
+    /// = its torus MINOR radius per the wire regression (a
+    /// non-crossing torus M 1.0/m 0.2 — crossing profiles are refused
+    /// by AutoCAD outright). The form question is §18.7's RevolveP/W
+    /// business; treat the field names as the A/R-form reading.
     pub profile_center: Option<[f64; 3]>,
-    /// The profile circle's radius (RevolveA 0.8, RevolveR 1.25, and
-    /// the ORIGINAL 1.0 — stored in the two-bit short BD form, which
-    /// is why it was invisible to the raw scans).
+    /// The structural block's BD after the center 3BD. RevolveA 0.8 /
+    /// RevolveR 1.25 = the as-drawn radii; the ORIGINAL's 1.0 (stored
+    /// in the two-bit short BD form — invisible to raw scans) is its
+    /// torus MAJOR per the wires. Same form caveat as `profile_center`.
     pub profile_radius: Option<f64>,
-    /// Optional trailing 3BD after the radius ((0, 0, 1) in the
-    /// RevolveA/R torus class; ABSENT in the original's axis-crossing
-    /// class). NOT the axis direction — the landed specimens revolve
-    /// about +Y (wire-footprint-verified); the leading candidate is
-    /// the profile-plane normal / revolve reference. RevolveI decides
-    /// (same-plane crossing profile, predicted to lack the trio).
+    /// Optional trailing 3BD after the radius: (0, 0, 1) in the
+    /// RevolveA/R circle form = the profile's PLANE NORMAL (plan-drawn
+    /// ⇒ +Z), NOT the axis direction (all landed specimens revolve
+    /// about +Y, wire-regression-verified). ABSENT in the original's
+    /// different profile form (a perpendicular-plane profile's normal
+    /// would degenerate onto the axis) — §18.7's RevolveP decides.
     pub trailing_triple: Option<[f64; 3]>,
 }
