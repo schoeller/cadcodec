@@ -108,7 +108,7 @@ marker before the handle stream. `AcDbEvalExpr_fields` and
 **Key deviation from the current guess**: the existing
 `read_history_sweep` (in `src/io/dwg/dwg_stream_readers/object_reader/
 dynamic_block.rs` line 240) reads `sweep_entity` / `path_entity` as
-embedded enti�ties (with `sweep_entity_type` BL + `sweep_size` BL +
+embedded entities (with `sweep_entity_type` BL + `sweep_size` BL +
 the `read_embedded_entity` call). **This is WRONG per the authored
 wire** — the spec shows two opaque BLOB fields (`shsw_text` /
 `shsw_text2`), not embedded entities. The blobs carry the serialized
