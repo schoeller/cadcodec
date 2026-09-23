@@ -27,12 +27,33 @@ Current state:
   0x2ED; the SWEEP record (261 bytes) stays elided; corpus 152 files,
   gold 0/0, fixtures 26/8 (unchanged — the HISTORY step adds nothing,
   the remaining diffs are all node-class).
-- **Step 2 NEXT**: ACSH_SWEEP_CLASS — the reader currently guesses the
-  field sequence but misses the two length-prefixed opaque binary
-  blobs (`shsw_text_size` BL + `shsw_text` bytes + `shsw_bl93` BL +
-  `shsw_text2_size` BL + `shsw_text2` bytes). The guess causes mid-record
-  desync on native files (Polysolid_2018.dwg object 0x2EB = 261 bytes
-  of UNKNOWN_OBJ — gold's own SWEEP decode falls back for this record).
+- **Step 2 NEXT** (2026-09-23 probe analysis, resumed here)
+  : ACSH_SWEEP_CLASS — the READER's blob handling is already correct
+  (`read_embedded_entity` reads `size` bytes → decodes type-77 (the
+  "method BL") → falls through to `EmbeddedEntity::Unknown` which
+  preserves the blob bytes). The **WRITE path loses bytes**: a
+  temporary SWEEP un-elide probe on `Polysolid_2018.dwg` produced a
+  record 261 bytes in the original but only **148 bytes** in the
+  rewrite (−113 bytes). Layer-4 frame comparison:
+  - original: object 137, Size 261, Type 520, Hdlsize 0x1D, Address 33088
+  - rewrite:  object 137, Size 148, Type 520, Hdlsize 0x29, Address 33017
+  The write arms for `sweep_entity`/`path_entity` in
+  `write_solid_history_sweep` call `encode_embedded_entity` and write
+  `type_code(BL) + bytes.len()(BL) + bytes` — BUT the else-arm writes
+  `write_bit_long(0); write_bit_long(0);` with NO bytes: if
+  `sweep_entity` is `None` (the `safe_count` clamp or the `type_code == 0`
+  early-exit in `decode_embedded_entity` can produce `None`), the blob
+  bytes are dropped on write even though the reader consumed them.
+  **Diagnosis at the next session**: dump both records with
+  `dump_section_bytes` (orig @ Address−9 270 bytes / rewrite @
+  Address−9 157 bytes), bitwalk to find the first divergence, and fix
+  the writer's None-path to write the consumed byte-count even when
+  the decode produced `None` — the fix is in
+  `write_solid_history_sweep` (writer: check the model's
+  `sweep_entity.bit_count`/`bytes` and write the raw bytes even when
+  `EmbeddedEntity` is `Unknown`). Then un-elide SWEEP: the probe edits
+  are 2 one-liners in `objects.rs` and `entities.rs` (add
+  `&& d.dxf_name != "ACSH_SWEEP_CLASS"` to both elide guards).
 - **Step 3**: ACSH_EXTRUSION_CLASS — the SWEEP layout plus the
   `SUBCLASS (AcDbShExtrusion)` prefix (`ACSH_SWEEP_CLASS is identical,
   plus SUBCLASS (AcDbShSweep) before the handle stream` per dwg2.spec
