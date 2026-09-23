@@ -3558,25 +3558,47 @@ that drives the implementation.
   held, fixtures 26/8 unchanged packet-for-packet. The sweep-shaped
   family (Polysolid→SWEEP, Extrude→EXTRUSION) now round-trips its
   records byte-faithfully.
-- **Remaining phase A**: extend the raw-tail retention to
-  ACSH_LOFT_CLASS and ACSH_REVOLVE_CLASS — their
-  `read_solid_history_data` arms still model guessed
-  embedded-entity/typed layouts (cross-section/guides, revolve
-  axis + twin angles + embedded sweep entity); autopsy one record
-  of each against `Loft_2018`/`Revolve_2018` (cross-section method
-  from the step-2 record) before switching the arms to capture,
-  then un-elide both. Then the primitives un-elides (Box, Wedge,
+- **Phase A step 4 — ACSH_LOFT_CLASS + ACSH_REVOLVE_CLASS
+  (2026-09-23, `20d472b`)**: the autopsy confirmed both guessed walks
+  were wrong. REVOLVE provably by budget alone: its modeled fixed
+  192-bit raw-direction triple exceeds the entire remaining tail of
+  every Revolve fixture record (470-bit data section); LOFT by the
+  same undocumented-content texture the sweep showed (cross-section
+  counts reading as `01`/RC forms while ~470 bits of real content
+  follow, `0xCC`-run and 16-bit-group entropy in the tail). The
+  sweep design was generalized rather than duplicated: shared
+  helpers `capture_undocumented_tail` (reader;
+  physical-window-clamped like gold) and `write_undocumented_tail`
+  (writer; byte-vector-authoritative with modeled fall-through);
+  the sweep arm refactored onto them; `raw_tail`/`raw_tail_bit_len`
+  added to `SolidHistoryLoft`/`SolidHistoryRevolve` (their modeled
+  fields remain the DXF / modeled-fallback channel); the step
+  orphaned `read_embedded_entity`, now removed (the DXF path uses
+  `decode_embedded_entity`; Phase B can recover it from history).
+  Un-elided both classes via the single shared list
+  `elided_solid_history_class`. Gates green per class: hermetic
+  48 ok / 0 failed (1561); Loft_2018 (Size 102→104, Hds
+  0x1B→0x2B) and Revolve_2018 (Size 67→69, Hds 0x19→0x29) smokes
+  with records present and NO new rows; layer-4: both data
+  sections bit-identical (748 / 470 bits), only the known
+  owner-handle form delta; corpus 152 files — gold tree 0/0 held,
+  fixtures 26/8 unchanged. The `3DSOLID.point` packet
+  (Revolve_2007/2010) is confirmed READ-SIDE ONLY: silver reads
+  the original's modeler point at (0.6, 0, 0.6) where gold reads
+  (0, 0, 0), while the rewrite's point matches gold on both
+  sides — a constructed-genus read default, Phase B territory.
+- **Remaining phase A**: the primitives un-elides (Box, Wedge,
   Cylinder, Cone, Torus, Pyramid, Sphere — gold-LIVE layouts, so
-  calibrate each against its fixture with gold `-v9` traces, the
-  same instrument that pinned the SH skeleton), then BREP (its
-  ACIS body machinery is already modeled; the record framing around
-  it needs calibration), then the three named fixture-diff packets:
-  `3DSOLID.wires` stub (16, R2013+R2018 shapes),
-  `ACSH_SPHERE_CLASS` count (8, Sphere family — likely touched by
-  the Sphere un-elide), `3DSOLID.point` wrong-value (2, Revolve
-  R2007/2010 — likely the constructed-genus default, will surface
-  in the Revolve autopsy). See NEXT_SESSION.md for the step-4
-  handover.
+  calibrate each typed arm against its fixture with gold `-v9`
+  traces, the same instrument that pinned the SH skeleton; the
+  sphere count/missing packet — silver projects a different
+  `ACSH_SPHERE_CLASS` record count than gold from the same
+  drawing — is the lead mystery for the Sphere step), then BREP
+  (its ACIS body machinery is already modeled; the record framing
+  around it needs calibration), then the `3DSOLID.wires` stub
+  packet (16, R2013+R2018 — constructed-genus zero-index wire
+  cache, likely Phase B: the nodes' retained tails are in hand).
+  See NEXT_SESSION.md for the step-5 handover.
 
   **The complete phase map (from the original 2026-09-22 campaign
   brief; each phase gets its own NEXT_SESSION when its predecessor
