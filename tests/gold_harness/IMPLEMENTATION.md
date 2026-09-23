@@ -3601,7 +3601,8 @@ that drives the implementation.
   its typed arm (the §18.5 skeleton trace had already verified the
   layout); Sphere_2018 dropped 5→1 read rows (only its wires stub
   row remains) with the rewrite's sphere record gold-typed and
-  L4-identical through the full 282-bit record. Then the same
+  L4-identical through the full 282-bit record (the R2010 record
+  verified identically — 282 bits at the 39-bit frame). Then the same
   treatment for the other fixture-backed primitives: **Box** (the
   live `-v9` trace pins length/width/height BDs after the op pair —
   silver's arm matches exactly; also the FIRST non-identity base
