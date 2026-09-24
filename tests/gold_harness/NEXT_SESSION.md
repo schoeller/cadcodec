@@ -110,19 +110,27 @@ splice + the section checksum).
    [π/2][π/2] — the "drag residue" was the dragged top section.
    (b) OPEN — the surface-parser row (the ASSOC* SURFACEACTIONBODY
    classes + the R2007+ surface entities) to un-quarantine the
-   M-stems. (c) OPEN — **THE CLOSING SET (the maintainer's four
-   stems, §18.7's new rows, 16 files, corpus 244 -> 260)**:
-   `LoftC` (circles (3,4,0) and (3,4,7) r 1.5 — names the loft
-   raw run; world vs bottom-relative is the one open question),
-   `PolysolidW` (Height 3, width 7, the X path — names the sweep
-   singles), `ExtrudeC` (circle at (2,3,0) — the pre-CALL
-   region's position test + the first nonzero profile center),
-   `LoftD` (LOFT Settings: Ruled + any draft fields — the π/2
-   pair). AGENT work after those: the ExtrudeP polyline header
-   (the embedded-lwpolyline grammar is already in-repo), and the
-   revolve option shorts + flags have NO known authoring path
-   (the REVOLVE command offers no draft/twist) — they close via
-   the surface-parser row or stay marked like BREP.
+   M-stems. (c) PARTIAL — the closing set review (2026-09-24):
+   **`PolysolidW` landed in-corpus (244 → 248 files, 0/0)** and named THE
+   WIDTH SINGLE (post-corner bit 1084: 3.0 → 7.0 with the profile width);
+   4.00024414192312 is a record constant (invariant in original/X/W);
+   2.0109 is path-family-shared; X's −19594/8614 garbage confirmed drag
+   residue. The post-corner singles stream (bits 998–1286) is the next
+   DECODER row. **`ExtrudeC` and `LoftC` were authored with the sticky
+   MOde = Surface** (censuses show EXTRUDEDSURFACE/LOFTEDSURFACE + the
+   ASSOC bodies, NO ACSH classes, NO 3DSOLID — the M-stem sessions left
+   the option set) and are QUARANTINED alongside the M-stems as valid
+   offset-variant surface specimens; **RE-AUTHOR both with `MOde` = `Solid`
+   explicitly at the command prompt** (verify the census shows the ACSH
+   classes), then the rows' original predictions stand (ExtrudeC: the
+   pre-CALL position test + the first nonzero profile center; LoftC: the
+   world-vs-relative decision on the wire-verified raw-run reading).
+   **`LoftD` is DEAD** — the maintainer cannot find the loft Settings
+   path in this AutoCAD release; the π/2 pair awaits LoftM's un-quarantine
+   or another lever. AGENT work: the surface-parser row (un-quarantines
+   all 20 quarantined files), the ExtrudeP polyline header, the
+   post-corner singles walk; the revolve option shorts + flags keep NO
+   authoring path.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.
 3. Campaign closure prose (§18.5's phase map now fully checked):

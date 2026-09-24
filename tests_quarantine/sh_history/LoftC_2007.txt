@@ -1,0 +1,34 @@
+Provenance for LoftC_2007.dwg
+
+Author app:              Autocad 2027.1 (campaign authoring app; the file
+                         was authored to the S18.7 LoftC recipe row —
+                         correct this line if the maintainer's notes differ)
+Authoring date:           2026-09-24
+Author session (the S18.7 differential recipe, row LoftC):
+  new drawing on a blank/default template, zero pre-existing entities
+  set solid-history recording ON
+  LOFT CIRCLE 3,4,0 r 1.5 + CIRCLE 3,4,7 r 1.5 (the intended MOde = Solid authoring; the session left MOde = Surface)
+  (the typed command sequence above is the recipe row; correct it from
+   the authoring session's notes if it differs)
+
+Save format:              DWG 2007 (AC1021)
+
+Qualification (verified by acadrust harness, 2026-09-24, at landing):
+  gold dwgread: zero Error lines
+  wire version: AC1021
+  object census: 221 objects, 4 UNKNOWN_OBJ (sizes [32, 55, 63, 2498])
+  record classes: EXTRUDEDSURFACE/LOFTEDSURFACE + the ASSOC surface action body (NO ACSH classes, NO 3DSOLID — the surface-mode shape)
+  gold JSON parse: ok (with the standard -nan shim where applicable)
+  differential invariants (S18.7):
+    quartet bit-identity: the four LoftC versions carry bit-identical records
+    corpus: LoftC_2007.dwg QUARANTINED (not in the corpus run — see the note below)
+
+Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): LoftC
+
+QUARANTINE NOTE (2026-09-24): QUARANTINED (2026-09-24): authored as a SURFACE — the record census
+      shows LOFTEDSURFACE + the ASSOCLOFTEDSURFACEACTIONBODY (the same
+      sticky-MOde path; NO ACSH classes, no 3DSOLID). A valid
+      surface-mode OFFSET-variant specimen (the (3,4) section offsets +
+      the r 1.5 radii are its differential value), but no SH tail; 12-13
+      read+write diffs per file. RE-AUTHOR per the S18.7 row with
+      MOde = Solid explicitly set at the LOFT prompt

@@ -1,0 +1,37 @@
+Provenance for ExtrudeC_2007.dwg
+
+Author app:              Autocad 2027.1 (campaign authoring app; the file
+                         was authored to the S18.7 ExtrudeC recipe row —
+                         correct this line if the maintainer's notes differ)
+Authoring date:           2026-09-24
+Author session (the S18.7 differential recipe, row ExtrudeC):
+  new drawing on a blank/default template, zero pre-existing entities
+  set solid-history recording ON
+  EXTRUDE a CIRCLE center 2,3,0 radius 1, height 2 (the intended MOde = Solid authoring; the session left MOde = Surface)
+  (the typed command sequence above is the recipe row; correct it from
+   the authoring session's notes if it differs)
+
+Save format:              DWG 2007 (AC1021)
+
+Qualification (verified by acadrust harness, 2026-09-24, at landing):
+  gold dwgread: zero Error lines
+  wire version: AC1021
+  object census: 216 objects, 3 UNKNOWN_OBJ (sizes [24, 47, 2827])
+  record classes: EXTRUDEDSURFACE/LOFTEDSURFACE + the ASSOC surface action body (NO ACSH classes, NO 3DSOLID — the surface-mode shape)
+  gold JSON parse: ok (with the standard -nan shim where applicable)
+  differential invariants (S18.7):
+    quartet bit-identity: the four ExtrudeC versions carry bit-identical records
+    corpus: ExtrudeC_2007.dwg QUARANTINED (not in the corpus run — see the note below)
+
+Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): ExtrudeC
+
+QUARANTINE NOTE (2026-09-24): QUARANTINED (2026-09-24): authored as a SURFACE — the record census
+      shows EXTRUDEDSURFACE + the ASSOCEXTRUDEDSURFACEACTIONBODY (the
+      sticky MOde option; NO ACSH classes, no 3DSOLID). The file is a
+      valid surface-mode OFFSET-variant specimen (its ASSOC path/body
+      values carry the (2,3,0) profile offset — the differential
+      anchor for the future un-quarantine), but it carries no SH tail
+      and answers nothing about the extrusion grammar; it stays outside
+      the corpus (silver's surface parsers: 14 read+write diffs per
+      file). RE-AUTHOR per the S18.7 row with MOde = Solid
+      explicitly set at the EXTRUDE prompt
