@@ -20,6 +20,16 @@ pub struct DynamicBlockObject {
     pub dxf_name: String,
     pub cpp_class_name: String,
     pub data: DynamicBlockData,
+    /// Byte-captured provenance: true when the DWG reader decoded this
+    /// record from an authored stream. The SH save-guard
+    /// (elided_solid_history_class) writes only captured records of the
+    /// calibrated classes — constructed trees (assembled by
+    /// CadDocument::create_solid_history) elide until a constructed
+    /// probe passes a strict loader (2026-09-24 box verdict: constructed
+    /// BOX trees with the full census genus still refused by BricsCAD,
+    /// while the SAT-only shape proven by the region probes loads clean).
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub captured: bool,
 }
 
 impl DynamicBlockObject {
@@ -937,6 +947,78 @@ impl SolidHistoryOperation {
             Self::Sweep(value) | Self::Extrusion(value) => Some(&mut value.base),
             Self::Loft(value) => Some(&mut value.base),
             Self::Revolve(value) => Some(&mut value.base),
+        }
+    }
+
+    /// Stamp the constructed-native class-version trio onto the eval
+    /// block, node block and operation fields (the 33/427 census —
+    /// see CadDocument::create_solid_history; every authored SH
+    /// specimen of the sh_history fixture campaign carries it at every
+    /// DWG version). The eval value-code takes the native no-value
+    /// sentinel -9999. Parent linkage and content fields (step ids,
+    /// geometry, transform) stay the caller's.
+    pub fn stamp_class_version(&mut self, major: i32, minor: i32) {
+        if let Some(base) = self.base_mut() {
+            base.eval.major = major;
+            base.eval.minor = minor;
+            base.eval.value_code = -9999;
+            base.major = major;
+            base.minor = minor;
+        }
+        match self {
+            Self::Unknown => {}
+            Self::Box(value) | Self::Wedge(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Sphere(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Cylinder(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Cone(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Pyramid(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Torus(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Boolean(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Brep(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Fillet(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Chamfer(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Sweep(value) | Self::Extrusion(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Loft(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
+            Self::Revolve(value) => {
+                value.operation_major = major;
+                value.operation_minor = minor;
+            }
         }
     }
 

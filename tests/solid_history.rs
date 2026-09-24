@@ -40,7 +40,9 @@ fn appended_history_is_returned_root_to_active() {
     assert_eq!(operations.len(), 2);
     assert!(matches!(operations[0], SolidHistoryOperation::Box(_)));
     assert!(matches!(operations[1], SolidHistoryOperation::Fillet(_)));
-    assert_eq!(operations[0].base().unwrap().eval.parent_id, 0);
+    // The created root node is parentless in the native census
+    // (parent_id -1); appended nodes carry their parent step.
+    assert_eq!(operations[0].base().unwrap().eval.parent_id, -1);
     assert_eq!(operations[1].base().unwrap().eval.parent_id, 1);
 }
 
@@ -66,7 +68,8 @@ fn updating_a_step_preserves_its_graph_identity() {
         .unwrap();
 
     let operations = document.solid_history_operations(entity).unwrap();
-    assert_eq!(operations[0].base().unwrap().eval.parent_id, 0);
+    // Native root-parent genus (see appended_history_is_returned_root_to_active).
+    assert_eq!(operations[0].base().unwrap().eval.parent_id, -1);
     assert_eq!(operations[1].base().unwrap().eval.parent_id, 1);
     assert!(matches!(
         &operations[0],
@@ -128,7 +131,7 @@ fn dwg_save_elides_sh_history_records_for_strict_loaders() {
 }
 
 #[test]
-fn dwg_save_writes_history_root_but_elides_operation_nodes() {
+fn dwg_save_elides_constructed_history_trees_entirely() {
     let sat = acadrust::entities::acis::primitives::build_box(
         [0.0, 0.0, 0.0],
         2.0,
@@ -155,24 +158,25 @@ fn dwg_save_writes_history_root_but_elides_operation_nodes() {
         roundtrip.get_entity(entity),
         Some(EntityType::Solid3D(_))
     ));
-    // The HISTORY root record is now written (Phase A 2026-09-23, per
-    // gold dwg2.spec ACSH_HISTORY_CLASS: 2 BLs + handle + BL + 2 Bs):
-    // the entity's history soft-pointer must survive the round-trip
-    // as non-null (it was the elide that wrote it NULL).
+    // Constructed-tree verdict (2026-09-24): trees assembled by the
+    // factory — even with the full census genus — elide in every class
+    // until a constructed probe passes a strict loader (the box
+    // verdict: BricsCAD refused the Wuerfel host file and the
+    // genus-stamped probe alike, while the SAT-only shape the region
+    // probes carry loads clean). Only byte-captured records of the
+    // calibrated classes are written; the history soft-pointer is
+    // written NULL rather than dangling.
     match roundtrip.get_entity(entity) {
         Some(EntityType::Solid3D(s)) => {
             assert!(
-                s.history_handle.map_or(false, |h| h.value() != 0),
-                "the ACSH_HISTORY_CLASS root pointer must survive \
-                 the round-trip (not written NULL): got {:?}",
+                s.history_handle.map_or(true, |h| h.value() == 0),
+                "the constructed ACSH_HISTORY_CLASS root pointer must be \
+                 written NULL (the constructed tree elides): got {:?}",
                 s.history_handle
             );
         }
         other => panic!("expected Solid3D, got {other:?}"),
     }
-    // The BREP operation node is still elided: its layout is not yet
-    // calibrated, so the node classes stay behind the elide and the
-    // operations (node tree) remain empty.
     assert!(roundtrip
         .solid_history_operations(entity)
         .map_or(true, |operations| operations.is_empty()));
