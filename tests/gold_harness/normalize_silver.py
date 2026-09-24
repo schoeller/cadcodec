@@ -5279,6 +5279,12 @@ def normalize_silver(
             _pc = _p.get("compound") if isinstance(_p.get("compound"), dict) else {}
             _pap = _pc.get("action_param") if isinstance(_pc.get("action_param"), dict) else {}
             fields["is_r2013"] = 1 if r2013_plus else 0
+            if r2013_plus:
+                # dwg2.spec AcDbAssocActionParam_fields SINCE R_2013: the
+                # aap_version BL right after the is_r2013 BS (silver's
+                # action_param.version — ExtrudeM_2013/2018 pin 0; never
+                # emitted pre-R2013).
+                fields["aap_version"] = _pap.get("version", 0)
             fields["name"] = _pap.get("name") or ""
             fields["class_version"] = _pc.get("class_version", 0)
             fields["bs1"] = 0
@@ -5296,17 +5302,19 @@ def normalize_silver(
             # dwg2.spec *SURFACEACTIONBODY family (live): gold flattens
             # silver's SurfaceActionBody nesting. Field map verified
             # 1:1 on the R2004 Surface records (Surface_h=736/847/872/
-            # 1292/1043): aab_version<-action_body.version, version<-
-            # surface_body.version, minor<-parameter_body.minor, deps<-
-            # parameter_body.dependencies, l4=0 (const), pab.values = the
-            # degenerate REPEAT (0 per parameter value), assocdep <- the
-            # first value's controlled dep (null 2-tuple when values are
-            # empty), is_semi_* <- surface_body flags, l2 <- surface_body
-            # marker, grip_status <- surface_body.grip_status, pbsab_status
-            # 0 (const on every corpus record), class_version <- the
-            # trailing class_version. The Plane class additionally carries
-            # l5=0. All are HANDLE_UNKNOWN_BITS emitters (the side channel
-            # covers unknown_bits at the append).
+            # 1292/1043) for PRE(R_2013b) files: aab_version<-
+            # action_body.version, version<-surface_body.version, minor<-
+            # parameter_body.minor, deps<-parameter_body.dependencies, l4=0
+            # (const), pab.values = the degenerate REPEAT (0 per parameter
+            # value), assocdep <- the first value's controlled dep (null
+            # 2-tuple when values are empty), is_semi_* <- surface_body
+            # flags, l2 <- surface_body marker, grip_status <- surface_body
+            # grip_status, pbsab_status 0 (const on every corpus record),
+            # class_version <- the trailing class_version. R2013+: gold
+            # skips the whole pab block (see the gates below) and reads the
+            # sab.assocdep slot directly. The Plane class additionally
+            # carries l5=0. All are HANDLE_UNKNOWN_BITS emitters (the side
+            # channel covers unknown_bits at the append).
             fields["dxfname"] = _assoc_dxf
             _sab = (assoc_data or {}).get("SurfaceActionBody") \
                 if isinstance(assoc_data, dict) else None
@@ -5317,24 +5325,42 @@ def normalize_silver(
             _sb = _sab.get("surface_body") if isinstance(_sab.get("surface_body"), dict) else {}
             fields["aab_version"] = _ab.get("version", 0)
             fields["version"] = _sb.get("version", 0)
-            fields["minor"] = _pb.get("minor", 0)
-            _pd = _pb.get("dependencies")
-            if isinstance(_pd, list):
-                fields["deps"] = [normalize_handle_value(h)
-                                  for h in _pd if isinstance(h, int)]
-            fields["l4"] = 0
-            if gold_type == "ASSOCPLANESURFACEACTIONBODY":
-                fields["l5"] = 0
-            _vals = _pb.get("values")
-            if isinstance(_vals, list) and _vals:
-                fields["pab.values"] = [0] * len(_vals)
+            # dwg2.spec gates the whole AcDbAssocParamBasedActionBody block
+            # PRE(R_2013b): for R2013+ files gold reads NO pab fields —
+            # version/minor/deps/l4/l5/pab.values stay off the record (the
+            # R2013+ extrude/loft/revolve M-stem fixtures pin this), and
+            # assocdep comes straight from the sab slot.
+            if not r2013_plus:
+                fields["minor"] = _pb.get("minor", 0)
+                _pd = _pb.get("dependencies")
+                if isinstance(_pd, list):
+                    fields["deps"] = [normalize_handle_value(h)
+                                      for h in _pd if isinstance(h, int)]
+                fields["l4"] = 0
+                if gold_type == "ASSOCPLANESURFACEACTIONBODY":
+                    fields["l5"] = 0
+                _vals = _pb.get("values")
+                if isinstance(_vals, list) and _vals:
+                    fields["pab.values"] = [0] * len(_vals)
             _pd2 = _pb.get("dependencies")
-            if (isinstance(_pd2, list) and _pd2
+            if (not r2013_plus
+                    and isinstance(_pd2, list) and _pd2
                     and gold_type != "ASSOCPLANESURFACEACTIONBODY"):
                 # assocdep resolves one handle BEFORE the first path-param
                 # dep (verified extruded 738->737, revolved 874->873,
                 # lofted 849->848); the Plane class reads its own slot.
                 fields["assocdep"] = normalize_handle_value(_pd2[0] - 1)
+            elif (r2013_plus
+                    and gold_type != "ASSOCPLANESURFACEACTIONBODY"):
+                # R2013+: the pab block is gone, so gold's assocdep IS the
+                # sab.assocdep slot (ExtrudeM_2013/2018: surface_body.
+                # dependency -> ASSOCDEPENDENCY@740). Keep the reader-guard
+                # protection: Handle::NULL (0) projects the [0, 0] pair.
+                _sdep = _sb.get("dependency")
+                if isinstance(_sdep, int) and _sdep:
+                    fields["assocdep"] = normalize_handle_value(_sdep)
+                else:
+                    fields["assocdep"] = [0, 0]
             elif gold_type == "ASSOCPLANESURFACEACTIONBODY":
                 # dwg2.spec ASSOCPLANESURFACEACTIONBODY embeds BOTH the pab
                 # and the sab handle-pull on one flattened JSON key with
@@ -5393,6 +5419,15 @@ def normalize_silver(
                         fields["owned_params"] = [
                             normalize_handle_value(h) for h in _op
                             if isinstance(h, int)]
+                    # dwg2.spec ASSOCACTION SINCE R_2013 (class_version >
+                    # 1): the trailing VALUE_BS(0,90) + num_values BL +
+                    # REPEAT values — the SAME degenerate bare-0-per-entry
+                    # collapse as deps (ExtrudeM_2013/2018: gold prints
+                    # [0, 0] for the two named pab values
+                    # ExtrusionHeight/ExtrusionTaperAngle).
+                    _av = _a.get("values")
+                    if isinstance(_av, list) and _av:
+                        fields["values"] = [0] * len(_av)
             elif gold_type == "ASSOCOSNAPPOINTREFACTIONPARAM":
                 # Gold's wire constants: osnap_mode/param collapse (160/0.0
                 # on every corpus record, R2000-R2018); silver's parsed

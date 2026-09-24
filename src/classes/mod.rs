@@ -96,6 +96,19 @@ pub struct DxfClass {
     pub unknown1: i32,
     /// Second reserved class metadata value (normally zero).
     pub unknown2: i32,
+    /// The `item_class_id` the gold reader (libredwg) sees for this class
+    /// entry — the gold-shadow walk of the classes section (see
+    /// `classes_reader::gold_shadow_item_ids`). Gold reads the class-record
+    /// tail as `BS, BS` for `dwg_version`/`maint_version` where this reader
+    /// uses `BL`, so on class tables whose tail encoding uses a non-byte
+    /// form (the AutoCAD-2027.1-authored fixture set) gold's numeric cursor
+    /// desyncs from the true record layout mid-table and its per-class
+    /// `item_class_id` turns to garbage — never 0x1F2 — so entity-class
+    /// records of such files decode through gold's unknown-OBJECT walk.
+    /// `None` when the shadow walk did not reach this index (the fallback
+    /// is this reader's own `is_an_entity`).
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub gold_item_class_id: Option<i16>,
 }
 
 impl DxfClass {
@@ -115,6 +128,7 @@ impl DxfClass {
             maintenance_version: 0,
             unknown1: 0,
             unknown2: 0,
+            gold_item_class_id: None,
         }
     }
 
@@ -203,6 +217,14 @@ impl DxfClassCollection {
     /// Iterate over all class definitions
     pub fn iter(&self) -> impl Iterator<Item = &DxfClass> {
         self.entries.iter()
+    }
+
+    /// Mutably iterate over class definitions.
+    ///
+    /// Only for read-side annotations that never change the class identity
+    /// (dxf/cpp/application names drive `name_index`).
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut DxfClass> {
+        self.entries.iter_mut()
     }
 
     /// Clear all class definitions

@@ -162,7 +162,123 @@ pub fn read_classes_with_encoding(
         }
     }
 
+    // ── Gold-shadow walk ──
+    // Reproduce gold's (libredwg's) numeric classes walk over the same
+    // section bytes so every class carries the `item_class_id` gold
+    // actually sees (see DxfClass::gold_item_class_id). The walks share
+    // the header reads but diverge in the per-record tail: gold reads
+    // `dwg_version`/`maint_version` as BS, this reader as BL, and from the
+    // first record whose tail uses a non-byte bitcode form gold's cursor
+    // desyncs from the true record layout for the rest of the table (the
+    // observed trigger class is the table's 10th entry — on the
+    // AutoCAD-2027.1-authored fixture set, all four 2007-2018 versions).
+    // The strings never matter to gold's numeric cursor (R2007+ text reads
+    // advance the separate string stream; pre-R2007 TV is read here
+    // inline instead), so this walk yields the same per-index record
+    // sequence gold walks.
+    let gold_shadow = gold_shadow_item_ids(
+        data,
+        version,
+        maintenance_version,
+        encoding,
+    );
+    for (i, class) in classes.iter_mut().enumerate() {
+        class.gold_item_class_id = gold_shadow.get(i).copied().flatten();
+    }
+
     Ok(classes)
+}
+
+/// Walk the classes section the way gold does and return the
+/// `item_class_id` gold reads per record index.
+///
+/// Mirrors libredwg's `read_2004_section_classes` / `read_2007_section_classes`
+/// (`dwg->dwg_class[i].item_class_id`) field-by-field: header
+/// `[sentinel][RL size][RL hsize iff gate][RL bitsize iff R2007+][BS max][RC][RC][B]`,
+/// then per record `BS number, BS proxy, [TV text×3 iff pre-R2007], B zombie,
+/// BS item_class_id, [R2004+ tail: BL instances, BS dwg_version, BS maint,
+/// BL, BL]`. `None` entries mean the shadow walk did not reach that record
+/// (bail conditions or buffer end); the dispatch falls back to this
+/// reader's own `is_an_entity`.
+fn gold_shadow_item_ids(
+    data: &[u8],
+    version: DxfVersion,
+    maintenance_version: u8,
+    encoding: &'static encoding_rs::Encoding,
+) -> Vec<Option<i16>> {
+    let mut ids: Vec<Option<i16>> = Vec::new();
+    if data.len() < 34 || &data[..16] != &start_sentinels::CLASSES {
+        return ids;
+    }
+    let dwg = match DwgVersion::from_dxf_version(version) {
+        Ok(v) => v,
+        Err(_) => return ids,
+    };
+    let section_size = i32::from_le_bytes([data[16], data[17], data[18], data[19]]) as usize;
+    let mut data_start = 20;
+    if DwgVersion::has_section_extra_rl(version, maintenance_version) {
+        data_start += 4;
+    }
+    if data.len() < data_start + section_size {
+        return ids;
+    }
+    let section_data = data[data_start..data_start + section_size].to_vec();
+    let mut reader = DwgBitReader::with_encoding(section_data, dwg, version, encoding);
+    let end_limit_bits = (section_size as i64) * 8;
+
+    // R2007+: RL total-data-size prefix (gold reads it as `bitsize`).
+    if version >= DxfVersion::AC1021 {
+        let _ = reader.read_raw_long();
+    }
+
+    // R2004+ header: BS max, RC, RC, B. Gold bails (zero classes) when the
+    // number is implausible; the pre-R2004 classes sections carry no header.
+    let num_classes: i64 = if version >= DxfVersion::AC1018 {
+        let max = reader.read_bit_short();
+        let _rc1 = reader.read_byte();
+        let _rc2 = reader.read_byte();
+        let _flag = reader.read_bit();
+        if max < 500 || max > 5000 {
+            return ids;
+        }
+        (max as i64) - 499
+    } else {
+        -1 // pre-R2004: walk until the section data ends
+    };
+
+    // Per-record walk. Gold never validates the record numbers — it walks
+    // all `max - 499` records (or to the section end pre-R2004) regardless,
+    // so the shadow does the same. A generous margin keeps the blind reads
+    // inside the decompressed buffer; records past it stay `None` and fall
+    // back to this reader's own `is_an_entity`.
+    let mut index: i64 = 0;
+    while reader.position_in_bits() + 64 < end_limit_bits
+        && (num_classes < 0 || index < num_classes)
+    {
+        let _number = reader.read_bit_short();
+        let _proxy = reader.read_bit_short();
+        if version < DxfVersion::AC1021 {
+            // Pre-R2007: the three text fields are inline TV and advance
+            // the shared cursor; gold reads them the same way.
+            let _app = reader.read_variable_text();
+            let _cpp = reader.read_variable_text();
+            let _dxf = reader.read_variable_text();
+        }
+        let _zombie = reader.read_bit();
+        let item_class_id = reader.read_bit_short();
+        if version >= DxfVersion::AC1018 {
+            // R2004+ tail: the BS/BS reads where gold's walk derails.
+            let _instances = reader.read_bit_long();
+            let _dwg_version = reader.read_bit_short();
+            let _maint_version = reader.read_bit_short();
+            let _unknown1 = reader.read_bit_long();
+            let _unknown2 = reader.read_bit_long();
+        }
+        ids.push(Some(item_class_id));
+        index += 1;
+    }
+
+    ids
 }
 
 // ════════════════════════════════════════════════════════════════════════════

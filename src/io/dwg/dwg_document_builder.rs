@@ -549,10 +549,28 @@ impl DwgDocumentBuilder {
         // (as opposed to non-entity objects).  Used in Pass 2 to correctly
         // classify unresolved class-based types (≥500) that aren't in
         // dxf_name_to_type_code.
+        //
+        // The entity/object decision follows GOLD's class-table view, not
+        // this reader's own parse: gold (libredwg) walks the class-record
+        // tail with BS/BS where this reader uses BL, and on class tables
+        // whose tails need the multi-byte bitcode (the AutoCAD-2027.1
+        // fixture set) gold's numeric cursor desyncs mid-table and its
+        // per-class `item_class_id` degrades to garbage — never 0x1F2 —
+        // so entity-class records of those files route through gold's
+        // unknown-OBJECT walk (object common data + raw unknown tail) and
+        // surface as UNKNOWN_OBJ records. `DxfClass::gold_item_class_id`
+        // holds that gold-shadow value (None → the shadow did not reach
+        // this index; fall back to this reader's own `is_an_entity`).
         let entity_class_numbers: std::collections::HashSet<i16> = document
             .classes
             .iter()
-            .filter(|c| c.is_an_entity && c.class_number >= 500)
+            .filter(|c| {
+                c.class_number >= 500
+                    && match c.gold_item_class_id {
+                        Some(id) => id == 0x1F2,
+                        None => c.is_an_entity,
+                    }
+            })
             .map(|c| c.class_number)
             .collect();
         let class_names = ClassNames::from_document(document);
@@ -3197,22 +3215,37 @@ impl DwgDocumentBuilder {
         let (block_records, canonical_block_order) =
             (&mut document.block_records, &document.block_entity_handles);
         for record in block_records.iter_mut() {
-            let mut handles = by_owner.remove(&record.handle).unwrap_or_default();
+            let owner_handles = by_owner.remove(&record.handle).unwrap_or_default();
             if let Some(canonical) = canonical_block_order
                 .get(&record.handle)
                 .filter(|canonical| !canonical.is_empty())
             {
-                let order: ahash::AHashMap<Handle, usize> = canonical
-                    .iter()
-                    .copied()
-                    .enumerate()
-                    .map(|(index, handle)| (handle, index))
-                    .collect();
-                handles.sort_by_key(|handle| order.get(handle).copied().unwrap_or(usize::MAX));
-            } else if let Some(order) = source_record_order {
-                handles.sort_by_key(|handle| order.get(handle).copied().unwrap_or(usize::MAX));
+                // The BLOCK_HEADER's own handle stream (dwg2.spec
+                // HANDLE_VECTOR entities, the code-3/4 owned children) IS
+                // gold's entities list — gold prints the wire vector
+                // verbatim, including records this reader routes through the
+                // unknown-OBJECT walk (the gold-shadow surface classes:
+                // gold's classes read desyncs, so the entity-class records
+                // decode as unknown objects there) that the entity-membership
+                // reconstruction above cannot see. Keep the wire list primary
+                // (its order is gold's), union any membership-derived
+                // handles not already in it, and skip the re-sort.
+                let mut handles: Vec<Handle> = canonical.clone();
+                for handle in owner_handles {
+                    if !handles.contains(&handle) {
+                        handles.push(handle);
+                    }
+                }
+                record.entity_handles = handles;
+            } else {
+                let mut handles = owner_handles;
+                if let Some(order) = source_record_order {
+                    handles.sort_by_key(|handle| {
+                        order.get(handle).copied().unwrap_or(usize::MAX)
+                    });
+                }
+                record.entity_handles = handles;
             }
-            record.entity_handles = handles;
         }
     }
 
@@ -3288,11 +3321,17 @@ impl DwgDocumentBuilder {
         class_names: &ClassNames,
         photometric_lighting: bool,
     ) {
-        // For class-based types (≥500) that weren't resolved via the class
-        // map, check the class's is_an_entity flag.  This prevents misreading
-        // object data as entity data (different binary layout).
-        let is_entity = if type_code >= 500 {
-            entity_class_numbers.contains(&type_code)
+        // For class-based types (≥500) check the class's entity/object
+        // identity — via GOLD's class-table view (entity_class_numbers is
+        // built from the gold-shadow item_class_id; see the builder).
+        // This prevents misreading object data as entity data (different
+        // binary layout), and keeps classed records the internal class
+        // map resolves to a fixed entity sentinel (HELIX, the SURFACE
+        // family, ACAD_TABLE) on the entity path exactly when gold agrees.
+        // The RAW number is the key — type_code is the possibly-resolved
+        // fixed sentinel (< 500) and would bypass the gold-shadow set.
+        let is_entity = if raw_type_code >= 500 {
+            entity_class_numbers.contains(&raw_type_code)
         } else {
             is_entity_type(type_code)
         };
