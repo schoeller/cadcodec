@@ -84,8 +84,11 @@ truth for the harness. Its §7 "How to start cold" block is the entry point;
 ## Session workflow (summary — details in IMPLEMENTATION.md §8.1)
 
 Two campaigns are closed at zero (parser parity 0/0 + the strict-load
-zero); the ACS/SH solid-history campaign is complete (§18.5–18.7; its
-open follow-up rows are the §18.7 differential queue). The operative
+zero); the ACS/SH solid-history campaign is complete through its
+differential queue (§18.5–18.7; corpus 260 files at 0/0, the
+maintainer fixture surface empty). Its one open row is the
+surface-parser work in `NEXT_SESSION.md` (the 20 quarantined
+surface-twin files). The operative
 procedure is the **zero-keeping regression gate** in `README.md`
 ("The zero-keeping workflow"): scope the change, run the required gate
 steps in order (hermetic cargo tests → harness self-check →
