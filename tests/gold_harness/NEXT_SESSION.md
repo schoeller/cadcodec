@@ -127,7 +127,7 @@ splice + the section checksum).
    world-vs-relative decision on the wire-verified raw-run reading).
    **`LoftD` is DEAD** — the maintainer cannot find the loft Settings
    path in this AutoCAD release; the π/2 pair awaits LoftM's un-quarantine
-   or another lever. AGENT work: the surface-parser row (un-quarantines
+   or another lever. **NEW P2: `PolysolidL`** (Height 5, width 3 — the profile of X — path 0,0,0 to 5,0,0; HALF the length; the 2.0109 single probe). AGENT work: the surface-parser row (un-quarantines
    all 20 quarantined files), the ExtrudeP polyline header, the
    post-corner singles walk; the revolve option shorts + flags keep NO
    authoring path.
