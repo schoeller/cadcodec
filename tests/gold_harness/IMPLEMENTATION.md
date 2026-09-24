@@ -3302,7 +3302,22 @@ Fixture rules (deltas from the gold-tree convention above):
 | `Pyramid_<v>` (Phase C) | `PYRAMID` | `ACSH_PYRAMID_CLASS` | landed 2026-09-23, qualified (all 0/0) |
 | `Fillet_<v>` / `Chamfer_<v>` (Phase C) | `BOX` + `FILLET` / `BOX` + `CHAMFER` | the edge-modification nodes (with the parent `ACSH_BOX_CLASS` chain) | landed 2026-09-23, qualified (all 0/0) |
 | `Brep_<v>` | **DEFERRED** (2026-09-23): `ACSH_BREP_CLASS` is not reachable through any user-facing AutoCAD op — seven authored attempts (plain op, SLICE, single-op, foreign-body graft, SOLIDEDIT face edit, real-template source) all produced either parametric chains or history-stripped plain solids. The class stays elided; silver already tolerates the one real-world carrier (`ATMOS-DC22S.dwg`) at 0/0. The row re-opens if an authentic specimen surfaces (legacy SAT-era import paths). | — | — |
-| *(differential queue — CLOSED 2026-09-24)* | **ALL 17 STEMS AUTHORED AND QUALIFIED** (the maintainer landed the full §18.7 set): the 14 solid stems (56 files) are IN THE CORPUS at 0/0 (244 files now) with their quads bit-identical and their OBSERVED outcomes recorded per row in §18.7 — the sweep spine is named (ExtrudeT: the draft_angle raw at bit 70, the SweepOptions order), the extrusion payload is the profile (ExtrudeR/P), the height lives in the direction (ExtrudeH), the loft height/radius slots are named (LoftH/R), the sweep frame direction entries are confirmed (PolysolidX/D), the revolve axis pair takes offset/tilt with world-X profile centers and normalized directions (RevolveO/T), 360° = plain 2π (RevolveF), and RevolveW is BIT-IDENTICAL to the original. The 3 M-stems (12 files) are QUARANTINED in `tests_quarantine/sh_history/` — valid specimens (gold clean, the ASSOC bodies typed with named parameters) but silver lacks the R2007+ surface-entity/action-body parsers (14 diffs/file), so they await the surface-parser row. **Closing-set state (2026-09-24): `PolysolidW` LANDED in-corpus (248 files 0/0) — THE WIDTH SINGLE NAMED (bit 1084: 3.0 → 7.0 with the profile width); 4.00024414192312 identified as a record constant; X's garbage singles confirmed drag residue — the post-corner singles stream is the next decoder row. `ExtrudeC`/`LoftC` were authored with the sticky MOde = Surface (EXTRUDEDSURFACE/LOFTEDSURFACE + ASSOC bodies, no ACSH classes) and are QUARANTINED with the M-stems as valid offset-variant surface specimens — RE-AUTHOR both with `MOde` = `Solid` (the rows carry the instruction). `LoftD` is DEAD (the maintainer cannot find the loft Settings path in this AutoCAD release); the π/2 pair stays pending LoftM's un-quarantine or another settings lever. `PolysolidL` (P2, NEW — the path-length probe on the shared 2.0109 single: same profile as X, half path) completes the maintainer ask.** | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, landed |
+| *(differential queue — CLOSED 2026-09-24)* | **ALL 17 STEMS AUTHORED AND QUALIFIED** (the maintainer landed the full §18.7 set): the 14 solid stems (56 files) are IN THE CORPUS at 0/0 (244 files now) with their quads bit-identical and their OBSERVED outcomes recorded per row in §18.7 — the sweep spine is named (ExtrudeT: the draft_angle raw at bit 70, the SweepOptions order), the extrusion payload is the profile (ExtrudeR/P), the height lives in the direction (ExtrudeH), the loft height/radius slots are named (LoftH/R), the sweep frame direction entries are confirmed (PolysolidX/D), the revolve axis pair takes offset/tilt with world-X profile centers and normalized directions (RevolveO/T), 360° = plain 2π (RevolveF), and RevolveW is BIT-IDENTICAL to the original. The 3 M-stems (12 files) are QUARANTINED in `tests_quarantine/sh_history/` — valid specimens (gold clean, the ASSOC bodies typed with named parameters) but silver lacks the R2007+ surface-entity/action-body parsers (14 diffs/file), so they await the surface-parser row. **Closing-set state (2026-09-24, COMPLETE EXCEPT PolysolidL): the re-
+   authored (MOde = Solid) ExtrudeC and LoftC LANDED in-corpus (256
+   files 0/0) with both predictions confirmed 100 percent — ExtrudeC:
+   the CALL length 16 -> 144 with the first nonzero profile center
+   (2,3,0), and THE PRE-CALL REGION RESOLVED (position-dependent: it
+   carries the profile center as its own raw run; 208 + 128 + 128 =
+   464 bits); LoftC: THE LOFT RAW RUN FULLY NAMED — per-section
+   [cx][cy][z][r] runs + the [pi/2, pi/2] draft pair, the landed
+   original retro-fitting exactly (world reading). The surface-mode
+   first attempts remain in the quarantine as offset-variant
+   specimens. Remaining maintainer ask: PolysolidL (P2 — the 2.0109
+   path-length probe; the row stands). Remaining agent rows: the
+   post-corner singles walk, the loft container walk, the ExtrudeP
+   polyline header, the surface-parser row (20 quarantined files).
+   Dead: LoftD; the revolve option shorts + flags (no authoring
+   path).** | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, landed |
 
 ---
 
@@ -3749,10 +3764,12 @@ wireframe values on the same modeler backing).
     only in the direction head, the draft only in the spine), kind
     77 = OBJ_LWPOLYLINE (ExtrudeP, length 544 — the packed
     (x, y) vertex array of the drawn rectangle is inside; its
-    header grammar is the one deferred item). The pre-CALL region
-    between the spine and the CALL stays opaque: it is
-    profile-dependent but value-stable across the
-    radius/height/taper differentials.
+    header grammar is the one deferred item). The pre-CALL region is
+    RESOLVED (2026-09-24, the re-authored ExtrudeC): it MOVES with
+    the profile position, carrying the profile center as its own
+    raw-BD run (the ExtrudeC center (2.0, 3.0) appears TWICE — once
+    in the pre-CALL, once in the CALL circle body — and the landed
+    208-bit tail grows to 464 by exactly the two x/y raw pairs).
   - The SWEEP (Polysolid) tail keeps its own structure — the frame
     blocks (the path unit direction entries, confirmed on three
     directions by PolysolidX/D), the packed profile corners
@@ -3773,12 +3790,17 @@ wireframe values on the same modeler backing).
   r 1.0, top circle (2.006, 2.006) r 0.2996): the raws are
   **[top center.x][top center.y][top z][top radius]** — the
   "drag residue" was the dragged top section's geometry; the
-  full raw-run reading is `[top cx][top cy][top z][top r]
-  [pi/2][pi/2]`, pending the LoftC world-vs-relative decision. The strict BD walk from the head
-  derails on non-BD regions between the values (the landed
-  fixture's top-section entries 2.0/2.0/0.3 among them) — the
-  inter-value grammar stays unnamed; the model keeps the slots
-  positional (`raw_doubles`).
+  full raw-run reading is CLOSED (2026-09-24, the re-authored
+  LoftC — the offsets are PRESENT in its raws, the world reading):
+  PER-SECTION `[center.x][center.y][height][radius]` runs with
+  0.0/1.0 values elided as shorts (the landed original retro-fits:
+  its `[2.0, 2.0, 5.0, 0.3]` = the TOP section (cx 2, cy 2, z 5,
+  r 0.3) with the bottom at (0,0) r 1 fully elided; the LoftC raws
+  `[3.0, 4.0, 1.5, 3.0, 4.0, 7.0, 1.5, pi/2, pi/2]` = both sections
+  in full + the `[pi/2, pi/2]` draft pair). The strict BD walk
+  from the head still derails on the non-BD inter-value regions —
+  the container walk is the remaining decoder row; the model keeps
+  the slots positional (`raw_doubles`).
 - **Revolve** (`raw_tail`): the FULL-TREE LIBREDWG SCAN closed this
   family completely on 2026-09-23 (the record below).
 
@@ -4020,10 +4042,10 @@ axes and the profile circles stay in the plan-view XY plane
 | ~~P1~~ **AUTHORED 2026-09-24 — QUARANTINED** | `ExtrudeM_<v>` | a SURFACE-twin anchor: `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` with the `MOde` option set to `Surface`, height `2` | the op's output class (SH node → EXTRUDEDSURFACE + ASSOC body) | gold parses the surface TYPED (sweep_vector, 16-BD sweep_transmatrix, the full SWEEPOPTIONS macro incl. `sweep_alignment_flags` and its 0-3 enum, `path_flags`, `base_point_set`, the two `*_transform_computed` flags, `reference_vector_for_controlling_twist`) and the ASSOC body prints the named `ExtrusionHeight`/`ExtrusionTaperAngle` pab-values — the semantic table for the EXTRUSION tail's option spine (its `'01'` member) and its 64-bit payload (the §18.6 sweep-bullet's standing confound) **STATUS (2026-09-24): authored and QUARANTINED in `tests_quarantine/sh_history/` — gold reads it clean (zero errors; EXTRUDEDSURFACE registered; the ASSOCEXTRUDEDSURFACEACTIONBODY typed with the named ExtrusionHeight/ExtrusionTaperAngle pab-values) but silver does not yet parse the R2007+ surface entities / surface action bodies (14 read+write diffs per file), so the corpus zero-keeping rule excludes the 12 M-stem files until the surface-parser row lands** |
 | ~~P1~~ **AUTHORED 2026-09-24 — QUARANTINED** | `LoftM_<v>` | a SURFACE-twin anchor: `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,5` r `1`; `LOFT` with the `MOde` option set to `Surface` (verify the option is offered in this AutoCAD release; record the exact prompts in the `.txt`) | the op's output class (SH node → LOFTEDSURFACE + ASSOC body) | gold parses the surface TYPED (16-BD loft transmatrix, `plane_normal_lofting_type`, start/end draft angle+magnitude, `arc_length_parameterization`, `no_twist`, `align_direction`) and the ASSOC body prints the named `Continuity`/`Bulge` pab-values — anchors to name the LOFT tail's head `[1.0]` and its raw run `[2.0, 2.0, 5.0, 0.3, π/2, π/2]` (the §18.6 positional list) **STATUS (2026-09-24): authored and QUARANTINED (same reason — the ASSOCLOFTEDSURFACEACTIONBODY types fine in gold with the Continuity/Bulge pab-values; the silver surface-parser row is pending)** |
 
-| ~~P1~~ **AUTHORED 2026-09-24 — SURFACE MODE, QUARANTINED** | `LoftC_<v>` | `CIRCLE` center `3,4,0` radius `1.5` + `CIRCLE` center `3,4,7` radius `1.5`; `LOFT` both — **the sticky MOde came out Surface: LOFTEDSURFACE + the ASSOCLOFTEDSURFACEACTIONBODY, NO ACSH classes, NO 3DSOLID** (12 files, 12–13 read/write diffs — quarantined with the M-stems; a valid OFFSET-variant surface specimen but no SH tail) | **RE-AUTHOR with `MOde` = `Solid` at the LOFT prompt** (verify ACSH_LOFT_CLASS), then the wire-verified prediction stands: the landed original's raws `[2.0, 2.0, 5.0, 0.3, π/2, π/2]` are **[top center.x][top center.y][top z][top radius]** (z-separated silhouette fits: bottom (0,0) r 1.0, top (2.006, 2.006) r 0.2996). Solid-mode prediction: world → `[3.0, 4.0, 7.0, 1.5, π/2, π/2]`; bottom-relative → `[7.0, 1.5, π/2, π/2]` (the offset absent as shorts). Either outcome names the entire raw run |
+| ~~P1~~ **LANDED 2026-09-24 (re-authored Solid)** | `LoftC_<v>` | `CIRCLE` center `3,4,0` radius `1.5` + `CIRCLE` center `3,4,7` radius `1.5`; `LOFT` both with `MOde` = `Solid` at the prompt (the surface copies stay in the quarantine) | **OBSERVED (quad bit-identical at 684 bits, corpus 0/0): THE LOFT RAW RUN IS FULLY NAMED — the WORLD reading confirmed: raws `[3.0, 4.0, 1.5, 3.0, 4.0, 7.0, 1.5, pi/2, pi/2]` parse as PER-SECTION `[center.x][center.y][height][radius]` runs + the draft pair (section 1: (3, 4, z 0.0 elided as a short, r 1.5); section 2: (3, 4, z 7.0, r 1.5); then `[pi/2, pi/2]`). The landed original retro-fits exactly: (0,0) r 1 elided, (2.006->2.0, 2.006->2.0, 5.0, 0.2996->0.3), the draft pair — the offsets are PRESENT in the raws (world, not bottom-relative)** |
 | **P2 — CLOSING SET** | `PolysolidL_<v>` | `POLYSOLID` → `Height` 5 → `width` 3; path `0,0,0` → `5,0,0`, ENTER to end | the PATH LENGTH only (12 → 5; the profile identical to `PolysolidX`) | **the 2.0109-constant probe.** X and W (both 12-long, same +X axis) share the single at bit 998 with low-bit noise (2.0108894202880947 vs .2867305 — a COMPUTED value, not a wire constant), while the original (33.9 drag, long path) shows none — it responds to the path or profile only in tiny corrections. Half the path with the same profile: if the value moves materially it is path-derived (length/snap-related); if it stays at ~2.0109 the computation is profile-family-only — either way the last named-class candidate in the post-corner singles stream is resolved (the 4.00024414192312 constant and the width single at 1084 are already named; the stream walk is the decoder row) |
 | ~~P1~~ **LANDED 2026-09-24** | `PolysolidW_<v>` | `POLYSOLID` → `Height` 3 → `width` 7; path `0,0,0` → `12,0,0`, ENTER to end | the profile W/H swap vs `PolysolidX` (3/5 → 7/3; the path identical) | **OBSERVED (quad bit-identical at 1418 bits — same length as X with the swapped profile; corpus 0/0): corners (±3.5, {0,3}) exactly as predicted; segment end (12.0, 0) CLEAN where X carried 12.00001 residue; the post-corner BD single at bit 1084 moved 3.0 → 7.0 with the width — THE WIDTH SINGLE IS NAMED; 4.00024414192312 is INVARIANT across original/X/W (a record constant); 2.0109 is path-family-shared with low-bit precision noise; X's −19594/8614-class entries are drag residue (zeroed/absent in the cleaner authoring). The post-corner singles stream (bits 998–1286) is the next decoder row — collect it with a proper BD walk past the corner blocks** |
-| ~~P1~~ **AUTHORED 2026-09-24 — SURFACE MODE, QUARANTINED** | `ExtrudeC_<v>` | `CIRCLE` center `2,3,0` radius `1`; `EXTRUDE` height `2` — **the session's sticky MOde came out Surface: the census shows EXTRUDEDSURFACE + the ASSOCEXTRUDEDSURFACEACTIONBODY, NO ACSH classes, NO 3DSOLID** (12 files, 14 read/write diffs — the same surface-parser gap as the M-stems; quarantined in `tests_quarantine/sh_history/`). A valid OFFSET-variant surface specimen for the future un-quarantine, but no SH tail — it answers nothing about the extrusion grammar | **RE-AUTHOR the row with `MOde` = `Solid` explicitly set at the EXTRUDE prompt** (type `MOde` then `Solid`; verify the census shows ACSH_EXTRUSION_CLASS), then the original questions stand: the pre-CALL region's position test (byte-identical across all origin circles — does it move with the offset?) and the first nonzero CALL-circle center: decodes (2, 3, 0), the CALL length 16 → 144 |
+| ~~P1~~ **LANDED 2026-09-24 (re-authored Solid)** | `ExtrudeC_<v>` | `CIRCLE` center `2,3,0` radius `1`; `EXTRUDE` height `2` with `MOde` = `Solid` explicitly set at the prompt (the first attempt landed as a surface — re-authored; the surface copies stay in the quarantine as offset-variant specimens) | **OBSERVED (quad bit-identical at 464 bits, corpus 0/0): the profile CALL length grew 16 -> 144 EXACTLY as predicted — the circle center (2.0, 3.0, 0.0), x/y raws (the first nonzero profile center), radius 1.0 short, normal (0,0,1). THE PRE-CALL REGION IS RESOLVED: it moved with the offset, carrying the profile center as its own raw-BD run (cx 2.0 at bit 112, cy 3.0 at bit 184) in addition to the CALL run; the full accounting closes: landed 208 + the pre-CALL center pair (128) + the CALL-center raws (128) = 464** |
 | ~~P2~~ **DEAD 2026-09-24** | `LoftD_<v>` | ~~LOFT Settings → Ruled + draft fields~~ — **the authoring session cannot find the settings path** (the maintainer's report: the options as described do not exist in this AutoCAD release). The π/2 pair and the inter-value grammar stay provisionally unnamed pending another reachable loft-settings lever — or the un-quarantined LoftM's typed LOFTEDSURFACE `start/end draft angle` fields when the surface-parser row lands | — | — |
 
 **Authoring mechanics** (per stem, mirroring the landed `.txt`

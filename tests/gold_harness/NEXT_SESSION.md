@@ -110,27 +110,27 @@ splice + the section checksum).
    [π/2][π/2] — the "drag residue" was the dragged top section.
    (b) OPEN — the surface-parser row (the ASSOC* SURFACEACTIONBODY
    classes + the R2007+ surface entities) to un-quarantine the
-   M-stems. (c) PARTIAL — the closing set review (2026-09-24):
-   **`PolysolidW` landed in-corpus (244 → 248 files, 0/0)** and named THE
-   WIDTH SINGLE (post-corner bit 1084: 3.0 → 7.0 with the profile width);
-   4.00024414192312 is a record constant (invariant in original/X/W);
-   2.0109 is path-family-shared; X's −19594/8614 garbage confirmed drag
-   residue. The post-corner singles stream (bits 998–1286) is the next
-   DECODER row. **`ExtrudeC` and `LoftC` were authored with the sticky
-   MOde = Surface** (censuses show EXTRUDEDSURFACE/LOFTEDSURFACE + the
-   ASSOC bodies, NO ACSH classes, NO 3DSOLID — the M-stem sessions left
-   the option set) and are QUARANTINED alongside the M-stems as valid
-   offset-variant surface specimens; **RE-AUTHOR both with `MOde` = `Solid`
-   explicitly at the command prompt** (verify the census shows the ACSH
-   classes), then the rows' original predictions stand (ExtrudeC: the
-   pre-CALL position test + the first nonzero profile center; LoftC: the
-   world-vs-relative decision on the wire-verified raw-run reading).
-   **`LoftD` is DEAD** — the maintainer cannot find the loft Settings
-   path in this AutoCAD release; the π/2 pair awaits LoftM's un-quarantine
-   or another lever. **NEW P2: `PolysolidL`** (Height 5, width 3 — the profile of X — path 0,0,0 to 5,0,0; HALF the length; the 2.0109 single probe). AGENT work: the surface-parser row (un-quarantines
-   all 20 quarantined files), the ExtrudeP polyline header, the
-   post-corner singles walk; the revolve option shorts + flags keep NO
-   authoring path.
+(c) NEAR-COMPLETE — the re-authored (MOde = Solid) ExtrudeC and
+   LoftC LANDED in-corpus (corpus 248 -> 256 files, 0/0, quads
+   bit-identical) with both predictions confirmed 100 PERCENT:
+   ExtrudeC reads the profile CALL at length 16 -> 144 with the
+   first nonzero profile center (2.0, 3.0, 0.0) — AND THE PRE-CALL
+   REGION IS RESOLVED: it moved with the offset, carrying the
+   profile center as its own raw-BD run (208 + 128 + 128 = 464
+   bits exactly); LoftC reads [3.0, 4.0, 1.5, 3.0, 4.0, 7.0, 1.5,
+   pi/2, pi/2] — THE LOFT RAW RUN IS FULLY NAMED: per-section
+   [center.x][center.y][height][radius] runs (0.0/1.0 elided as
+   shorts) + the [pi/2, pi/2] draft pair, the world reading (the
+   offsets PRESENT), and the landed original retro-fits exactly.
+   The surface-mode first attempts remain in the quarantine as
+   offset-variant specimens. The ONLY remaining maintainer ask is
+   **PolysolidL** (P2 — the 2.0109 path-length probe; the §18.7
+   row stands). Agent rows: the post-corner singles walk, the loft
+   container walk, the ExtrudeP polyline header, the
+   surface-parser row (20 quarantined files). The loft slot
+   NAMING (exposing the per-section fields on the model) needs the
+   container walk first; the raw_doubles list stays positional
+   until then.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.
 3. Campaign closure prose (§18.5's phase map now fully checked):
