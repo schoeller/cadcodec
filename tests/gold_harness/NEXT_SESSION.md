@@ -134,10 +134,12 @@ target/debug/dump_section_bytes <file> <A> <N>
 ## Commit inventory (this halt)
 
 ```
-<this halt's pair: the NEXT_SESSION.md rewrite>                          <- HEAD
-<docs(harness): the halt refresh — the decode record's gold-shadow entries, the 18.7 rows, the queue state, the push note>
-<test(harness): the 20 surface-twin files land — the tree moves, the CSurf renames, the companions' landed state, the gitignore negation dropped>
-<fix(dwg): the classes gold-shadow walk + the R2013+ surface action-body grammar — the surface-parser row closes>
+<this halt's handover note: the NEXT_SESSION.md commit-inventory hash fix>   <- HEAD
+72xxx docs(harness): the halt refresh — the gold-shadow decode record, the 18.7 landed rows, the queue state
+247e8e9's true neighbors below (the halt's three commits, oldest first):
+f11f7a1 fix(dwg): the classes gold-shadow walk + the R2013+ surface action-body grammar — the surface-parser row closes
+52491d7 test(harness): the 20 surface-twin files land — the quarantine tree closes, the corpus goes 260 -> 280 at 0/0
+247e8e9 docs(harness): the halt refresh — the gold-shadow decode record, the 18.7 landed rows, the queue state
 5c89b59 fix(dwg): the sweep spine named + the extrusion profile CALL — §18.7 differential decode
 57232a6 test(harness): the §18.7 differential set lands — 14 solid stems in-corpus, 3 M-stems quarantined
 ... (the full session arc: 804e892, daedfb7, 05368b3, 839012c, a656f99,
