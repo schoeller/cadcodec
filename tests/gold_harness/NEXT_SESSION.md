@@ -123,9 +123,12 @@ splice + the section checksum).
    shorts) + the [pi/2, pi/2] draft pair, the world reading (the
    offsets PRESENT), and the landed original retro-fits exactly.
    The surface-mode first attempts remain in the quarantine as
-   offset-variant specimens. The ONLY remaining maintainer ask is
-   **PolysolidL** (P2 — the 2.0109 path-length probe; the §18.7
-   row stands). Agent rows: the post-corner singles walk, the loft
+   offset-variant specimens. PolysolidL LANDED (2026-09-24,
+   corpus 260 files 0/0) and its probe was DECISIVE: the 2.0109
+   single (and @900/@1092) is PROFILE-DERIVED — bit-identical
+   between the half-path L and the full-path X — and 4.00024414192312
+   is the record constant; the maintainer fixture surface is now
+   EMPTY. Agent rows: the post-corner singles walk, the loft
    container walk, the ExtrudeP polyline header, the
    surface-parser row (20 quarantined files). The loft slot
    NAMING (exposing the per-section fields on the model) needs the
