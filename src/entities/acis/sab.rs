@@ -97,18 +97,29 @@ impl SabWriter {
 
         // Restore-file record order (2026-09-22 region probe, third
         // verdict): the strict restorer takes the leading records as
-        // the top-level entities to restore — cadkernel-assembled
-        // documents append the body last, so the restorer starts from
-        // a `point` record and reports "Data stream is empty" /
-        // "Audit Failed" while the identical inventory, body-first,
-        // audits clean. Documents whose first record is already the
-        // body — primitive-built (`SatDocument::new_body`) and
-        // captured genus alike — and documents carrying raw binary
-        // tokens are left untouched, keeping echo rewrites
-        // byte-faithful.
+        // the top-level entities to restore AND walks the record
+        // stream in the native class ranking. Cadkernel-assembled
+        // documents append the body last (2026-09-22: body-first fix);
+        // the 2026-09-24 box probe proved the complementary failure -
+        // a body-FIRST assembly whose tail is unranked
+        // (build_planar_body interleaves point/vertex pairs and emits
+        // surfaces after edges) still reads as "Invalid input", while
+        // the identical inventory in rank order (gen_all's solids,
+        // every native specimen) restores clean. The gate is therefore
+        // rank-awareness, not body position: any constructed document
+        // whose class sequence is not already non-decreasing in rank
+        // order is sorted; ranked documents (gen_all's builders, the
+        // echo-compatible primitives) pass through untouched -
+        // byte-stable.
+        let is_ranked = doc
+            .records
+            .windows(2)
+            .all(|pair| {
+                Self::class_rank(&pair[0].entity_type) <= Self::class_rank(&pair[1].entity_type)
+            });
         let reordered;
         let doc = if !doc.records.is_empty()
-            && doc.records[0].entity_type != "body"
+            && !is_ranked
             && doc.records.iter().any(|r| r.entity_type == "body")
             && !doc
                 .records
@@ -303,8 +314,8 @@ impl SabWriter {
     /// curves, vertices, edges, coedges, loops, faces, shells, lumps,
     /// then anything else in assembly order). Position-based ids are
     /// remapped across every pointer token and the attribute field.
-    fn reorder_restore_file(doc: &SatDocument) -> SatDocument {
-        let rank = |record: &SatRecord| match base_entity_type(&record.entity_type) {
+    fn class_rank(entity_type: &str) -> u8 {
+        match base_entity_type(entity_type) {
             "body" => 0u8,
             "point" => 1,
             "surface" => 2,
@@ -317,7 +328,11 @@ impl SabWriter {
             "shell" => 9,
             "lump" => 10,
             _ => 11,
-        };
+        }
+    }
+
+    fn reorder_restore_file(doc: &SatDocument) -> SatDocument {
+        let rank = |record: &SatRecord| Self::class_rank(&record.entity_type);
         let mut order: Vec<usize> = (0..doc.records.len()).collect();
         order.sort_by_key(|&old| rank(&doc.records[old]));
         let mut old_to_new = vec![0i32; doc.records.len()];
@@ -1622,9 +1637,15 @@ mod tests {
 
         assert_eq!(roundtrip.header.version, doc.header.version);
         assert_eq!(roundtrip.records.len(), doc.records.len());
+        // The write ranks the record stream in the native class order
+        // (2026-09-24 rank-aware gate): body, then surfaces, faces,
+        // shells, lumps - the source text's body/lump/shell/face/
+        // plane-surface assembly re-emits ranked, pointers remapped.
         assert_eq!(roundtrip.records[0].entity_type, "body");
-        assert_eq!(roundtrip.records[3].entity_type, "face");
-        assert_eq!(roundtrip.records[4].entity_type, "plane-surface");
+        assert_eq!(roundtrip.records[1].entity_type, "plane-surface");
+        assert_eq!(roundtrip.records[2].entity_type, "face");
+        assert_eq!(roundtrip.records[3].entity_type, "shell");
+        assert_eq!(roundtrip.records[4].entity_type, "lump");
     }
 
     #[test]
