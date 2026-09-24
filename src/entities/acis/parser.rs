@@ -99,8 +99,7 @@ impl SatParser {
         let has_history = parts
             .get(3)
             .and_then(|s| s.parse::<u32>().ok())
-            .unwrap_or(0)
-            != 0;
+            .unwrap_or(0);
 
         Ok(HeaderInfo {
             version: SatVersion::from_sat_number(version_num),
@@ -390,7 +389,7 @@ struct HeaderInfo {
     version: SatVersion,
     num_records: usize,
     num_bodies: usize,
-    has_history: bool,
+    has_history: u32,
 }
 
 // ============================================================================
@@ -780,7 +779,7 @@ mod tests {
         assert_eq!(info.version, SatVersion::new(7, 0, 0));
         assert_eq!(info.num_records, 0);
         assert_eq!(info.num_bodies, 1);
-        assert!(!info.has_history);
+        assert_eq!(info.has_history, 0);
     }
 
     #[test]

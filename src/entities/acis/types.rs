@@ -117,8 +117,11 @@ pub struct SatHeader {
     pub num_records: usize,
     /// Number of bodies.
     pub num_bodies: usize,
-    /// Whether history data is present.
-    pub has_history: bool,
+    /// Raw header history/flags word (4 bytes LE on the SAB wire). The
+    /// native census carries version-dependent values — 26 (ver 21200),
+    /// 24 (21500), 12 (21800), 4 (22300/ASM) — so the raw word is
+    /// retained verbatim; text-parsed documents carry 0/1.
+    pub has_history: u32,
     /// Product identifier string.
     pub product_id: String,
     /// Product version string.
@@ -140,7 +143,7 @@ impl SatHeader {
             version: SatVersion::V7_0,
             num_records: 0,
             num_bodies: 0,
-            has_history: false,
+            has_history: 0,
             product_id: "acadrust".to_string(),
             product_version: "ACIS 7.0".to_string(),
             date: "Thu Jan 01 00:00:00 2023".to_string(),
@@ -2907,29 +2910,33 @@ impl SatDocument {
     ///
     /// Classic ACIS 7.0 SAB (what plain `SabWriter::write` emits) is
     /// rejected by the ASM loader in AutoCAD/BricsCAD for constructed
-    /// solids ("Object improperly read"; the fix/sat-validate-before-sab
-    /// verdict, 2026-09-15, re-confirmed by the 2026-09-24 box campaign:
-    /// the authored Box_2018 fixture's SAB IS an asmheader/transform
-    /// stream). This converts:
+    /// solids ("Object improperly read"). Every form here is the
+    /// authored-specimen census, byte-decoded 2026-09-24 from the
+    /// sh_history 2018 fixtures (uniform across all six parametric
+    /// primitives; `SabReader` round-trips them byte-identically):
     ///
-    /// 1. prepends an `asmheader` record (the ASM schema stamp, version
-    ///    string "208.0.4.7009"), shifting every existing record index by
-    ///    one and remapping all `$N` pointers;
-    /// 2. reverses the body records into the canonical ACIS/ASM
-    ///    **topology-first** order (the kernel appends geometry-first /
-    ///    body-last; ASM restores body-first) and remaps every `$N`
-    ///    pointer accordingly;
-    /// 3. appends an identity `transform` record and links the `body`'s
-    ///    transform pointer to it (ASM bodies carry a transform);
-    /// 4. sets the header to ASM version 22300 with
-    ///    `spatial_resolution = 1.0` and the real record count.
+    /// 1. prepends an `asmheader` record — attribute $-1, INTEGER(-1),
+    ///    STRING("232.6.0.65535") — the ASM schema stamp;
+    /// 2. leads with body, lump, transform, shell — the native positions,
+    ///    the transform directly after the lump — then the remaining
+    ///    records in their existing order, so both assembly genera
+    ///    (cadkernel appends the body last, `new_body` puts it first)
+    ///    restore body-first;
+    /// 3. inserts an identity `transform` — attribute $-1, INTEGER(-1),
+    ///    four DIRECTION rows (the 3x4 placement matrix; identity for
+    ///    world-coordinate assemblies), DOUBLE(1.0) determinant, three
+    ///    TRUE flags — and links the body's LAST pointer token (the
+    ///    transform slot in both the 5-token native and the 4-token
+    ///    `new_body` body shapes) to it;
+    /// 4. stamps the header census: version 22300, num_records 0,
+    ///    num_bodies 2, history/flags word 4, spatial_resolution 1.0,
+    ///    product strings "Autodesk AutoCAD" / "ASM 232.6.0.65535 NT".
     pub fn to_asm_structure(&mut self) {
         // Idempotence: a document that already leads with its asmheader
         // (an ASM stream read back through SabReader, or a conversion run
-        // twice) is already in the canonical layout — re-prepending another
-        // asmheader/transform pair and re-reversing the topological order
-        // would corrupt it. The ASM header fields (version 22300, one
-        // body, the real record count) ride along from the read.
+        // twice) is already in the canonical layout — re-inserting
+        // another asmheader/transform pair would corrupt it. The ASM
+        // header fields ride along from the read.
         if self
             .records
             .first()
@@ -2937,16 +2944,139 @@ impl SatDocument {
         {
             return;
         }
-        let old = std::mem::take(&mut self.records);
+        let mut old: Vec<Option<SatRecord>> =
+            std::mem::take(&mut self.records).into_iter().map(Some).collect();
         let n = old.len();
 
-        // New order: asmheader (index 0), then the existing records
-        // reversed so the body leads (canonical ASM save order). Build
-        // old-index → new-index map: asmheader occupies 0; old record i
-        // lands at index (n - i).
-        let mut index_map = vec![0i32; n];
-        for old_idx in 0..n {
-            index_map[old_idx] = (n - old_idx) as i32;
+        // Resolve the leading trio — the first body, its lump, the
+        // lump's shell — by following pointer tokens to records of the
+        // named class (the body's lump sits at token 2 in the 5-token
+        // native shape and token 1 in the 4-token new_body shape; the
+        // scan handles both). Scoped so the borrows end here.
+        let (body_pos, lump_pos, shell_pos) = {
+            let pointer_targets = |rec: &SatRecord| -> Vec<i32> {
+                rec.tokens
+                    .iter()
+                    .filter_map(|token| match token {
+                        SatToken::Pointer(p) if !p.is_null() => Some(p.0),
+                        _ => None,
+                    })
+                    .collect()
+            };
+            let is_class = |idx: i32, class: &str| {
+                idx >= 0
+                    && (idx as usize) < n
+                    && old[idx as usize]
+                        .as_ref()
+                        .is_some_and(|record| record.entity_type == class)
+            };
+            let body_pos = (0..n as i32).find(|&i| is_class(i, "body"));
+            let lump_pos = body_pos.and_then(|body| {
+                pointer_targets(old[body as usize].as_ref().unwrap())
+                    .into_iter()
+                    .find(|&target| is_class(target, "lump"))
+            });
+            let shell_pos = lump_pos.and_then(|lump| {
+                pointer_targets(old[lump as usize].as_ref().unwrap())
+                    .into_iter()
+                    .find(|&target| is_class(target, "shell"))
+            });
+            (body_pos, lump_pos, shell_pos)
+        };
+
+        // asmheader — the native form.
+        let asmheader = SatRecord {
+            index: 0,
+            entity_type: "asmheader".to_string(),
+            sub_type: None,
+            attribute: SatPointer::NULL,
+            subtype_id: -1,
+            tokens: vec![
+                SatToken::Integer(-1),
+                SatToken::String("232.6.0.65535".to_string()),
+            ],
+            raw_text: None,
+        };
+
+        // Identity transform — the native form. The 3x4 placement matrix
+        // stays identity: constructed assemblies carry world-coordinate
+        // geometry (the authored box instead places its origin-centred
+        // primitive through this transform).
+        let direction = |x: f64, y: f64, z: f64| SatToken::Sab {
+            tag: crate::entities::acis::sab::tags::DIRECTION,
+            data: {
+                let mut data = Vec::with_capacity(24);
+                data.extend_from_slice(&x.to_le_bytes());
+                data.extend_from_slice(&y.to_le_bytes());
+                data.extend_from_slice(&z.to_le_bytes());
+                data
+            },
+        };
+        let transform = SatRecord {
+            index: 3,
+            entity_type: "transform".to_string(),
+            sub_type: None,
+            attribute: SatPointer::NULL,
+            subtype_id: -1,
+            tokens: vec![
+                SatToken::Integer(-1),
+                direction(1.0, 0.0, 0.0),
+                direction(0.0, 1.0, 0.0),
+                direction(0.0, 0.0, 1.0),
+                direction(0.0, 0.0, 0.0),
+                SatToken::Float(1.0),
+                SatToken::True,
+                SatToken::True,
+                SatToken::True,
+            ],
+            raw_text: None,
+        };
+
+        // The body's own transform, when it carries one (its LAST pointer
+        // token, non-null) — placed at the canonical slot. Otherwise the
+        // synthetic identity transform takes the slot.
+        let own_transform_pos: Option<i32> = body_pos
+            .and_then(|body| match old[body as usize].as_ref().unwrap().tokens.last() {
+                Some(SatToken::Pointer(p)) if !p.is_null() => Some(p.0),
+                _ => None,
+            })
+            .filter(|&target| {
+                target >= 0 && (target as usize) < n && old[target as usize].is_some()
+            });
+        let insert_synthetic_transform = body_pos.is_some() && own_transform_pos.is_none();
+
+        // Final layout: asmheader(0), body(1), lump(2), transform(3),
+        // shell(4), then the remaining records in their existing order.
+        // Synthetic slots: -2 = asmheader, -3 = transform.
+        let mut order: Vec<i32> = Vec::with_capacity(n + 2);
+        order.push(-2);
+        if let Some(body) = body_pos {
+            order.push(body);
+        }
+        if let Some(lump) = lump_pos {
+            order.push(lump);
+        }
+        order.push(own_transform_pos.unwrap_or(-3));
+        if let Some(shell) = shell_pos {
+            order.push(shell);
+        }
+        for i in 0..n as i32 {
+            if Some(i) == body_pos
+                || Some(i) == lump_pos
+                || Some(i) == shell_pos
+                || Some(i) == own_transform_pos
+            {
+                continue;
+            }
+            order.push(i);
+        }
+
+        // Old-index → new-index map (synthetic slots link explicitly).
+        let mut index_map = vec![-1i32; n];
+        for (new_pos, &old_idx) in order.iter().enumerate() {
+            if old_idx >= 0 {
+                index_map[old_idx as usize] = new_pos as i32;
+            }
         }
         let remap = |p: i32| -> i32 {
             if p < 0 || (p as usize) >= n {
@@ -2956,78 +3086,60 @@ impl SatDocument {
             }
         };
 
-        let asm_version_string = "208.0.4.7009";
-        let mut asm_data = Vec::with_capacity(1 + asm_version_string.len());
-        asm_data.push(asm_version_string.len() as u8);
-        asm_data.extend_from_slice(asm_version_string.as_bytes());
-        let asmheader = SatRecord {
-            index: 0,
-            entity_type: "asmheader".to_string(),
-            sub_type: None,
-            attribute: SatPointer::NULL,
-            subtype_id: -1,
-            tokens: vec![SatToken::Sab {
-                tag: 0x07, // STRING
-                data: asm_data,
-            }],
-            raw_text: None,
-        };
-
-        let mut records = Vec::with_capacity(n + 2);
-        records.push(asmheader);
-        // Reverse, remapping attribute + token pointers into the new indexing.
-        for (rev_pos, mut rec) in old.into_iter().rev().enumerate() {
-            let old_idx = n - 1 - rev_pos;
-            rec.index = index_map[old_idx];
-            if !rec.attribute.is_null() {
-                rec.attribute = SatPointer::new(remap(rec.attribute.0));
+        let mut records: Vec<SatRecord> = Vec::with_capacity(n + 2);
+        let mut asmheader_slot = Some(asmheader);
+        let mut transform_slot = Some(transform);
+        for (new_pos, &slot) in order.iter().enumerate() {
+            let mut record = match slot {
+                -2 => asmheader_slot.take().expect("asmheader slot once"),
+                -3 => transform_slot.take().expect("transform slot once"),
+                i => old[i as usize].take().expect("slot visited twice"),
+            };
+            record.index = new_pos as i32;
+            if !record.attribute.is_null() {
+                record.attribute = SatPointer::new(remap(record.attribute.0));
             }
-            for token in &mut rec.tokens {
+            for token in &mut record.tokens {
                 if let SatToken::Pointer(p) = token {
                     if !p.is_null() {
                         p.0 = remap(p.0);
                     }
                 }
             }
-            records.push(rec);
+            records.push(record);
         }
         self.records = records;
 
-        // Append an identity transform and link the body's transform pointer.
-        let transform_index = self.records.len() as i32;
-        let transform_text = "1 0 0 0 1 0 0 0 1 0 0 1 1 no_rotate no_reflect no_shear ";
-        let mut t_data = Vec::with_capacity(4 + transform_text.len());
-        t_data.extend_from_slice(&(transform_text.len() as u32).to_le_bytes());
-        t_data.extend_from_slice(transform_text.as_bytes());
-        let transform = SatRecord {
-            index: transform_index,
-            entity_type: "transform".to_string(),
-            sub_type: None,
-            attribute: SatPointer::NULL,
-            subtype_id: -1,
-            tokens: vec![SatToken::Sab {
-                tag: 0x12, // ASM_LONG_STRING
-                data: t_data,
-            }],
-            raw_text: None,
-        };
-        self.records.push(transform);
-
-        // Link the body's transform pointer (4th pointer token) to it.
-        for rec in &mut self.records {
-            if rec.entity_type == "body" {
-                // body tokens: [next_body, lump, wire, transform]
-                if let Some(SatToken::Pointer(p)) = rec.tokens.get_mut(3) {
-                    *p = SatPointer::new(transform_index);
+        // Link the body's transform slot — its LAST pointer token in both
+        // body shapes — to the synthetic transform. Only inserted when the
+        // body carried no transform of its own; a document's own transform
+        // keeps its link (remapped above).
+        if insert_synthetic_transform {
+            let transform_index = order
+                .iter()
+                .position(|&slot| slot == -3)
+                .expect("transform slot present") as i32;
+            if let Some(body) = self
+                .records
+                .iter_mut()
+                .find(|record| record.entity_type == "body")
+            {
+                if let Some(SatToken::Pointer(p)) = body.tokens.last_mut() {
+                    if p.is_null() {
+                        *p = SatPointer::new(transform_index);
+                    }
                 }
             }
         }
 
-        // Header: ASM version, one body per solid, spatial_resolution 1.0.
+        // Header — the native census.
         self.header.version = SatVersion::from_sat_number(Self::ASM_SAB_VERSION_R2018);
-        self.header.num_bodies = 1;
+        self.header.num_records = 0;
+        self.header.num_bodies = 2;
+        self.header.has_history = 4;
         self.header.spatial_resolution = 1.0;
-        self.header.num_records = self.records.len();
+        self.header.product_id = "Autodesk AutoCAD".to_string();
+        self.header.product_version = "ASM 232.6.0.65535 NT".to_string();
     }
 
     /// Strip non-geometry records, restructure to ASM layout, validate, and

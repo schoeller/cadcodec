@@ -231,9 +231,9 @@ impl SabWriter {
         let declared = header.num_bodies.max(body_count);
         buf.extend_from_slice(&(declared as u32).to_le_bytes());
 
-        // has_history (4 bytes LE)
-        let history: u32 = if header.has_history { 1 } else { 0 };
-        buf.extend_from_slice(&history.to_le_bytes());
+        // has_history / flags word (4 bytes LE) — retained verbatim (the
+        // native census: 26/24/12/4 by version; 0/1 for text-parsed).
+        buf.extend_from_slice(&header.has_history.to_le_bytes());
 
         // Product info strings
         Self::write_string(buf, &header.product_id);
@@ -1098,7 +1098,7 @@ impl SabReader {
         let version_num = read_u32(data, &mut pos)?;
         let num_records = read_u32(data, &mut pos)? as usize;
         let num_bodies = read_u32(data, &mut pos)? as usize;
-        let has_history = read_u32(data, &mut pos)? != 0;
+        let has_history = read_u32(data, &mut pos)?;
 
         let version = SatVersion::from_sat_number(version_num);
 
@@ -1798,7 +1798,9 @@ mod tests {
             ["no_rotate", "no_reflect", "no_shear"]
         );
         let text = roundtrip.to_sat_string();
-        assert!(text.starts_with("21200 2 1 1\n"));
+        // The history/flags word is retained verbatim (the native census:
+        // 26/24/12/4 by version) — no bool truncation on the round-trip.
+        assert!(text.starts_with("21200 2 1 26\n"));
         assert!(text.contains(" forward double out #\n"));
         assert!(text.contains(" no_rotate no_reflect no_shear #\n"));
     }

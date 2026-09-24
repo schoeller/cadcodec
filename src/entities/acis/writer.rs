@@ -26,7 +26,7 @@ impl SatWriter {
             doc.header.version.sat_version_number(),
             num_records_out,
             doc.header.num_bodies,
-            u32::from(doc.header.has_history)
+            doc.header.has_history
         ));
 
         // Header line 2: product info
