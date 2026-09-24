@@ -26,7 +26,10 @@
 //! only where they differ from the decode, so a programmatic field edit
 //! lands bit-locally while an untouched record stays byte-identical.
 
-use crate::objects::{SolidHistoryLoftTail, SolidHistoryRevolveTail, SolidHistorySweepTail};
+use crate::objects::{
+    SolidHistoryLoftTail, SolidHistoryProfileCall, SolidHistoryProfileCircle,
+    SolidHistoryRevolveTail, SolidHistorySweepTail,
+};
 
 /// A bit range within a tail, MSB-packed ([start, start+len)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -289,16 +292,100 @@ pub(crate) struct SweepTailInfo {
     pub direction: [f64; 3],
     pub direction_spans: [Span; 3],
     pub view: SolidHistorySweepTail,
+    pub spine_spans: [Span; 6],
     pub option_spans: Vec<Span>,
     pub raw_spans: Vec<Span>,
     pub corner_spans: Vec<[Span; 2]>,
     pub segment_end_spans: Option<[Span; 2]>,
+    pub profile_circle_spans: Option<ProfileCircleSpans>,
+}
+
+/// Spans of the extrusion profile CALL's circle body.
+pub(crate) struct ProfileCircleSpans {
+    pub center: [Span; 3],
+    pub radius: Span,
+    pub normal: [Span; 3],
+}
+
+/// The embedded-entity type code of the polyline profile CALL (the
+/// `OBJ_LWPOLYLINE` constant in the object readers' common tables);
+/// the circle code `PROFILE_CIRCLE` is defined at the revolve section.
+const PROFILE_LWPOLYLINE: i64 = 77;
+
+/// Scan for the extrusion profile CALL `[BL kind][BL bit-length][body]`
+/// closing at `bit_len - 2` (the two trailing flag bits). Returns
+/// (kind, bit_len, body_start). The pre-CALL region between the spine
+/// extras and the CALL stays opaque (profile-dependent, value-stable
+/// across the radius/height/taper differentials).
+fn scan_profile_call(bits: &TailBits, from: u32) -> Option<(i64, i64, u32)> {
+    let target = bits.bit_len.checked_sub(2)?;
+    let mut pos = from;
+    while pos < target {
+        let (kind, after_kind) = read_bl(bits, pos)?;
+        if kind != PROFILE_CIRCLE && kind != PROFILE_LWPOLYLINE {
+            pos += 2;
+            continue;
+        }
+        if let Some((len, body_start)) = read_bl(bits, after_kind) {
+            if len > 0 && body_start.checked_add(len as u32)? == target {
+                return Some((kind, len, body_start));
+            }
+        }
+        pos += 2;
+    }
+    None
+}
+
+/// Parse the circle CALL body `[center 3BD][radius BD][normal 3BD]`,
+/// requiring it to consume exactly `bit_len - 2` bits (the two
+/// in-window flag bits follow).
+fn parse_sweep_profile_circle(
+    bits: &TailBits,
+    body_start: u32,
+    call_len: i64,
+) -> Option<(SolidHistoryProfileCircle, ProfileCircleSpans)> {
+    let body_end = body_start.checked_add((call_len - 2) as u32)?;
+    let mut pos = body_start;
+    let mut center = [0.0f64; 3];
+    let mut center_spans = [Span { start: 0, len: 0 }; 3];
+    for axis in 0..3 {
+        let entry = read_bd(bits, pos)?;
+        center[axis] = entry.value;
+        center_spans[axis] = entry.span;
+        pos = entry.span.start + entry.span.len;
+    }
+    let radius = read_bd(bits, pos)?;
+    let radius_span = radius.span;
+    pos = radius.span.start + radius.span.len;
+    let mut normal = [0.0f64; 3];
+    let mut normal_spans = [Span { start: 0, len: 0 }; 3];
+    for axis in 0..3 {
+        let entry = read_bd(bits, pos)?;
+        normal[axis] = entry.value;
+        normal_spans[axis] = entry.span;
+        pos = entry.span.start + entry.span.len;
+    }
+    if pos != body_end {
+        return None;
+    }
+    Some((
+        SolidHistoryProfileCircle {
+            center,
+            radius: radius.value,
+            normal,
+        },
+        ProfileCircleSpans {
+            center: center_spans,
+            radius: radius_span,
+            normal: normal_spans,
+        },
+    ))
 }
 
 /// Decode a captured sweep/extrusion tail (ACSH_SWEEP_CLASS /
 /// ACSH_EXTRUSION_CLASS). Returns `None` when the anchor layout does not
-/// hold (tail shorter than a direction, or the reserved code inside the
-/// head run) — the record then keeps its verbatim-only behavior.
+/// hold (tail shorter than a direction + the six-slot spine) — the
+/// record then keeps its verbatim-only behavior.
 pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailInfo> {
     if bit_len < 6 || bytes.len() * 8 < bit_len as usize {
         return None;
@@ -315,21 +402,69 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
         direction_spans[axis] = entry.span;
         pos += entry.span.len;
     }
-    let (options, option_spans, head_end) = read_head_shorts(&bits, pos);
-    if options.is_empty() {
-        return None;
+    // The six sweep-option BDs, in the SweepOptions order (§18.7
+    // ExtrudeT differential: the draft angle lands raw in slot 0; the
+    // 1.0 default sits in the scale slot 4):
+    // [draft_angle][draft_start_distance][draft_end_distance]
+    // [twist_angle][scale_factor][align_angle].
+    let mut spine = [0.0f64; 6];
+    let mut spine_spans = [Span { start: 0, len: 0 }; 6];
+    for slot in 0..6 {
+        let entry = read_bd(&bits, pos)?;
+        spine[slot] = entry.value;
+        spine_spans[slot] = entry.span;
+        pos = entry.span.start + entry.span.len;
+    }
+    // All-short extras after the named spine (the Polysolid sweep
+    // carries two trailing zeros; extrusion tails stop at the reserved
+    // pair that opens the pre-CALL region). The profile CALL chain is
+    // probed at every step: the CALL's '01' BL marker is also a legal
+    // short BD, so an extrusion tail whose CALL follows the spine
+    // directly must not have it consumed as an extra.
+    let mut extras: Vec<f64> = Vec::new();
+    let mut option_spans: Vec<Span> = Vec::new();
+    let mut extras_end = pos;
+    let mut profile_chain = scan_profile_call(&bits, pos);
+    while profile_chain.is_none() && extras.len() < MAX_HEAD {
+        match bits.code(extras_end) {
+            Some(0b01) => {
+                extras.push(1.0);
+                option_spans.push(Span {
+                    start: extras_end,
+                    len: 2,
+                });
+                extras_end += 2;
+            }
+            Some(0b10) => {
+                extras.push(0.0);
+                option_spans.push(Span {
+                    start: extras_end,
+                    len: 2,
+                });
+                extras_end += 2;
+            }
+            _ => break,
+        }
+        profile_chain = scan_profile_call(&bits, extras_end);
     }
     // Byte-aligned geometry runs bound the raw-marker scan: the sweep
     // profile corners are a run of >= 4 byte-aligned LE64 doubles, and no
     // raw BD frame entry can live inside one.
     let runs = aligned_runs(&bits, 4, 4);
     let raw_bound = runs.first().map_or(bit_len, |(positions, _)| positions[0]);
-    let (raw_values, raw_spans) = scan_raws(&bits, head_end, raw_bound);
+    let (raw_values, raw_spans) = scan_raws(&bits, extras_end, raw_bound);
     let mut view = SolidHistorySweepTail {
-        option_doubles: options,
+        draft_angle: Some(spine[0]),
+        draft_start_distance: Some(spine[1]),
+        draft_end_distance: Some(spine[2]),
+        twist_angle: Some(spine[3]),
+        scale_factor: Some(spine[4]),
+        align_angle: Some(spine[5]),
+        option_doubles: extras,
         raw_doubles: raw_values,
         profile_corners: Vec::new(),
         segment_end: None,
+        profile: None,
     };
     let mut corner_spans = Vec::new();
     if let Some((positions, values)) = runs.first() {
@@ -376,14 +511,53 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
             }
         }
     }
+    // The extrusion profile CALL (§18.7 ExtrudeR/P evidence): sweep
+    // tails carry none — their profile is the packed corners above.
+    let mut profile_circle_spans = None;
+    if let Some((kind, call_len, body_start)) = profile_chain {
+        let mut circle = None;
+        if kind == PROFILE_CIRCLE {
+            if let Some((parsed, spans)) = parse_sweep_profile_circle(&bits, body_start, call_len) {
+                circle = Some(parsed);
+                profile_circle_spans = Some(spans);
+            } else {
+                // The chain closed but the body did not parse as a
+                // circle: keep the CALL presence without the typed
+                // circle fields (positional only).
+                view.profile = Some(SolidHistoryProfileCall {
+                    kind,
+                    bit_len: call_len,
+                    circle: None,
+                });
+                return Some(SweepTailInfo {
+                    direction,
+                    direction_spans,
+                    view,
+                    spine_spans,
+                    option_spans,
+                    raw_spans,
+                    corner_spans,
+                    segment_end_spans,
+                    profile_circle_spans: None,
+                });
+            }
+        }
+        view.profile = Some(SolidHistoryProfileCall {
+            kind,
+            bit_len: call_len,
+            circle,
+        });
+    }
     Some(SweepTailInfo {
         direction,
         direction_spans,
         view,
+        spine_spans,
         option_spans,
         raw_spans,
         corner_spans,
         segment_end_spans,
+        profile_circle_spans,
     })
 }
 
@@ -661,6 +835,26 @@ pub(crate) fn render_sweep_tail(
         }
     }
     if let Some(view) = view {
+        // The six named spine slots (same-form splices: raw spans take
+        // any f64, short spans only the 0.0/1.0 pair flips).
+        for (slot, (new, old)) in [
+            (view.draft_angle, info.view.draft_angle),
+            (view.draft_start_distance, info.view.draft_start_distance),
+            (view.draft_end_distance, info.view.draft_end_distance),
+            (view.twist_angle, info.view.twist_angle),
+            (view.scale_factor, info.view.scale_factor),
+            (view.align_angle, info.view.align_angle),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            if let (Some(new), Some(old)) = (new, old) {
+                if new != old {
+                    let span = info.spine_spans[slot];
+                    splice_bd_field(&mut bits, span, span.len == 66, new);
+                }
+            }
+        }
         splice_short_run(&mut bits, &info.option_spans, &view.option_doubles, &info.view.option_doubles);
         splice_raw_run(&mut bits, &info.raw_spans, &view.raw_doubles, &info.view.raw_doubles);
         slice_pairs(&mut bits, &info.corner_spans, &view.profile_corners, &info.view.profile_corners);
@@ -672,6 +866,30 @@ pub(crate) fn render_sweep_tail(
             if new != old {
                 let _ = bits.set_le64(spans[0].start, new[0]);
                 let _ = bits.set_le64(spans[1].start, new[1]);
+            }
+        }
+        // The profile circle fields (same-form per component; the CALL's
+        // kind/bit-length are structural and never spliced).
+        if let (Some(spans), Some(new), Some(old)) = (
+            &info.profile_circle_spans,
+            view.profile.as_ref().and_then(|call| call.circle.as_ref()),
+            info.view.profile.as_ref().and_then(|call| call.circle.as_ref()),
+        ) {
+            for axis in 0..3 {
+                if new.center[axis] != old.center[axis] {
+                    let span = spans.center[axis];
+                    splice_bd_field(&mut bits, span, span.len == 66, new.center[axis]);
+                }
+            }
+            if new.radius != old.radius {
+                let span = spans.radius;
+                splice_bd_field(&mut bits, span, span.len == 66, new.radius);
+            }
+            for axis in 0..3 {
+                if new.normal[axis] != old.normal[axis] {
+                    let span = spans.normal[axis];
+                    splice_bd_field(&mut bits, span, span.len == 66, new.normal[axis]);
+                }
             }
         }
     }
@@ -836,13 +1054,21 @@ fn splice_raw_run(
 mod tests {
     use super::*;
 
-    /// Minimal synthetic sweep tail: [3BD direction with raw z] [option
-    /// shorts 1.0, 0.0] [raw BD 2.0] — enough to drive the render rules.
+    /// Minimal synthetic extrusion tail in the confirmed grammar:
+    /// [3BD direction with raw z] [six spine BDs: 0,0,0,0,1.0,0]
+    /// [CALL: BL 18][BL 16][circle (0,0,0) r 1.0-short, normal
+    /// (0,0,1)] [2 in-window flag bits][2 trailing bits].
     fn synthetic_sweep_tail() -> (Vec<u8>, u32) {
         let mut bits: Vec<u8> = Vec::new();
         fn pair(bits: &mut Vec<u8>, code: u8) {
             bits.push(code >> 1);
             bits.push(code & 1);
+        }
+        fn rc(bits: &mut Vec<u8>, value: u8) {
+            pair(bits, 0b01);
+            for bit in (0..8).rev() {
+                bits.push((value >> bit) & 1);
+            }
         }
         pair(&mut bits, 0b10); // BD 0.0 (direction x)
         pair(&mut bits, 0b10); // BD 0.0 (direction y)
@@ -853,8 +1079,25 @@ mod tests {
                 bits.push((byte >> bit) & 1);
             }
         }
-        pair(&mut bits, 0b01); // option 1.0 (scale)
-        pair(&mut bits, 0b10); // option 0.0
+        // The six spine slots: draft, start, end, twist, scale, align.
+        pair(&mut bits, 0b10); // draft_angle 0.0
+        pair(&mut bits, 0b10); // draft_start_distance 0.0
+        pair(&mut bits, 0b10); // draft_end_distance 0.0
+        pair(&mut bits, 0b10); // twist_angle 0.0
+        pair(&mut bits, 0b01); // scale_factor 1.0
+        pair(&mut bits, 0b10); // align_angle 0.0
+        // The profile CALL: [BL 18][BL 16][circle body][2 flags].
+        rc(&mut bits, 18);
+        rc(&mut bits, 16);
+        pair(&mut bits, 0b10); // center x 0.0
+        pair(&mut bits, 0b10); // center y 0.0
+        pair(&mut bits, 0b10); // center z 0.0
+        pair(&mut bits, 0b01); // radius 1.0 (short)
+        pair(&mut bits, 0b10); // normal x 0.0
+        pair(&mut bits, 0b10); // normal y 0.0
+        pair(&mut bits, 0b01); // normal z 1.0
+        pair(&mut bits, 0b00); // in-window flag bits
+        pair(&mut bits, 0b10); // trailing bits
         let bit_len = bits.len() as u32;
         let mut bytes = vec![0u8; (bit_len as usize + 7) / 8];
         for (index, bit) in bits.iter().enumerate() {
@@ -869,6 +1112,10 @@ mod tests {
     fn unmodified_renders_stay_verbatim() {
         let (bytes, bit_len) = synthetic_sweep_tail();
         let info = decode_sweep_tail(&bytes, bit_len).expect("synthetic tail decodes");
+        assert_eq!(info.view.scale_factor, Some(1.0));
+        let call = info.view.profile.as_ref().expect("the CALL decodes");
+        assert_eq!(call.kind, 18);
+        assert_eq!(call.bit_len, 16);
         let rendered = render_sweep_tail(
             &bytes,
             bit_len,
@@ -884,7 +1131,8 @@ mod tests {
         let (bytes, bit_len) = synthetic_sweep_tail();
         let rendered = render_sweep_tail(&bytes, bit_len, [0.0, 0.0, 3.0], None)
             .expect("render works");
-        // Only the direction-z raw span moved; bit length is unchanged.
+        // Only the direction-z raw value span moved (bits [6..70),
+        // bytes 0..=8); bit length is unchanged.
         assert_eq!(rendered.len(), bytes.len());
         let differing: Vec<usize> = rendered
             .iter()
@@ -894,18 +1142,21 @@ mod tests {
             .map(|(index, _)| index)
             .collect();
         assert!(!differing.is_empty());
-        assert!(differing.iter().all(|index| (1..10).contains(index)));
+        assert!(differing.iter().all(|index| (0..9).contains(index)));
         // Re-decode: the new direction reads back through the spans.
         let info = decode_sweep_tail(&rendered, bit_len).unwrap();
         assert_eq!(info.direction, [0.0, 0.0, 3.0]);
     }
 
     #[test]
-    fn option_short_edits_flip_only_same_form_pairs() {
+    fn spine_and_profile_edits_flip_only_same_form_pairs() {
         let (bytes, bit_len) = synthetic_sweep_tail();
         let info = decode_sweep_tail(&bytes, bit_len).unwrap();
+        // Same-form short flips: draft 0.0 -> 1.0 (bits [70..72),
+        // byte 8) and scale 1.0 -> 0.0 (bits [78..80), byte 9).
         let mut view = info.view.clone();
-        view.option_doubles[1] = 1.0; // 0.0 -> 1.0 stays a valid short code
+        view.draft_angle = Some(1.0);
+        view.scale_factor = Some(0.0);
         let rendered = render_sweep_tail(&bytes, bit_len, info.direction, Some(&view))
             .expect("render works");
         assert_eq!(rendered.len(), bytes.len());
@@ -916,18 +1167,34 @@ mod tests {
             .filter(|(_, (a, b))| a != b)
             .map(|(index, _)| index)
             .collect();
-        // The option pair sits at bits [72..74): byte 9 only.
-        assert_eq!(differing, vec![9]);
-        // A form-changing value (0.7) cannot be expressed in the short
-        // span, so the render keeps the stored bits (Phase B write rule:
-        // no length-shifting re-encode for short spans).
+        assert_eq!(differing, vec![8, 9]);
+        // Form-changing values on short spans keep the stored bits
+        // (the Phase B write rule: no length-shifting re-encode), and
+        // the profile radius short (1.0 -> 2.5) keeps them too.
         let mut view = info.view.clone();
-        view.option_doubles[1] = 0.7;
+        view.draft_angle = Some(0.7);
+        view.profile
+            .as_mut()
+            .unwrap()
+            .circle
+            .as_mut()
+            .unwrap()
+            .radius = 2.5;
         let rendered = render_sweep_tail(&bytes, bit_len, info.direction, Some(&view))
             .expect("render works");
         assert_eq!(rendered, bytes);
-        // A raw-span family member (the 2.0 direction z) takes any f64.
-        let rendered = render_sweep_tail(&bytes, bit_len, [0.0, 0.0, 2.5], None).unwrap();
+        // The profile radius short CAN flip to 0.0 (bits [108..110),
+        // byte 13).
+        let mut view = info.view.clone();
+        view.profile
+            .as_mut()
+            .unwrap()
+            .circle
+            .as_mut()
+            .unwrap()
+            .radius = 0.0;
+        let rendered = render_sweep_tail(&bytes, bit_len, info.direction, Some(&view))
+            .expect("render works");
         let differing: Vec<usize> = rendered
             .iter()
             .zip(bytes.iter())
@@ -935,8 +1202,7 @@ mod tests {
             .filter(|(_, (a, b))| a != b)
             .map(|(index, _)| index)
             .collect();
-        assert!(!differing.is_empty());
-        assert!(differing.iter().all(|index| (1..10).contains(index)));
+        assert_eq!(differing, vec![13]);
     }
 
     #[test]

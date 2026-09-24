@@ -25,15 +25,27 @@ Each of the four raw-retained tails — `SolidHistorySweep::shsw_raw_tail`
 (populated by `src/io/dwg/sh_tail_decode.rs` right after the Phase A
 capture; `None` when the anchor layout doesn't hold):
 
-- **Sweep/Extrusion** (`SolidHistorySweepTail`): the direction 3BD
-  head, the all-short BD option run whose `BD('01')` member is the
-  scale factor, the mid-region raw BD entries (the Polysolid's path
-  unit direction `[+u_y, -u_x, -u_x, -u_y]`, twice), the byte-aligned
-  profile corner pairs (the Polysolid rectangle
-  `[(±2.5, {0,2})]`), and the final segment-end pair
-  `(3065.007936309483, 1463.5113930448078)` — gold's R2010
-  3DSOLID wireframe anchor is exactly its half (the live-oracle
-  overlap that names the semantics).
+- **Sweep/Extrusion** (`SolidHistorySweepTail`) — **DECODED through
+  the §18.7 differential (2026-09-24)**: the direction 3BD head, the
+  SIX NAMED SPINE SLOTS in the SweepOptions order
+  `[draft_angle][draft_start_distance][draft_end_distance]
+  [twist_angle][scale_factor][align_angle]` (ExtrudeT's 15° draft
+  lands raw in slot 0; the 1.0 default is the scale), the sweep-only
+  extras (the Polysolid's two trailing zeros), the mid-region raw BD
+  frame entries (the Polysolid's path unit direction
+  `[+u_y, -u_x, -u_x, -u_y]` — confirmed on three directions by
+  PolysolidX/D), the byte-aligned profile corner pairs, the final
+  segment-end pair (gold's R2010 wireframe anchor is exactly its
+  half — the live-oracle overlap), and — on EXTRUSION tails — the
+  embedded PROFILE CALL `[BL kind][BL bit-length][body]` closing at
+  bit_len − 2: kind 18 = OBJ_CIRCLE with the body
+  `[center 3BD][radius BD][normal 3BD]` (the landed/H/T quads:
+  circle (0,0,0) r 1.0-short; ExtrudeR: r 3.125-raw, the CALL length
+  16 → 80), kind 77 = OBJ_LWPOLYLINE (ExtrudeP, length 544; the
+  packed vertex array awaits its header grammar). The pre-CALL
+  region between the spine and the CALL stays opaque
+  (profile-dependent, value-stable across the radius/height/taper
+  differentials).
 - **Loft** (`SolidHistoryLoftTail`): head `[1.0]` + raw run
   `[2.0, 2.0, 5.0, 0.3, π/2, π/2]` (positional).
 - **Revolve** (`SolidHistoryRevolveTail`) — **CLOSED by the
@@ -78,17 +90,20 @@ splice + the section checksum).
    (12 files) are QUARANTINED in `tests_quarantine/sh_history/`
    pending the silver surface-parser row (the R2007+ surface
    entities + ASSOC surface action bodies; 14 diffs/file today).
-   **The next session's work:** (a) extend `sh_tail_decode.rs`
-   with the now-named fields — the sweep spine slots (the
-   ExtrudeT raw first slot; keep the verbatim fallback), the
-   extrusion profile circle in the trailer, the loft
-   [section-z][top-radius] slots, the revolve axis-pair raws
-   (already decoded) — and pin hermetic tests per new field;
-   (b) the surface-parser row (the ASSOC* SURFACEACTIONBODY
-   classes + the surface entities) to un-quarantine the M-stems;
-   (c) the remaining unnamed singles (the sweep frame blocks'
-   2.0109/-19594-class entries) — a third Polysolid specimen
-   with different W/H would finish them.
+   **Work state:** (a) DONE 2026-09-24 — the sweep spine is named
+   (all six slots, splice-backed), the extrusion profile CALL
+   decodes (the circle body fully; the polyline CALL recorded with
+   its packed vertices pending the header grammar), pinned by four
+   new hermetic tests + the rewritten module tests (the suite is
+   15 green); the loft slots stay positional (the container is a
+   packed-double stream, not a BD stream — the raw scan reads the
+   values; naming the container needs the loft header grammar).
+   (b) OPEN: the surface-parser row (the ASSOC* SURFACEACTIONBODY
+   classes + the R2007+ surface entities) to un-quarantine the
+   M-stems. (c) OPEN: the sweep frame blocks' unnamed singles
+   (2.0109/3.0/−19594-class) — a third Polysolid specimen with
+   different W/H would finish them; the extrusion pre-CALL
+   region; the ExtrudeP polyline header; the loft container.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.
 3. Campaign closure prose (§18.5's phase map now fully checked):

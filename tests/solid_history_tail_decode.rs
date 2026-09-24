@@ -36,6 +36,15 @@ const POLYSOLID_SWEEP_BITS: u32 = 1738;
 
 const EXTRUDE_SWEEP_HEX: &str = "A00000000000000102A9B2052A9AA6A9AA5AA6A9AA512442A692";
 const EXTRUDE_SWEEP_BITS: u32 = 208;
+const EXTRUDE_T_HEX: &str = "A0000000000000010065732D3852C1D03FA9B2052A9AA6A9AA5AA6A9AA512442A692";
+const EXTRUDE_T_BITS: u32 = 272;
+
+const EXTRUDE_R_HEX: &str = "A00000000000000102A9B2052A9AA6A9AA5AA6A9AA512542A0000000000000250292";
+const EXTRUDE_R_BITS: u32 = 272;
+
+const EXTRUDE_P_HEX: &str = "A00000000000000102A9B2052A9A1829074AC411BF8FE61DAB10061A71FD8FE9AA5AA6A9AA54D0800800000002410000000000000000000000000000000000000000000004100000000000000000000000000000041000000000000002100000000000000000000000000000021032";
+const EXTRUDE_P_BITS: u32 = 888;
+
 
 const LOFT_HEX: &str = "442A6911204004000000000000000000400000000000000010000000000000014400CCCCCCCCCCCF4CFE928182D4454FB21F93F060B51153EC87E4FE9D60";
 const LOFT_BITS: u32 = 492;
@@ -55,8 +64,16 @@ fn polysolid_sweep_tail_decodes_the_pinned_semantics() {
     let bytes = unhex(POLYSOLID_SWEEP_HEX);
     let view = sweep_tail_view(&bytes, POLYSOLID_SWEEP_BITS)
         .expect("the polysolid sweep tail must decode");
-    // Head: the sweep option spine with the BD('01') scale member.
-    assert_eq!(view.option_doubles, vec![0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]);
+    // The six named spine slots (the SweepOptions order) + the two
+    // all-short sweep extras.
+    assert_eq!(view.draft_angle, Some(0.0));
+    assert_eq!(view.draft_start_distance, Some(0.0));
+    assert_eq!(view.draft_end_distance, Some(0.0));
+    assert_eq!(view.twist_angle, Some(0.0));
+    assert_eq!(view.scale_factor, Some(1.0));
+    assert_eq!(view.align_angle, Some(0.0));
+    assert_eq!(view.option_doubles, vec![0.0, 0.0]);
+    assert_eq!(view.profile, None);
     // Mid-region raw BD entries: the path unit direction components
     // ([+u_y, -u_x, -u_x, -u_y], twice) — confirmed against the R2010
     // live-oracle anchor geometry (segment end (3065.007936309483,
@@ -98,11 +115,28 @@ fn extrude_tail_decodes_the_pinned_semantics() {
     // The direction is the extrusion length vector (0, 0, 2.0): the
     // circle-extrude fixture stands 2 tall (live-oracle wires z 0..2).
     // `direction` itself is the SolidHistorySweep model field, reused
-    // by the writer's render compare; the option spine is shared with
-    // the sweep, minus the two trailing zeros.
-    assert_eq!(view.option_doubles, vec![0.0, 0.0, 0.0, 0.0, 1.0, 0.0]);
+    // by the writer's render compare.
+    // The six named spine slots: all defaults, scale 1.0.
+    assert_eq!(view.draft_angle, Some(0.0));
+    assert_eq!(view.draft_start_distance, Some(0.0));
+    assert_eq!(view.draft_end_distance, Some(0.0));
+    assert_eq!(view.twist_angle, Some(0.0));
+    assert_eq!(view.scale_factor, Some(1.0));
+    assert_eq!(view.align_angle, Some(0.0));
+    assert!(view.option_doubles.is_empty());
+    // The embedded profile circle (the S18.7 CALL grammar): the
+    // fixture's circle is center (0, 0, 0) radius 1.0 — the radius
+    // exactly 1.0 takes the two-bit short BD — with the plan normal
+    // (0, 0, 1); the CALL bit-length 16 covers the body + 2 flag bits.
+    let call = view.profile.as_ref().expect("the profile CALL decodes");
+    assert_eq!(call.kind, 18);
+    assert_eq!(call.bit_len, 16);
+    let circle = call.circle.as_ref().expect("the circle body decodes");
+    assert_eq!(circle.center, [0.0, 0.0, 0.0]);
+    assert_eq!(circle.radius, 1.0);
+    assert_eq!(circle.normal, [0.0, 0.0, 1.0]);
     // The extrusion tail has no frame entries, profile corners or
-    // segment end (its payload stays opaque; written verbatim).
+    // segment end.
     assert!(view.raw_doubles.is_empty());
     assert!(view.profile_corners.is_empty());
     assert_eq!(view.segment_end, None);
@@ -290,7 +324,8 @@ fn raw_tails_round_trip_verbatim_and_decoded() {
     );
     assert_eq!(view.profile_corners.len(), 4);
     assert_eq!(view.raw_doubles.len(), 10);
-    assert_eq!(view.option_doubles, vec![0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]);
+    assert_eq!(view.scale_factor, Some(1.0));
+    assert_eq!(view.option_doubles, vec![0.0, 0.0]);
 }
 
 #[test]
@@ -522,3 +557,129 @@ fn undecodable_tails_stay_verbatim_never_modeled() {
     assert!(sweep.tail_decode.is_none(), "no typed view is claimed");
 }
 
+#[test]
+fn extrude_t_names_the_sweep_option_spine() {
+    // The §18.7 ExtrudeT quad (typed 15-degree taper): the draft lands
+    // as a raw BD in the FIRST spine slot — the SweepOptions order
+    // [draft_angle][draft_start_distance][draft_end_distance]
+    // [twist_angle][scale_factor][align_angle] — and the profile
+    // circle is the untouched r 1.0 default.
+    let view = sweep_tail_view(&unhex(EXTRUDE_T_HEX), EXTRUDE_T_BITS)
+        .expect("the ExtrudeT tail must decode");
+    assert_eq!(view.draft_angle, Some(0.2617993877991494)); // 15 deg
+    assert_eq!(view.draft_start_distance, Some(0.0));
+    assert_eq!(view.draft_end_distance, Some(0.0));
+    assert_eq!(view.twist_angle, Some(0.0));
+    assert_eq!(view.scale_factor, Some(1.0));
+    assert_eq!(view.align_angle, Some(0.0));
+    let call = view.profile.as_ref().expect("the profile CALL decodes");
+    assert_eq!(call.kind, 18);
+    assert_eq!(call.bit_len, 16);
+    let circle = call.circle.as_ref().expect("the circle body decodes");
+    assert_eq!(circle.radius, 1.0);
+    assert_eq!(circle.center, [0.0, 0.0, 0.0]);
+    assert_eq!(circle.normal, [0.0, 0.0, 1.0]);
+}
+
+#[test]
+fn extrude_r_decodes_the_profile_circle_radius() {
+    // The §18.7 ExtrudeR quad (radius 3.125): the CALL bit-length
+    // grows 16 -> 80 — the radius takes the raw BD form where the
+    // landed fixture's exactly-1.0 took the two-bit short.
+    let view = sweep_tail_view(&unhex(EXTRUDE_R_HEX), EXTRUDE_R_BITS)
+        .expect("the ExtrudeR tail must decode");
+    let call = view.profile.as_ref().expect("the profile CALL decodes");
+    assert_eq!(call.kind, 18);
+    assert_eq!(call.bit_len, 80);
+    let circle = call.circle.as_ref().expect("the circle body decodes");
+    assert_eq!(circle.radius, 3.125);
+    assert_eq!(circle.center, [0.0, 0.0, 0.0]);
+    assert_eq!(circle.normal, [0.0, 0.0, 1.0]);
+    assert_eq!(view.draft_angle, Some(0.0));
+    assert_eq!(view.scale_factor, Some(1.0));
+}
+
+#[test]
+fn extrude_p_records_the_polyline_profile_call() {
+    // The §18.7 ExtrudeP quad (closed LWPOLYLINE rectangle): the CALL
+    // is type 77 = OBJ_LWPOLYLINE with a 544-bit window. The packed
+    // vertex array inside the body awaits the header grammar (the
+    // rectangle's 4.0/3.0 doubles are visible as raws); the CALL
+    // presence + geometry are recorded, the body verbatim.
+    let view = sweep_tail_view(&unhex(EXTRUDE_P_HEX), EXTRUDE_P_BITS)
+        .expect("the ExtrudeP tail must decode");
+    let call = view.profile.as_ref().expect("the profile CALL decodes");
+    assert_eq!(call.kind, 77);
+    assert_eq!(call.bit_len, 544);
+    assert!(call.circle.is_none());
+    assert_eq!(view.scale_factor, Some(1.0));
+}
+
+#[test]
+fn extrude_profile_radius_edits_land_bit_locally() {
+    // The profile circle fields are splice-backed: editing the
+    // ExtrudeR radius (a raw span) lands inside its 64 value bits
+    // only — the CALL length, the spine and the flags stay put.
+    let tail = unhex(EXTRUDE_R_HEX);
+    let mut document = CadDocument::with_version(DxfVersion::AC1032);
+    let entity = document
+        .add_entity(EntityType::Solid3D(Solid3D::new()))
+        .unwrap();
+    document
+        .create_solid_history(
+            entity,
+            SolidHistoryOperation::Sweep(SolidHistorySweep {
+                base: SolidHistoryNodeBase::new(1),
+                shsw_raw_tail: tail.clone(),
+                shsw_raw_tail_bit_len: EXTRUDE_R_BITS,
+                // The tail's direction is the extrusion vector (0, 0, 2):
+                // the render splices the model's direction against the
+                // decode, so the test must carry the real value.
+                direction: acadrust::types::Vector3::new(0.0, 0.0, 2.0),
+                ..SolidHistorySweep::default()
+            }),
+        )
+        .unwrap();
+    let mut replacement = document.solid_history_operations(entity).unwrap()[0].clone();
+    let SolidHistoryOperation::Sweep(sweep) = &mut replacement else {
+        panic!("expected a sweep operation node");
+    };
+    // Populate the view from the real decode, then edit one field (the
+    // render splices every difference against the re-decode).
+    let mut view = sweep_tail_view(&tail, EXTRUDE_R_BITS).unwrap();
+    view.profile
+        .as_mut()
+        .expect("the profile CALL decodes")
+        .circle
+        .as_mut()
+        .expect("the circle body decodes")
+        .radius = 2.5;
+    sweep.tail_decode = Some(view);
+    document.update_solid_history_step(entity, replacement).unwrap();
+
+    let bytes = DwgWriter::write_to_vec(&document).unwrap();
+    let roundtrip = DwgReader::from_stream(Cursor::new(bytes)).read().unwrap();
+    let SolidHistoryOperation::Sweep(sweep) =
+        &roundtrip.solid_history_operations(entity).unwrap()[0]
+    else {
+        panic!("expected a sweep operation node");
+    };
+    let call = sweep.tail_decode.as_ref().unwrap().profile.as_ref().unwrap();
+    assert_eq!(call.bit_len, 80, "the CALL length never moves");
+    assert_eq!(call.circle.as_ref().unwrap().radius, 2.5);
+    assert_eq!(sweep.shsw_raw_tail.len(), tail.len());
+    let differing: Vec<usize> = sweep
+        .shsw_raw_tail
+        .iter()
+        .zip(tail.iter())
+        .enumerate()
+        .filter(|(_, (a, b))| a != b)
+        .map(|(index, _)| index)
+        .collect();
+    assert!(!differing.is_empty());
+    // The radius raw value bits: [198..262) -> bytes 24..=32.
+    assert!(
+        differing.iter().all(|index| (24..33).contains(index)),
+        "radius edits must stay inside the radius span, got {differing:?}"
+    );
+}

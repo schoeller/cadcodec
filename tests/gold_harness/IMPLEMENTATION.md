@@ -3728,27 +3728,36 @@ wireframe values on the same modeler backing).
 
 **What is actually inside the tails** (the autopsy record):
 
-- **Sweep family** (`shsw_raw_tail`, serving SWEEP and EXTRUSION):
-  a direction 3BD head (Polysolid semantically (0,0,0); Extrude
-  (0, 0, 2.0) — the extrusion length vector matching the circle
-  2-tall live-oracle wires), then an all-short BD option run whose
-  `BD('01')` member IS the scale factor — the brief's "option BD
-  runs, `BD('01')` scale" anchor, Polysolid listing two more
-  trailing zeros than Extrude. After the head: a mid-region of
-  raw BD (`'00'`-marked LE64) entries — the Polysolid carries the
-  path unit direction `[+u_y, -u_x, -u_x, -u_y]` twice (unit
-  (0.9024047208179184, 0.4308894520007826), re-derived from the
-  segment end below) in two repeated 288-bit frame blocks — and
-  finally two byte-aligned LE64 blocks: the swept profile's corner
-  pairs `(x, height)` — the Polysolid rectangle
-  `[(2.5,0), (-2.5,0), (-2.5,2), (2.5,2)]` (5 wide × 2 tall;
-  gold's 3DSOLID anchor z = 1.0 is exactly the corner-height mid) —
-  and the segment end `(3065.007936309483, 1463.5113930448078)`,
-  of which gold's R2010 wireframe point (1532.5039681547414,
-  731.755696522404, 1.0) is EXACTLY the half (the anchor is the
-  segment midpoint — the live-oracle overlap in full). The
-  Extrusion tail has none of these blocks (its payload stays
-  opaque beyond the head).
+- **Sweep family** (`shsw_raw_tail`, serving SWEEP and EXTRUSION) —
+  the §18.7 differential (2026-09-24) named the spine and the
+  extrusion profile:
+  - The six post-direction BDs are the SWEEPOPTIONS order
+    `[draft_angle][draft_start_distance][draft_end_distance]
+    [twist_angle][scale_factor][align_angle]` — the libredwg
+    SweepOptions macro's own sequence, confirmed by ExtrudeT (the
+    typed 15° draft lands as a raw BD in slot 0) and the 1.0
+    default in the scale slot. The model carries all six as named
+    fields; the Polysolid sweep adds two all-short extras
+    (unnamed).
+  - EXTRUSION tails carry the embedded PROFILE CALL — the same
+    `[BL kind][BL bit-length][body]` grammar as the revolve,
+    closing at `bit_len - 2`: kind 18 = OBJ_CIRCLE with the body
+    `[center 3BD][radius BD][normal 3BD]` (the landed fixture:
+    circle (0,0,0) r 1.0 — the exactly-1.0 radius in the two-bit
+    short BD, CALL length 16; ExtrudeR: r 3.125 raw, length 80;
+    ExtrudeH/T: the landed circle unchanged — the height lives
+    only in the direction head, the draft only in the spine), kind
+    77 = OBJ_LWPOLYLINE (ExtrudeP, length 544 — the packed
+    (x, y) vertex array of the drawn rectangle is inside; its
+    header grammar is the one deferred item). The pre-CALL region
+    between the spine and the CALL stays opaque: it is
+    profile-dependent but value-stable across the
+    radius/height/taper differentials.
+  - The SWEEP (Polysolid) tail keeps its own structure — the frame
+    blocks (the path unit direction entries, confirmed on three
+    directions by PolysolidX/D), the packed profile corners
+    (±1.5/±2.5 × {0, H}) and the segment end; no CALL.
+
 - **Loft** (`raw_tail`): an all-short `[1.0]` head, then a run of
   raw BD entries `(Loft fixtures: [2.0, 2.0, 5.0, 0.3, pi/2,
   pi/2])` — the 5.0 top height matches the wire geometry (wires

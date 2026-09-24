@@ -1139,17 +1139,28 @@ pub struct SolidHistorySweep {
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SolidHistorySweepTail {
-    /// The post-direction BD-short option run (all-short run until the
-    /// first raw/reserved form). Sweep tails list [0,0,0,0,1.0,0,0,0];
-    /// extrusion tails the same spine minus the two trailing zeros.
-    /// The BD('01') member is provisionally the scale factor (the
-    /// same confound the revolve head carries until the §18.7
-    /// ExtrudeT/O/T specimens land).
+    /// The six sweep-option BDs after the direction, in the
+    /// SweepOptions order (the libredwg macro + the §18.7 ExtrudeT
+    /// differential: the 15° draft lands as a raw BD in slot 0, and
+    /// the 1.0 default sits in the scale slot):
+    /// [draft_angle][draft_start_distance][draft_end_distance]
+    /// [twist_angle][scale_factor][align_angle].
+    pub draft_angle: Option<f64>,
+    pub draft_start_distance: Option<f64>,
+    pub draft_end_distance: Option<f64>,
+    pub twist_angle: Option<f64>,
+    pub scale_factor: Option<f64>,
+    pub align_angle: Option<f64>,
+    /// All-short BD run after the six named slots (the Polysolid
+    /// sweep carries two trailing zeros; extrusion tails carry none —
+    /// their pre-profile region starts with a reserved pair).
     pub option_doubles: Vec<f64>,
     /// Raw BD ('00'-marked LE64) entries of the mid-region: the sweep
     /// frame/transform components. The Polysolid specimen stores the
     /// path unit direction there — [+u_y, -u_x, -u_x, -u_y], twice —
-    /// confirmed against the live-oracle anchor geometry.
+    /// confirmed against the live-oracle anchor geometry, and the
+    /// §18.7 PolysolidX/D quads confirmed the slots on a second and
+    /// third direction.
     pub raw_doubles: Vec<f64>,
     /// Byte-aligned LE64 `(x, height)` corner pairs of the swept profile
     /// (Polysolid rectangle: [(2.5, 0), (-2.5, 0), (-2.5, 2), (2.5, 2)];
@@ -1160,6 +1171,37 @@ pub struct SolidHistorySweepTail {
     /// (3065.007936309483, 1463.5113930448078); gold's R2010 wireframe
     /// anchor point reads exactly its half — the live-oracle overlap).
     pub segment_end: Option<[f64; 2]>,
+    /// The embedded PROFILE sub-entity of an extrusion tail (§18.7
+    /// ExtrudeR/P evidence): `[BL type][BL bit-length][body]` closing
+    /// at `bit_len - 2`. Type 18 = OBJ_CIRCLE (the body is
+    /// `[center 3BD][radius BD][normal 3BD]` + 2 flag bits, exactly
+    /// the revolve's profile grammar); type 77 = OBJ_LWPOLYLINE (the
+    /// packed vertex array; the body stays verbatim until the
+    /// header grammar is decoded). `None` on sweep tails (their
+    /// profile is the packed `profile_corners`).
+    pub profile: Option<SolidHistoryProfileCall>,
+}
+
+/// The embedded profile sub-entity of an extrusion tail.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SolidHistoryProfileCall {
+    /// The embedded-entity type code (18 = OBJ_CIRCLE, 77 =
+    /// OBJ_LWPOLYLINE — the object readers' common constants).
+    pub kind: i64,
+    /// The CALL's bit-length (covers the body plus two flag bits).
+    pub bit_len: i64,
+    /// The circle body, for `kind == 18`.
+    pub circle: Option<SolidHistoryProfileCircle>,
+}
+
+/// The embedded profile circle: `[center 3BD][radius BD][normal 3BD]`.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SolidHistoryProfileCircle {
+    pub center: [f64; 3],
+    pub radius: f64,
+    pub normal: [f64; 3],
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
