@@ -1,0 +1,36 @@
+Provenance for RevolveM_2010.dwg
+
+Author app:              Autocad 2027.1 (campaign authoring app; the file
+                         was authored to the S18.7 RevolveM recipe row —
+                         correct this line if the maintainer's notes differ)
+Authoring date:           2026-09-24
+Author session (the S18.7 differential recipe, row RevolveM):
+  new drawing on a blank/default template, zero pre-existing entities
+  set solid-history recording ON
+  REVOLVE a CIRCLE center 2,0,0 radius 0.8 about axis 0,0,0 -> 0,1,0 with MOde = Surface, angle 180
+  (the typed command sequence above is the recipe row; correct it from
+   the authoring session's notes if it differs)
+
+Save format:              DWG 2010 (AC1024)
+
+Qualification (verified by acadrust harness, 2026-09-24, at landing):
+  gold dwgread: zero Error lines
+  wire version: AC1024
+  object census: 215 objects, 3 UNKNOWN_OBJ (sizes [19, 42, 2740])
+  REVOLVEDSURFACE: registered
+  ACSH_HISTORY_CLASS: registered
+  gold JSON parse: ok (with the standard -nan shim where applicable)
+  differential invariants (S18.7):
+    quartet bit-identity: the four RevolveM versions carry bit-identical tails
+    corpus: RevolveM_2010.dwg QUARANTINED (not in the corpus run — see the note below)
+    QUARANTINED: same as ExtrudeM (ASSOCREVOLVEDSURFACEACTIONBODY typed with the RevolveAngle pab-value; silver surface-parser row pending)
+
+Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): RevolveM
+
+QUARANTINE NOTE (2026-09-24): this specimen lives outside the corpus
+tree (tests_quarantine/) because silver does not yet parse the
+R2007+ surface entities and the ASSOC surface action bodies this
+file exercises — the corpus zero-keeping rule excludes it until the
+surface-parser row lands (see S18.7's M-row notes). It remains the
+typed semantic anchor the recipe wanted: gold parses the surface
+class + the action body with the named parameters.

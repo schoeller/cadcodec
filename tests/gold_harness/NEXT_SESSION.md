@@ -61,30 +61,34 @@ splice + the section checksum).
 
 ## The open rows (what re-opens work — no defined phase remains)
 
-1. **The differential queue, re-designed after the revolve closure.**
-   The 2026-09-23 full-tree libredwg scan (§18.6) closed the
-   revolve grammar completely (axis pair / angle / options /
-   CALL-embedded profile circle / flags — every tail bit
-   accounted) and rewired the recipe. **Still owed by the recipe**
-   (author per §18.7, land in `sh_history/`): the revolve stems
-   **RevolveC** (circle `4,0,0` r 0.8 — grammar regression
-   anchor), **RevolveW** (the typed mirror `1,0,0` r 0.2, angle
-   270 — predicted BIT-IDENTICAL to the original), **RevolveO**
-   (axis `2.375,0,0` → `2.375,5,0` — the axis_point raw),
-   **RevolveT** (axis `0,0,0` → `3.75,2.5,0` — the axis_vector
-   raws), **RevolveF** (angle 360), **RevolveM** (the SURFACE-twin
-   anchor: `MOde Surface` — gold parses the REVOLVEDSURFACE typed
-   r2007+ and the ASSOC body's named parameters even in R2004);
-   DEAD stems: RevolveI (crossing refused), RevolveP
-   (perpendicular-plane refused), RevolveN/S (targets closed by
-   the scan). Plus the sweep/extrude/loft stems: **PolysolidX/D**,
-   **ExtrudeH/R/P/T/M**, **Loft3/H/R/M** (the M-rows = the
-   surface-twin anchors for their families — the SWEEPOPTIONS
-   macro's named fields + the ASSOC bodies give typed semantic
-   anchors for their still-opaque regions, §18.6). Each landing
-   runs the pipeline: dump, quartet identity, wire-ladder check,
-   decode, position-diff, extend `sh_tail_decode.rs`, pin, four
-   gates.
+1. **The differential queue: AUTHORED, QUALIFIED, and mostly DECODED.**
+   The maintainer landed the full §18.7 set (2026-09-24): the 14
+   solid stems (56 files) entered the corpus at 0/0 (244 files
+   now, quads bit-identical per stem) and their differential
+   outcomes are recorded per row in §18.7 — the sweep option
+   spine is named (the draft_angle raw at bit 70; the
+   SweepOptions order), the extrusion payload is the profile
+   circle (radius raw / polyline), the height lives only in the
+   direction head, the loft height/radius slots are named, the
+   sweep frame direction entries are confirmed on a second
+   direction, the revolve axis pair takes offset/tilt (world-X
+   profile centers, normalized directions, the axis point = the
+   perpendicular foot from the profile), 360° = plain 2π, and
+   RevolveW came out BIT-IDENTICAL to the original. The 3 M-stems
+   (12 files) are QUARANTINED in `tests_quarantine/sh_history/`
+   pending the silver surface-parser row (the R2007+ surface
+   entities + ASSOC surface action bodies; 14 diffs/file today).
+   **The next session's work:** (a) extend `sh_tail_decode.rs`
+   with the now-named fields — the sweep spine slots (the
+   ExtrudeT raw first slot; keep the verbatim fallback), the
+   extrusion profile circle in the trailer, the loft
+   [section-z][top-radius] slots, the revolve axis-pair raws
+   (already decoded) — and pin hermetic tests per new field;
+   (b) the surface-parser row (the ASSOC* SURFACEACTIONBODY
+   classes + the surface entities) to un-quarantine the M-stems;
+   (c) the remaining unnamed singles (the sweep frame blocks'
+   2.0109/-19594-class entries) — a third Polysolid specimen
+   with different W/H would finish them.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.
 3. Campaign closure prose (§18.5's phase map now fully checked):
