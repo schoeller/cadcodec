@@ -5646,15 +5646,36 @@ impl<'a> DwgObjectWriter<'a> {
     /// `queue_sab_data()` approach).
     fn queue_sab_entry(&mut self, acis: &AcisData, entity_handle: Handle) {
         if acis.is_binary && !acis.sab_data.is_empty() {
-            // Already have SAB binary data
+            // Already have SAB binary data (captured records echo verbatim —
+            // captured genus is byte-faithful regardless of format).
             self.sab_entries
                 .push((entity_handle, acis.sab_data.clone()));
         } else if !acis.sat_data.is_empty() {
-            // Convert SAT text → SAB binary via SatDocument
+            // Convert SAT text → SAB binary via SatDocument.
+            // R2013+ AcDs data store requires ASM (ShapeManager) SAB;
+            // classic ACIS 7.0 SAB is rejected by AutoCAD/BricsCAD for
+            // constructed solids ("Object improperly read" — the
+            // fix/sat-validate-before-sab verdict, 2026-09-15, and the
+            // 2026-09-24 box campaign: the native Box_2018 fixture's
+            // SAB is an asmheader/transform stream, version 22300).
             if let Ok(mut sat_doc) = crate::entities::acis::SatDocument::parse(&acis.sat_data) {
-                sat_doc.strip_for_sab();
-                let sab = crate::entities::acis::SabWriter::write(&sat_doc);
-                self.sab_entries.push((entity_handle, sab));
+                let result = if self.needs_acds_section() {
+                    sat_doc.to_sab_asm_checked()
+                } else {
+                    sat_doc.to_sab_checked()
+                };
+                match result {
+                    Ok(sab) => self.sab_entries.push((entity_handle, sab)),
+                    Err(errors) => {
+                        // Never embed a corrupt blob: a missing AcDs record
+                        // reads back as an empty solid, whereas a malformed
+                        // SAB can fail the whole file in the ACIS kernel.
+                        eprintln!(
+                            "[dwg-writer] skipping SAB blob for handle {:?}: SAT validation failed: {:?}",
+                            entity_handle, errors
+                        );
+                    }
+                }
             }
         }
     }
