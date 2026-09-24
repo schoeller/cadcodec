@@ -103,12 +103,26 @@ splice + the section checksum).
    values are BD raws the marker scan reads fine; the strict BD
    walk from the head derails on the non-BD regions between them —
    the inter-value grammar is the unnamed part).
-   (b) OPEN: the surface-parser row (the ASSOC* SURFACEACTIONBODY
+   PLUS the loft raw-run reading is now WIRE-VERIFIED (2026-09-24,
+   z-separated silhouette fits of the landed original: bottom
+   circle (0,0) r 1.0, top circle (2.006, 2.006) r 0.2996): the
+   raws are [top center.x][top center.y][top z][top radius]
+   [π/2][π/2] — the "drag residue" was the dragged top section.
+   (b) OPEN — the surface-parser row (the ASSOC* SURFACEACTIONBODY
    classes + the R2007+ surface entities) to un-quarantine the
-   M-stems. (c) OPEN: the sweep frame blocks' unnamed singles
-   (2.0109/3.0/−19594-class) — a third Polysolid specimen with
-   different W/H would finish them; the extrusion pre-CALL
-   region; the ExtrudeP polyline header; the loft container.
+   M-stems. (c) OPEN — **THE CLOSING SET (the maintainer's four
+   stems, §18.7's new rows, 16 files, corpus 244 -> 260)**:
+   `LoftC` (circles (3,4,0) and (3,4,7) r 1.5 — names the loft
+   raw run; world vs bottom-relative is the one open question),
+   `PolysolidW` (Height 3, width 7, the X path — names the sweep
+   singles), `ExtrudeC` (circle at (2,3,0) — the pre-CALL
+   region's position test + the first nonzero profile center),
+   `LoftD` (LOFT Settings: Ruled + any draft fields — the π/2
+   pair). AGENT work after those: the ExtrudeP polyline header
+   (the embedded-lwpolyline grammar is already in-repo), and the
+   revolve option shorts + flags have NO known authoring path
+   (the REVOLVE command offers no draft/twist) — they close via
+   the surface-parser row or stay marked like BREP.
 2. **BREP stays deferred** (Phase C record): the row re-opens if an
    authentic `ACSH_BREP_CLASS` specimen surfaces.
 3. Campaign closure prose (§18.5's phase map now fully checked):
@@ -144,7 +158,7 @@ cargo test --features serde
 python3 tests/gold_harness/run_roundtrip.py \
     tests/gold_harness/tests/sh_history/<FIXTURE>.dwg /tmp/smoke
 
-# 3. Full corpus (must stay 188 files 0/0, growing with each landed pair)
+# 3. Full corpus (must stay 244 files 0/0, growing with each landed pair)
 python3 tests/gold_harness/run_corpus.py
 
 # 4. Layer-4 byte-walk for any writer re-encode path
