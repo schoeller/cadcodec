@@ -35,8 +35,6 @@ __pycache__/
 # Authored gold fixtures (in-repo corpus extensions) — see
 # tests/gold_harness/tests/README.md
 !tests/gold_harness/tests/**/*.dwg
-!tests_quarantine/**/*.dwg
-
 
 # Documentation
 /docs/site/

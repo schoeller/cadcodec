@@ -1,10 +1,10 @@
-Provenance for LoftC_2007.dwg
+Provenance for LoftCSurf_2007.dwg
 
 Author app:              Autocad 2027.1 (campaign authoring app; the file
                          was authored to the S18.7 LoftC recipe row —
                          correct this line if the maintainer's notes differ)
 Authoring date:           2026-09-24
-Author session (the S18.7 differential recipe, row LoftC):
+Author session (the S18.7 differential recipe, row LoftC, the surface-mode first attempt):
   new drawing on a blank/default template, zero pre-existing entities
   set solid-history recording ON
   LOFT CIRCLE 3,4,0 r 1.5 + CIRCLE 3,4,7 r 1.5 (the intended MOde = Solid authoring; the session left MOde = Surface)
@@ -21,14 +21,14 @@ Qualification (verified by acadrust harness, 2026-09-24, at landing):
   gold JSON parse: ok (with the standard -nan shim where applicable)
   differential invariants (S18.7):
     quartet bit-identity: the four LoftC versions carry bit-identical records
-    corpus: LoftC_2007.dwg QUARANTINED (not in the corpus run — see the note below)
+    corpus: LoftCSurf_2007.dwg lands in-corpus (the surface-parser row closed 2026-09-24: read 0 / write 0)
 
-Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): LoftC
+Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): LoftCSurf (the LoftC surface-mode first attempt; the Solid re-author is the in-corpus LoftC fixture)
 
-QUARANTINE NOTE (2026-09-24): QUARANTINED (2026-09-24): authored as a SURFACE — the record census
-      shows LOFTEDSURFACE + the ASSOCLOFTEDSURFACEACTIONBODY (the same
-      sticky-MOde path; NO ACSH classes, no 3DSOLID). A valid
-      surface-mode OFFSET-variant specimen (the (3,4) section offsets +
-      the r 1.5 radii are its differential value), but no SH tail; 12-13
-      read+write diffs per file. RE-AUTHOR per the S18.7 row with
-      MOde = Solid explicitly set at the LOFT prompt
+LANDED NOTE (2026-09-24, the surface-parser row): the surface-mode shape
+      parses read 0 / write 0 — the surface-entity record walks the
+      gold-shadow object path (gold's unknown-OBJECT decode of the
+      entity-class records) and the typed ASSOC surface action body
+      projects its sab grammar. The LOFTEDSURFACE stays the surface-mode OFFSET
+      specimen; the Solid re-authors of the same recipe row are already
+      in-corpus.
