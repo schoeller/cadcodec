@@ -185,7 +185,12 @@ gate 1.
 ## Commit inventory (this halt)
 
 ```
-<this review pass>
+122d607 test(harness): PolysolidL lands — the probe is decisive, the maintainer fixture surface closes
+3a03b80 test(harness): the re-authored ExtrudeC/LoftC land — the pre-CALL region resolved, the loft raw run fully named
+c051597 docs(harness): the PolysolidL P2 row — the path-length probe on the last unnamed sweep single
+9ee3614 test(harness): the closing-set review — Polysolid W-quad lands naming the width single; the surface-mode C-quads quarantine; LoftD dead
+1bafae7 docs(harness): the closing set — four stems to finish Phase B, plus the wire-verified loft reading
+21ebde4 docs(harness): the post-landing review pass — stale decoder-state claims cleared, the halt records refreshed  <- PUSHED
 5c89b59 fix(dwg): the sweep spine named + the extrusion profile CALL — §18.7 differential decode
 57232a6 test(harness): the §18.7 differential set lands — 14 solid stems in-corpus, 3 M-stems quarantined
 811b0d8 docs(harness): the two surface-twin §18.7 rows the queue already promised
@@ -204,13 +209,18 @@ e1dff05 docs(harness): Phase C fixture review closure — seven families landed,
 ```
 
 (The session's arc: the Phase B halt + review pass; the §18.7
-differential recipe; the RevolveA/R quads landed and decoded; the
-plan-view axis correction (all specimens +Y); the crossing-class
-theory dead on the maintainer's refusal; the full-tree libredwg
-scan CLOSING the revolve family (the CALL grammar); the maintainer
-authoring the full 17-stem §18.7 set — 14 solid stems landing
-in-corpus with their differential outcomes, 3 M-stems quarantined;
-and the sweep spine + extrusion profile CALL decode. **This halt
-PUSHES to `origin/gold-vs-silver`** (the first push since
-`1f06d9d`; the branch tip becomes the pushed head).
+differential recipe; the RevolveA/R quads; the plan-view axis
+correction; the crossing-class theory dead; the full-tree libredwg
+scan closing the revolve family; the maintainer authoring the full
+17-stem §18.7 set (14 solid stems in-corpus, 3 M-stems quarantined);
+the sweep spine + extrusion profile CALL decode; the closing set
+(PolysolidW naming the width single; the surface-mode first attempts
+quarantined and re-authored Solid — ExtrudeC resolving the pre-CALL
+region, LoftC naming the loft raw run; LoftD dead; and PolysolidL's
+decisive profile-derived probe closing the maintainer fixture
+surface). **PUSH STATE: `origin/gold-vs-silver` sits at the pushed
+`21ebde4`; the five later commits (`1bafae7`..`122d607`) are local
+— push when asked.** Corpus 260 files, read 0, write 0; cargo test
+49 suites ok; the quarantine holds 20 files behind the
+surface-parser row.
 
