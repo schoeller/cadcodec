@@ -2915,19 +2915,19 @@ impl SatDocument {
     /// sh_history 2018 fixtures (uniform across all six parametric
     /// primitives; `SabReader` round-trips them byte-identically):
     ///
-    /// 1. prepends an `asmheader` record — attribute $-1, INTEGER(-1),
-    ///    STRING("232.6.0.65535") — the ASM schema stamp;
+    /// 1. prepends an `asmheader` record — the standard record framing
+    ///    (attribute $-1, subtype_id -1) plus the single schema STRING
+    ///    token "232.6.0.65535";
     /// 2. leads with body, lump, transform, shell — the native positions,
     ///    the transform directly after the lump — then the remaining
     ///    records in their existing order, so both assembly genera
     ///    (cadkernel appends the body last, `new_body` puts it first)
     ///    restore body-first;
-    /// 3. inserts an identity `transform` — attribute $-1, INTEGER(-1),
+    /// 3. inserts an identity `transform` — the standard framing plus
     ///    four DIRECTION rows (the 3x4 placement matrix; identity for
     ///    world-coordinate assemblies), DOUBLE(1.0) determinant, three
     ///    TRUE flags — and links the body's LAST pointer token (the
-    ///    transform slot in both the 5-token native and the 4-token
-    ///    `new_body` body shapes) to it;
+    ///    transform slot in both body shapes) to it;
     /// 4. stamps the header census: version 22300, num_records 0,
     ///    num_bodies 2, history/flags word 4, spatial_resolution 1.0,
     ///    product strings "Autodesk AutoCAD" / "ASM 232.6.0.65535 NT".
@@ -2984,17 +2984,16 @@ impl SatDocument {
             (body_pos, lump_pos, shell_pos)
         };
 
-        // asmheader — the native form.
+        // asmheader — the native form. The record framing carries the
+        // attribute and subtype_id (-1 → the `04 ffffffff` word) for every
+        // record; the token list is exactly the schema string.
         let asmheader = SatRecord {
             index: 0,
             entity_type: "asmheader".to_string(),
             sub_type: None,
             attribute: SatPointer::NULL,
             subtype_id: -1,
-            tokens: vec![
-                SatToken::Integer(-1),
-                SatToken::String("232.6.0.65535".to_string()),
-            ],
+            tokens: vec![SatToken::String("232.6.0.65535".to_string())],
             raw_text: None,
         };
 
@@ -3019,7 +3018,6 @@ impl SatDocument {
             attribute: SatPointer::NULL,
             subtype_id: -1,
             tokens: vec![
-                SatToken::Integer(-1),
                 direction(1.0, 0.0, 0.0),
                 direction(0.0, 1.0, 0.0),
                 direction(0.0, 0.0, 1.0),
