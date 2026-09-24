@@ -3302,19 +3302,20 @@ Fixture rules (deltas from the gold-tree convention above):
 | `Pyramid_<v>` (Phase C) | `PYRAMID` | `ACSH_PYRAMID_CLASS` | landed 2026-09-23, qualified (all 0/0) |
 | `Fillet_<v>` / `Chamfer_<v>` (Phase C) | `BOX` + `FILLET` / `BOX` + `CHAMFER` | the edge-modification nodes (with the parent `ACSH_BOX_CLASS` chain) | landed 2026-09-23, qualified (all 0/0) |
 | `Brep_<v>` | **DEFERRED** (2026-09-23): `ACSH_BREP_CLASS` is not reachable through any user-facing AutoCAD op — seven authored attempts (plain op, SLICE, single-op, foreign-body graft, SOLIDEDIT face edit, real-template source) all produced either parametric chains or history-stripped plain solids. The class stays elided; silver already tolerates the one real-world carrier (`ATMOS-DC22S.dwg`) at 0/0. The row re-opens if an authentic specimen surfaces (legacy SAT-era import paths). | — | — |
-| *(differential queue — CLOSED 2026-09-24)* | **ALL 17 STEMS AUTHORED AND QUALIFIED** (the maintainer landed the full §18.7 set): the 14 solid stems (56 files) are IN THE CORPUS at 0/0 (244 files now) with their quads bit-identical and their OBSERVED outcomes recorded per row in §18.7 — the sweep spine is named (ExtrudeT: the draft_angle raw at bit 70, the SweepOptions order), the extrusion payload is the profile (ExtrudeR/P), the height lives in the direction (ExtrudeH), the loft height/radius slots are named (LoftH/R), the sweep frame direction entries are confirmed (PolysolidX/D), the revolve axis pair takes offset/tilt with world-X profile centers and normalized directions (RevolveO/T), 360° = plain 2π (RevolveF), and RevolveW is BIT-IDENTICAL to the original. The 3 M-stems (12 files) are QUARANTINED in `tests_quarantine/sh_history/` — valid specimens (gold clean, the ASSOC bodies typed with named parameters) but silver lacks the R2007+ surface-entity/action-body parsers (14 diffs/file), so they await the surface-parser row. **Closing-set state (2026-09-24, COMPLETE — the maintainer
-   fixture surface is EMPTY): PolysolidL landed in-corpus (corpus 260
-   files 0/0) and its probe was DECISIVE — the 2.0109 single (and
-   @900/@1092) is PROFILE-DERIVED, bit-identical between the half-path
-   L and the full-path X; 4.00024414192312 the record constant; the
-   width single confirmed at 3.0; only the segment end is
-   path-derived. All named-class candidates in the sweep tail are
-   resolved. What remains is agent code work — the post-corner singles
-   walk, the loft container walk (the per-section slots are named;
-   the inter-value regions are not), the ExtrudeP polyline header, the
-   surface-parser row (20 quarantined files) — and the no-authoring-
-   path rows (LoftD dead; the revolve option shorts + flags; BREP
-   external-only).** | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, landed |
+| *(differential queue — CLOSED 2026-09-24)* | **ALL 17 STEMS AUTHORED AND QUALIFIED** (the maintainer landed the full §18.7 set): the 14 solid stems (56 files) are IN THE CORPUS at 0/0 (244 files now) with their quads bit-identical and their OBSERVED outcomes recorded per row in §18.7 — the sweep spine is named (ExtrudeT: the draft_angle raw at bit 70, the SweepOptions order), the extrusion payload is the profile (ExtrudeR/P), the height lives in the direction (ExtrudeH), the loft height/radius slots are named (LoftH/R), the sweep frame direction entries are confirmed (PolysolidX/D), the revolve axis pair takes offset/tilt with world-X profile centers and normalized directions (RevolveO/T), 360° = plain 2π (RevolveF), and RevolveW is BIT-IDENTICAL to the original. The 3 M-stems (12 files) + the 8 surface-mode C first attempts (renamed `ExtrudeCSurf_<v>`/`LoftCSurf_<v>` — their Solid re-authors kept the C names) LANDED 2026-09-24 with the surface-parser row (see §18.6's decode record: the classes gold-shadow walk + the R2013+ sab grammar): the corpus stands at **280 files 0/0**, every §18.7 specimen in the tree. **Closing-set state (2026-09-24, COMPLETE — the maintainer
+   fixture surface is EMPTY): PolysolidL landed in-corpus and its probe
+   was DECISIVE — the 2.0109 single (and @900/@1092) is
+   PROFILE-DERIVED, bit-identical between the half-path L and the
+   full-path X; 4.00024414192312 the record constant; the width single
+   confirmed at 3.0; only the segment end is path-derived. All
+   named-class candidates in the sweep tail are resolved, and the
+   surface-parser row closed the last 20 quarantined files (read/write
+   0/0 on all four versions each). What remains is agent code work —
+   the post-corner singles walk, the loft container walk (the
+   per-section slots are named; the inter-value regions are not), the
+   ExtrudeP polyline header — and the no-authoring-path rows (LoftD
+   dead; the revolve option shorts + flags — the typed anchor is now
+   in-corpus via RevolveM; BREP external-only).** | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, landed |
 
 ---
 
@@ -3840,18 +3841,28 @@ wireframe values on the same modeler backing).
 
 **The scan's other finds (the §18.7 pipeline gains):**
 
-- **The surface twins are LIVE typed blocks in gold** (r2007+):
-  `REVOLVEDSURFACE` reads `axis_point/axis_vector/revolve_angle/
+- **The surface twins' spec blocks exist but are NOT LIVE in the built
+  oracle** (2026-09-24 correction of this bullet's first wording):
+  `REVOLVEDSURFACE`/`EXTRUDEDSURFACE`/`SWEPTSURFACE`/`LOFTEDSURFACE`
+  sit in `dwg2.spec` (lines 3952/4029/4061/3984) reading the full
+  field sets — `REVOLVEDSURFACE` axis_point/axis_vector/revolve_angle/
   start_angle/[16-BD transmatrix]/draft_angle/draft_start_distance/
-  draft_end_distance/twist_angle/solid/close_to_axis`;
-  `EXTRUDEDSURFACE` and `SWEPTSURFACE` read the full
-  SWEEPOPTIONS macro (including `sweep_alignment_flags` with its
-  0-3 enum, `path_flags`, `base_point_set`, the two
-  `*_transform_computed`, `reference_vector_for_controlling_twist`);
-  `LOFTEDSURFACE` reads the lofting parameters
-  (transmatrix, `plane_normal_lofting_type`, start/end draft
-  angle+magnitude, `arc_length_parameterization`, `no_twist`,
-  `align_direction`, ...).
+  draft_end_distance/twist_angle/solid/close_to_axis, the
+  SWEEPOPTIONS macro (sweep_alignment_flags 0-3 enum, path_flags,
+  base_point_set, the two *_transform_computed,
+  reference_vector_for_controlling_twist), the lofting parameters
+  (transmatrix, plane_normal_lofting_type, start/end draft
+  angle+magnitude, arc_length_parameterization, no_twist,
+  align_direction) — but the whole 3716+ region sits inside
+  `#if defined (DEBUG_CLASSES) || defined (IS_FREE)`: the built
+  dwgread compiles them OUT. `PLANESURFACE` (3595) is live outside
+  the frame, and the ASSOC surface action bodies
+  (`ASSOCEXTRUDED/LOFTED/REVOLVED SURFACEACTIONBODY`, 1967-2026)
+  are live — `ASSOCSWEPTSURFACEACTIONBODY` (3720) is dead with the
+  entities. The surface-parser row (2026-09-24, see the next
+  bullets) closed parity through the gold-shadow object walk, so
+  the typed field LISTS remain the future naming map for the
+  raw-retained tails, not a live typed gold read.
 - **The ASSOC surface action bodies are typed even in R2004 and
   carry the parameters BY NAME**: the corpus's Surface.dwg
   (2.7 strict-tree file) parses `ExtrusionHeight = 200.0`,
@@ -3869,6 +3880,104 @@ wireframe values on the same modeler backing).
   alias set, `is_solid`, the alignment enum semantics) is the
   semantic table for the sweep-family heads when the ExtrudeT/S
   stems land.
+
+**Surface-parser row decode record (2026-09-24, the session that
+un-quarantined the 20 surface-twin files — every grammar finding
+with its evidence chain):**
+
+- **Gold's classes walk derails on the AutoCAD-2027.1 class
+  tables (the root finding)**: gold's R2004+ numeric class walk
+  (`read_2004_section_classes` decode.c 2249 for AC1024+,
+  `read_2007_section_classes` decode_r2007.c 1568 for AC1021)
+  reads per class `BS number, BS proxy, [text], B zombie,
+  BS item_class_id, BL instances, BS dwg_version,
+  BS maint_version, BL, BL` — the two version fields as **BS**
+  where this reader's (and the real encoding's) walk uses **BL**
+  (silver's `classes_reader.rs`). From the first class record
+  whose tail needs a non-`'00'`-byte form the two walks desync and
+  gold's numeric cursor runs off the true record grid: OBSERVED on
+  the whole 2027.1-authored fixture set, all four versions
+  (AC1021/24/27/32), derailing from the 10th entry (CELLSTYLEMAP)
+  onward — the first nine classes are byte-form tails that parse
+  identically under BS/BL. Evidence chain: gold `-v4` classes
+  trace (`size: 3107 / hsize: 0 / bitsize: 24849 / max_num: 526`
+  for ExtrudeM_2018), the CLASSES JSON dump (garbage numbers
+  `36108 / 256 / 0...` and garbage `item_class_id`s `36614 /
+  1042... / 1044` from the 10th class on), and the decisive probe:
+  a bit-exact python emulation of gold's walk over the dumped
+  section bytes (`dump_section_bytes 0 3107 "AcDb:Classes"`)
+  reproduces all 27 garbage records to the value — the walk, not
+  the bytes, is the oracle behavior. The other AutoCAD-authored
+  corpus files (older releases) keep byte-form tails, so gold
+  walks them sane — the derail is file-content-derived, hence the
+  shadow-walk fix rather than an index threshold.
+- **The desync's record-level consequence — surface entities
+  decode as gold's UNKNOWN_OBJ**: garbage `item_class_id` never
+  equals `0x1F2`, so `dwg_class_is_entity` is false and gold
+  routes the (physically entity) EXTRUDEDSURFACE/LOFTEDSURFACE/
+  REVOLVEDSURFACE records through `dwg_decode_UNKNOWN_OBJ`:
+  object-common data (eed, ownerhandle @the-dependency,
+  xdicobjhandle, reactors absent) + the full remaining bits as
+  `unknown_bits` (ExtrudeM_2018 @731: size 868, bitsize 6901,
+  6830 unknown bits; the 8-byte surface-mode action-body residue
+  `40A202A9008405C9` on the same class of file). The dispatch is
+  still by dxfname string (the string stream stays in sync), so
+  the live ASSOC action bodies parse typed on the very same
+  files.
+- **Silver's landing (the gold-shadow walk)**:
+  `classes_reader::gold_shadow_item_ids` re-walks the same
+  decompressed section bytes with gold's exact field sequence
+  (header `size/hsize/bitsize RLs + BS max + RC + RC + B`; per
+  class the numeric sequence above; pre-R2007 TV strings read
+  inline, R2007+ strings never touch the numeric cursor),
+  `DxfClass::gold_item_class_id` carries the result per index,
+  and the pass-2 entity set keys the **RAW** class number —
+  the internal class map resolves `EXTRUDEDSURFACE` to the fixed
+  sentinel `OBJ_EXTRUDEDSURFACE (-7)`, which would otherwise
+  bypass the set through `is_entity_type`. The flipped records
+  take silver's object arm: `read_common_non_entity_data` +
+  the raw-tail capture, emitted as `ObjectType::Unknown`, and
+  the existing unknown-object write arm re-emits them — the
+  rewrite is bit-identical (gold_rt @731: same size/bitsize,
+  the full 1708-hex-digit unknown_bits equal, eed/ownerhandle/
+  xdicobjhandle equal; the layer-4 evidence for the writer
+  path).
+- **The BLOCK_HEADER.entities corollary**: gold prints the
+  block's entity list from the wire handle vector (dwg2.spec
+  HANDLE_VECTOR entities, code-3 children — `[3,2,727] CIRCLE +
+  [3,2,731] EXTRUDEDSURFACE-as-UNKNOWN_OBJ` on ExtrudeM_2018)
+  verbatim, NOT from recomputed ownership, so the object-walked
+  surface records stay in the list. Silver's
+  `rebuild_block_membership` now keeps the canonical wire list
+  primary (its order is gold's) and unions the membership
+  reconstruction in — same set on conventionally-shaped files
+  (the 260-file corpus held 0/0 across the change).
+- **The ASSOC surface action-body grammar is version-split at
+  PRE(R_2013b)**: gold's `AcDbAssocParamBasedActionBody_fields`
+  block (version/minor/l4/num_deps+deps/l5+assocdep/REPEAT
+  values) is read ONLY on pre-R2013 files — ExtrudeM_2007/2010
+  print the full pab shape with the named
+  `ExtrusionHeight/ExtrusionTaperAngle` pab.values ([0,0] —
+  libredwg's REPEAT collapse prints a bare 0 per value) and
+  assocdep resolving one handle before the first dependency
+  (2004-era rule, held); the R2013+ files (ExtrudeM_2013/2018)
+  read NO pab fields at all — aab_version, sab
+  version/is_semi_assoc/l2/is_semi_ovr/grip_status, the
+  path-based pbsab_status, class_version — and `assocdep` IS
+  the sab slot (surface_body.dependency → the ASSOCDEPENDENCY).
+  Spec: dwg2.spec 1961-1973 (the PRE(R_2013b) gate) + 1988-2026.
+- **ASSOCACTION SINCE R_2013 carries a trailing values REPEAT**
+  (class_version > 1): `VALUE_BS(0,90) + BL(num_values) +
+  REPEAT(values)` after owned_params — gold prints the same
+  degenerate `[0]*count` as deps (ExtrudeM_2018: [0, 0] for the
+  two named valueparams). Silver's reader had the values since
+  the retype batch; the normalizer projection caught up.
+- **AcDbAssocActionParam_fields SINCE R_2013 begins
+  `is_r2013` (BS) + `aap_version` (BL)**: ASSOCPATHACTIONPARAM
+  prints aap_version between is_r2013 and name (0 on the M
+  quads; the osnap corpus records print the same collapse —
+  the 0 was hardcoded there and the path param now projects
+  the reader's actual value).
 
 **Wire-format corollaries confirmed along the way:** the
 tails' raw BD entries are plain LE doubles per DWG byte order
@@ -4028,7 +4137,7 @@ axes and the profile circles stay in the plan-view XY plane
 | ~~P1~~ **LANDED 2026-09-24** | `RevolveW_<v>` | **the typed mirror**: `CIRCLE` center `1,0,0` radius `0.2` (plan view); `REVOLVE` about `0,0,0` → `0,1,0`, angle typed `270` | all of the original's decode, typed | the grammar makes W's tail predict BIT-IDENTICAL to the original's (center.x short 1.0, radius raw 0.2, normal (0,0,1), same axis, angle raw 3*pi/2). Any difference = drag residue, and the position-diff IS the remaining unknown list **OBSERVED (LANDED 2026-09-24): BIT-IDENTICAL to the original Revolve tail — 190 bits, every field form matches. The typed-mirror prediction confirmed 100%; the original is fully understood as this exact authoring** |
 | ~~P1~~ **DEAD 2026-09-23** | `RevolveN_<v>` | ~~angle-only 270 vs A's 180~~ — the target closed: the 38-bit-mid / trio-absence "class markers" were artifacts of the original's short-form circle, not angle correlates. W (typed 270) carries the angle sample for free | — | — |
 | ~~P2~~ **DEAD 2026-09-23** | `RevolveS_<v>` | ~~radius exactly 1.0 (short-form probe)~~ — the scan closed it: BD shorts encode 0.0 and 1.0 exactly; the original's center.x IS the live specimen of a 1.0 short in a CALL field | — | — |
-| ~~P1~~ **AUTHORED 2026-09-24 — QUARANTINED** | `RevolveM_<v>` | a SURFACE-twin anchor: `CIRCLE` center `2,0,0` radius `0.8`; `REVOLVE` with `MOde` = `Surface`, axis `0,0,0` → `0,1,0`, angle `180` | the op's output class (SH node → REVOLVEDSURFACE + ASSOC body) | gold parses the surface FULLY TYPED (axis_point, axis_vector, revolve_angle, start_angle, 16-BD transmatrix, draft_angle, draft_start/end, twist, solid, close_to_axis) and the ASSOC body carries the named `RevolveAngle` pab-value even in R2004 files — semantic anchors for the six option shorts and the flags the SH tail still carries unnamed (§18.6) **STATUS (2026-09-24): authored and QUARANTINED (same reason — the ASSOCREVOLVEDSURFACEACTIONBODY types fine in gold with the RevolveAngle pab-value; the silver surface-parser row is pending)** |
+| ~~P1~~ **LANDED 2026-09-24 (the surface-parser row)** | `RevolveM_<v>` | a SURFACE-twin anchor: `CIRCLE` center `2,0,0` radius `0.8`; `REVOLVE` with `MOde` = `Surface`, axis `0,0,0` → `0,1,0`, angle `180` | the op's output class (SH node → REVOLVEDSURFACE + ASSOC body) | gold parses the surface FULLY TYPED (axis_point, axis_vector, revolve_angle, start_angle, 16-BD transmatrix, draft_angle, draft_start/end, twist, solid, close_to_axis) and the ASSOC body carries the named `RevolveAngle` pab-value even in R2004 files — semantic anchors for the six option shorts and the flags the SH tail still carries unnamed (§18.6) **STATUS (2026-09-24): LANDED, corpus 0/0 all four versions — the typed-field promise resolved differently than planned: the REVOLVEDSURFACE spec block is DEBUG_CLASSES-dead in the built gold and the 2027.1 classes walk derails (§18.6's decode record), so the entity decodes as gold's UNKNOWN_OBJ with the FULL raw tail bit-retained (the naming map for the option shorts + flags is now an in-corpus bit-exact specimen) and the ASSOCREVOLVEDSURFACEACTIONBODY types with the named RevolveAngle pab-value (the R2007/2010 pab shape; the R2013+ sab shape)** |
 | ~~P1~~ **LANDED 2026-09-24** | `RevolveO_<v>` | `CIRCLE` center `6,0,0` radius `0.8`; axis `2.375,0,0` → `2.375,5,0` (**Y-PARALLEL, offset from origin** — both endpoints typeable in the plan view), angle `180` | axis POINT (0,0,0)→(2.375,0,0) only; the direction stays +Y | the head's axis_point takes a raw 2.375 x (per the §18.6 grammar) while axis_vector stays the 6-pair '01' shape; also decides whether the CALL circle's center keeps the world X (→6.0) or goes axis-relative (→3.625) **OBSERVED (LANDED 2026-09-24): axis_point (2.375, 0, 0) raw — the head axis pair takes the offset; the profile center stays the WORLD X (6.0, not the axis-relative 3.625) — both questions answered; the tail 254 -> 318 (+64)** |
 | ~~P1~~ **LANDED 2026-09-24** | `RevolveT_<v>` | `CIRCLE` center `1,6,0` radius `0.8` (perpendicular distance to the axis ≈ 4.44 — no crossing); axis `0,0,0` → `3.75,2.5,0` (an in-plane tilt — typeable, z=0 both ends), angle `180` | axis DIRECTION only: the linear axis (3.75, 2.5, 0) — unit (0.8333…, 0.5555…, 0) if stored normalized, long-mantissa either way | the head's axis_vector becomes raw (0.8333…, 0.5555…, 0)-ish components — the head grows ~128 raw bits (size self-evident) and the axis pair gets its first moving sample (the grammar's axis_vector field, §18.6) **OBSERVED (LANDED 2026-09-24): axis_vector (0.83205, 0.55470, 0) = the NORMALIZED direction; axis_point (3.4615, 2.3077, 0) = the foot of the perpendicular from the profile center to the axis line — the axis is stored as (closest-point-to-profile, unit direction); the tail 254 -> 510 (+256)** |
 | ~~P2~~ **LANDED 2026-09-24** | `RevolveF_<v>` | `CIRCLE` center `2,0,0` radius `0.8`; axis `0,0,0` → `0,1,0` (Y), typed angle `360` | sweep angle 180→360 (full) | the closed/full encoding: `revolve_angle` = 2π (6.283185307179586, mantissa-rich) or a special 0/flag; the trailing flag bits' only second sample. If AutoCAD refuses 360, type `359.9` and record it **OBSERVED (LANDED 2026-09-24): revolve_angle = 2*pi (6.283185307179586) — the full turn encodes as plain 2*pi, no special form; the tail stays 254 bits (the flags did not move with the angle)** |
@@ -4036,14 +4145,14 @@ axes and the profile circles stay in the plan-view XY plane
 | ~~P2~~ **LANDED 2026-09-24** | `LoftH_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,7` r `1`; `LOFT` both | top z 5→7 | which `raw_doubles` slot is the section height (expect 5.0 → 7.0) **OBSERVED (LANDED 2026-09-24): raws [7.0, pi/2, pi/2] — the height slot moved 5.0 -> 7.0 exactly; the height slot is named** |
 | ~~P2~~ **LANDED 2026-09-24** | `LoftR_<v>` | `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,5` r `2.5`; `LOFT` both | radii 1,1 → 1,2.5 | do the 2.0 / 0.3 slots track the section radii? **OBSERVED (LANDED 2026-09-24): raws [5.0, 2.5, pi/2, pi/2] — the top radius 2.5 lands as a raw slot after the top z; the radius slot is named** |
 | ~~P2~~ **LANDED 2026-09-24** | `ExtrudeP_<v>` | closed `PLINE` rectangle `0,0` → `4,0` → `4,3` → `0,3` → `Close`; `EXTRUDE` the polyline, height `2` | circle → rectangle profile | is the 64-bit payload profile-shape-dependent (entity serialization) or constant? NOTE: do NOT convert the polyline to a `REGION` or `JOIN` anything — a closed LWPOLYLINE is a valid EXTRUDE profile as-is, and converting changes the record shape **OBSERVED (LANDED 2026-09-24): the tail grows 208 -> 888 — the profile IS serialized in the tail (raws include the rectangle 3.0/3.0 and 131072/147456-class quantized values); the payload question is answered: profile-dependent** |
-| ~~P1~~ **AUTHORED 2026-09-24 — QUARANTINED** | `ExtrudeM_<v>` | a SURFACE-twin anchor: `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` with the `MOde` option set to `Surface`, height `2` | the op's output class (SH node → EXTRUDEDSURFACE + ASSOC body) | gold parses the surface TYPED (sweep_vector, 16-BD sweep_transmatrix, the full SWEEPOPTIONS macro incl. `sweep_alignment_flags` and its 0-3 enum, `path_flags`, `base_point_set`, the two `*_transform_computed` flags, `reference_vector_for_controlling_twist`) and the ASSOC body prints the named `ExtrusionHeight`/`ExtrusionTaperAngle` pab-values — the semantic table for the EXTRUSION tail's option spine (its `'01'` member) and its 64-bit payload (the §18.6 sweep-bullet's standing confound) **STATUS (2026-09-24): authored and QUARANTINED in `tests_quarantine/sh_history/` — gold reads it clean (zero errors; EXTRUDEDSURFACE registered; the ASSOCEXTRUDEDSURFACEACTIONBODY typed with the named ExtrusionHeight/ExtrusionTaperAngle pab-values) but silver does not yet parse the R2007+ surface entities / surface action bodies (14 read+write diffs per file), so the corpus zero-keeping rule excludes the 12 M-stem files until the surface-parser row lands** |
-| ~~P1~~ **AUTHORED 2026-09-24 — QUARANTINED** | `LoftM_<v>` | a SURFACE-twin anchor: `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,5` r `1`; `LOFT` with the `MOde` option set to `Surface` (verify the option is offered in this AutoCAD release; record the exact prompts in the `.txt`) | the op's output class (SH node → LOFTEDSURFACE + ASSOC body) | gold parses the surface TYPED (16-BD loft transmatrix, `plane_normal_lofting_type`, start/end draft angle+magnitude, `arc_length_parameterization`, `no_twist`, `align_direction`) and the ASSOC body prints the named `Continuity`/`Bulge` pab-values — anchors to name the LOFT tail's head `[1.0]` and its raw run `[2.0, 2.0, 5.0, 0.3, π/2, π/2]` (the §18.6 positional list) **STATUS (2026-09-24): authored and QUARANTINED (same reason — the ASSOCLOFTEDSURFACEACTIONBODY types fine in gold with the Continuity/Bulge pab-values; the silver surface-parser row is pending)** |
+| ~~P1~~ **LANDED 2026-09-24 (the surface-parser row)** | `ExtrudeM_<v>` | a SURFACE-twin anchor: `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` with the `MOde` option set to `Surface`, height `2` | the op's output class (SH node → EXTRUDEDSURFACE + ASSOC body) | gold parses the surface TYPED (sweep_vector, 16-BD sweep_transmatrix, the full SWEEPOPTIONS macro incl. `sweep_alignment_flags` and its 0-3 enum, `path_flags`, `base_point_set`, the two `*_transform_computed` flags, `reference_vector_for_controlling_twist`) and the ASSOC body prints the named `ExtrusionHeight`/`ExtrusionTaperAngle` pab-values — the semantic table for the EXTRUSION tail's option spine (its `'01'` member) and its 64-bit payload (the §18.6 sweep-bullet's standing confound) **STATUS (2026-09-24): LANDED, corpus 0/0 all four versions — the typed-field promise resolved differently than planned: the EXTRUDEDSURFACE spec block is DEBUG_CLASSES-dead in the built gold and the 2027.1 classes walk derails (§18.6's decode record), so the entity decodes as gold's UNKNOWN_OBJ with the FULL SWEEPOPTIONS region bit-retained in the raw tail (6830 bits on the 2018 quad — the semantic table for the EXTRUSION tail's option spine + 64-bit payload is now an in-corpus bit-exact specimen) and the ASSOCEXTRUDEDSURFACEACTIONBODY types with the named ExtrusionHeight/ExtrusionTaperAngle pab-values (the R2007/2010 pab shape; the R2013+ sab shape)** |
+| ~~P1~~ **LANDED 2026-09-24 (the surface-parser row)** | `LoftM_<v>` | a SURFACE-twin anchor: `CIRCLE` `0,0,0` r `1` + `CIRCLE` `0,0,5` r `1`; `LOFT` with the `MOde` option set to `Surface` (verify the option is offered in this AutoCAD release; record the exact prompts in the `.txt`) | the op's output class (SH node → LOFTEDSURFACE + ASSOC body) | gold parses the surface TYPED (16-BD loft transmatrix, `plane_normal_lofting_type`, start/end draft angle+magnitude, `arc_length_parameterization`, `no_twist`, `align_direction`) and the ASSOC body prints the named `Continuity`/`Bulge` pab-values — anchors to name the LOFT tail's head `[1.0]` and its raw run `[2.0, 2.0, 5.0, 0.3, π/2, π/2]` (the §18.6 positional list) **STATUS (2026-09-24): LANDED, corpus 0/0 all four versions — the LOFTEDSURFACE typed-field payoff resolved through the same DEBUG-dead finding (§18.6's decode record): the entity decodes as gold's UNKNOWN_OBJ with the lofting region bit-retained (the draft-pair naming path for the SH loft tail's `[π/2, π/2]` — LoftD's dead row — runs through this raw tail or the loft container walk, NOT through a typed gold field) and the ASSOCLOFTEDSURFACEACTIONBODY types with the named Continuity/Bulge pab-values (the R2007/2010 pab shape; the R2013+ sab shape)** |
 
-| ~~P1~~ **LANDED 2026-09-24 (re-authored Solid)** | `LoftC_<v>` | `CIRCLE` center `3,4,0` radius `1.5` + `CIRCLE` center `3,4,7` radius `1.5`; `LOFT` both with `MOde` = `Solid` at the prompt (the surface copies stay in the quarantine) | **OBSERVED (quad bit-identical at 684 bits, corpus 0/0): THE LOFT RAW RUN IS FULLY NAMED — the WORLD reading confirmed: raws `[3.0, 4.0, 1.5, 3.0, 4.0, 7.0, 1.5, pi/2, pi/2]` parse as PER-SECTION `[center.x][center.y][height][radius]` runs + the draft pair (section 1: (3, 4, z 0.0 elided as a short, r 1.5); section 2: (3, 4, z 7.0, r 1.5); then `[pi/2, pi/2]`). The landed original retro-fits exactly: (0,0) r 1 elided, (2.006->2.0, 2.006->2.0, 5.0, 0.2996->0.3), the draft pair — the offsets are PRESENT in the raws (world, not bottom-relative)** |
+| ~~P1~~ **LANDED 2026-09-24 (re-authored Solid)** | `LoftC_<v>` | `CIRCLE` center `3,4,0` radius `1.5` + `CIRCLE` center `3,4,7` radius `1.5`; `LOFT` both with `MOde` = `Solid` at the prompt (the surface-mode first attempts landed as `LoftCSurf_<v>`, 0/0 with the surface-parser row) | **OBSERVED (quad bit-identical at 684 bits, corpus 0/0): THE LOFT RAW RUN IS FULLY NAMED — the WORLD reading confirmed: raws `[3.0, 4.0, 1.5, 3.0, 4.0, 7.0, 1.5, pi/2, pi/2]` parse as PER-SECTION `[center.x][center.y][height][radius]` runs + the draft pair (section 1: (3, 4, z 0.0 elided as a short, r 1.5); section 2: (3, 4, z 7.0, r 1.5); then `[pi/2, pi/2]`). The landed original retro-fits exactly: (0,0) r 1 elided, (2.006->2.0, 2.006->2.0, 5.0, 0.2996->0.3), the draft pair — the offsets are PRESENT in the raws (world, not bottom-relative)** |
 | ~~P2~~ **LANDED 2026-09-24 — the fixture surface CLOSES** | `PolysolidL_<v>` | `POLYSOLID` → `Height` 5 → `width` 3; path `0,0,0` → `5,0,0`, ENTER to end | the PATH LENGTH only (12 → 5; the profile identical to `PolysolidX`) | **OBSERVED (quad bit-identical at 1418 bits, corpus 0/0): THE 2.0109 PROBE IS DECISIVE — raw@998 = 2.0108894202880947 in BOTH L (path 5) and X (path 12), BIT-FOR-BIT IDENTICAL → the single is PROFILE-DERIVED, not path-derived; @900 (−3.90625) and @1092 (32.0625) likewise track the profile (W's profile differs); 4.00024414192312 the record constant (third confirmation); the width single @1084 = 3.0 (the shared width); the segment end (5.0, 0.0) — the only path-derived entry. The post-corner singles stream is CLOSED: every entry is profile-derived or the segment end; the walk (the decoder row) collects them. NO MAINTAINER ASKS REMAIN — everything left is agent code work or a no-authoring-path row** |
 | ~~P1~~ **LANDED 2026-09-24** | `PolysolidW_<v>` | `POLYSOLID` → `Height` 3 → `width` 7; path `0,0,0` → `12,0,0`, ENTER to end | the profile W/H swap vs `PolysolidX` (3/5 → 7/3; the path identical) | **OBSERVED (quad bit-identical at 1418 bits — same length as X with the swapped profile; corpus 0/0): corners (±3.5, {0,3}) exactly as predicted; segment end (12.0, 0) CLEAN where X carried 12.00001 residue; the post-corner BD single at bit 1084 moved 3.0 → 7.0 with the width — THE WIDTH SINGLE IS NAMED; 4.00024414192312 is INVARIANT across original/X/W (a record constant); 2.0109 is path-family-shared with low-bit precision noise; X's −19594/8614-class entries are drag residue (zeroed/absent in the cleaner authoring). The post-corner singles stream (bits 998–1286) is the next decoder row — collect it with a proper BD walk past the corner blocks** |
-| ~~P1~~ **LANDED 2026-09-24 (re-authored Solid)** | `ExtrudeC_<v>` | `CIRCLE` center `2,3,0` radius `1`; `EXTRUDE` height `2` with `MOde` = `Solid` explicitly set at the prompt (the first attempt landed as a surface — re-authored; the surface copies stay in the quarantine as offset-variant specimens) | **OBSERVED (quad bit-identical at 464 bits, corpus 0/0): the profile CALL length grew 16 -> 144 EXACTLY as predicted — the circle center (2.0, 3.0, 0.0), x/y raws (the first nonzero profile center), radius 1.0 short, normal (0,0,1). THE PRE-CALL REGION IS RESOLVED: it moved with the offset, carrying the profile center as its own raw-BD run (cx 2.0 at bit 112, cy 3.0 at bit 184) in addition to the CALL run; the full accounting closes: landed 208 + the pre-CALL center pair (128) + the CALL-center raws (128) = 464** |
-| ~~P2~~ **DEAD 2026-09-24** | `LoftD_<v>` | ~~LOFT Settings → Ruled + draft fields~~ — **the authoring session cannot find the settings path** (the maintainer's report: the options as described do not exist in this AutoCAD release). The π/2 pair and the inter-value grammar stay provisionally unnamed pending another reachable loft-settings lever — or the un-quarantined LoftM's typed LOFTEDSURFACE `start/end draft angle` fields when the surface-parser row lands | — | — |
+| ~~P1~~ **LANDED 2026-09-24 (re-authored Solid)** | `ExtrudeC_<v>` | `CIRCLE` center `2,3,0` radius `1`; `EXTRUDE` height `2` with `MOde` = `Solid` explicitly set at the prompt (the first attempt landed as a surface — re-authored; the surface-mode first attempts landed as `ExtrudeCSurf_<v>`, 0/0 with the surface-parser row, keeping the offset-variant differential) | **OBSERVED (quad bit-identical at 464 bits, corpus 0/0): the profile CALL length grew 16 -> 144 EXACTLY as predicted — the circle center (2.0, 3.0, 0.0), x/y raws (the first nonzero profile center), radius 1.0 short, normal (0,0,1). THE PRE-CALL REGION IS RESOLVED: it moved with the offset, carrying the profile center as its own raw-BD run (cx 2.0 at bit 112, cy 3.0 at bit 184) in addition to the CALL run; the full accounting closes: landed 208 + the pre-CALL center pair (128) + the CALL-center raws (128) = 464** |
+| ~~P2~~ **DEAD 2026-09-24** | `LoftD_<v>` | ~~LOFT Settings → Ruled + draft fields~~ — **the authoring session cannot find the settings path** (the maintainer's report: the options as described do not exist in this AutoCAD release). The π/2 pair and the inter-value grammar stay provisionally unnamed pending another reachable loft-settings lever — the surface-parser row landed 2026-09-24 but the typed LOFTEDSURFACE fields are NOT reachable through it (§18.6's DEBUG_CLASSES finding + the classes desync: the entity decodes as raw UNKNOWN_OBJ), so the naming path is the loft container walk or the LoftM raw tail | — | — |
 
 **Authoring mechanics** (per stem, mirroring the landed `.txt`
 companions): new drawing on a blank default template, zero
