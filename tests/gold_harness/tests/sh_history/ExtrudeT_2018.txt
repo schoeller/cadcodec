@@ -23,6 +23,6 @@ Qualification (verified by acadrust harness, 2026-09-24, at landing):
   differential invariants (S18.7):
     quartet bit-identity: the four ExtrudeT versions carry bit-identical tails
     corpus: ExtrudeT_2018.dwg enters at read 0 / write 0
-    OBSERVED: the tail grows 208 -> 272 with a raw BD 0.2617993877991494 (15 deg) at bit 70 — EXACTLY the first slot after the direction head: the option spine IS the SweepOptions order [draft_angle][draft_start_dist][draft_end_dist][twist][scale 1.0][align]; the current decoder view returns None on it (the head-shorts reader stops at the raw first slot) — the spine naming lands in the decoder next
+    OBSERVED: the tail grows 208 -> 272 with a raw BD 0.2617993877991494 (15 deg) at bit 70 — EXACTLY the first slot after the direction head: the option spine IS the SweepOptions order [draft_angle][draft_start_dist][draft_end_dist][twist][scale 1.0][align]. DECODED (2026-09-24, commit 5c89b59): the view names all six spine slots (draft_angle = 0.2617993877991494, scale_factor = 1.0) plus the untouched profile circle (0,0,0) r 1.0 — pinned by the extrude_t_names_the_sweep_option_spine hermetic test
 
 Covered campaign rows (see IMPLEMENTATION.md S18.7 + F2.3): ExtrudeT

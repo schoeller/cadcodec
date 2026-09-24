@@ -1,17 +1,21 @@
 # Zero-context prompt — the ACS/SH campaign halt: all three phases COMPLETE
 
-> Campaign state 2026-09-23 (late). **The three-phase ACS/SH campaign is
-> COMPLETE at 0/0: the corpus stands at 188 files, read 0, write 0**
-> (180 + the landed §18.7 differential quads RevolveA/R ×4 versions
-> each). Phase A (typed SH wire layouts, raw-tail retention) closed at
+> Campaign state 2026-09-24. **The three-phase ACS/SH campaign is
+> COMPLETE at 0/0: the corpus stands at 244 files, read 0, write 0**
+> (the 180 campaign baseline + the landed §18.7 differential quads —
+> RevolveA/R and the 14 solid stems of the 2026-09-24 set; the 3
+> M-stem quads are quarantined pending the surface-parser row).
+> Phase A (typed SH wire layouts, raw-tail retention) closed at
 > `f368fce`→`e1dff05`; Phase C (the seven fixture families) closed at
-> `9cf8e0f`→`e1dff05`; **Phase B (the blob autopsy) closed at this
-> halt** — the four raw-retained node tails carry typed semantic views
-> with the captured bits still the write authority, and the §18.7
-> differential pipeline is now closing families live:
-> **the REVOLVE family is FULLY DECODED** (the CALL grammar —
-> axis pair, angle, options, embedded OBJ_CIRCLE profile, flags; §18.6),
-> with `axis_point`/`axis_vector`/`revolve_angle`/`profile_center`/`profile_radius`/`profile_normal` on the model.
+> `9cf8e0f`→`e1dff05`; **Phase B (the blob autopsy) closed** — the
+> four raw-retained node tails carry typed semantic views with the
+> captured bits still the write authority, and the §18.7
+> differential pipeline delivered the family closures:
+> **REVOLVE fully decoded** (the CALL grammar — axis pair, angle,
+> options, embedded OBJ_CIRCLE profile, flags; §18.6) and
+> **SWEEP/EXTRUSION decoded through the spine + the profile CALL**
+> (the six SweepOptions slots named; the extrusion's embedded
+> OBJ_CIRCLE/OBJ_LWPOLYLINE profile; §18.6).
 > Read `tests/gold_harness/AGENTS.md` first, then §F2.1–F2.3 and
 > §18.5–18.7 in `IMPLEMENTATION.md` (§18.6 is the Phase B record,
 > §18.7 the differential recipe + its live outcomes), then this file
@@ -95,9 +99,10 @@ splice + the section checksum).
    decodes (the circle body fully; the polyline CALL recorded with
    its packed vertices pending the header grammar), pinned by four
    new hermetic tests + the rewritten module tests (the suite is
-   15 green); the loft slots stay positional (the container is a
-   packed-double stream, not a BD stream — the raw scan reads the
-   values; naming the container needs the loft header grammar).
+   15 green); the loft slots stay positional (the
+   values are BD raws the marker scan reads fine; the strict BD
+   walk from the head derails on the non-BD regions between them —
+   the inter-value grammar is the unnamed part).
    (b) OPEN: the surface-parser row (the ASSOC* SURFACEACTIONBODY
    classes + the R2007+ surface entities) to un-quarantine the
    M-stems. (c) OPEN: the sweep frame blocks' unnamed singles
@@ -155,7 +160,11 @@ gate 1.
 ## Commit inventory (this halt)
 
 ```
-<this-halt review pass>
+<this review pass>
+5c89b59 fix(dwg): the sweep spine named + the extrusion profile CALL — §18.7 differential decode
+57232a6 test(harness): the §18.7 differential set lands — 14 solid stems in-corpus, 3 M-stems quarantined
+811b0d8 docs(harness): the two surface-twin §18.7 rows the queue already promised
+804e892 test(harness): the scan-closure review pass — a dead test revived, the records re-unified
 daedfb7 docs(harness): the full-tree scan record — §18.6 revolve closure + the re-designed §18.7 queue
 05368b3 fix(dwg): the revolve tail fully decoded — the CALL grammar, closed by the libredwg scan
 839012c docs(harness): the crossing-class theory dies — wire regression + the RevolveI refusal
@@ -166,15 +175,17 @@ ac547e7 test(harness): the §18.7 differential quads RevolveA/R — first matrix
 f2891b1 docs(harness): revolve sufficiency review — the pair grows to a seven-stem matrix
 7f2a77f docs(harness): Phase B COMPLETE — the blob autopsy record + halt refresh
 9a260ae fix(dwg): Phase B blob autopsy — SH tail decoders, typed views, re-encode rule
-aeb59ed docs(harness): handover refresh — counts, tail-anchor precision, commit inventory
 e1dff05 docs(harness): Phase C fixture review closure — seven families landed, BREP deferred
 ```
 
 (The session's arc: the Phase B halt + review pass; the §18.7
-differential recipe; the RevolveA/R quads landed and decoded
-(structural block); the plan-view axis correction (all specimens
-+Y); the crossing-class theory dead on the maintainer's refusal;
-then the full-tree libredwg scan CLOSED the revolve family — the
-CALL grammar with the embedded OBJ_CIRCLE profile. The raws are
-`1f06d9d`-remote prior: push only when asked.)
+differential recipe; the RevolveA/R quads landed and decoded; the
+plan-view axis correction (all specimens +Y); the crossing-class
+theory dead on the maintainer's refusal; the full-tree libredwg
+scan CLOSING the revolve family (the CALL grammar); the maintainer
+authoring the full 17-stem §18.7 set — 14 solid stems landing
+in-corpus with their differential outcomes, 3 M-stems quarantined;
+and the sweep spine + extrusion profile CALL decode. **This halt
+PUSHES to `origin/gold-vs-silver`** (the first push since
+`1f06d9d`; the branch tip becomes the pushed head).
 
