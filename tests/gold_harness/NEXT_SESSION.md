@@ -146,11 +146,14 @@ f11f7a1 fix(dwg): the classes gold-shadow walk + the R2013+ surface action-body 
 9d08280, ac5c47e, 86ce5a7, f2891b1, 7f2a77f, 9a260ae, e1dff05)
 ```
 
-**PUSH STATE**: the passed-down `ef56d29` (the previous handover
-pair) is pushed. The commits this halt adds (the fix + the fixture
-landing + the docs pair) are unpushed at halt time — **push first
-so the session starts from the remote head** (push only when the
-maintainer asks; they have asked for pushes at every halt so far).
+**PUSH STATE**: the halt's four commits (`f11f7a1` fix, `52491d7`
+fixture landing, `247e8e9` halt refresh, `6103dcd` handover note)
+plus the review follow-up (`62fb7bc`: the halt's code review landed
+all six findings — the full-count shadow mirror with gold's exact
+plausibility bounds, the shared section prelude, the O(1) block-list
+dedupe, the crafted-section invariant pins, the entity-marker
+constants; gates 1324 tests + corpus 280 at 0/0) are pushed together
+with this note. The remote head is the halt head.
 
 (The session's arc, for context: the environment check confirmed
 the remote head == the previous handover; the 20 quarantined
