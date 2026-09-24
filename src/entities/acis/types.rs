@@ -2892,8 +2892,77 @@ impl SatDocument {
     ///
     /// Returns `Err` with the validation errors when the stripped
     /// document is invalid (the document is left stripped in that case).
+    /// Normalize straight-curve parameterization to the native genus:
+    /// unit direction, arc-length edge parameters. cadkernel's exporter
+    /// emits magnitude-encoded directions (e.g. (0, 0, 10) for a
+    /// length-10 seam) with unit parameter ranges; every authored
+    /// specimen and the acadrust primitives carry unit directions with
+    /// arc-length parameters (2026-09-24 SAT-text diff: the sole
+    /// remaining value delta between the BCAD-accepted gen_all cylinder
+    /// and the refused host-chain one). Runs on the constructed
+    /// conversion paths only (to_sab_checked / to_sab_asm_checked);
+    /// captured binary SAB never flows through here.
+    fn normalize_straight_parameterization(&mut self) {
+        let count = self.records.len();
+        let mut scale = vec![1.0f64; count];
+        for idx in 0..count {
+            if self.records[idx].entity_type != "straight-curve" {
+                continue;
+            }
+            let record = &self.records[idx];
+            if record.tokens.len() < 7 {
+                continue;
+            }
+            // Token layout (both text- and SAB-parsed): [wire, origin x3,
+            // direction x3, role idents...].
+            let direction = [
+                record.tokens[4].as_float().unwrap_or(0.0),
+                record.tokens[5].as_float().unwrap_or(0.0),
+                record.tokens[6].as_float().unwrap_or(0.0),
+            ];
+            let magnitude = (direction[0] * direction[0]
+                + direction[1] * direction[1]
+                + direction[2] * direction[2])
+            .sqrt();
+            if (magnitude - 1.0).abs() < 1e-12 || magnitude < 1e-300 {
+                continue;
+            }
+            scale[idx] = magnitude;
+            let record = &mut self.records[idx];
+            for k in 4..7 {
+                let value = record.tokens[k].as_float().unwrap_or(0.0) / magnitude;
+                record.tokens[k] = SatToken::Float(value);
+            }
+        }
+        // Edge parameter ranges referencing the normalized curves:
+        // [wire, v1, p1, v2, p2, coedge, curve, sense, ...].
+        for record in self.records.iter_mut() {
+            if record.entity_type != "edge" {
+                continue;
+            }
+            let Some(SatToken::Pointer(curve)) = record.tokens.get(6) else {
+                continue;
+            };
+            if curve.0 < 0 || (curve.0 as usize) >= count {
+                continue;
+            }
+            let magnitude = scale[curve.0 as usize];
+            if (magnitude - 1.0).abs() < 1e-12 {
+                continue;
+            }
+            for k in [2usize, 4usize] {
+                if let Some(token) = record.tokens.get_mut(k) {
+                    if let Some(value) = token.as_float() {
+                        *token = SatToken::Float(value * magnitude);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn to_sab_checked(&mut self) -> Result<Vec<u8>, Vec<SatValidationError>> {
         self.strip_for_sab();
+        self.normalize_straight_parameterization();
         let errors = self.validate();
         if !errors.is_empty() {
             return Err(errors);
@@ -3147,6 +3216,7 @@ impl SatDocument {
     /// document is invalid.
     pub fn to_sab_asm_checked(&mut self) -> Result<Vec<u8>, Vec<SatValidationError>> {
         self.strip_for_sab();
+        self.normalize_straight_parameterization();
         self.to_asm_structure();
         let errors = self.validate();
         if !errors.is_empty() {
