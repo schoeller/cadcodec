@@ -3763,10 +3763,8 @@ wireframe values on the same modeler backing).
   the REVOLVEDSURFACE spec twin's own field order — `[revolve_angle
   BD raw]` — confirmed on two values (3*pi/2 and pi) — `[6 x BD0
   options]` — `[BL 18 = OBJ_CIRCLE][BL 80/144]` — an embedded
-  PROFILE CIRCLE: `[center 3BD][radius BD][normal 3BD]` — `[2 flag
-  bits]`. The earlier revolve sweep ANGLE — confirmed on TWO independent values (the original's
-  3*pi/2 = 270°; the typed RevolveA/R matrix quads' pi = 180°) —
-then the profile CALL. The
+  PROFILE CIRCLE: `[center 3BD][radius BD][normal 3BD]` — then
+  `[2 flag bits]`. The
   SCAN's three decisive finds:
 
   - **The RC byte 0x12 in every mid-region = the embedded-entity
@@ -3947,33 +3945,28 @@ workdirs cleanly):
 | P1 | `ExtrudeH_<v>` | `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` the circle, height `5` | height 2→5 (radius unchanged) | does the 64-bit payload after the option spine change with height? direction z decodes 5.0; the 36-bit trailer |
 | P1 | `ExtrudeR_<v>` | `CIRCLE` center `0,0,0` radius `3.125`; `EXTRUDE` height `2` | radius 1→3.125 (height unchanged) | does the 64-bit payload encode the profile? (3.125 has a long non-repeating mantissa — it must show bit-exactly if stored as a raw double) |
 | P1 | `ExtrudeT_<v>` | `CIRCLE` center `0,0,0` radius `1`; `EXTRUDE` with the `Taper angle` option, taper `15`, height `2` | draft/taper 0→15° (the only sweep-option variable reachable from a command) | the sweep option spine after the direction: [0,0,0,0,1.0,0,…]. A nonzero draft has to appear as a short-adjacent BD or a raw entry — whichever moves names the spine slots (and settles the same scale-vs-vector confound the revolve head carries); if NOTHING in the tail moves, the spine is NOT options and the taper went elsewhere — also decisive |
-**The revolve set is a seven-stem matrix, not a pair** (2026-09-23
-sufficiency review, then corrected by the footprint evidence):
-the two-stem design left the tail's head semantics unresolved,
-because every revolve specimen — the drag-authored original
-included — rotates about an origin axis through (0,0,0) with a
-PLAN-VIEW-TYPEABLE direction, so the head's `'01'` pair at the
-4th pair-position never moves and TWO readings stay alive:
-"option spine whose `BD('01')` is the scale factor" vs
-"`[axis_pt (0,0,0) 3BD][axis_dir]`". The 2026-09-23 wire
-regressions SETTLED several facts and reseated the debate: **all
-three landed specimens revolve about the +Y axis** (distance
-ladders: A [1.2, 2.8] ⇒ M 2.0/m 0.8; R [0.75, 3.25] ⇒ M 2.0/m
-1.25 — exactly the drawn circles; the original [0.8, 1.2] ⇒ M
-1.0/m 0.2, axis unique by point-line solve) — so the evidence-led
-head reading is `[axis_pt (0,0,0)][axis_dir (0,1,0)]` with the
-`'01'` = dir.Y, and the A/R's trailing `(0,0,1)` triple is NOT
-the axis direction (it is the as-drawn profile circle's PLANE
-NORMAL — plan-drawn ⇒ +Z; the original's different profile form
-carries no normal trio; RevolveP decides). The Phase A budget
-disproof (a raw `2RD` direction cannot fit in 190 bits) still
-rules out RAW direction storage; BD-short or BD-mixed axis
-storage in the head fits every landed tail exactly. `RevolveO`/
-`RevolveT` make the two readings diverge (O: a raw 2.375 vs an
-unmoved options head; T: the head GROWS by ~128 raw bits iff
-pt/dir, stays ~12 bits iff options). The matrix axes are the
-profile variables (radius, center-distance, PROFILE FORM) and
-the two axis variables (point, direction):
+**The revolve rows, post-closure (2026-09-23)**: the full-tree
+scan CLOSED the family — the head IS the axis pair
+(`[axis_pt 3BD][axis_dir 3BD]`, the REVOLVEDSURFACE twin's own
+order; the '01' = axis_dir.Y), the trailing `(0,0,1)` trio is
+the profile circle's PLANE NORMAL (inside the CALL bit-length),
+and there is no form/class question left — the "form mid-region"
+was the CALL header, and the original's "different form" was its
+exactly-1.0 center.x in the short BD. The wire ladders stand
+(A [1.2, 2.8] => M 2.0 / m 0.8; R [0.75, 3.25] => M 2.0 / m
+1.25 — the drawn circles; the original [0.8, 1.2] => M 1.0 /
+m 0.2 — its circle (1.0, 0, 0) r 0.2; axis unique by point-line
+solve). The remaining unknowns are exactly three: the six
+option shorts' NAMES (candidates: the REVOLVEDSURFACE twin's
+post-angle field list — start_angle, draft_angle, the draft
+distances, twist), the two flag bits, and the axis fields'
+behavior under a varied axis (never yet sampled — every landed
+specimen revolves about origin +Y). The scan also probed the
+Extrude and Loft tails for the same CALL grammar — no [BL 18]
+chain closes on either, so their profile encoding is different
+and awaits their stems. The rows below cover the open slots:
+C/M (grammar anchors), W (the bit-identity mirror), O/T (the
+axis pair's first moving samples), F (the full-turn flags)
 
 **A 2026-09-23 authoring constraint (in force for every remaining
 row): the typed Z axis is NOT workable in the plan view — REVOLVE
@@ -4073,7 +4066,7 @@ see below):
 
 | stem | center distance | radius | bore \|center−r\| | predicted 0.2-slot if bore | if radius | if center | OBSERVED (wire regressions, 2026-09-23) |
 |---|---|---|---|---|---|---|---|
-| original (observed) | — | — | — | **0.2 (observed)** | would need r=0.2 ✗ | would need 0.2 ✗ | **RESOLVED TWICE-REMOVED: the original is a NON-CROSSING torus (M 1.0, m 0.2) about the origin +Y axis (distance ladder [0.8..1.2], axis unique); its stored (0.2, 1.0) slots = its own profile FORM's (minor, major) — NOT an as-drawn circle (crossing would be refused; the earlier "(0.6, 0.8) drawing" and "center 0.2 r 1.0" geometries were both wrong reading of one specimen)** |
+| original (observed) | — | — | — | **0.2 (observed)** | would need r=0.2 ✗ | would need 0.2 ✗ | **RESOLVED FULLY (the scan, S18.6): the original IS the as-drawn circle — center (1.0, 0, 0) r 0.2 in the CALL grammar; its exactly-1.0 center.x takes the two-bit short BD, which is why the raw-scan read (0.2, 1.0) as the two profile slots at all. The earlier "(0.6, 0.8)" and "different form" geometries were both wrong readings of one specimen** |
 | `RevolveA` | 2 | 0.8 | 1.2 | 1.2 | 0.8 | 2.0 | **M 2.0 / m 0.8 confirmed by ladder [1.2, 2.8]; slots = the AS-DRAWN [center (2,0,0)][radius 0.8][normal (0,0,1)] — the circle-form record** |
 | `RevolveR` | 2 | 1.25 | 0.75 | 0.75 | 1.25 | 2.0 | **M 2.0 / m 1.25 by ladder [0.75, 3.25]; radius-only delta byte-clean at the same span** |
 | `RevolveC` | 4 | 0.8 | 3.2 | 3.2 | 0.8 | 4.0 | still to author — confirms the center slot as the drawn center (+ the mid) |

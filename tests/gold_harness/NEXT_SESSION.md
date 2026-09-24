@@ -8,9 +8,10 @@
 > `9cf8e0f`→`e1dff05`; **Phase B (the blob autopsy) closed at this
 > halt** — the four raw-retained node tails carry typed semantic views
 > with the captured bits still the write authority, and the §18.7
-> differential pipeline is now landing follow-up decode rows live
-> (RevolveA/R processed: the structural profile block +
-> `profile_center`/`profile_radius`/`trailing_triple` on the model).
+> differential pipeline is now closing families live:
+> **the REVOLVE family is FULLY DECODED** (the CALL grammar —
+> axis pair, angle, options, embedded OBJ_CIRCLE profile, flags; §18.6),
+> with `axis_point`/`axis_vector`/`revolve_angle`/`profile_center`/`profile_radius`/`profile_normal` on the model.
 > Read `tests/gold_harness/AGENTS.md` first, then §F2.1–F2.3 and
 > §18.5–18.7 in `IMPLEMENTATION.md` (§18.6 is the Phase B record,
 > §18.7 the differential recipe + its live outcomes), then this file
@@ -135,15 +136,26 @@ gate 1.
 ## Commit inventory (this halt)
 
 ```
-<this-halt docs + review pass>
-<prev>  7f2a77f docs(harness): Phase B COMPLETE — the blob autopsy record + halt refresh
-<prev>  9a260ae fix(dwg): Phase B blob autopsy — SH tail decoders, typed views, re-encode rule
-<prev>  aeb59ed docs(harness): handover refresh — counts, tail-anchor precision, commit inventory
-e1dff05  docs(harness): Phase C fixture review closure — seven families landed, BREP deferred
+<this-halt review pass>
+daedfb7 docs(harness): the full-tree scan record — §18.6 revolve closure + the re-designed §18.7 queue
+05368b3 fix(dwg): the revolve tail fully decoded — the CALL grammar, closed by the libredwg scan
+839012c docs(harness): the crossing-class theory dies — wire regression + the RevolveI refusal
+a656f99 fix(harness): the revolve axis correction — Y by wire footprint, plan-view authoring constraint
+9d08280 docs(harness): the §18.7 live pipeline record — RevolveA/R outcomes, remaining stems
+ac547e7 test(harness): the §18.7 differential quads RevolveA/R — first matrix rows, qualified
+86ce5a7 fix(dwg): the revolve structural profile block — §18.7 pipeline, RevolveA/R evidence
+f2891b1 docs(harness): revolve sufficiency review — the pair grows to a seven-stem matrix
+7f2a77f docs(harness): Phase B COMPLETE — the blob autopsy record + halt refresh
+9a260ae fix(dwg): Phase B blob autopsy — SH tail decoders, typed views, re-encode rule
+aeb59ed docs(harness): handover refresh — counts, tail-anchor precision, commit inventory
+e1dff05 docs(harness): Phase C fixture review closure — seven families landed, BREP deferred
 ```
 
-(The review-pass commit fixes two writer defects found on re-read —
-the undecodable-tail verbatim fallback and the revolve span
-alignment — and lands the §18.7 recipe with the closure docs; see
-§18.6's "Review pass" note. Push only when asked; `1f06d9d`
-remains the last remote head.)
+(The session's arc: the Phase B halt + review pass; the §18.7
+differential recipe; the RevolveA/R quads landed and decoded
+(structural block); the plan-view axis correction (all specimens
++Y); the crossing-class theory dead on the maintainer's refusal;
+then the full-tree libredwg scan CLOSED the revolve family — the
+CALL grammar with the embedded OBJ_CIRCLE profile. The raws are
+`1f06d9d`-remote prior: push only when asked.)
+

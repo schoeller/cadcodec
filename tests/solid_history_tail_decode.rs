@@ -241,6 +241,7 @@ fn revolve_profile_edits_land_bit_locally() {
     );
 }
 
+#[test]
 fn malformed_and_empty_tails_do_not_decode() {
     // No tail, truncated seed, or a head that never forms — all keep
     // the verbatim-only behavior (None view, no typed claims).
