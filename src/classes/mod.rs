@@ -136,10 +136,21 @@ impl DxfClass {
     pub fn new_entity(dxf_name: impl Into<String>, cpp_class_name: impl Into<String>) -> Self {
         let mut class = Self::new(dxf_name, cpp_class_name);
         class.is_an_entity = true;
-        class.item_class_id = 498;
+        class.item_class_id = ENTITY_ITEM_CLASS_ID;
         class
     }
 }
+
+/// The DWG class-table entity marker (`item_class_id`, decimal 498):
+/// classes carrying this value are entity classes, everything else
+/// (including any garbage value a desynced walk produces) is an object
+/// class. This reader's own class walk, the gold-shadow classification,
+/// and the entity constructors key the same rule — use the constant, not
+/// a literal, at every site.
+pub const ENTITY_ITEM_CLASS_ID: i16 = 0x1F2;
+
+/// The DWG class-table object counterpart (decimal 499).
+pub const OBJECT_ITEM_CLASS_ID: i16 = 0x1F3;
 
 /// Collection of DXF class definitions, keyed by DXF name (case-insensitive).
 ///

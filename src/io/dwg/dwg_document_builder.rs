@@ -567,7 +567,7 @@ impl DwgDocumentBuilder {
             .filter(|c| {
                 c.class_number >= 500
                     && match c.gold_item_class_id {
-                        Some(id) => id == 0x1F2,
+                        Some(id) => id == crate::classes::ENTITY_ITEM_CLASS_ID,
                         None => c.is_an_entity,
                     }
             })
@@ -3229,10 +3229,15 @@ impl DwgDocumentBuilder {
                 // decode as unknown objects there) that the entity-membership
                 // reconstruction above cannot see. Keep the wire list primary
                 // (its order is gold's), union any membership-derived
-                // handles not already in it, and skip the re-sort.
+                // handles not already in it, and skip the re-sort. The seen
+                // set keeps the union O(n) — the handle lists are
+                // attacker-controlled counts, and a per-handle linear scan
+                // would be quadratic on large crafted drawings.
                 let mut handles: Vec<Handle> = canonical.clone();
+                let mut seen: ahash::AHashSet<Handle> =
+                    canonical.iter().copied().collect();
                 for handle in owner_handles {
-                    if !handles.contains(&handle) {
+                    if seen.insert(handle) {
                         handles.push(handle);
                     }
                 }
