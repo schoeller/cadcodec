@@ -4313,7 +4313,43 @@ assertion that no UNDECLARED top-level key silently leaks —
 | `CLASSES` | ✓ | ✓ | the class table | parsed (§18.6's gold-shadow); dropped by both normalizers |
 | `created_by` | ✓ | ✓ | author string (file header) | `_common_dwg` partial |
 | `VBAProject` | — | absent from the corpus files | declared in the drop-list; never observed | none (an excluded row, H6) |
+| `created_by` | ✓ | ✓ | **NOT FILE CONTENT**: gold's `PACKAGE_STRING` ("LibreDWG 0.14.8597"), hardcoded as the first JSON key by `out_json.c:2617` | n/a — an excluded row (H6): each tool stamps itself |
 | — (not JSON) | ✓ | ✓ | the **object map / Handles section**, CRCs, section map, page tables, sentinels | the byte level — the layer-4 oracle's domain |
+
+**The libredwg source-tree re-analysis (2026-09-25, the authoritative
+enumeration):** the gold tree holds a dedicated spec file per structural
+part — `header.spec` (FILEHEADER), `header_variables.spec` (HEADER),
+`2ndheader.spec`, `auxheader.spec`, `r2004_file_header.spec`
+(R2004_Header/R2007_Header), `acds.spec`, `appinfo.spec` (AppInfo +
+AppInfoHistory), `filedeplist.spec`, `objfreespace.spec`,
+`revhistory.spec`, `security.spec`, `summaryinfo.spec`,
+`template.spec` (plus `header_variables_dxf.spec`/`_r11.spec` —
+DXF-only / pre-R13, out of scope). These are the authoritative field
+lists for the H2–H5 projections, exactly as `dwg2.spec` was for
+OBJECTS. The section universes are the two enums in `include/dwg.h`:
+`Dwg_Section_Type` (R2004+, 20 values — the 17 named sections plus
+`SECTION_UNKNOWN` = the FILEHEADER itself, `SECTION_INFO` = the
+Data Section / Section Page Map, `SECTION_SYSTEM_MAP` — the R2004+
+container's page machinery, no JSON emission, byte-level) and
+`Dwg_Section_Type_r13` (R13–R2000: HEADER, CLASSES, HANDLES,
+OBJFREESPACE — **"including the 2ndheader"**, TEMPLATE, AUXHEADER,
+THUMBNAIL). Additional tree facts the rows must carry: **`created_by`
+is the oracle's PACKAGE_STRING stamp, not file content** (excluded
+row); **Signature has a JSON emitter deliberately disabled** in the
+dispatch (`out_json.c:2673`) — excluded reason "readable but not
+emitted", distinct from corpus-absent; **the object-map emission
+(`json_handles_write`) is `#if 0`'d** — the Handles section is
+deliberately unemitted; **the R2000 emission is gated by the
+FILEHEADER's locator count** (ObjFreeSpace/Template/AuxHeader only
+when `header.sections` ≥ 3/4/6) and R2004+ SummaryInfo/VBAProject by
+`summaryinfo_address`/`vbaproj_address` — FILEHEADER fields are
+structurally load-bearing for WHICH keys appear (an H2 comparison
+coupling); **AppInfoHistory has no `AcDb:` name string** — it is
+located by section TYPE (12) in the R2004+ map (`read_2007_section_
+appinfohistory`, decode_r2007.c:1963), which is why name-based
+registries miss it. The enumeration is CLOSED: 15 spec'd structural
+parts + the 3 container types + the object map + CRCs/sentinels —
+nothing else exists in the tree.
 
 **Completeness review (2026-09-25, same day — the header+body axes vs the
 whole file):** the two axes cover every JSON-emitted structure key (the
@@ -4372,27 +4408,42 @@ Signature) — the parse side is further along than the emission side.
   `SecondHeader` carries the R2000 section-locator table (6
   nr/address/size records) AND its per-locator handle vector — the
   only JSON-emitted image of the section map on R2000 — so its
-  projection is structural, not just scalar; the R2004+ system headers
-  emit POINTERS (section_map_id/address, section_info_id,
-  section_array_size, gap_array_size, crc32), not the map contents
-  (those stay byte-level, H6).
+  projection is structural, not just scalar (the `Dwg_Section_Type_r13`
+  enum documents SecondHeader as living INSIDE the ObjFreeSpace
+  section on R13–R2000); the R2004+ system headers emit POINTERS
+  (section_map_id/address, section_info_id, section_array_size,
+  gap_array_size, crc32), not the map contents (those stay byte-level,
+  H6). **Emission-gating coupling (the tree re-analysis): gold emits
+  ObjFreeSpace/Template/AuxHeader on R2000 only when the
+  FILEHEADER's `sections` locator count is ≥ 3/4/6, and
+  SummaryInfo/VBAProject on R2004+ only when
+  `summaryinfo_address`/`vbaproj_address` are set — FILEHEADER fields
+  are structurally load-bearing for WHICH structure keys appear at
+  all, so the H2 projection must reproduce the same conditional
+  presence (a key present in gold but absent in silver — or vice
+  versa — is a structural diff, not a field diff).**
 - **H3 — the variables (`HEADER`)**: the big row (228–298 keys). Silver
   parses them (`header`); the projection maps silver variable names →
   gold's `$VAR` names with typed comparisons. Expect the same
   per-variable quirk discovery the OBJECTS rows went through (gold's
   default-vs-unset emission idiosyncrasies); each lands with evidence.
 - **H4 — the metadata blocks**: `SummaryInfo`, `AppInfo(History)`,
-  `Template`, `FileDepList`, `RevHistory`, `Security`, `ObjFreeSpace`,
-  `created_by` — small dicts, one packet, low risk. `Security` is
-  zero-constants on the unprotected corpus; `FileDepList`/`RevHistory`
-  are empty-or-single-entry on the corpus set. **The review's named
-  row: `AcDb:AppInfoHistory` is unknown to silver's section registry
-  (`ALL_SECTION_NAMES` lacks it — and also `AcDsPrototype_1b` and
-  `Signature`, which exist as constants); R2004+ roundtrips survive via
-  generic section-map skipping. The packet decides: a named
-  AppInfoHistory read, or the recorded generic-skip + projection of
-  gold's 2 emitted keys. `ObjFreeSpace` has per-version field shapes
-  (`max32_hi`-style 64-bit splits on R2018) the projection must map.**
+  `Template`, `FileDepList`, `RevHistory`, `Security`, `ObjFreeSpace`
+  — small dicts, one packet, low risk. `Security` is zero-constants on
+  the unprotected corpus; `FileDepList`/`RevHistory` are empty-or-
+  single-entry on the corpus set. **`created_by` is EXCLUDED from
+  comparison** (the re-analysis: gold hardcodes its own
+  `PACKAGE_STRING` there — an oracle identity stamp, not file
+  content). **The review's named row: `AcDb:AppInfoHistory` is
+  unknown to silver's section registry (`ALL_SECTION_NAMES` lacks it
+  — and also `AcDsPrototype_1b` and `Signature`, which exist as
+  constants); R2004+ roundtrips survive via generic section-map
+  skipping. The packet decides: a named AppInfoHistory read, or the
+  recorded generic-skip + projection of gold's 2 emitted keys. Note:
+  it is located by section TYPE (12), not by an `AcDb:` name —
+  name-based registries structurally miss it. `ObjFreeSpace` has
+  per-version field shapes (`max32_hi`-style 64-bit splits on R2018)
+  the projection must map.**
 - **H5 — the bulk/binary sections**: `THUMBNAILIMAGE` and `AcDs`
   compare by content DIGEST (byte-blobs are not field-diffs); the AcDs
   segment-index internals beyond gold's emitted keys
@@ -4405,16 +4456,24 @@ Signature) — the parse side is further along than the emission side.
   a generated table — every DWG section name × per-version presence ×
   gold JSON emission × silver model coverage × axis status
   (`diffed 0` / `excluded` + the recorded reason). Pre-populated
-  excluded rows from the review: the R2004+ section-map/page-map
-  ENTRIES (transitively verified by every section read succeeding +
-  layer-4 byte-walks), the R2000 "unknown" section (locator nr 3/4;
-  content never JSON-emitted), per-section CRCs/sentinels/0x16
-  padding, the AcDs segidx internals, VBAProject/Signature
-  (corpus-absent). The matrix also audits silver's registry membership
-  per section name (the `ALL_SECTION_NAMES` omissions the review
-  found). A probe run refreshes it; it goes in every future halt
-  report. **This is the row that answers "the entire file structure is
-  gold-vs-silver tested" with a table, not an assertion.**
+  excluded rows from the review + the tree re-analysis: the R2004+
+  section-map/page-map ENTRIES and the container types
+  `SECTION_INFO`/`SECTION_SYSTEM_MAP` (transitively verified by every
+  section read succeeding + layer-4 byte-walks), the R2000 "unknown"
+  section (locator nr 3/4; content never JSON-emitted), per-section
+  CRCs/sentinels/0x16 padding, the AcDs segidx internals,
+  `created_by` (the oracle's own PACKAGE_STRING stamp — not file
+  content), `Signature` (readable by gold but its JSON emitter is
+  deliberately disabled, `out_json.c:2673` — reason "not emitted",
+  distinct from corpus-absent), `VBAProject` (corpus-absent), and the
+  object map / Handles section (gold's `json_handles_write` is
+  `#if 0`'d — deliberately unemitted; covered transitively by the
+  OBJECTS axis' handle resolution + layer 4). The matrix also audits
+  silver's registry membership per section name (the
+  `ALL_SECTION_NAMES` omissions the review found). A probe run
+  refreshes it; it goes in every future halt report. **This is the
+  row that answers "the entire file structure is gold-vs-silver
+  tested" with a table, not an assertion.**
 - **H7 — the writer's structure byte-fidelity**: once reads are 0,
   byte-walk the rewritten files' header/system sections against the
   originals (layer 4) and pin the re-emission (the current corpus only
