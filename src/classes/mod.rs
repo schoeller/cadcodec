@@ -96,19 +96,49 @@ pub struct DxfClass {
     pub unknown1: i32,
     /// Second reserved class metadata value (normally zero).
     pub unknown2: i32,
-    /// The `item_class_id` the gold reader (libredwg) sees for this class
-    /// entry — the gold-shadow walk of the classes section (see
-    /// `classes_reader::gold_shadow_item_ids`). Gold reads the class-record
-    /// tail as `BS, BS` for `dwg_version`/`maint_version` where this reader
-    /// uses `BL`, so on class tables whose tail encoding uses a non-byte
-    /// form (the AutoCAD-2027.1-authored fixture set) gold's numeric cursor
+    /// The values gold's own classes walk reads for this class entry —
+    /// the gold-shadow record (see `classes_reader::gold_shadow_classes`
+    /// and `DwgClassGoldShadow`). Gold reads the class-record tail as
+    /// `BS, BS` for `dwg_version`/`maint_version` where this reader uses
+    /// `BL`, so on class tables whose tail encoding uses a non-byte form
+    /// (the AutoCAD-2027.1-authored fixture set) gold's numeric cursor
     /// desyncs from the true record layout mid-table and its per-class
-    /// `item_class_id` turns to garbage — never 0x1F2 — so entity-class
-    /// records of such files decode through gold's unknown-OBJECT walk.
-    /// `None` when the shadow walk did not reach this index (the fallback
-    /// is this reader's own `is_an_entity`).
-    #[cfg_attr(feature = "serde", serde(skip))]
-    pub gold_item_class_id: Option<i16>,
+    /// record turns to garbage — `item_class_id` never 0x1F2, so
+    /// entity-class records of such files decode through gold's
+    /// unknown-OBJECT walk. `None` when the shadow walk did not reach
+    /// this index (the fallback is this reader's own parse). Emitted in
+    /// the dump so the structure axis can project gold's CLASSES JSON
+    /// shape exactly (§19 H5b).
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub gold_shadow: Option<DwgClassGoldShadow>,
+}
+
+/// One record of gold's classes walk — the per-class values gold
+/// (libredwg) reads and prints in its `CLASSES` JSON (§19 H5b). On
+/// conventionally-authored files every field equals this reader's own
+/// parse; on the desynced tables (the AutoCAD-2027.1 fixture set) the
+/// fields from the first non-byte-tail record onward are gold's garbage.
+///
+/// Print semantics (gold's `json_classes_write`, out_json.c:1988): the
+/// `BS` fields print as UNSIGNED 16-bit (`BITCODE_BS` is uint16_t,
+/// include/dwg.h:120 — number 36108 observed, never −29428),
+/// `num_instances` as unsigned 32-bit (2147673665 observed; its `11`
+/// degenerate BL code returns gold's error-branch 256 — ExtrudeM_2018
+/// records 9/25), and `dwg_version`/`maint_version` — `BS` reads
+/// stored into gold's `BITCODE_BL` (uint32) struct fields —
+/// ZERO-extend (ExtrudeM_2018 record 19: gold 32970, not the
+/// sign-extended 4294934730).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct DwgClassGoldShadow {
+    pub number: u16,
+    pub proxyflag: u16,
+    /// 0/1 (gold prints the bit as an int)
+    pub is_zombie: u8,
+    pub item_class_id: u16,
+    pub num_instances: u32,
+    pub dwg_version: u32,
+    pub maint_version: u32,
 }
 
 impl DxfClass {
@@ -128,7 +158,7 @@ impl DxfClass {
             maintenance_version: 0,
             unknown1: 0,
             unknown2: 0,
-            gold_item_class_id: None,
+            gold_shadow: None,
         }
     }
 

@@ -94,19 +94,19 @@ hand-decoded byte positions, the R2007 shape a pure projection of
 silver's container metadata, the R2000 pair the family's only NEW
 READS — the sentinel-located SecondHeader and the locator-addressed
 AuxHeader, both hand-validated before implementation — see §19.2's
-H2 row). **H4 LANDED** (the metadata blocks at zero read gaps corpus-wide:
-SummaryInfo 4,352 + AppInfo 2,396 + AppInfoHistory 546 + Template
-560 + FileDepList 1,055 + RevHistory 819 + Security 2,457 +
-ObjFreeSpace 3,441 = 15,626 leaves matched (the gap −13,450; the
-2,176 difference is SummaryInfo's pre-matched strings); read
-key-gap 234,691; the
-load-bearing findings — the unconditional zeroed-struct emission,
-the AppInfo container split, the T32→TU32 sniffing semantics — in
-§19.2's H4 row). **Next: H5b — the CLASSES projection (~47,000
-gaps; the machinery exists, the census's 4,460 value diffs are the
-loose canonical-name matching) — then H5a AcDs (58,471), H5c
-THUMBNAIL (558), and H3's HEADER ledger (128,489 — the dominant
-row).** **The authoritative enumeration is
+H2 row). **H4 LANDED** (the metadata blocks at zero read gaps
+corpus-wide: 15,626 leaves matched, the gap −13,450; read key-gap
+234,691; the load-bearing findings in §19.2's H4 row). **H5b
+LANDED** (CLASSES at zero read gaps corpus-wide: 280/280 files,
+60,954 matched, the gap −47,173; read key-gap **187,518**; the full
+gold-shadow record carries the desynced tables' garbage
+record-for-record; the landing exposed and fixed the latent
+wire-color field-type bug — WIRESTRUCT's color is a BS on every
+version, the §18 reader/writer had it BL on R2004+ — see §19.2's
+H5 row). **Next: H5a AcDs (58,471 — the section-level view; the
+embedded-record decode exists, the JSON view needs pinning), H5c
+THUMBNAIL (558, the digest), then H3's HEADER ledger (128,489 —
+the dominant row).** **The authoritative enumeration is
 CLOSED** (the libredwg tree re-analysis + the review passes, all in
 §19.1): 17 observed structure keys (16 per R2004+ file, 8 on R2000
 — including `R2007_Header`, its OWN 33-field AC1021 system section,

@@ -203,7 +203,45 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(doc.get("classes"), dict) and isinstance(
         doc["classes"].get("entries"), list
     ):
-        views["CLASSES"] = doc["classes"]["entries"]
+        # H5b: gold's CLASSES shape (json_classes_write, out_json.c:1988):
+        # number/dxfname/cppname/appname/proxyflag/num_instances/
+        # is_zombie/item_class_id, then dwg_version + maint_version
+        # SINCE R_2004a. The numeric fields come from the gold-shadow
+        # record (DxfClass::gold_shadow — gold's own walk values, which
+        # carry the desync garbage on the 2027.1-authored tables) with
+        # the sane parse as the None-fallback. Silver's extra fields
+        # (is_an_entity/unknown1/unknown2) do not print in gold and are
+        # dropped.
+        version = str(
+            (doc.get("dwg_file_header") or {}).get("version")
+            or doc.get("version")
+            or ""
+        )
+        pre_r2004 = version in ("AC1012", "AC1014", "AC1015")
+        out = []
+        for e in doc["classes"]["entries"]:
+            sh = e.get("gold_shadow") or {}
+            rec = {
+                "number": sh.get("number", e.get("class_number")),
+                "dxfname": e.get("dxf_name"),
+                "cppname": e.get("cpp_class_name"),
+                "appname": e.get("application_name"),
+                "proxyflag": sh.get("proxyflag", e.get("proxy_flags")),
+                "num_instances": sh.get("num_instances", e.get("instance_count")),
+                "is_zombie": sh.get(
+                    "is_zombie", 1 if e.get("was_zombie") else 0
+                ),
+                "item_class_id": sh.get("item_class_id", e.get("item_class_id")),
+            }
+            if not pre_r2004:
+                rec["dwg_version"] = sh.get(
+                    "dwg_version", e.get("dwg_version")
+                )
+                rec["maint_version"] = sh.get(
+                    "maint_version", e.get("maintenance_version")
+                )
+            out.append(rec)
+        views["CLASSES"] = out
     return views
 
 

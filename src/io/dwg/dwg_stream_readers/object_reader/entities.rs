@@ -5434,7 +5434,7 @@ fn read_acis_entity_impl(
         if isoline_present {
             let num_wires = safe_count(reader.read_bit_long());
             for _ in 0..num_wires {
-                wires.push(read_wire(reader, version));
+                wires.push(read_wire(reader));
             }
         }
 
@@ -5453,7 +5453,7 @@ fn read_acis_entity_impl(
                 let num_sw = safe_count(reader.read_bit_long());
                 sil_wires.reserve(num_sw as usize);
                 for _ in 0..num_sw {
-                    sil_wires.push(read_wire(reader, version));
+                    sil_wires.push(read_wire(reader));
                 }
             }
             silhouettes.push(Silhouette {
@@ -5848,16 +5848,26 @@ pub fn read_surface(
 
 /// Read a single wire struct from the DWG stream.
 /// Field order/types per LibreDWG `Dwg_3DSOLID_wire`:
-/// RC type, BLd selection_marker, BS/BL color, BLd acis_index, BL num_points,
+/// RC type, BLd selection_marker, BS color, BLd acis_index, BL num_points,
 /// 3BD points…, B transform_present [+ axes/translation/scale/flags].
-fn read_wire(reader: &mut DwgMergedReader, version: DwgVersion) -> Wire {
+fn read_wire(reader: &mut DwgMergedReader) -> Wire {
     let wire_type_raw = reader.read_byte();
     let selection_marker = reader.read_bit_long();
-    let color_val = if version.r2004_plus() {
-        reader.read_bit_long()
-    } else {
-        reader.read_bit_short() as i32
-    };
+    // The wire color is a BS on the wire on EVERY version: gold's
+    // WIRESTRUCT_fields uses FIELD_CAST (color, BS, BL, 0), and the
+    // decoder's FIELD_CAST reads with the TYPE (dec_macros.h:121:
+    // `(BITCODE_##cast)bit_read_##type`) — a BS read stored into the BL
+    // struct field. The historical r2004_plus BL branch here (and the
+    // matching writer branch) was a misreading of the cast — the BL
+    // read diverges from gold exactly when the '11' degenerate code
+    // fires (256: gold's BS error branch) or a >255 color uses the
+    // '00' form (BS reads RS16 = 2 bytes, BL reads RL32 = 4). Pinned by
+    // Cone_2007: the original's wires[0].color BS is '11' → gold 256
+    // (ByLayer); the BL read gave 0 (ByBlock) before the BL '11'
+    // fallback fix, and the BL WRITE of 256 ('00'+RL32) then made the
+    // rewrite's wire record 2 bytes longer than gold's BS re-read
+    // expects — the 96-diff corpus regression that exposed this.
+    let color_val = reader.read_bit_short() as i32;
     let acis_index = reader.read_bit_long();
     let num_pts = safe_count(reader.read_bit_long());
     let mut pts = Vec::with_capacity(num_pts as usize);

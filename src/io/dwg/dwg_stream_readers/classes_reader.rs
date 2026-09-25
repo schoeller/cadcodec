@@ -119,7 +119,7 @@ pub fn read_classes_with_encoding(
     // ── Gold-shadow walk ──
     // Reproduce gold's (libredwg's) numeric classes walk over the same
     // section bytes so every class carries the `item_class_id` gold
-    // actually sees (see DxfClass::gold_item_class_id). The walks share
+    // actually sees (see DxfClass::gold_shadow). The walks share
     // the header reads but diverge in the per-record tail: gold reads
     // `dwg_version`/`maint_version` as BS, this reader as BL, and from the
     // first record whose tail uses a non-byte bitcode form gold's cursor
@@ -130,14 +130,14 @@ pub fn read_classes_with_encoding(
     // advance the separate string stream; pre-R2007 TV is read here
     // inline instead), so this walk yields the same per-index record
     // sequence gold walks.
-    let gold_shadow = gold_shadow_item_ids(
+    let gold_shadow = gold_shadow_classes(
         data,
         version,
         maintenance_version,
         encoding,
     );
     for (i, class) in classes.iter_mut().enumerate() {
-        class.gold_item_class_id = gold_shadow.get(i).copied().flatten();
+        class.gold_shadow = gold_shadow.get(i).copied().flatten();
     }
 
     Ok(classes)
@@ -258,12 +258,12 @@ fn classes_section_prelude(
 /// zero-filled ones once the cursor stalls past the section end (a
 /// stalled or desynced read is never 0x1F2, which is the entire point
 /// of the mirror).
-fn gold_shadow_item_ids(
+fn gold_shadow_classes(
     data: &[u8],
     version: DxfVersion,
     maintenance_version: u8,
     encoding: &'static encoding_rs::Encoding,
-) -> Vec<Option<i16>> {
+) -> Vec<Option<crate::classes::DwgClassGoldShadow>> {
     // The shadow runs after the primary walk accepted the section, so the
     // prelude errors here mean the mirror cannot run — fall back to the
     // sane parse (all `None`).
@@ -294,7 +294,7 @@ fn gold_shadow_item_ids(
         -1 // pre-R2004: gold walks to endpos with a size-proportional cap
     };
 
-    let mut ids: Vec<Option<i16>> = Vec::new();
+    let mut ids: Vec<Option<crate::classes::DwgClassGoldShadow>> = Vec::new();
     let mut index: i64 = 0;
     let mut last_pos: i64 = -1;
     // Pre-R2004: gold's loop is `while (dat->byte < endpos - 1)` — the
@@ -325,8 +325,15 @@ fn gold_shadow_item_ids(
         }
         last_pos = pos;
 
-        let _number = reader.read_bit_short();
-        let _proxy = reader.read_bit_short();
+        // Gold's BITCODE_BS is uint16_t (include/dwg.h:120) — every BS
+        // field prints UNSIGNED in JSON (number 36108 observed, never
+        // −29428), and the dwg_version/maint_version BS reads stored
+        // into gold's BITCODE_BL uint32 struct fields zero-extend
+        // (pinned by ExtrudeM_2018 record 19: gold 32970, not the
+        // sign-extended 4294934730); num_instances is a true BL whose
+        // '11' degenerate code returns 256 (gold's error branch).
+        let number = reader.read_bit_short() as u16;
+        let proxyflag = reader.read_bit_short() as u16;
         if num_classes < 0 && (reader.position_in_bits() >> 3) as i64 >= end_byte {
             // decode.c drops a record whose number/proxyflag pair already
             // starts at endpos (`if (dat->byte >= endpos) break;`).
@@ -341,17 +348,28 @@ fn gold_shadow_item_ids(
             let _cpp = reader.read_variable_text();
             let _dxf = reader.read_variable_text();
         }
-        let _zombie = reader.read_bit();
-        let item_class_id = reader.read_bit_short();
+        let is_zombie = reader.read_bit() as u8;
+        let item_class_id = reader.read_bit_short() as u16;
+        let mut num_instances = 0u32;
+        let mut dwg_version = 0u32;
+        let mut maint_version = 0u32;
         if header_max.is_some() {
             // R2004+ tail: the BS/BS reads where gold's walk derails.
-            let _instances = reader.read_bit_long();
-            let _dwg_version = reader.read_bit_short();
-            let _maint_version = reader.read_bit_short();
+            num_instances = reader.read_bit_long() as u32;
+            dwg_version = reader.read_bit_short() as u16 as u32;
+            maint_version = reader.read_bit_short() as u16 as u32;
             let _unknown1 = reader.read_bit_long();
             let _unknown2 = reader.read_bit_long();
         }
-        ids.push(Some(item_class_id));
+        ids.push(Some(crate::classes::DwgClassGoldShadow {
+            number,
+            proxyflag,
+            is_zombie,
+            item_class_id,
+            num_instances,
+            dwg_version,
+            maint_version,
+        }));
         index += 1;
     }
 
@@ -592,8 +610,8 @@ mod tests {
         assert_eq!(classes.len(), 3, "the own walk parses all crafted records");
         for class in classes.iter() {
             assert_eq!(
-                class.gold_item_class_id,
-                Some(class.item_class_id),
+                class.gold_shadow.map(|s| s.item_class_id),
+                Some(class.item_class_id as u16),
                 "the gold-shadow must equal the own walk on byte-form tails"
             );
         }
@@ -614,8 +632,10 @@ mod tests {
         // The own walk reads the BL tails and stays sane on all 3.
         assert_eq!(classes.len(), 3);
         let own: Vec<i16> = classes.iter().map(|c| c.item_class_id).collect();
-        let shadow: Vec<Option<i16>> =
-            classes.iter().map(|c| c.gold_item_class_id).collect();
+        let shadow: Vec<Option<u16>> = classes
+            .iter()
+            .map(|c| c.gold_shadow.map(|s| s.item_class_id))
+            .collect();
 
         // The records up to the multi-byte tail mirror the own walk
         // exactly. The record after it reads from gold's derailed cursor —
@@ -627,8 +647,8 @@ mod tests {
         // both walks (real derail tables carry multi-record non-byte
         // bursts that keep the deficit; the corpus fixtures pin gold's
         // garbage ids there).
-        assert_eq!(shadow[0], Some(own[0]));
-        assert_eq!(shadow[1], Some(own[1]));
+        assert_eq!(shadow[0], Some(own[0] as u16));
+        assert_eq!(shadow[1], Some(own[1] as u16));
         assert_eq!(shadow.len(), 3, "gold walks max - 499 records exactly");
         assert!(
             shadow.iter().all(Option::is_some),
@@ -652,22 +672,30 @@ mod tests {
             read_classes_with_encoding(&data, DxfVersion::AC1018, 0, encoding_rs::WINDOWS_1252)
                 .unwrap();
         assert_eq!(classes.len(), 2, "the own walk stops at the data end");
-        let shadow: Vec<Option<i16>> =
-            classes.iter().map(|c| c.gold_item_class_id).collect();
+        let shadow: Vec<Option<u16>> = classes
+            .iter()
+            .map(|c| c.gold_shadow.map(|s| s.item_class_id))
+            .collect();
         assert_eq!(shadow.len(), 2);
 
         // Run the mirror directly for the full count (the shadow vector is
         // per-parsed-record; the un-walked gold records live only here).
-        let full = gold_shadow_item_ids(&data, DxfVersion::AC1018, 0, encoding_rs::WINDOWS_1252);
+        let full = gold_shadow_classes(&data, DxfVersion::AC1018, 0, encoding_rs::WINDOWS_1252);
         assert_eq!(full.len(), 21, "gold walks max - 499 records exactly");
         assert!(full.iter().all(Option::is_some), "no None mid-table");
-        assert_eq!(full[0], Some(crate::classes::ENTITY_ITEM_CLASS_ID));
-        assert_eq!(full[1], Some(crate::classes::OBJECT_ITEM_CLASS_ID));
+        assert_eq!(
+            full[0].map(|s| s.item_class_id),
+            Some(crate::classes::ENTITY_ITEM_CLASS_ID as u16)
+        );
+        assert_eq!(
+            full[1].map(|s| s.item_class_id),
+            Some(crate::classes::OBJECT_ITEM_CLASS_ID as u16)
+        );
         // The trailing records read deep inside the 256-byte zero pad:
         // all-zero bits decode through the `'00'` RS16 branch to 0 —
         // a definite never-0x1F2 id, the object classification gold
         // assigns past its table end.
-        assert_eq!(full[20], Some(0));
+        assert_eq!(full[20].map(|s| s.item_class_id), Some(0));
     }
 
     #[test]
@@ -681,7 +709,7 @@ mod tests {
         w.header(4999); // num_classes = 4500 >> 100 + ~size/64
         w.record_sane(0, crate::classes::OBJECT_ITEM_CLASS_ID);
         let data = assemble_section(&w, 32);
-        let full = gold_shadow_item_ids(&data, DxfVersion::AC1018, 0, encoding_rs::WINDOWS_1252);
+        let full = gold_shadow_classes(&data, DxfVersion::AC1018, 0, encoding_rs::WINDOWS_1252);
         assert!(full.is_empty(), "the size-proportional bail must fire");
 
         // (The AC1021 `max > 5000` variant is the other bail branch; an

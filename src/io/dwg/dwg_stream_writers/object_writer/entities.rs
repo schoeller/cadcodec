@@ -5896,7 +5896,7 @@ impl<'a> DwgObjectWriter<'a> {
 
     /// Write a single wire struct (shared by wires and silhouette wires).
     /// Field order/types per LibreDWG `Dwg_3DSOLID_wire` (mirrors the reader):
-    /// RC type, BLd selection_marker, BS/BL color, BLd acis_index, BL num_points.
+    /// RC type, BLd selection_marker, BS color, BLd acis_index, BL num_points.
     fn write_wire(&mut self, wire: &Wire) {
         self.writer.write_byte(wire.wire_type as u8);
         self.writer.write_bit_long(wire.selection_marker);
@@ -5906,11 +5906,12 @@ impl<'a> DwgObjectWriter<'a> {
             crate::types::Color::Index(idx) => idx as i16,
             _ => 256,
         };
-        if self.version.r2004_plus() {
-            self.writer.write_bit_long(color_val as i32);
-        } else {
-            self.writer.write_bit_short(color_val);
-        }
+        // The wire color is a BS on every version (gold's WIRESTRUCT
+        // FIELD_CAST reads and writes with the TYPE — dec_macros.h:121 /
+        // enc_macros.h:69); write_bit_short(256) emits the '11' code,
+        // gold's own writer's encoding for ByLayer (bit_write_BS:
+        // `value == 256 → bit_write_BB(3)`).
+        self.writer.write_bit_short(color_val);
         self.writer.write_bit_long(wire.acis_index);
         self.writer.write_bit_long(wire.points.len() as i32);
         for pt in &wire.points {

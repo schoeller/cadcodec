@@ -323,8 +323,15 @@ impl DwgBitReader {
                 0
             }
             _ => {
-                // 11: not used
-                0 // graceful fallback
+                // 11: never written by any author (not even the DWG
+                // writers use it) — gold's bit_read_BL hits its error
+                // branch on this code and RETURNS 256 (bits.c: the
+                // `unexpected 2-bit code` LOG_ERROR + `return 256`).
+                // The garbage-classes walks (§18.6's desynced tables)
+                // do hit it, so the fallback must be gold's 256, not a
+                // graceful 0 — pinned by ExtrudeM_2018's records 9/25
+                // where gold's CLASSES prints num_instances 256.
+                256
             }
         }
     }

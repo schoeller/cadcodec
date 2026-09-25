@@ -2372,7 +2372,7 @@ impl CadDocument {
                 maintenance_version: 0,
                 unknown1: 0,
                 unknown2: 0,
-                gold_item_class_id: None,
+                gold_shadow: None,
             },
             DxfClass {
                 dxf_name: "DICTIONARYVAR".to_string(),
@@ -2388,7 +2388,7 @@ impl CadDocument {
                 maintenance_version: 0,
                 unknown1: 0,
                 unknown2: 0,
-                gold_item_class_id: None,
+                gold_shadow: None,
             },
             DxfClass {
                 dxf_name: "LAYOUT".to_string(),
@@ -2404,7 +2404,7 @@ impl CadDocument {
                 maintenance_version: 0,
                 unknown1: 0,
                 unknown2: 0,
-                gold_item_class_id: None,
+                gold_shadow: None,
             },
             DxfClass {
                 dxf_name: "ACDBPLACEHOLDER".to_string(),
@@ -2420,7 +2420,7 @@ impl CadDocument {
                 maintenance_version: 0,
                 unknown1: 0,
                 unknown2: 0,
-                gold_item_class_id: None,
+                gold_shadow: None,
             },
             DxfClass {
                 dxf_name: "PLOTSETTINGS".to_string(),
@@ -2436,7 +2436,7 @@ impl CadDocument {
                 maintenance_version: 0,
                 unknown1: 0,
                 unknown2: 0,
-                gold_item_class_id: None,
+                gold_shadow: None,
             },
             DxfClass {
                 dxf_name: "SCALE".to_string(),
@@ -2452,7 +2452,7 @@ impl CadDocument {
                 maintenance_version: 0,
                 unknown1: 0,
                 unknown2: 0,
-                gold_item_class_id: None,
+                gold_shadow: None,
             },
         ];
         for cls in standard_classes {
@@ -2516,7 +2516,7 @@ impl CadDocument {
             maintenance_version: 0,
             unknown1: 0,
             unknown2: 0,
-            gold_item_class_id: None,
+            gold_shadow: None,
         });
     }
 

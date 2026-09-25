@@ -4662,14 +4662,63 @@ Signature) — the parse side is further along than the emission side.
   silver's descriptor lookup works). `ObjFreeSpace`'s per-version
   field shapes (`max32_hi`-style splits on R2010+) landed with the
   version-gated parse.**
-- **H5 — the bulk/binary sections**: `THUMBNAILIMAGE` and `AcDs`
-  compare by content DIGEST (byte-blobs are not field-diffs); the AcDs
-  segment-index internals beyond gold's emitted keys
-  (`segidx_offset`/`segidx_unknown`) stay byte-level (H6); the CLASSES
-  section is already carried verbatim (the pre-R2013 verbatim rule,
-  §F2) — the axis pins its gold-shadow findings where they surface
-  JSON-wise; VBAProject/Signature (absent from the corpus) land as
-  excluded rows with reasons in H6.
+- **H5 — the bulk/binary sections** (`CLASSES` landed 2026-09-25 at
+  ZERO read gaps corpus-wide; THUMBNAILIMAGE/AcDs open):
+  **The CLASSES sub-row: 47,173 gaps → 0** (280/280 files; 60,954
+  matched = the full census leaf count; 0 value diffs; 0 missing;
+  the read key-gap 234,691 → 187,518). The projection is gold's
+  `json_classes_write` shape (out_json.c:1988): number/dxfname/
+  cppname/appname/proxyflag/num_instances/is_zombie/item_class_id,
+  then dwg_version + maint_version SINCE R_2004a — silver's extra
+  fields (is_an_entity/unknown1/unknown2) drop. The numeric fields
+  come from the FULL gold-shadow record (`DwgClass::gold_shadow`:
+  `DwgClassGoldShadow`, replacing the item_class_id-only shadow) —
+  on the desynced 2027.1 tables the garbage values ARE the
+  projection's payload, matching gold's own JSON record-for-record.
+  **Three print/wire semantics pinned by the landing:** (a)
+  `BITCODE_BS` is uint16_t (include/dwg.h:120) — every BS field
+  prints unsigned (number 36108, never −29428) and the
+  dwg_version/maint_version BS reads stored into gold's BITCODE_BL
+  uint32 struct fields ZERO-extend (ExtrudeM record 19: gold 32970,
+  not the sign-extended 4294934730 — the first draft's sign-extension
+  guess was wrong, the census caught it in 4 leaf diffs); (b) the
+  BL `'11'` degenerate code returns gold's error-branch 256
+  (bits.c: `unexpected 2-bit code` + `return 256`) — silver's
+  read_bit_long fallback was a graceful 0, now 256 (pinned by
+  ExtrudeM records 9/25: gold's CLASSES prints num_instances 256);
+  (c) the BS `'11'` code is the same 256 in both readers (already
+  aligned). **The landing exposed and fixed a latent BODY-AXIS
+  field-type bug** — see the wire-color finding below.
+  `THUMBNAILIMAGE` and `AcDs` still compare by content DIGEST
+  (byte-blobs are not field-diffs); the AcDs segment-index internals
+  beyond gold's emitted keys (`segidx_offset`/`segidx_unknown`) stay
+  byte-level (H6); VBAProject/Signature (absent from the corpus)
+  land as excluded rows with reasons in H6.
+
+  **The wire-color field-type fix (the H5b landing's body-axis
+  corollary, 2026-09-25):** the BL-'11' fallback change made silver
+  parse a wire color that had silently been read as 0 — and the
+  corpus's WRITE axis caught it: 96 diffs (3DSOLID.history_id +
+  acis_empty_bit on the 46 §18 solid files). Root cause:
+  `WIRESTRUCT_fields` reads the wire color via `FIELD_CAST (color,
+  BS, BL, 0)`, and the decoder's FIELD_CAST reads with the TYPE
+  (dec_macros.h:121: `(BITCODE_##cast)bit_read_##type`) — a **BS**
+  read stored into the BL struct field; the encoder writes BS
+  (enc_macros.h:69). Silver's §18 reader/writer had misread the cast
+  as a version gate (BL on R2004+, BS pre-2004). The original
+  Cone_2007's wires[0].color BS is the `'11'` code → gold 256
+  (ByLayer); silver's BL read gave 0 (ByBlock) — invisible on the
+  read axis (the census's wires projection collapses to [0,0,0,0])
+  and harmless while the value was 0 (the writer's BL 0 = '10' =
+  the BS 0 encoding). The BL-'11' fix made the value 256 — and the
+  writer's BL 256 ('00'+RL32, 34 bits) vs gold's BS re-read ('00' →
+  RS16, 18 bits) diverged the rewrite's wire record by 2 bytes,
+  desyncing every downstream field (the 96 diffs). The fix: the wire
+  color is BS on BOTH sides unconditionally (read_bit_short /
+  write_bit_short — whose 256 encoding is the '11' code, gold's own
+  writer's `bit_write_BS` branch). The corpus returned to 0/0 both
+  axes; the read-axis semantics IMPROVED (silver now reads the
+  ByLayer wires correctly).
 - **H6 — the whole-structure audit matrix (the standing deliverable)**:
   a generated table — every DWG section name × per-version presence ×
   gold JSON emission × silver model coverage × axis status

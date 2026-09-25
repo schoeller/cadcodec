@@ -558,7 +558,7 @@ impl DwgDocumentBuilder {
         // per-class `item_class_id` degrades to garbage — never 0x1F2 —
         // so entity-class records of those files route through gold's
         // unknown-OBJECT walk (object common data + raw unknown tail) and
-        // surface as UNKNOWN_OBJ records. `DxfClass::gold_item_class_id`
+        // surface as UNKNOWN_OBJ records. `DxfClass::gold_shadow`
         // holds that gold-shadow value (None → the shadow did not reach
         // this index; fall back to this reader's own `is_an_entity`).
         let entity_class_numbers: std::collections::HashSet<i16> = document
@@ -566,8 +566,10 @@ impl DwgDocumentBuilder {
             .iter()
             .filter(|c| {
                 c.class_number >= 500
-                    && match c.gold_item_class_id {
-                        Some(id) => id == crate::classes::ENTITY_ITEM_CLASS_ID,
+                    && match c.gold_shadow.as_ref() {
+                        Some(sh) => {
+                            sh.item_class_id == crate::classes::ENTITY_ITEM_CLASS_ID as u16
+                        }
                         None => c.is_an_entity,
                     }
             })
