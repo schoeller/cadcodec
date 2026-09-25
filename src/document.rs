@@ -1036,6 +1036,13 @@ pub struct Preview {
     pub format: PreviewFormat,
     /// Raw image bytes exactly as stored in the file (a DIB for `Bmp`).
     pub data: Vec<u8>,
+    /// The whole sentinel-bracketed preview container as read (§19 H5c):
+    /// [16-byte sentinel][size bytes of header+data][2-byte CRC]. Gold's
+    /// `THUMBNAILIMAGE` prints `{size, chain}` where size = `raw.len() − 18`
+    /// and chain = hex of `raw[16 .. len−2]` — uniform across every version
+    /// (pinned by sample_2000/2018 + example_2004: the chain starts exactly
+    /// 16 bytes past the thumbnail address on all three layouts).
+    pub raw: Vec<u8>,
 }
 
 /// A decoded `AcDbField` definition (a dynamic text field).

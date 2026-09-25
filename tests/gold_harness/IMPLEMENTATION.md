@@ -4689,11 +4689,32 @@ Signature) — the parse side is further along than the emission side.
   (c) the BS `'11'` code is the same 256 in both readers (already
   aligned). **The landing exposed and fixed a latent BODY-AXIS
   field-type bug** — see the wire-color finding below.
-  `THUMBNAILIMAGE` and `AcDs` still compare by content DIGEST
-  (byte-blobs are not field-diffs); the AcDs segment-index internals
-  beyond gold's emitted keys (`segidx_offset`/`segidx_unknown`) stay
-  byte-level (H6); VBAProject/Signature (absent from the corpus)
-  land as excluded rows with reasons in H6.
+  **The THUMBNAILIMAGE sub-row (H5c, PARTIALLY LANDED 2026-09-25 —
+  the projection + the raw retention in; the 17-file AC1032 fallback
+  OPEN)**: gold's shape is `{size, chain}` (json_thumbnail_write) —
+  the container's data hex-encoded, starting exactly 16 bytes past
+  the thumbnail address on EVERY layout (pinned by
+  sample_2000/2018 + example_2004), with `size` == the chain byte
+  count. The container TAILS split by family: pre-R2004 sections are
+  sentinel-BRACKETED (`[16 start][data][16 end]`, no CRC —
+  sample_2000: 17039 = 16 + 17007 + 16); R2004+ carry the 2-byte
+  CRC inside the data extent and no end sentinel (sample_2018:
+  2150 = 16 + 2134). Silver's `Preview.raw` now retains the whole
+  container; struct_axis projects `{size, chain}` per the family
+  split — sample_2000/2018 at 0/0. **The open item:** 17 AC1032
+  corpus files whose AcDb:Preview section is stored compressed —
+  the raw-address read yields compressed bytes whose overall-size
+  field passes the allocation guard, `parse_preview` rejects them,
+  and the section-map fallback (keyed on the PARSE failing, not the
+  read) finds `get_section_buffer("AcDb:Preview")` returning Err on
+  exactly those files (Arc_2018 pinned: thumbnail_address 448, gold
+  size 110 — the section fetch itself fails; the NEXT STEP is to
+  instrument get_section_buffer's failure reason there: name-in-map?
+  page records? the compression flag?). 34 leaves (17×2) remain.
+  The corpus re-run after this packet is the standing first gate of
+  the next session. `AcDs` still compares by content DIGEST; the
+  AcDs segment-index internals stay byte-level (H6);
+  VBAProject/Signature land as excluded rows with reasons in H6.
 
   **The wire-color field-type fix (the H5b landing's body-axis
   corollary, 2026-09-25):** the BL-'11' fallback change made silver

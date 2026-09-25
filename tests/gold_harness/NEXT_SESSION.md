@@ -103,10 +103,19 @@ gold-shadow record carries the desynced tables' garbage
 record-for-record; the landing exposed and fixed the latent
 wire-color field-type bug — WIRESTRUCT's color is a BS on every
 version, the §18 reader/writer had it BL on R2004+ — see §19.2's
-H5 row). **Next: H5a AcDs (58,471 — the section-level view; the
-embedded-record decode exists, the JSON view needs pinning), H5c
-THUMBNAIL (558, the digest), then H3's HEADER ledger (128,489 —
-the dominant row).** **The authoritative enumeration is
+H5 row). **H5c PARTIALLY LANDED** (the THUMBNAILIMAGE projection + the
+Preview.raw retention + the container-tail family split — see
+§19.2's H5 row; the 17-file AC1032 compressed-preview fallback
+OPEN: get_section_buffer("AcDb:Preview") returns Err on exactly
+those files, the next step recorded in the row). **FIRST GATE OF
+THIS SESSION: run the full corpus** (`python3
+tests/gold_harness/run_corpus.py`) — the H5c packet landed on
+smokes + the hermetic suite (49 ok, all smokes OBJECTS 0/0) but
+the corpus re-run is pending; verify 280 files read 0 / write 0
+and that the THUMBNAILIMAGE row improves (558 → ~34, the 17-file
+remainder). **Then: the H5c fallback fix (the recorded next step),
+H5a AcDs (58,471 — the section-level view), and H3's HEADER
+ledger (128,489 — the dominant row).** **The authoritative enumeration is
 CLOSED** (the libredwg tree re-analysis + the review passes, all in
 §19.1): 17 observed structure keys (16 per R2004+ file, 8 on R2000
 — including `R2007_Header`, its OWN 33-field AC1021 system section,

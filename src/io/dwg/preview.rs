@@ -94,6 +94,7 @@ pub fn parse_preview(bytes: &[u8], base: u64) -> Option<Preview> {
         return Some(Preview {
             format,
             data: bytes[rel..end].to_vec(),
+            raw: Vec::new(),
         });
     }
     None
@@ -183,6 +184,7 @@ mod tests {
         let img = Preview {
             format: PreviewFormat::Png,
             data: vec![0x89, b'P', b'N', b'G', 1, 2, 3, 4, 5],
+            raw: Vec::new(),
         };
         let bytes = build_preview(Some(&img), base);
         // one descriptor, no header
@@ -197,6 +199,7 @@ mod tests {
         let img = Preview {
             format: PreviewFormat::Bmp,
             data: dib,
+            raw: Vec::new(),
         };
         let bytes = build_preview(Some(&img), base);
         // two descriptors: header + BMP
@@ -214,6 +217,7 @@ mod tests {
         let img = Preview {
             format: PreviewFormat::Bmp,
             data: vec![7u8; 100],
+            raw: Vec::new(),
         };
         let bytes = build_preview(Some(&img), base);
         // descriptor[1] (BMP) start field at container offset 21 + 9 + 1.

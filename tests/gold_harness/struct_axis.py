@@ -199,7 +199,39 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(doc.get("header"), dict):
         views["HEADER"] = doc["header"]
     if isinstance(doc.get("preview"), dict):
-        views["THUMBNAILIMAGE"] = doc["preview"]
+        # H5c: gold's THUMBNAILIMAGE shape (json_thumbnail_write,
+        # out_json.c): {size, chain} — the container's data between the
+        # 16-byte sentinel and the 2-byte CRC, hex-encoded (uppercase).
+        # Uniform across every version (pinned: the chain starts exactly
+        # 16 bytes past the thumbnail address on R2000/R2004/R2018;
+        # size == the chain byte count on all three).
+        raw = doc["preview"].get("raw") or []
+        version = str(
+            (doc.get("dwg_file_header") or {}).get("version")
+            or doc.get("version")
+            or ""
+        )
+        pre_r2004 = version in ("AC1012", "AC1014", "AC1015")
+        if isinstance(raw, list) and len(raw) > (32 if pre_r2004 else 16):
+            # The container tails differ: pre-R2004 sections are
+            # sentinel-BRACKETED ([16 start][data][16 end], no CRC —
+            # sample_2000: len 17039 = 16 + 17007 + 16); R2004+ carry the
+            # 2-byte CRC inside the data extent and no end sentinel
+            # (sample_2018: len 2150 = 16 + 2134, the chain INCLUDING the
+            # CRC). Gold's chain starts exactly 16 past the thumbnail
+            # address on every layout; size == the chain byte count.
+            if pre_r2004:
+                views["THUMBNAILIMAGE"] = {
+                    "size": len(raw) - 32,
+                    "chain": bytes(raw[16:-16]).hex().upper(),
+                }
+            else:
+                views["THUMBNAILIMAGE"] = {
+                    "size": len(raw) - 16,
+                    "chain": bytes(raw[16:]).hex().upper(),
+                }
+        else:
+            views["THUMBNAILIMAGE"] = doc["preview"]
     if isinstance(doc.get("classes"), dict) and isinstance(
         doc["classes"].get("entries"), list
     ):

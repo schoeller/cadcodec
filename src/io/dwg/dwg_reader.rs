@@ -1780,6 +1780,7 @@ impl<R: Read + Seek> DwgReader<R> {
         //    preview simply leaves `document.preview` as `None`.
         if info.preview_address > 0 {
             let base = info.preview_address as u64;
+            let mut container: Option<Vec<u8>> = None;
             if self.stream.seek(SeekFrom::Start(base)).is_ok() {
                 let mut head = [0u8; 20];
                 if self.stream.read_exact(&mut head).is_ok() {
@@ -1791,12 +1792,37 @@ impl<R: Read + Seek> DwgReader<R> {
                             if self.stream.seek(SeekFrom::Start(base)).is_ok()
                                 && self.stream.read_exact(&mut buf).is_ok()
                             {
-                                document.preview =
-                                    crate::io::dwg::preview::parse_preview(&buf, base);
+                                container = Some(buf);
                             }
                         }
                     }
                 }
+            }
+            // Parse the raw-address container; when the parse fails
+            // (the sentinel probe rejects it — e.g. the compressed
+            // AcDb:Preview sections of the AC1032 corpus files, where
+            // the raw read yields compressed bytes whose overall-size
+            // field happens to pass the allocation guard), fall back to
+            // the section-map read. The fallback keys on the PARSE, not
+            // the read: a garbage raw read still produces a buffer.
+            let mut parsed = container
+                .as_ref()
+                .and_then(|buf| crate::io::dwg::preview::parse_preview(buf, base));
+            if parsed.is_none() {
+                if let Ok(buf) = self.get_section_buffer(
+                    crate::io::dwg::file_headers::section_definition::names::PREVIEW,
+                    &info,
+                ) {
+                    if let Some(p) = crate::io::dwg::preview::parse_preview(&buf, base) {
+                        container = Some(buf);
+                        parsed = Some(p);
+                    }
+                }
+            }
+            if let (Some(buf), Some(p)) = (container, parsed) {
+                // Retain the raw container for the §19 H5c structure
+                // projection (gold's THUMBNAILIMAGE size/chain).
+                document.preview = Some(crate::document::Preview { raw: buf, ..p });
             }
         }
 
@@ -1850,6 +1876,7 @@ impl<R: Read + Seek> DwgReader<R> {
         //    preview simply leaves `document.preview` as `None`.
         if info.preview_address > 0 {
             let base = info.preview_address as u64;
+            let mut container: Option<Vec<u8>> = None;
             if self.stream.seek(SeekFrom::Start(base)).is_ok() {
                 let mut head = [0u8; 20];
                 if self.stream.read_exact(&mut head).is_ok() {
@@ -1861,12 +1888,37 @@ impl<R: Read + Seek> DwgReader<R> {
                             if self.stream.seek(SeekFrom::Start(base)).is_ok()
                                 && self.stream.read_exact(&mut buf).is_ok()
                             {
-                                document.preview =
-                                    crate::io::dwg::preview::parse_preview(&buf, base);
+                                container = Some(buf);
                             }
                         }
                     }
                 }
+            }
+            // Parse the raw-address container; when the parse fails
+            // (the sentinel probe rejects it — e.g. the compressed
+            // AcDb:Preview sections of the AC1032 corpus files, where
+            // the raw read yields compressed bytes whose overall-size
+            // field happens to pass the allocation guard), fall back to
+            // the section-map read. The fallback keys on the PARSE, not
+            // the read: a garbage raw read still produces a buffer.
+            let mut parsed = container
+                .as_ref()
+                .and_then(|buf| crate::io::dwg::preview::parse_preview(buf, base));
+            if parsed.is_none() {
+                if let Ok(buf) = self.get_section_buffer(
+                    crate::io::dwg::file_headers::section_definition::names::PREVIEW,
+                    &info,
+                ) {
+                    if let Some(p) = crate::io::dwg::preview::parse_preview(&buf, base) {
+                        container = Some(buf);
+                        parsed = Some(p);
+                    }
+                }
+            }
+            if let (Some(buf), Some(p)) = (container, parsed) {
+                // Retain the raw container for the §19 H5c structure
+                // projection (gold's THUMBNAILIMAGE size/chain).
+                document.preview = Some(crate::document::Preview { raw: buf, ..p });
             }
         }
 
