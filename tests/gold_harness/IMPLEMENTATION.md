@@ -4311,8 +4311,8 @@ assertion that no UNDECLARED top-level key silently leaks —
 | `THUMBNAILIMAGE` | ✓ | ✓ | the preview blob | `preview` dict — parsed, never compared |
 | `AcDs` | — | ✓ (13 keys on 2004/2007; 15 on 2013/2018) | the AcDs data section | the embedded-record decode (§18); no section-level comparison |
 | `CLASSES` | ✓ | ✓ | the class table | parsed (§18.6's gold-shadow); dropped by both normalizers |
-| `created_by` | ✓ | ✓ | author string (file header) | `_common_dwg` partial |
 | `VBAProject` | — | absent from the corpus files | declared in the drop-list; never observed | none (an excluded row, H6) |
+| `Signature` | — | absent from the corpus files | **emitter deliberately disabled** (`out_json.c:2673`) — gold reads the section but never emits it | none (an excluded row, H6 — reason "readable but not emitted", distinct from corpus-absent) |
 | `created_by` | ✓ | ✓ | **NOT FILE CONTENT**: gold's `PACKAGE_STRING` ("LibreDWG 0.14.8597"), hardcoded as the first JSON key by `out_json.c:2617` | n/a — an excluded row (H6): each tool stamps itself |
 | — (not JSON) | ✓ | ✓ | the **object map / Handles section**, CRCs, section map, page tables, sentinels | the byte level — the layer-4 oracle's domain |
 
@@ -4323,10 +4323,13 @@ part — `header.spec` (FILEHEADER), `header_variables.spec` (HEADER),
 (R2004_Header/R2007_Header), `acds.spec`, `appinfo.spec` (AppInfo +
 AppInfoHistory), `filedeplist.spec`, `objfreespace.spec`,
 `revhistory.spec`, `security.spec`, `summaryinfo.spec`,
-`template.spec` (plus `header_variables_dxf.spec`/`_r11.spec` —
-DXF-only / pre-R13, out of scope). These are the authoritative field
+`template.spec`, `vbaproject.spec` (plus `header_variables_dxf.spec`/
+`_r11.spec` — DXF-only / pre-R13, out of scope). These 14 spec files
+(the `appinfo.spec` pair counts once) are the authoritative field
 lists for the H2–H5 projections, exactly as `dwg2.spec` was for
-OBJECTS. The section universes are the two enums in `include/dwg.h`:
+OBJECTS. TWO structure keys have spec-less dedicated readers instead:
+THUMBNAILIMAGE (a raw size+bytes blob — `json_thumbnail_write`, no
+spec) and CLASSES (its own reader, no spec). The section universes are the two enums in `include/dwg.h`:
 `Dwg_Section_Type` (R2004+, 20 values — the 17 named sections plus
 `SECTION_UNKNOWN` = the FILEHEADER itself, `SECTION_INFO` = the
 Data Section / Section Page Map, `SECTION_SYSTEM_MAP` — the R2004+
@@ -4347,9 +4350,10 @@ structurally load-bearing for WHICH keys appear (an H2 comparison
 coupling); **AppInfoHistory has no `AcDb:` name string** — it is
 located by section TYPE (12) in the R2004+ map (`read_2007_section_
 appinfohistory`, decode_r2007.c:1963), which is why name-based
-registries miss it. The enumeration is CLOSED: 15 spec'd structural
-parts + the 3 container types + the object map + CRCs/sentinels —
-nothing else exists in the tree.
+registries miss it. The enumeration is CLOSED: 14 spec files (15
+spec'd parts — `appinfo.spec` covers two) + the two spec-less readers
+(THUMBNAILIMAGE, CLASSES) + the 3 container types + the object map +
+CRCs/sentinels — nothing else exists in the tree.
 
 **Completeness review (2026-09-25, same day — the header+body axes vs the
 whole file):** the two axes cover every JSON-emitted structure key (the
