@@ -1118,6 +1118,59 @@ pub struct DwgR2004SystemHeader {
     pub padding: String,
 }
 
+/// The R2007-format system-section summary — gold's `R2007_Header` shape
+/// (§19 H2's third sub-row). The AC1021 (R2007) files carry their system
+/// section as a Reed-Solomon-encoded 0x110-byte metadata block; silver's
+/// container reader already parses every field into
+/// `Dwg21CompressedMetadata` — this summary is the gold-named projection
+/// of it (the container names differ: `pages_map_correction_factor` →
+/// gold's `pages_map_correction`, `map2_offset` → `pages_map2_offset`,
+/// `unknown_0x20/0x40/0xf800/4/1` → `unknown1..5`,
+/// `header_crc64` → `header_crc`, the `*_compressed/*_uncompressed`
+/// suffixes → gold's `*_comp/*_uncomp`). `sections_amount` has NO gold
+/// counterpart (the JSON emitter prints 33 fields without it) and is
+/// dropped here. All values print as unsigned (gold's emitter prints
+/// the high-bit CRCs as positive — e.g. sections_map_crc_comp
+/// 14004064320028269436 > 2^63 on example_2007 — so u64 matches).
+/// Only populated on AC1021 files; `None` on every other format.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgR2007SystemHeader {
+    pub header_size: u64,
+    pub file_size: u64,
+    pub pages_map_crc_compressed: u64,
+    pub pages_map_correction: u64,
+    pub pages_map_crc_seed: u64,
+    pub pages_map2_offset: u64,
+    pub pages_map2_id: u64,
+    pub pages_map_offset: u64,
+    pub pages_map_id: u64,
+    pub header2_offset: u64,
+    pub pages_map_size_comp: u64,
+    pub pages_map_size_uncomp: u64,
+    pub pages_amount: u64,
+    pub pages_maxid: u64,
+    pub unknown1: u64,
+    pub unknown2: u64,
+    pub pages_map_crc_uncomp: u64,
+    pub unknown3: u64,
+    pub unknown4: u64,
+    pub unknown5: u64,
+    pub sections_map_crc_uncomp: u64,
+    pub sections_map_size_comp: u64,
+    pub sections_map2_id: u64,
+    pub sections_map_id: u64,
+    pub sections_map_size_uncomp: u64,
+    pub sections_map_crc_comp: u64,
+    pub sections_map_correction: u64,
+    pub sections_map_crc_seed: u64,
+    pub stream_version: u64,
+    pub crc_seed: u64,
+    pub crc_seed_encoded: u64,
+    pub random_seed: u64,
+    pub header_crc: u64,
+}
+
 /// The DWG file-header summary — gold's `FILEHEADER` shape (§19 H2 of the
 /// harness plan). Field names match gold's JSON exactly (except `codepage`,
 /// kept as one word per gold) so the structure axis projects 1:1. Retained
@@ -1318,6 +1371,12 @@ pub struct CadDocument {
     /// non-R2004 formats.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub dwg_r2004_header: Option<DwgR2004SystemHeader>,
+
+    /// The R2007-format system-section summary (§19 H2): gold's
+    /// `R2007_Header` shape, projected from the container reader's
+    /// `Dwg21CompressedMetadata`. `None` on every non-AC1021 format.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_r2007_header: Option<DwgR2007SystemHeader>,
 
     /// Embedded preview/thumbnail image. Populated by the DWG reader from the
     /// file's preview section; the DWG writer embeds it when `Some` and emits an
@@ -1531,6 +1590,7 @@ impl CadDocument {
             dwg_source_version: None,
             dwg_file_header: None,
             dwg_r2004_header: None,
+            dwg_r2007_header: None,
             preview: None,
             acis_sab_handles: Vec::new(),
             raw_acds_data: None,

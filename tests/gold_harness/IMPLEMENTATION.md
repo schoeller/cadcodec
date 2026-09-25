@@ -4462,8 +4462,8 @@ Signature) — the parse side is further along than the emission side.
   rewrite re-read by gold). Byte-level re-emission fidelity for the
   header/system sections gets the layer-4 treatment (dump + compare
   the rewritten header region for one fixture per version-class).
-- **H2 — the file header family** (`FILEHEADER` + `R2004_Header`
-  landed 2026-09-25; R2007_Header/SecondHeader/AuxHeader open):
+- **H2 — the file header family** (`FILEHEADER`, `R2004_Header` and
+  `R2007_Header` landed 2026-09-25; SecondHeader/AuxHeader open):
   **The FILEHEADER drop landed at ZERO read gaps corpus-wide**
   (4151 matched = 273×15 + 7×8 leaves exactly; 0 value diffs; 0
   missing; the corpus read key-gap 259,073 → 255,482, −3,591 = the
@@ -4526,7 +4526,26 @@ Signature) — the parse side is further along than the emission side.
   `DwgFileHeaderInfo.r2004_system` → `document.dwg_r2004_header`
   (gold's field names 1:1, AC18-format files only) → the dump's serde
   → struct_axis's `R2004_Header` view (absent on R2007/R2000 by
-  construction — gold's separate R2007_Header row stays open).
+  construction).
+  **The R2007_Header sub-row landed at ZERO read gaps corpus-wide**
+  (41/41 files; 1,353 matched = 41 × 33 leaves exactly; 0 value
+  diffs; 0 missing; the corpus read key-gap 250,146 → 248,793,
+  −1,353 = the census component verbatim; the write-target
+  R2007_Header 979 diffs are the address/count shifts — H7). This
+  sub-row was PURE PROJECTION: silver's AC1021 container reader
+  (`Dwg21CompressedMetadata`, the Reed-Solomon-decoded 0x110-byte
+  metadata block) already parsed every field — the summary is the
+  gold-named mapping of it (`pages_map_correction_factor` →
+  `pages_map_correction`, `map2_offset` → `pages_map2_offset`,
+  `unknown_0x20/0x40/0xf800/4/1` → `unknown1..5`, the
+  `*_compressed/*_uncompressed` suffixes → gold's `*_comp/
+  *_uncomp`, `header_crc64` → `header_crc`); `sections_amount`
+  has NO gold-emitted counterpart (gold's JSON prints 33 fields
+  without it) and is dropped at the projection source. The u64
+  field type is load-bearing: gold's emitter prints the high-bit
+  CRCs as UNSIGNED (sections_map_crc_comp 14004064320028269436 >
+  2^63 on example_2007), so signed i64 projection would have
+  produced 41 value diffs instead of zero.
   **The remaining sub-rows' scope notes:** `SecondHeader` carries
   the R2000 section-locator table (6 nr/address/size records) AND its
   per-locator handle vector — the only JSON-emitted image of the

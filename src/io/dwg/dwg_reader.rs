@@ -1014,6 +1014,48 @@ impl<R: Read + Seek> DwgReader<R> {
         // The R2004-format system-section summary (§19 H2's second
         // sub-row) — set on AC18-format files only.
         document.dwg_r2004_header = info.r2004_system.clone();
+        // The R2007-format system-section summary (§19 H2's third
+        // sub-row) — the gold-named projection of the AC1021 container
+        // metadata silver already parses (Dwg21CompressedMetadata). The
+        // container names differ from gold's; sections_amount has no
+        // gold-emitted counterpart and is dropped.
+        if let Some(m) = &info.ac21_metadata {
+            document.dwg_r2007_header = Some(crate::document::DwgR2007SystemHeader {
+                header_size: m.header_size,
+                file_size: m.file_size,
+                pages_map_crc_compressed: m.pages_map_crc_compressed,
+                pages_map_correction: m.pages_map_correction_factor,
+                pages_map_crc_seed: m.pages_map_crc_seed,
+                pages_map2_offset: m.map2_offset,
+                pages_map2_id: m.map2_id,
+                pages_map_offset: m.pages_map_offset,
+                pages_map_id: m.pages_map_id,
+                header2_offset: m.header2_offset,
+                pages_map_size_comp: m.pages_map_size_compressed,
+                pages_map_size_uncomp: m.pages_map_size_uncompressed,
+                pages_amount: m.pages_amount,
+                pages_maxid: m.pages_max_id,
+                unknown1: m.unknown_0x20,
+                unknown2: m.unknown_0x40,
+                pages_map_crc_uncomp: m.pages_map_crc_uncompressed,
+                unknown3: m.unknown_0xf800,
+                unknown4: m.unknown_4,
+                unknown5: m.unknown_1,
+                sections_map_crc_uncomp: m.sections_map_crc_uncompressed,
+                sections_map_size_comp: m.sections_map_size_compressed,
+                sections_map2_id: m.sections_map2_id,
+                sections_map_id: m.sections_map_id,
+                sections_map_size_uncomp: m.sections_map_size_uncompressed,
+                sections_map_crc_comp: m.sections_map_crc_compressed,
+                sections_map_correction: m.sections_map_correction_factor,
+                sections_map_crc_seed: m.sections_map_crc_seed,
+                stream_version: m.stream_version,
+                crc_seed: m.crc_seed,
+                crc_seed_encoded: m.crc_seed_encoded,
+                random_seed: m.random_seed,
+                header_crc: m.header_crc64,
+            });
+        }
 
         // 2. Read Classes (AcDb:Classes)
         match self.get_section_buffer("AcDb:Classes", &info) {

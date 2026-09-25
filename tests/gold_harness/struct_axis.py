@@ -166,6 +166,11 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
     # sub-row stays open).
     if isinstance(doc.get("dwg_r2004_header"), dict):
         views["R2004_Header"] = doc["dwg_r2004_header"]
+    # H2's R2007_Header sub-row: the gold-named projection of the AC1021
+    # container metadata (33 fields; sections_amount has no gold-emitted
+    # counterpart and is dropped at the projection source).
+    if isinstance(doc.get("dwg_r2007_header"), dict):
+        views["R2007_Header"] = doc["dwg_r2007_header"]
     if isinstance(doc.get("header"), dict):
         views["HEADER"] = doc["header"]
     if isinstance(doc.get("summary_info"), dict):
