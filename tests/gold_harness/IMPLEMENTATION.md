@@ -4276,20 +4276,31 @@ and produce an audit matrix proving every piece of the DWG file
 structure is either diffed or explicitly excluded with a recorded
 reason.
 
-### 19.1 The measured inventory (the ground facts, 2026-09-25 probes)
+### 19.1 The measured inventory (the ground facts; probed 2026-09-25, corrected the same day after the six-version matrix review)
 
 Gold's `dwgread -O JSON` emits the whole structure; the harness's
-`normalize_gold.py` drops it all (the drop-list at its lines 87–105 IS
-the inventory). Survey commands: gold over `sample_2018.dwg` /
-`sample_2000.dwg` (the `-nan` shim where applicable) — top-level keys:
+`normalize_gold.py` drops it all by construction (`data.get("OBJECTS",
+[])` — only the OBJECTS list survives; `HEADER_KEYS` at its lines
+86–106 is the DECLARED inventory, never referenced by code). Observed
+matrix (gold over all six version classes: `sample_2000`,
+`example_2004/2007/2010/2013`, `sample_2018`, the `-nan` shim
+applied): 16 top-level keys per R2004+ file (15 structure keys +
+OBJECTS), 9 on R2000 (8 + OBJECTS) — the corpus-wide union is **17
+distinct structure keys**; the declared drop-list holds **19** (the
+17 + `VBAProject`, never observed in the corpus). **H0 corollary:**
+turning drop-by-construction into an explicit per-key policy needs an
+assertion that no UNDECLARED top-level key silently leaks —
+`Signature` is a real libredwg key absent from the declared list
+(and from the corpus today), the latent example.
 
-| gold key | R2000 | R2004+ | size (sample) | silver coverage today |
+| gold key | R2000 | R2004–R2018 | size (samples) | silver coverage today |
 |---|---|---|---|---|
 | `HEADER` | ✓ (228) | ✓ (298) | the variables section (`AcDb:Header`) | `header` dict (267 keys on sample_2018) — parsed, never compared |
 | `FILEHEADER` | ✓ (8) | ✓ (15) | version/maint/codepage/time/save addresses | `version`/`maintenance_version`/`dwg_source_version` + `_common_dwg` — partial |
-| `R2004_Header` | — | ✓ (23) | the R2004+ system section | `_common_dwg` + the section reader — partial |
+| `R2004_Header` | — | ✓ (23) on R2004/R2010/R2013/R2018 | the R2004-based system section | `_common_dwg` + the section reader — partial |
+| `R2007_Header` | — | ✓ (33) on R2007 ONLY | the AC1021 system section (33 fields — its own layout, not the R2004 one) | same machinery; per-field coverage unverified |
 | `SecondHeader` | ✓ (10) | — | the R13–R2000 second header | read (the roundtrip survives); no comparison |
-| `AuxHeader` | ✓ (25) | (R2013+ variant) | aux data | read; no comparison |
+| `AuxHeader` | ✓ (25) | — (absent on the corpus R2004+ files) | aux data | read; no comparison |
 | `SummaryInfo` | — | ✓ (13) | `AcDb:SummaryInfo` | `summary_info` dict (9) — partial |
 | `AppInfo`/`AppInfoHistory` | — | ✓ (10/2) | `AcDb:AppInfo` | section read; no model emission |
 | `Template` | ✓ | ✓ | `AcDb:Template` | section read; no model emission |
@@ -4298,10 +4309,34 @@ the inventory). Survey commands: gold over `sample_2018.dwg` /
 | `Security` | — | ✓ (9) | zero constants on unprotected files | none |
 | `ObjFreeSpace` | — | ✓ (12) | `AcDb:ObjFreeSpace` | none |
 | `THUMBNAILIMAGE` | ✓ | ✓ | the preview blob | `preview` dict — parsed, never compared |
-| `AcDs` | — | R2013+ (15) | the AcDs data section | the embedded-record decode (§18); no section-level comparison |
+| `AcDs` | — | ✓ (13 keys on 2004/2007; 15 on 2013/2018) | the AcDs data section | the embedded-record decode (§18); no section-level comparison |
 | `CLASSES` | ✓ | ✓ | the class table | parsed (§18.6's gold-shadow); dropped by both normalizers |
 | `created_by` | ✓ | ✓ | author string (file header) | `_common_dwg` partial |
+| `VBAProject` | — | absent from the corpus files | declared in the drop-list; never observed | none (an excluded row, H6) |
 | — (not JSON) | ✓ | ✓ | the **object map / Handles section**, CRCs, section map, page tables, sentinels | the byte level — the layer-4 oracle's domain |
+
+**Completeness review (2026-09-25, same day — the header+body axes vs the
+whole file):** the two axes cover every JSON-emitted structure key (the
+matrix above) plus the body (OBJECTS). The review probed the parts gold
+does NOT emit and pre-populates their H6 excluded rows: the R2004+
+section-map/page-table ENTRIES (gold's `R2004_Header`/`R2007_Header`
+emit the pointers — section_map_id/address, section_info_id,
+section_array_size, gap_array_size, crc32 — never the per-section map
+entries or page-map contents; silver reads them: `PAGE_TYPE_*`,
+`ac21_section_info`), the R2000 "unknown" section (locator nr 3/4 —
+the locators themselves ARE comparable via `SecondHeader.sections`),
+per-section CRCs/sentinels/0x16-padding, and the AcDs segment-index
+internals beyond gold's emitted keys (`segidx_offset`/`segidx_unknown`
+point at it). One REAL silver gap surfaced: **`AcDb:AppInfoHistory` is
+unknown to silver's section registry** (`ALL_SECTION_NAMES` holds 14
+names — it also omits `AcDsPrototype_1b` and `Signature`, which exist
+as constants but not in the list); silver survives R2004+ roundtrips
+only via generic section-map skipping. That lands as a named H4 row.
+Also confirmed comparable: the R2000 section-locator table + its
+per-locator handle vector live in `SecondHeader.sections`/`.handles`
+(6 nr/address/size records + 5 hdl records on sample_2000), and
+`ObjFreeSpace` carries per-version field shapes (`max32_hi`-style
+64-bit splits on R2018, plain on R2004) the H4 projection must map.
 
 Silver's section registry knows every `AcDb:*` name
 (`section_definition.rs`: Objects, AcDsPrototype_1b, AppInfo,
@@ -4333,7 +4368,14 @@ Signature) — the parse side is further along than the emission side.
   `SecondHeader`/`AuxHeader` on R2000) — version, maintenance,
   codepage, times, save addresses, the system-section numbers. Mostly
   projection work on silver's existing reads (`_common_dwg`), plus
-  whatever the census says is missing.
+  whatever the census says is missing. Scope notes from the review:
+  `SecondHeader` carries the R2000 section-locator table (6
+  nr/address/size records) AND its per-locator handle vector — the
+  only JSON-emitted image of the section map on R2000 — so its
+  projection is structural, not just scalar; the R2004+ system headers
+  emit POINTERS (section_map_id/address, section_info_id,
+  section_array_size, gap_array_size, crc32), not the map contents
+  (those stay byte-level, H6).
 - **H3 — the variables (`HEADER`)**: the big row (228–298 keys). Silver
   parses them (`header`); the projection maps silver variable names →
   gold's `$VAR` names with typed comparisons. Expect the same
@@ -4343,9 +4385,18 @@ Signature) — the parse side is further along than the emission side.
   `Template`, `FileDepList`, `RevHistory`, `Security`, `ObjFreeSpace`,
   `created_by` — small dicts, one packet, low risk. `Security` is
   zero-constants on the unprotected corpus; `FileDepList`/`RevHistory`
-  are empty-or-single-entry on the corpus set.
+  are empty-or-single-entry on the corpus set. **The review's named
+  row: `AcDb:AppInfoHistory` is unknown to silver's section registry
+  (`ALL_SECTION_NAMES` lacks it — and also `AcDsPrototype_1b` and
+  `Signature`, which exist as constants); R2004+ roundtrips survive via
+  generic section-map skipping. The packet decides: a named
+  AppInfoHistory read, or the recorded generic-skip + projection of
+  gold's 2 emitted keys. `ObjFreeSpace` has per-version field shapes
+  (`max32_hi`-style 64-bit splits on R2018) the projection must map.**
 - **H5 — the bulk/binary sections**: `THUMBNAILIMAGE` and `AcDs`
-  compare by content DIGEST (byte-blobs are not field-diffs); the CLASSES
+  compare by content DIGEST (byte-blobs are not field-diffs); the AcDs
+  segment-index internals beyond gold's emitted keys
+  (`segidx_offset`/`segidx_unknown`) stay byte-level (H6); the CLASSES
   section is already carried verbatim (the pre-R2013 verbatim rule,
   §F2) — the axis pins its gold-shadow findings where they surface
   JSON-wise; VBAProject/Signature (absent from the corpus) land as
@@ -4353,10 +4404,15 @@ Signature) — the parse side is further along than the emission side.
 - **H6 — the whole-structure audit matrix (the standing deliverable)**:
   a generated table — every DWG section name × per-version presence ×
   gold JSON emission × silver model coverage × axis status
-  (`diffed 0` / `excluded` + the recorded reason; e.g. the Handles
-  section transitively covered by the OBJECTS axis' handle resolution,
-  RCRC/page tables by the layer-4 byte oracle, VBAProject/Signature
-  absent). A probe run refreshes it; it goes in every future halt
+  (`diffed 0` / `excluded` + the recorded reason). Pre-populated
+  excluded rows from the review: the R2004+ section-map/page-map
+  ENTRIES (transitively verified by every section read succeeding +
+  layer-4 byte-walks), the R2000 "unknown" section (locator nr 3/4;
+  content never JSON-emitted), per-section CRCs/sentinels/0x16
+  padding, the AcDs segidx internals, VBAProject/Signature
+  (corpus-absent). The matrix also audits silver's registry membership
+  per section name (the `ALL_SECTION_NAMES` omissions the review
+  found). A probe run refreshes it; it goes in every future halt
   report. **This is the row that answers "the entire file structure is
   gold-vs-silver tested" with a table, not an assertion.**
 - **H7 — the writer's structure byte-fidelity**: once reads are 0,
