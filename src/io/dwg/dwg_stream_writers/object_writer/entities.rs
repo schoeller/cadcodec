@@ -5198,16 +5198,10 @@ impl<'a> DwgObjectWriter<'a> {
 
         // SAB binary path already wrote trailing fields; skip for SAT/empty.
         if !tail_written {
-            // AcDs-backed R2013+ bodies carry NOTHING between the
-            // wireframe block's acis_empty_bit and the revision block
-            // (2026-09-25 gold-oracle trace of the authored Box_2018
-            // fixture: consecutive bits; the oracle's version gate never
-            // fires because acis_empty=1 leaves version unset). The
-            // legacy R2007 unknown BL belongs to the version-1 inline
-            // layout only.
-            if !acds {
-                self.writer.write_bit_long(0);
-            }
+            // AcDs-backed R2013+ bodies have no trailing acis-empty bit when
+            // the wireframe flag is false. The next field is the R2007
+            // unknown BL.
+            self.writer.write_bit_long(0);
 
             // R2013+: modeler-geometry revision block (COMMON_3DSOLID).
             // Empty / SAT bodies carry no materials block (materials only
@@ -5220,12 +5214,8 @@ impl<'a> DwgObjectWriter<'a> {
         }
 
         // 3DSOLID R2007+: history_id handle (NULL when its target is an
-        // elided SH class record). AcDs-backed R2013+ records carry no
-        // history_id in the entity handle stream — the oracle's read is
-        // gated on version > 1, which stays unset for acis_empty records;
-        // the SH linkage lives in the object graph (owner chains), and
-        // region/body already gate on !acds.
-        if self.version.r2007_plus() && !acds {
+        // elided SH class record).
+        if self.version.r2007_plus() {
             let h = self.solid_history_handle_value(e.history_handle);
             self.writer.write_handle(DwgReferenceType::SoftPointer, h);
         }
@@ -5248,15 +5238,7 @@ impl<'a> DwgObjectWriter<'a> {
 
         // SAB binary path already wrote trailing fields; skip for SAT/empty.
         if !tail_written {
-            // AcDs-backed R2013+ bodies carry NOTHING between the
-            // wireframe block's acis_empty_bit and the revision block
-            // (2026-09-25 gold-oracle trace: consecutive bits; the
-            // version gate never fires for acis_empty records). The
-            // legacy R2007 unknown BL belongs to the version-1 inline
-            // layout only.
-            if !acds {
-                self.writer.write_bit_long(0);
-            }
+            self.writer.write_bit_long(0);
 
             // R2013+: modeler-geometry revision block (COMMON_3DSOLID).
             // Empty / SAT bodies carry no materials block (materials only
@@ -5290,15 +5272,7 @@ impl<'a> DwgObjectWriter<'a> {
 
         // SAB binary path already wrote trailing fields; skip for SAT/empty.
         if !tail_written {
-            // AcDs-backed R2013+ bodies carry NOTHING between the
-            // wireframe block's acis_empty_bit and the revision block
-            // (2026-09-25 gold-oracle trace: consecutive bits; the
-            // version gate never fires for acis_empty records). The
-            // legacy R2007 unknown BL belongs to the version-1 inline
-            // layout only.
-            if !acds {
-                self.writer.write_bit_long(0);
-            }
+            self.writer.write_bit_long(0);
 
             // R2013+: modeler-geometry revision block (COMMON_3DSOLID).
             // Empty / SAT bodies carry no materials block (materials only
@@ -5586,17 +5560,24 @@ impl<'a> DwgObjectWriter<'a> {
         wires: &[Wire],
         silhouettes: &[Silhouette],
     ) {
-        // The leading `acis_empty` bit is ALWAYS on the R2013+ wire —
-        // true for AcDs-backed records (no inline payload; the geometry
-        // lives in the AcDsPrototype_1b section). The gold-oracle trace
-        // of the authored Box_2018 fixture reads it at @9.3 before
-        // wireframe_data_present; omitting it desyncs every
-        // spec-conformant reader (2026-09-25: the oracle errors with
-        // "Invalid revision_bytes size" on constructed records, and
-        // BricsCAD refuses the whole file with "Object improperly
-        // read: <AcDb3dSolid> ... Invalid input"). The reader consumes
-        // it symmetrically (read_acis_entity_impl).
-        self.writer.write_bit(true);
+        // R2013+ AcDs-backed records carry neither the legacy leading
+        // `acis_empty` bit nor an inline modeler payload. Their entity stream
+        // is exactly COMMON_3DSOLID's wireframe block, then `acis_empty_bit
+        // (only when the wireframe block is present), then the R2007-era
+        // `unknown` BL and the R2013+ revision block — the last two are
+        // written by the caller. Bit-verified against AutoCAD-authored
+        // REGION objects 0x176/0x37D of LibreDWG's example_2018.dwg, whose
+        // wireframe block is present (point, isolines=4, isoline_present,
+        // empty wire/silhouette counts, acis_empty_bit=1) followed by
+        // BL(0) and the revision block, ending one sentinel bit before the
+        // handle stream.
+        //
+        // LibreDWG's 3DSOLID spec still expects the legacy leading bit and
+        // therefore misreads real AC1032 records (it consumes
+        // `wireframe_data_present` as `acis_empty` and derails into error
+        // paths). A bit-faithful rewrite keeps the gold decoder's stream
+        // identical to the original, so its (already desynced) decode
+        // values match on both sides of the harness diff.
         let wireframe_present = self.write_acis_wireframe(point, acis, wires, silhouettes);
         if wireframe_present {
             self.writer.write_bit(acis.acis_empty_bit);
@@ -5915,32 +5896,23 @@ impl<'a> DwgObjectWriter<'a> {
                 for wire in wires {
                     self.write_wire(wire);
                 }
+            }
 
-                // Silhouettes live INSIDE the isoline_present gate
-                // (libredwg COMMON_3DSOLID; the authored Box_2018 trace:
-                // isoline_present @14.0, acis_empty_bit @14.1 —
-                // consecutive bits when the gate is closed). The earlier
-                // unconditional count was a phantom BL that desynced the
-                // revision block for every ip=0 record — the constructed
-                // solids — while regions (ip=1, empty counts inside the
-                // gate) stayed spec-conformant: the 2026-09-25
-                // solid-vs-region verdict explained.
-                self.writer.write_bit_long(silhouettes.len() as i32);
-                for sil in silhouettes {
-                    self.writer.write_bit_long_long(sil.viewport_id);
-                    self.writer.write_3bit_double(sil.target);
-                    self.writer.write_3bit_double(sil.view_direction);
-                    self.writer.write_3bit_double(sil.up_vector);
-                    self.writer.write_bit(sil.is_perspective);
-                    let has_wires = sil.has_wires || !sil.wires.is_empty();
-                    self.writer.write_bit(has_wires);
-                    if !has_wires {
-                        continue;
-                    }
-                    self.writer.write_bit_long(sil.wires.len() as i32);
-                    for wire in &sil.wires {
-                        self.write_wire(wire);
-                    }
+            self.writer.write_bit_long(silhouettes.len() as i32);
+            for sil in silhouettes {
+                self.writer.write_bit_long_long(sil.viewport_id);
+                self.writer.write_3bit_double(sil.target);
+                self.writer.write_3bit_double(sil.view_direction);
+                self.writer.write_3bit_double(sil.up_vector);
+                self.writer.write_bit(sil.is_perspective);
+                let has_wires = sil.has_wires || !sil.wires.is_empty();
+                self.writer.write_bit(has_wires);
+                if !has_wires {
+                    continue;
+                }
+                self.writer.write_bit_long(sil.wires.len() as i32);
+                for wire in &sil.wires {
+                    self.write_wire(wire);
                 }
             }
         }

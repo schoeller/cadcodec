@@ -2175,35 +2175,14 @@ impl CadDocument {
     }
 
     fn entity_history_handle(&self, handle: Handle) -> Option<Handle> {
-        let stored = match self.get_entity(handle)? {
+        match self.get_entity(handle)? {
             EntityType::Solid3D(value) => value.history_handle,
             EntityType::Region(value) => value.history_handle,
             EntityType::Body(value) => value.history_handle,
             EntityType::Surface(value) => value.history_handle,
             _ => None,
         }
-        .filter(|value| value.is_valid());
-        if stored.is_some() {
-            return stored;
-        }
-        // AcDs-backed R2013+ records carry no history_id in the entity
-        // handle stream (the gold-oracle read is version-gated; the
-        // 2026-09-25 entity-stream fix gated the writer's emission on
-        // !acds). The native linkage lives in the OBJECT GRAPH: the
-        // ACSH_HISTORY_CLASS record's owner IS the solid (the authored
-        // Box_2018 trace: ownerhandle abs:2EA — the 3DSOLID's handle;
-        // create_solid_history writes the same genus). Fall back to that
-        // discovery so read-back documents keep their parametric tree
-        // addressable.
-        self.objects.iter().find_map(|(root, object)| match object {
-            ObjectType::DynamicBlock(value)
-                if matches!(value.data, DynamicBlockData::SolidHistory(_))
-                    && value.owner == handle =>
-            {
-                Some(*root)
-            }
-            _ => None,
-        })
+        .filter(|value| value.is_valid())
     }
 
     fn set_entity_history_handle(&mut self, handle: Handle, history: Option<Handle>) -> bool {
