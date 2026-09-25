@@ -4767,9 +4767,14 @@ impl DwgDocumentBuilder {
                     e.wires = data.wires;
                     e.silhouettes = data.silhouettes;
 
-                    // 3DSOLID R2007+: history_id handle
-                    // (always present since R2007, regardless of ACIS version)
-                    if self.obj_reader.version().r2007_plus() {
+                    // 3DSOLID R2007+: history_id handle — version-1 inline
+                    // layouts only. AcDs-backed R2013+ records carry no
+                    // history_id in the entity handle stream (the gold
+                    // oracle's read is gated on version > 1, which stays
+                    // unset for acis_empty records; the SH linkage lives in
+                    // the object graph). Mirrors write_solid3d's !acds gate
+                    // and the BODY reader's has_ds_data gate.
+                    if self.obj_reader.version().r2007_plus() && !e.common.has_ds_data {
                         let h = reader.read_handle();
                         if h != 0 {
                             e.history_handle = Some(Handle::new(h));

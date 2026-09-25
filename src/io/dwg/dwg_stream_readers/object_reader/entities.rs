@@ -5251,12 +5251,25 @@ fn read_acis_entity_impl(
     inline_layout: bool,
     inline_end: Option<i64>,
 ) -> Option<AcisEntityData> {
-    // R2013+ moved modeler data into AcDs and removed the leading
-    // `acis_empty` bit from the entity record.  The first bit after common
-    // entity data is `wireframe_data_present` in that layout.  Consuming the
-    // legacy bit here shifts every wire/material/revision field by one.
+    // The leading `acis_empty` bit is ALWAYS on the R2013+ wire (the
+    // 2026-09-25 gold-oracle trace of the authored Box_2018 fixture:
+    // acis_empty @9.3 = 1, then wireframe_data_present @9.4 — and the
+    // oracle's full decode lands on the real revision GUID bytes at
+    // their true record positions). The earlier synthesized form
+    // (!has_ds_data, wire bit left unconsumed) happened to stay
+    // value-compatible with gold on captured files — the corpus census
+    // passed because reader and writer were symmetrically wrong — but
+    // constructed records (2026-09-24/25 box + cylinder probes) wrote
+    // no leading bit at all, and every spec-conformant reader desyncs
+    // ("Invalid revision_bytes size" in the oracle; "Object improperly
+    // read: <AcDb3dSolid> ... Invalid input" in BricsCAD). Read the bit;
+    // for AcDs-backed records it is 1 (no inline payload).
     let acis_empty = if version.r2013_plus(dxf_version) && !inline_layout {
-        !has_ds_data
+        let wire_bit = reader.read_bit();
+        // Captured AcDs records carry 1; a 0 would promise an inline
+        // payload that cannot follow (has_ds_data routes geometry to
+        // the AcDs section) — treat it as the empty marker regardless.
+        wire_bit || has_ds_data
     } else {
         reader.read_bit()
     };
@@ -5436,35 +5449,38 @@ fn read_acis_entity_impl(
             for _ in 0..num_wires {
                 wires.push(read_wire(reader, version));
             }
-        }
 
-        // Silhouettes belong to the wireframe body, but are independent of
-        // the isoline-data gate above.
-        let num_silhouettes = safe_count(reader.read_bit_long());
-        for _ in 0..num_silhouettes {
-            let viewport_id = reader.read_bit_long_long();
-            let target = reader.read_3bit_double();
-            let view_direction = reader.read_3bit_double();
-            let up_vector = reader.read_3bit_double();
-            let is_perspective = reader.read_bit();
-            let mut sil_wires = Vec::new();
-            let has_sil_wires = reader.read_bit();
-            if has_sil_wires {
-                let num_sw = safe_count(reader.read_bit_long());
-                sil_wires.reserve(num_sw as usize);
-                for _ in 0..num_sw {
-                    sil_wires.push(read_wire(reader, version));
+            // Silhouettes live INSIDE the isoline_present gate (libredwg
+            // COMMON_3DSOLID; the authored Box_2018 trace: consecutive
+            // ip/aeb bits when the gate is closed). The earlier
+            // unconditional read was the reader-side mirror of the
+            // writer's phantom BL (2026-09-25).
+            let num_silhouettes = safe_count(reader.read_bit_long());
+            for _ in 0..num_silhouettes {
+                let viewport_id = reader.read_bit_long_long();
+                let target = reader.read_3bit_double();
+                let view_direction = reader.read_3bit_double();
+                let up_vector = reader.read_3bit_double();
+                let is_perspective = reader.read_bit();
+                let mut sil_wires = Vec::new();
+                let has_sil_wires = reader.read_bit();
+                if has_sil_wires {
+                    let num_sw = safe_count(reader.read_bit_long());
+                    sil_wires.reserve(num_sw as usize);
+                    for _ in 0..num_sw {
+                        sil_wires.push(read_wire(reader, version));
+                    }
                 }
+                silhouettes.push(Silhouette {
+                    viewport_id,
+                    view_direction,
+                    up_vector,
+                    target,
+                    is_perspective,
+                    has_wires: has_sil_wires,
+                    wires: sil_wires,
+                });
             }
-            silhouettes.push(Silhouette {
-                viewport_id,
-                view_direction,
-                up_vector,
-                target,
-                is_perspective,
-                has_wires: has_sil_wires,
-                wires: sil_wires,
-            });
         }
     }
 
@@ -5498,9 +5514,16 @@ fn read_acis_entity_impl(
                     material_handle: (material_handle != 0).then(|| Handle::from(material_handle)),
                 });
             }
-        } else {
-            // AcDs-backed R2013+ entities and version-1 bodies carry the
-            // legacy R2007 unknown BL here, not a materials array.
+        } else if !(version.r2013_plus(dxf_version) && has_ds_data) {
+            // Version-1 bodies carry the legacy R2007 unknown BL here.
+            // AcDs-backed R2013+ records carry NOTHING between the
+            // wireframe block's acis_empty_bit and the revision block
+            // (2026-09-25 gold-oracle trace of the authored Box_2018
+            // fixture: acis_empty_bit @14.1, has_revision_guid @14.2 —
+            // consecutive bits; the oracle's version gate never fires
+            // because acis_empty=1 leaves version unset). The earlier
+            // phantom BL consumed has_guid's bit and desynced the
+            // revision block for every spec-conformant reader.
             let _unknown_2007 = reader.read_bit_long();
         }
     }
