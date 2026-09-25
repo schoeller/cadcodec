@@ -1245,7 +1245,7 @@ Given a diff `(type, field, kind)`:
   the divergence was the CODE NIBBLE: silver wrote BOTH the
   imagedef and imagedefreactor handles as DwgReferenceType::HardPointer
   (nibble 5), while the original wires (and gold's spec,
-  dwg2.spec 1561 / dwg.spec 5129 FIELD_HANDLE (imagedefreactor, 3,
+  dwg2.spec 1578 / dwg.spec 5145 FIELD_HANDLE (imagedefreactor, 3,
   360)) carry the reactor with nibble 3 ([3,0,0,0] verified in
   every record; imagedef is [5,0,0,0]). The ORIG pair never showed
   rows because silver's normalizer FABRICATED the constant {code: 3}
@@ -2628,9 +2628,9 @@ packets — small, well-scoped, and reproducible):
   table 39 → 36, mispairing mid-list. New `add_wire_entry` appends
   DWG-wire entries verbatim (entry_map keeps the first occurrence);
   the DWG read path uses it, the writer already serialized entries
-  verbatim. Readers take note: gold's dwg2.spec 133-146 reads
-  sort_ents as code-0 handles from the MAIN stream swap, ents as
-  code-4 from the handle stream.
+  verbatim. Readers take note: gold's dwg2.spec 149-161 (the
+  SORTENTSTABLE block) reads sort_ents as code-0 handles from the
+  MAIN stream swap, ents as code-4 from the handle stream.
 
 **Chain-ordinal wave (kid wire handles, class-entity owners, VIEWMODE
   nibble, vertex reactors, ANG2LN mapping, mesh chain, vport header,
