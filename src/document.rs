@@ -1171,6 +1171,90 @@ pub struct DwgR2007SystemHeader {
     pub header_crc: u64,
 }
 
+/// The R13–R2000 SecondHeader summary — gold's `SecondHeader` shape
+/// (§19 H2's fourth sub-row). The second header is a sentinel-located
+/// structure near the file end (gold: `bit_search_sentinel
+/// (DWG_SENTINEL_2NDHEADER_BEGIN)` after the ObjFreeSpace read,
+/// decode.c:907; parsed by `secondheader_private` via `2ndheader.spec`).
+/// JSON shape: 7 scalars + the 6-record section table (nr/address/size)
+/// + the 14-record handle table (nr + the raw big-endian handle bytes —
+/// `num_hdl` itself does not print) + `junk_r14` (R14/R2000 only, the
+/// RLL after the CRC). `sections`/`num_handles` counts do not print.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgSecondHeaderSummary {
+    pub size: i32,
+    pub address: u32,
+    pub version: String,
+    pub maint_rel_version: u8,
+    pub zero_one_or_three: u8,
+    pub dwg_versions: i16,
+    pub codepage: i16,
+    pub sections: Vec<DwgSecondHeaderSection>,
+    pub handles: Vec<DwgSecondHeaderHandle>,
+    pub junk_r14: u64,
+}
+
+/// One SecondHeader section-locator record (nr 0-5).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgSecondHeaderSection {
+    pub nr: u8,
+    pub address: u32,
+    pub size: u32,
+}
+
+/// One SecondHeader handle record: the control-object slot (nr 0-13)
+/// and its raw big-endian handle bytes.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgSecondHeaderHandle {
+    pub nr: u8,
+    pub hdl: Vec<u8>,
+}
+
+/// The R13c3+ AuxHeader summary — gold's `AuxHeader` shape (§19 H2's
+/// fifth sub-row). Read at the section-locator address when the
+/// FILEHEADER's `sections` count is 6 (gold: decode.c:373-405 — "no
+/// sentinels, since R13c3"); byte-aligned fields per `auxheader.spec`.
+/// The R2000 JSON shape (25 keys): the observed values on sample_2000
+/// hand-decoded byte-for-byte before implementation. `TDCREATE`/
+/// `TDUPDATE` are TIMERLL pairs (days + milliseconds); `HANDSEED` is
+/// the raw 64-bit seed; R2004+ adds zero_7/zero_8 and R2018 zero_18 —
+/// outside this R2000-only emission shape.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAuxHeaderSummary {
+    pub aux_intro: Vec<u8>,
+    pub dwg_version: i16,
+    pub maint_version: i16,
+    pub numsaves: i32,
+    pub minus_1: i32,
+    pub numsaves_1: i16,
+    pub numsaves_2: i16,
+    pub zero: i32,
+    pub dwg_version_1: i16,
+    pub maint_version_1: i16,
+    pub dwg_version_2: i16,
+    pub maint_version_2: i16,
+    pub unknown_6rs: Vec<i16>,
+    pub unknown_5rl: Vec<i32>,
+    #[cfg_attr(feature = "serde", serde(rename = "TDCREATE"))]
+    pub tdcreate: Vec<u32>,
+    #[cfg_attr(feature = "serde", serde(rename = "TDUPDATE"))]
+    pub tdupdate: Vec<u32>,
+    #[cfg_attr(feature = "serde", serde(rename = "HANDSEED"))]
+    pub handseed: u64,
+    pub zero_1: i16,
+    pub numsaves_3: i16,
+    pub zero_2: i32,
+    pub zero_3: i32,
+    pub zero_4: i32,
+    pub numsaves_4: i32,
+    pub zero_5: i32,
+    pub zero_6: i32,
+}
+
 /// The DWG file-header summary — gold's `FILEHEADER` shape (§19 H2 of the
 /// harness plan). Field names match gold's JSON exactly (except `codepage`,
 /// kept as one word per gold) so the structure axis projects 1:1. Retained
@@ -1377,6 +1461,18 @@ pub struct CadDocument {
     /// `Dwg21CompressedMetadata`. `None` on every non-AC1021 format.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub dwg_r2007_header: Option<DwgR2007SystemHeader>,
+
+    /// The R13–R2000 SecondHeader summary (§19 H2): gold's
+    /// `SecondHeader` shape, from the sentinel-located second header.
+    /// `None` on R2004+ files (gold emits it R13–R2000 only).
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_second_header: Option<DwgSecondHeaderSummary>,
+
+    /// The R13c3+ AuxHeader summary (§19 H2): gold's `AuxHeader` shape
+    /// (the R2000 emission), read at the section locator when the
+    /// FILEHEADER carries 6 section records.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_aux_header: Option<DwgAuxHeaderSummary>,
 
     /// Embedded preview/thumbnail image. Populated by the DWG reader from the
     /// file's preview section; the DWG writer embeds it when `Some` and emits an
@@ -1591,6 +1687,8 @@ impl CadDocument {
             dwg_file_header: None,
             dwg_r2004_header: None,
             dwg_r2007_header: None,
+            dwg_second_header: None,
+            dwg_aux_header: None,
             preview: None,
             acis_sab_handles: Vec::new(),
             raw_acds_data: None,

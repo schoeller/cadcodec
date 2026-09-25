@@ -4321,8 +4321,8 @@ assertion that no UNDECLARED top-level key silently leaks —
 | `FILEHEADER` | ✓ (8) | ✓ (15) | version/maint/codepage/time/save addresses | **LANDED 0/0** (`bdf8107`): the full field family retained via `document.dwg_file_header` (the byte-position ledger in dwg_reader.rs) |
 | `R2004_Header` | — | ✓ (23) on R2004/R2010/R2013/R2018 | the R2004-based system section | **LANDED 0/0** (`7abb0af`): all 23 fields + the 12-byte padding hex via `document.dwg_r2004_header` |
 | `R2007_Header` | — | ✓ (33) on R2007 ONLY | the AC1021 system section (33 fields — its own layout, not the R2004 one) | **LANDED 0/0** (`73935b7`): all 33 fields via `document.dwg_r2007_header` (the gold-named projection of the container metadata) |
-| `SecondHeader` | ✓ (10) | — | the R13–R2000 second header | read (the roundtrip survives); no comparison |
-| `AuxHeader` | ✓ (25) | — (absent on the corpus R2004+ files) | aux data | read; no comparison |
+| `SecondHeader` | ✓ (10) | — | the R13–R2000 second header | **LANDED 0/0** (the H2d packet): the sentinel-located read via `document.dwg_second_header` |
+| `AuxHeader` | ✓ (25) | — (absent on the corpus R2004+ files) | aux data | **LANDED 0/0** (the H2d packet): the locator-addressed read via `document.dwg_aux_header` |
 | `SummaryInfo` | — | ✓ (13) | `AcDb:SummaryInfo` | `summary_info` dict (9) — partial |
 | `AppInfo`/`AppInfoHistory` | — | ✓ (10/2) | `AcDb:AppInfo` | section read; no model emission |
 | `Template` | ✓ | ✓ | `AcDb:Template` | section read; no model emission |
@@ -4462,8 +4462,9 @@ Signature) — the parse side is further along than the emission side.
   rewrite re-read by gold). Byte-level re-emission fidelity for the
   header/system sections gets the layer-4 treatment (dump + compare
   the rewritten header region for one fixture per version-class).
-- **H2 — the file header family** (`FILEHEADER`, `R2004_Header` and
-  `R2007_Header` landed 2026-09-25; SecondHeader/AuxHeader open):
+- **H2 — the file header family (COMPLETE 2026-09-25 — all five
+  sub-rows landed at zero read gaps; the family's 10,840 + 652 =
+  11,492 leaves closed)**:
   **The FILEHEADER drop landed at ZERO read gaps corpus-wide**
   (4151 matched = 273×15 + 7×8 leaves exactly; 0 value diffs; 0
   missing; the corpus read key-gap 259,073 → 255,482, −3,591 = the
@@ -4552,6 +4553,32 @@ Signature) — the parse side is further along than the emission side.
   CRCs as UNSIGNED (sections_map_crc_comp 14004064320028269436 >
   2^63 on example_2007), so signed i64 projection would have
   produced 41 value diffs instead of zero.
+  **The R2000 pair landed at ZERO read gaps corpus-wide** (SecondHeader
+  7/7 files, 386 matched = 4×56 + 3×54 leaves — the 56-leaf files carry
+  2-byte `hdl` vectors, exactly as the census predicted; AuxHeader 7/7,
+  266 matched = 7×38; 0 value diffs; 0 missing; the corpus read
+  key-gap 248,793 → 248,141, −652 = the census components verbatim).
+  Both were NEW READS (the family's only ones): the AuxHeader at its
+  section-locator address — gold decode.c:373-405, "no sentinels since
+  R13c3", gated on the FILEHEADER `sections` count == 6 — parsed
+  byte-aligned per `auxheader.spec`, with the field order
+  HAND-DECODED byte-for-byte against gold's JSON on sample_2000
+  before implementation (every field matched on the first census
+  run); the SecondHeader located by the 2NDHEADER_BEGIN sentinel
+  (`D4 7B 21 CE … AA 01`, gold decode.c:907 searching forward from
+  the ObjFreeSpace read — silver searches from the ObjFreeSpace
+  locator address with a 0 fallback; the sentinel is unique) and
+  parsed per `2ndheader.spec` via the bit reader: RL size, BL
+  address, the 11-byte version, RC maint_rel_version, RC
+  zero_one_or_three, BS dwg_versions, RS codepage, the ≤6 section
+  records (RC nr, BL address, BL size), the ≤14 handle records
+  (RC num_hdl, RC nr, num_hdl raw bytes — `num_hdl` itself does not
+  print), the unprinted RS CRC, and `junk_r14` (RLL) on R14/R2000
+  only. Both reads are non-fatal on failure (informational
+  sections). The write-target columns stay H7 rows: silver's writer
+  omits the SecondHeader entirely on rewrite (0+0+386) and
+  synthesizes the AuxHeader with shifted values (266 matched, 95
+  diffs — numsaves/times).
   **The remaining sub-rows' scope notes:** `SecondHeader` carries
   the R2000 section-locator table (6 nr/address/size records) AND its
   per-locator handle vector — the only JSON-emitted image of the

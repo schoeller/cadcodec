@@ -225,6 +225,14 @@ pub struct DwgFileHeaderInfo {
     /// (None on AC21-format files — gold's separate R2007_Header row —
     /// and pre-R2004 formats). §19 H2.
     pub r2004_system: Option<crate::document::DwgR2004SystemHeader>,
+    /// The sentinel-located R13–R2000 second header, gold's
+    /// `SecondHeader` shape (§19 H2). None when the sentinel is not
+    /// found or on R2004+ formats.
+    pub second_header: Option<crate::document::DwgSecondHeaderSummary>,
+    /// The R13c3+ AuxHeader at the section locator, gold's `AuxHeader`
+    /// shape (§19 H2). None when the FILEHEADER carries fewer than 6
+    /// section records.
+    pub aux_header: Option<crate::document::DwgAuxHeaderSummary>,
 
     // ── AC1021-specific data ──
     /// AC1021 compressed metadata (contains CRC-64 and section layout)
@@ -1056,6 +1064,12 @@ impl<R: Read + Seek> DwgReader<R> {
                 header_crc: m.header_crc64,
             });
         }
+        // The R13-R2000 structural pair (§19 H2's fourth and fifth
+        // sub-rows): the sentinel-located SecondHeader and the
+        // locator-addressed AuxHeader — both parsed during the AC15
+        // file-header read, both gold-JSON-shaped.
+        document.dwg_second_header = info.second_header.clone();
+        document.dwg_aux_header = info.aux_header.clone();
 
         // 2. Read Classes (AcDb:Classes)
         match self.get_section_buffer("AcDb:Classes", &info) {
@@ -1493,6 +1507,8 @@ impl<R: Read + Seek> DwgReader<R> {
             rl_1c_address: 0,
             r2004_header_address: 0,
             r2004_system: None,
+            second_header: None,
+            aux_header: None,
             ac21_metadata: None,
             ac21_header_crc: None,
             ac21_unknown_key: None,
@@ -1742,6 +1758,246 @@ impl<R: Read + Seek> DwgReader<R> {
             ),
         );
 
+        // The R13-R2000 structural pair (§19 H2): the AuxHeader at the
+        // section locator (gold: decode.c:373-405, gated on sections==6)
+        // and the sentinel-located SecondHeader (gold: decode.c:907).
+        // Both parse into gold's JSON shapes for the structure axis;
+        // failures are non-fatal (the sections are informational).
+        if info.sections == 6 {
+            if let Err(e) = self.read_aux_header_r13(info) {
+                self.notifications.notify(
+                    NotificationType::Warning,
+                    format!("AuxHeader read failed (non-fatal): {}", e),
+                );
+            }
+        }
+        if let Err(e) = self.read_second_header_r13(info) {
+            self.notifications.notify(
+                NotificationType::Warning,
+                format!("SecondHeader read failed (non-fatal): {}", e),
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Read the R13c3+ AuxHeader at its section-locator address — gold's
+    /// `AuxHeader` shape (§19 H2). Byte-aligned fields per `auxheader.spec`
+    /// (no sentinels since R13c3; gold decode.c:373-405). The field order
+    /// was hand-decoded byte-for-byte against gold's JSON on sample_2000
+    /// before implementation (every field matched).
+    fn read_aux_header_r13(
+        &mut self,
+        info: &mut DwgFileHeaderInfo,
+    ) -> Result<(), DxfError> {
+        use std::io::Cursor as IoCursor;
+        let (address, size) = info
+            .section_locators
+            .get(crate::io::dwg::file_headers::section_definition::names::AUX_HEADER)
+            .copied()
+            .ok_or_else(|| DxfError::Parse("AuxHeader locator missing".into()))?;
+        if address < 0 || size <= 0 {
+            return Err(DxfError::Parse("AuxHeader locator invalid".into()));
+        }
+        self.stream.seek(SeekFrom::Start(address as u64))?;
+        let mut buf = vec![0u8; size as usize];
+        self.stream.read_exact(&mut buf)?;
+        let mut c = IoCursor::new(buf);
+
+        let mut rc = |c: &mut IoCursor<Vec<u8>>| -> Result<u8, DxfError> {
+            use std::io::Read;
+            let mut b = [0u8; 1];
+            c.read_exact(&mut b)?;
+            Ok(b[0])
+        };
+        let mut rs = |c: &mut IoCursor<Vec<u8>>| -> Result<i16, DxfError> {
+            use std::io::Read;
+            let mut b = [0u8; 2];
+            c.read_exact(&mut b)?;
+            Ok(i16::from_le_bytes(b))
+        };
+        let mut rl = |c: &mut IoCursor<Vec<u8>>| -> Result<i32, DxfError> {
+            use std::io::Read;
+            let mut b = [0u8; 4];
+            c.read_exact(&mut b)?;
+            Ok(i32::from_le_bytes(b))
+        };
+
+        let aux_intro = vec![rc(&mut c)?, rc(&mut c)?, rc(&mut c)?];
+        let dwg_version = rs(&mut c)?;
+        let maint_version = rs(&mut c)?;
+        let numsaves = rl(&mut c)?;
+        let minus_1 = rl(&mut c)?;
+        let numsaves_1 = rs(&mut c)?;
+        let numsaves_2 = rs(&mut c)?;
+        let zero = rl(&mut c)?;
+        let dwg_version_1 = rs(&mut c)?;
+        let maint_version_1 = rs(&mut c)?;
+        let dwg_version_2 = rs(&mut c)?;
+        let maint_version_2 = rs(&mut c)?;
+        let unknown_6rs = (0..6).map(|_| rs(&mut c)).collect::<Result<Vec<_>, _>>()?;
+        let unknown_5rl = (0..5).map(|_| rl(&mut c)).collect::<Result<Vec<_>, _>>()?;
+        // TIMERLL: days + milliseconds (2 x raw long, unsigned print)
+        let tdcreate = {
+            let days = rl(&mut c)? as u32;
+            let ms = rl(&mut c)? as u32;
+            vec![days, ms]
+        };
+        let tdupdate = {
+            let days = rl(&mut c)? as u32;
+            let ms = rl(&mut c)? as u32;
+            vec![days, ms]
+        };
+        let mut handseed_bytes = [0u8; 8];
+        {
+            use std::io::Read;
+            c.read_exact(&mut handseed_bytes)?;
+        }
+        let handseed = u64::from_le_bytes(handseed_bytes);
+        let zero_1 = rs(&mut c)?;
+        let numsaves_3 = rs(&mut c)?;
+        let zero_2 = rl(&mut c)?;
+        let zero_3 = rl(&mut c)?;
+        let zero_4 = rl(&mut c)?;
+        let numsaves_4 = rl(&mut c)?;
+        let zero_5 = rl(&mut c)?;
+        let zero_6 = rl(&mut c)?;
+
+        info.aux_header = Some(crate::document::DwgAuxHeaderSummary {
+            aux_intro,
+            dwg_version,
+            maint_version,
+            numsaves,
+            minus_1,
+            numsaves_1,
+            numsaves_2,
+            zero,
+            dwg_version_1,
+            maint_version_1,
+            dwg_version_2,
+            maint_version_2,
+            unknown_6rs,
+            unknown_5rl,
+            tdcreate,
+            tdupdate,
+            handseed,
+            zero_1,
+            numsaves_3,
+            zero_2,
+            zero_3,
+            zero_4,
+            numsaves_4,
+            zero_5,
+            zero_6,
+        });
+        Ok(())
+    }
+
+    /// Read the R13–R2000 SecondHeader — gold's `SecondHeader` shape
+    /// (§19 H2). Located by the 2NDHEADER_BEGIN sentinel (gold searches
+    /// forward from the ObjFreeSpace read position, decode.c:907; the
+    /// sentinel is unique, so the search starts at the ObjFreeSpace
+    /// locator address with a 0 fallback). Parsed per `2ndheader.spec`
+    /// via `secondheader_private`: RL size, BL address, 11-byte version,
+    /// RC maint_rel_version, RC zero_one_or_three, BS dwg_versions,
+    /// RS codepage, BS num_sections (≤6) + the section records
+    /// (RC nr, BL address, BL size), BS num_handles (≤14) + the handle
+    /// records (RC num_hdl ≤8, RC nr, num_hdl raw bytes), the trailing
+    /// RS CRC (not printed), and `junk_r14` (RLL) on R14/R2000 only.
+    fn read_second_header_r13(
+        &mut self,
+        info: &mut DwgFileHeaderInfo,
+    ) -> Result<(), DxfError> {
+        const SENTINEL_2NDHEADER_BEGIN: [u8; 16] = [
+            0xD4, 0x7B, 0x21, 0xCE, 0x28, 0x93, 0x9F, 0xBF, 0x53, 0x24, 0x40, 0x09,
+            0x12, 0x3C, 0xAA, 0x01,
+        ];
+        let search_start = info
+            .section_locators
+            .get(crate::io::dwg::file_headers::section_definition::names::OBJ_FREE_SPACE)
+            .map(|&(address, _)| address.max(0) as u64)
+            .unwrap_or(0);
+        let file_len = self.stream.seek(SeekFrom::End(0))?;
+        let search_start = search_start.min(file_len);
+        self.stream.seek(SeekFrom::Start(search_start))?;
+        let mut tail = vec![0u8; (file_len - search_start) as usize];
+        self.stream.read_exact(&mut tail)?;
+
+        let sentinel_pos = tail
+            .windows(16)
+            .position(|w| w == SENTINEL_2NDHEADER_BEGIN)
+            .ok_or_else(|| DxfError::Parse("2NDHEADER sentinel not found".into()))?;
+
+        let dxf_version = crate::types::DxfVersion::parse(&info.version_string)
+            .unwrap_or(crate::types::DxfVersion::Unknown);
+        let dwg_version = info.version;
+        let encoding =
+            crate::io::dxf::code_page::encoding_from_dwg_code_page(info.code_page);
+        let mut reader =
+            crate::io::dwg::dwg_stream_readers::bit_reader::DwgBitReader::with_encoding(
+                tail[sentinel_pos + 16..].to_vec(),
+                dwg_version,
+                dxf_version,
+                encoding,
+            );
+
+        let size = reader.read_raw_long() as i32;
+        let address = reader.read_bit_long() as u32;
+        let mut version_bytes = [0u8; 11];
+        for b in version_bytes.iter_mut() {
+            *b = reader.read_byte();
+        }
+        let version_end = version_bytes.iter().position(|&b| b == 0).unwrap_or(11);
+        let version = String::from_utf8_lossy(&version_bytes[..version_end]).to_string();
+        let maint_rel_version = reader.read_byte();
+        let zero_one_or_three = reader.read_byte();
+        let dwg_versions = reader.read_bit_short();
+        let codepage = reader.read_raw_short();
+        let num_sections = reader.read_bit_short().clamp(0, 6);
+        let mut sections = Vec::with_capacity(num_sections as usize);
+        for _ in 0..num_sections {
+            let nr = reader.read_byte();
+            let address = reader.read_bit_long() as u32;
+            let size = reader.read_bit_long() as u32;
+            sections.push(crate::document::DwgSecondHeaderSection { nr, address, size });
+        }
+        let num_handles = reader.read_bit_short().clamp(0, 14);
+        let mut handles = Vec::with_capacity(num_handles as usize);
+        for _ in 0..num_handles {
+            let num_hdl = reader.read_byte().min(8);
+            let nr = reader.read_byte();
+            let mut hdl = Vec::with_capacity(num_hdl as usize);
+            for _ in 0..num_hdl {
+                hdl.push(reader.read_byte());
+            }
+            handles.push(crate::document::DwgSecondHeaderHandle { nr, hdl });
+        }
+        let _crc = reader.read_raw_short();
+        // junk_r14: RLL, R14/R2000 only (VERSIONS (R_14, R_2000) in
+        // secondheader_private — R13 files stop at the CRC).
+        let junk_r14 = if matches!(dxf_version, crate::types::DxfVersion::AC1014 | crate::types::DxfVersion::AC1015)
+        {
+            let mut b = [0u8; 8];
+            for slot in b.iter_mut() {
+                *slot = reader.read_byte();
+            }
+            u64::from_le_bytes(b)
+        } else {
+            0
+        };
+
+        info.second_header = Some(crate::document::DwgSecondHeaderSummary {
+            size,
+            address,
+            version,
+            maint_rel_version,
+            zero_one_or_three,
+            dwg_versions,
+            codepage,
+            sections,
+            handles,
+            junk_r14,
+        });
         Ok(())
     }
 

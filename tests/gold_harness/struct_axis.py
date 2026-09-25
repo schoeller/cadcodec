@@ -171,6 +171,12 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
     # counterpart and is dropped at the projection source).
     if isinstance(doc.get("dwg_r2007_header"), dict):
         views["R2007_Header"] = doc["dwg_r2007_header"]
+    # H2's R2000 pair: the sentinel-located SecondHeader and the
+    # locator-addressed AuxHeader — both gold-JSON-shaped summaries.
+    if isinstance(doc.get("dwg_second_header"), dict):
+        views["SecondHeader"] = doc["dwg_second_header"]
+    if isinstance(doc.get("dwg_aux_header"), dict):
+        views["AuxHeader"] = doc["dwg_aux_header"]
     if isinstance(doc.get("header"), dict):
         views["HEADER"] = doc["header"]
     if isinstance(doc.get("summary_info"), dict):
