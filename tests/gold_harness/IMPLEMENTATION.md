@@ -4386,18 +4386,41 @@ Signature) — the parse side is further along than the emission side.
 
 ### 19.2 The rows (ordered; each lands under the §8.1.2 per-packet workflow)
 
-- **H0 — the axis skeleton + the day-one census** (the first session's
-  concrete packet): add a second comparison axis to the harness. The
-  normalizers gain a structure mode (or sibling functions) projecting
-  the 17 top-level keys to comparable flat dicts; `diff_fields.py`'s
-  comparer is reused (it compares flat dicts already); run_roundtrip
-  and run_corpus report SEPARATE counters (`struct_read_diffs` /
-  `struct_write_diffs`) beside the frozen OBJECTS pair. **The OBJECTS
-  axis is frozen: nothing in the existing diffrer, ignore list, or
-  normalizer OBJECTS paths may change semantics** — the campaign
-  extends, never re-loosens. Day-one deliverable: the per-key diff
-  counts over the 280-file corpus (the §7-style baseline) that set the
-  attack order for H2–H5.
+- **H0 — the axis skeleton + the day-one census (LANDED 2026-09-25)**:
+  the second axis ships as `tests/gold_harness/struct_axis.py` (the
+  closed key registry; gold view extraction with the -nan/ACIS shims;
+  silver's minimal seed projection — header/summary/preview/classes +
+  the maintenance_version→maint_rel_version mapping the R2000 smoke
+  pinned; a leaf-flattener with name-canonical matching; the no-leak
+  assertion — corpus-clean: zero undeclared keys, zero census errors
+  over 280 files). `run_roundtrip.py` wires it beside the frozen
+  OBJECTS pipeline (read census gold_orig-vs-silver_orig; write-
+  target census gold_orig-vs-gold_rt; defensively isolated so the
+  axis can never break a file run); `run_corpus.py` aggregates the
+  per-key census into report.json/report.md. **The OBJECTS axis held
+  0/0 through the landing (before AND after: 280 files read 0 /
+  write 0).**
+  **Day-one census (the H2-H5 attack order):** read key-gap **259,073**
+  leaf-gaps; write-target key-gap **21,822**. Per key (summed over both
+  axes' file-sides — the files-column double-counts by design):
+  HEADER dominates the read gap (**128,489 missing + 9,532 name-matched,
+  0 value diffs on matched** — the gap is name-set coverage, i.e. the
+  H3 variable ledger is THE row); AcDs **58,471** (section-level view,
+  present 273/273 silver-covered on the write side at **0/0** — the
+  verbatim property the §18 record pinned, now corpus-wide); CLASSES
+  42,713 missing + 4,460 value diffs (the value diffs are the §18.6
+  gold-shadow garbage-vs-sane class reads — the divergences are the
+  EXPECTED loose name matching at this stage; H5 projects the table
+  properly); R2004_Header 5,336; FILEHEADER 3,591; ObjFreeSpace/
+  Security/AppInfo/SummaryInfo ~2.2-3.4k each (H2/H4); THUMBNAIL tiny
+  (558 — the blob-compare work is H5's digest); SecondHeader/AuxHeader
+  (R2000-only, small). Write-target: FILEHEADER 1,205 (address shifts +
+  maint_rel 0→4), R2004_Header 1,771 (numsections 15→17 — silver
+  writes MORE sections), ObjFreeSpace 2,453, AppInfo 1,651 (silver
+  rewrites its own blob), SummaryInfo 1,533 (times zeroed), THUMBNAIL
+  re-encoded (442) — the H7 preservation ledger; Template/RevHistory/
+  Security/FileDepList write-target 0-diff (silver re-preserves them
+  trivially).
 - **H1 — the corollary write-fidelity definition**: the structure axis
   compares `gold_orig` vs `silver_orig` (read) and — the same rule as
   the OBJECTS axis — `gold_orig` vs `gold_rt` (write, i.e. silver's

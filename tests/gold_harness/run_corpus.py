@@ -67,20 +67,41 @@ def run_file(path: Path, workdir: Path) -> Dict[str, Any]:
     )
     diff_orig_path = workdir / path.stem / f"{path.stem}_diff_orig.json"
     diff_rt_path = workdir / path.stem / f"{path.stem}_diff_rt.json"
+    struct_orig_path = workdir / path.stem / f"{path.stem}_struct_orig.json"
+    struct_rt_path = workdir / path.stem / f"{path.stem}_struct_rt.json"
     diff_orig: Dict[str, Any] = {"total_diffs": -1, "diffs": []}
     diff_rt: Dict[str, Any] = {"total_diffs": -1, "diffs": []}
+    struct_orig: Dict[str, Any] = {"totals": {"key_gap_sum": -1}}
+    struct_rt: Dict[str, Any] = {"totals": {"key_gap_sum": -1}}
     if diff_orig_path.exists():
         with open(diff_orig_path, "r", encoding="utf-8") as f:
             diff_orig = json.load(f)
     if diff_rt_path.exists():
         with open(diff_rt_path, "r", encoding="utf-8") as f:
             diff_rt = json.load(f)
+    # The structure axis (§19 H0): per-key census — read (gold vs
+    # silver projection) and write-target (gold_orig vs gold_rt).
+    # Missing files mean the roundtrip predated the axis (or the census
+    # failed defensively inside run_roundtrip) — the -1 placeholder
+    # keeps the file counted and visible in the census column.
+    for p, holder in ((struct_orig_path, "orig"), (struct_rt_path, "rt")):
+        if p.exists():
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    if holder == "orig":
+                        struct_orig = json.load(f)
+                    else:
+                        struct_rt = json.load(f)
+            except json.JSONDecodeError:
+                pass
     return {
         "file": str(path),
         "returncode": result.returncode,
         "stdout": result.stdout,
         "read_fidelity_diffs": diff_orig["total_diffs"],
         "write_fidelity_diffs": diff_rt["total_diffs"],
+        "struct_read_key_gap": struct_orig.get("totals", {}).get("key_gap_sum", -1),
+        "struct_write_key_gap": struct_rt.get("totals", {}).get("key_gap_sum", -1),
     }
 
 
@@ -134,12 +155,79 @@ def main() -> int:
 
     read_counts, write_counts = aggregate(results, workdir)
 
+    # ── The structure census aggregate (§19 H0): per key, the projected
+    # leaf gaps (read axis: gold vs silver projection) and the
+    # write-target gaps (gold_orig vs gold_rt), summed over the corpus
+    # with presence counts. This is the day-one attack-order table.
+    struct_census: Dict[str, Dict[str, Any]] = {}
+    struct_read_total = 0
+    struct_write_total = 0
+    undeclared_len: Dict[str, int] = {}
+    for r in results:
+        stem = Path(r["file"]).stem
+        for side_name in ("orig", "rt"):
+            struct_path = workdir / stem / f"{stem}_struct_{side_name}.json"
+            if not struct_path.exists():
+                continue
+            try:
+                with open(struct_path, "r", encoding="utf-8") as f:
+                    st = json.load(f)
+            except json.JSONDecodeError:
+                continue
+            if "error" in st:
+                continue
+            prefix = "read_" if side_name == "orig" else "write_"
+            if side_name == "orig":
+                struct_read_total += st.get("totals", {}).get("key_gap_sum", 0)
+            else:
+                struct_write_total += st.get("totals", {}).get("key_gap_sum", 0)
+            for key, kres in (st.get("per_key") or {}).items():
+                row = struct_census.setdefault(key, {
+                    "files_gold": 0,
+                    "files_other": 0,
+                    "read_matched": 0,
+                    "read_value_diffs": 0,
+                    "read_missing_other": 0,
+                    "read_gold_leaves": 0,
+                    "write_matched": 0,
+                    "write_value_diffs": 0,
+                    "write_missing_other": 0,
+                })
+                status = kres.get("status", "?")
+                if status == "absent_both":
+                    continue
+                if status != "missing_gold":
+                    # gold carries the key (present_both or missing_other)
+                    row["files_gold"] += 1
+                    if status == "present_both":
+                        row["files_other"] += 1
+                        row[f"{prefix}matched"] += kres.get("matched", 0)
+                        row[f"{prefix}value_diffs"] += kres.get("value_diffs", 0)
+                        row[f"{prefix}missing_other"] += kres.get(
+                            "missing_silver" if side_name == "orig" else "missing_gold_rt", 0
+                        )
+                        if side_name == "orig":
+                            row["read_gold_leaves"] += kres.get("gold_leaves", 0)
+                    else:
+                        # the whole key is the gap (gold has it, the other
+                        # side projects nothing)
+                        row[f"{prefix}missing_other"] += kres.get("gold_leaves", 0)
+                        if side_name == "orig":
+                            row["read_gold_leaves"] += kres.get("gold_leaves", 0)
+            if side_name == "orig":
+                for u in st.get("undeclared_keys", []) or []:
+                    undeclared_len[u] = undeclared_len.get(u, 0) + 1
+
     report = {
         "files": len(results),
         "read_fidelity_total": sum(r["read_fidelity_diffs"] for r in results if r["read_fidelity_diffs"] != -1),
         "write_fidelity_total": sum(r["write_fidelity_diffs"] for r in results if r["write_fidelity_diffs"] != -1),
         "read_fidelity_by_type_field": {f"{k[0]}.{k[1]}": v for k, v in sorted(read_counts.items(), key=lambda x: -x[1])},
         "write_fidelity_by_type_field": {f"{k[0]}.{k[1]}": v for k, v in sorted(write_counts.items(), key=lambda x: -x[1])},
+        "struct_read_key_gap_total": struct_read_total,
+        "struct_write_key_gap_total": struct_write_total,
+        "struct_census_per_key": struct_census,
+        "struct_undeclared_keys": undeclared_len,
         "per_file": results,
     }
 
@@ -151,8 +239,27 @@ def main() -> int:
     md = ["# Gold-vs-Silver Corpus Report\n"]
     md.append(f"Files: {report['files']}\n")
     md.append(f"Read-fidelity diffs: {report['read_fidelity_total']}\n")
-    md.append(f"Write-fidelity diffs: {report['write_fidelity_total']}\n\n")
-    md.append("## Top read-fidelity divergences\n")
+    md.append(f"Write-fidelity diffs: {report['write_fidelity_total']}\n")
+    md.append(f"Structure read key-gap: {struct_read_total}\n")
+    md.append(f"Structure write-target key-gap: {struct_write_total}\n\n")
+    if undeclared_len:
+        md.append("## Undeclared gold top-level keys (the H0 no-leak signal)\n")
+        for u, c in sorted(undeclared_len.items(), key=lambda x: -x[1]):
+            md.append(f"- {u}: {c} files\n")
+        md.append("\n")
+    md.append("## Structure census per key (§19 H0 day-one; the H2-H5 attack surface)\n")
+    md.append("| key | files gold/other | read: matched+diffs+missing | write-target: diffs+missing |\n")
+    md.append("|---|---|---|---|\n")
+    for key, row in sorted(
+        struct_census.items(),
+        key=lambda kv: -(kv[1].get("read_missing_other", 0) + kv[1].get("read_value_diffs", 0)),
+    ):
+        md.append(
+            f"| {key} | {row['files_gold']}/{row['files_other']} "
+            f"| {row.get('read_matched', 0)}+{row['read_value_diffs']}+{row['read_missing_other']} "
+            f"| {row['write_value_diffs']}+{row['write_missing_other']} |\n"
+        )
+    md.append("\n## Top read-fidelity divergences\n")
     for k, v in sorted(read_counts.items(), key=lambda x: -x[1])[:30]:
         md.append(f"- {k[0]}.{k[1]}: {v}\n")
     md.append("\n## Top write-fidelity divergences\n")

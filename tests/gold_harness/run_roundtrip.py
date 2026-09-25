@@ -23,6 +23,13 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# The structure axis (IMPLEMENTATION.md §19, packet H0): a second,
+# separately-reported census beside the frozen OBJECTS comparison.
+# IMPORTS the module directly (same script dir); the OBJECTS-axis
+# subprocess pipeline (normalize_gold/normalize_silver/diff_fields) is
+# untouched by this axis.
+from struct_axis import census_from_files
+
 GOLD_DWGREAD = os.environ.get("GOLD_DWGREAD", "")
 CARGO = os.environ.get("CARGO", "cargo")
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -177,6 +184,28 @@ def main() -> int:
     with open(diff_rt_path, "w", encoding="utf-8") as f:
         json.dump(diff_rt, f, indent=2, ensure_ascii=False)
 
+    # ── The structure axis (§19 H0): a separately-reported census.
+    # Read axis: gold_orig's structure vs silver_orig's projection.
+    # Write-target axis: gold_orig vs gold_rt — does silver's rewrite
+    # preserve the file structure as gold reads it back (the H7/H1
+    # prelude; addresses/sizes/crc shifting on rewrite is measured, the
+    # tolerated-vs-defective field split is the later packet's work).
+    # The OBJECTS-axis counters above are untouched; these counters
+    # report beside them and gate independently.
+    print("[harness] structure census (read + write-target)...")
+    struct_orig_path = workdir / f"{stem}_struct_orig.json"
+    struct_rt_path = workdir / f"{stem}_struct_rt.json"
+    try:
+        struct_orig = census_from_files(gold_orig, silver_orig, "silver")
+        struct_rt = census_from_files(gold_orig, gold_rt, "gold_rt")
+    except Exception as exc:  # defensive: the axis must never break the file run
+        struct_orig = {"error": f"{type(exc).__name__}: {exc}", "totals": {"key_gap_sum": -1}}
+        struct_rt = {"error": f"{type(exc).__name__}: {exc}", "totals": {"key_gap_sum": -1}}
+    with open(struct_orig_path, "w", encoding="utf-8") as f:
+        json.dump(struct_orig, f, indent=2, ensure_ascii=False)
+    with open(struct_rt_path, "w", encoding="utf-8") as f:
+        json.dump(struct_rt, f, indent=2, ensure_ascii=False)
+
     report = f"""# Roundtrip report: {dwg.name}
 
 Workdir: `{workdir}`
@@ -187,12 +216,21 @@ Workdir: `{workdir}`
 
 {summarize("Internal consistency (silver_orig vs silver_rt)", {"total_diffs": 0, "diffs": []})}
 
+## Structure read census (§19 H0; gold_orig vs silver_orig)
+key-gap sum: {struct_orig.get("totals", {}).get("key_gap_sum", -1)}
+(unmatched/missing leaves per structure key — the H2-H5 attack surface)
+
+## Structure write-target census (§19 H0; gold_orig vs gold_rt)
+key-gap sum: {struct_rt.get("totals", {}).get("key_gap_sum", -1)}
+
 ## Outputs
 - gold original: `{gold_orig}`
 - silver original: `{silver_orig}`
 - rewrite DWG: `{rt_dwg}`
 - gold rewrite: `{gold_rt}`
 - silver rewrite: `{silver_rt}`
+- structure read census: `{struct_orig_path}`
+- structure write-target census: `{struct_rt_path}`
 """
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
@@ -200,6 +238,8 @@ Workdir: `{workdir}`
     print(f"[harness] wrote report to {report_path}")
     print(f"[harness] read-fidelity diffs: {diff_orig['total_diffs']}")
     print(f"[harness] write-fidelity diffs: {diff_rt['total_diffs']}")
+    print(f"[harness] structure read key-gap: {struct_orig.get('totals', {}).get('key_gap_sum', -1)}")
+    print(f"[harness] structure write-target key-gap: {struct_rt.get('totals', {}).get('key_gap_sum', -1)}")
     # Return 0 as long as the pipeline completed; diff counts are reported in
     # the JSON files and are asserted on by the caller (e.g. gold_roundtrip.rs).
     return 0
