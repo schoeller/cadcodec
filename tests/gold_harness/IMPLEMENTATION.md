@@ -4490,9 +4490,12 @@ Signature) — the parse side is further along than the emission side.
   i % 256. The parse: the reader had been reading the 0x28/0x50
   windows for container navigation but DISCARDING them (underscore
   locals) and mislabeling `section_info_id` (@0x5C) as
-  `section_map_id` (gold's real section_map_id sits @0x50 — ODA and
-  gold name the two slots oppositely; the container navigation value
-  is unchanged, the JSON projection follows gold's names). Two
+  `section_map_id` (gold's real section_map_id sits @0x50 — silver's
+  historical labels and gold's spec name the two slots oppositely;
+  the container navigation value is unchanged, the JSON projection
+  follows gold's names. The 7abb0af commit subject says "the
+  ODA-vs-gold naming flip" — an attribution this tree cannot verify;
+  this row is the corrected record). Two
   emission facts pinned by sample_2018: gold prints
   `section_map_address` RAW (19328 = the stored value; the +0x100 is
   decode-side navigation only — the first draft's adjusted value
@@ -4501,18 +4504,17 @@ Signature) — the parse side is further along than the emission side.
   `DwgFileHeaderInfo.r2004_system` → `document.dwg_r2004_header`
   (gold's field names 1:1, AC18-format files only) → the dump's serde
   → struct_axis's `R2004_Header` view (absent on R2007/R2000 by
-  construction — gold's separate R2007_Header row stays open). Mostly
-  projection work on silver's existing reads (`_common_dwg`), plus
-  whatever the census says is missing. Scope notes from the review:
-  `SecondHeader` carries the R2000 section-locator table (6
-  nr/address/size records) AND its per-locator handle vector — the
-  only JSON-emitted image of the section map on R2000 — so its
-  projection is structural, not just scalar (the `Dwg_Section_Type_r13`
-  enum documents SecondHeader as living INSIDE the ObjFreeSpace
-  section on R13–R2000); the R2004+ system headers emit POINTERS
-  (section_map_id/address, section_info_id, section_array_size,
-  gap_array_size, crc32), not the map contents (those stay byte-level,
-  H6). **Emission-gating coupling (the tree re-analysis): gold emits
+  construction — gold's separate R2007_Header row stays open).
+  **The remaining sub-rows' scope notes:** `SecondHeader` carries
+  the R2000 section-locator table (6 nr/address/size records) AND its
+  per-locator handle vector — the only JSON-emitted image of the
+  section map on R2000 — so its projection is structural, not just
+  scalar (the `Dwg_Section_Type_r13` enum documents SecondHeader as
+  living INSIDE the ObjFreeSpace section on R13–R2000); the R2004+
+  system-header POINTER fields (section_map_id/address,
+  section_info_id, section_array_size, gap_array_size, crc32) are now
+  part of the landed 23-field comparison — the section-map/page-map
+  CONTENTS they point at stay byte-level (H6). **Emission-gating coupling (the tree re-analysis): gold emits
   ObjFreeSpace/Template/AuxHeader on R2000 only when the
   FILEHEADER's `sections` locator count is ≥ 3/4/6, and
   SummaryInfo/VBAProject on R2004+ only when

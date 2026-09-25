@@ -87,12 +87,14 @@ excluded with a recorded reason. **Arc status (2026-09-25): H0
 LANDED** (`d27c0c7` + the `15a4a01` review pass: the axis wired, the
 day-one census measured — read key-gap 259,073 / write-target 21,822;
 AcDs verbatim 0/0 corpus-wide; two whole-section write drops found —
-SecondHeader, FileDepList — now H7 rows), **H2's FILEHEADER sub-row
-LANDED** (`bdf8107`: 4,151 matched / 0 diffs / 0 missing corpus-wide;
-read key-gap 255,482; the byte-position ledger pinned by hand-decode
-— see §19.2's H2 row). Open sub-rows: R2004_Header/R2007_Header
-(6,689), SecondHeader/AuxHeader (652), then H3's HEADER ledger
-(128,489 — the dominant row). **The authoritative enumeration is
+SecondHeader, FileDepList — now H7 rows), **H2's FILEHEADER and
+R2004_Header sub-rows LANDED** (`bdf8107` + `7abb0af`: FILEHEADER
+4,151 matched and R2004_Header 5,336 matched — both 0 diffs / 0
+missing corpus-wide; read key-gap 250,146; the byte-position ledgers
+pinned by hand-decode — see §19.2's H2 row). Open sub-rows:
+R2007_Header (41 files, 1,353 — the Reed-Solomon AC21 shape, its own
+packet), SecondHeader/AuxHeader (652, R2000-only), then H3's HEADER
+ledger (128,489 — the dominant row). **The authoritative enumeration is
 CLOSED** (the libredwg tree re-analysis + the review passes, all in
 §19.1): 17 observed structure keys (16 per R2004+ file, 8 on R2000
 — including `R2007_Header`, its OWN 33-field AC1021 system section,
