@@ -221,6 +221,10 @@ pub struct DwgFileHeaderInfo {
     pub rl_1c_address: i32,
     /// Gold's R2004+ `r2004_header_address` (mostly 128/0x80)
     pub r2004_header_address: i32,
+    /// The unmasked 120-byte system section, gold's `R2004_Header` shape
+    /// (None on AC21-format files — gold's separate R2007_Header row —
+    /// and pre-R2004 formats). §19 H2.
+    pub r2004_system: Option<crate::document::DwgR2004SystemHeader>,
 
     // ── AC1021-specific data ──
     /// AC1021 compressed metadata (contains CRC-64 and section layout)
@@ -1007,6 +1011,9 @@ impl<R: Read + Seek> DwgReader<R> {
             vbaproj_address: info.vba_project_addr,
             r2004_header_address: info.r2004_header_address,
         });
+        // The R2004-format system-section summary (§19 H2's second
+        // sub-row) — set on AC18-format files only.
+        document.dwg_r2004_header = info.r2004_system.clone();
 
         // 2. Read Classes (AcDb:Classes)
         match self.get_section_buffer("AcDb:Classes", &info) {
@@ -1443,6 +1450,7 @@ impl<R: Read + Seek> DwgReader<R> {
             app_maint_version: 0,
             rl_1c_address: 0,
             r2004_header_address: 0,
+            r2004_system: None,
             ac21_metadata: None,
             ac21_header_crc: None,
             ac21_unknown_key: None,
@@ -1701,9 +1709,14 @@ impl<R: Read + Seek> DwgReader<R> {
     /// XOR'd with a magic sequence. This header contains pointers to the page map
     /// and section map, which together describe the layout of all section pages.
     fn read_file_header_ac18(&mut self, info: &mut DwgFileHeaderInfo) -> Result<(), DxfError> {
-        // Read the 0x6C-byte inner file header at offset 0x80
+        // Read the 0x78-byte (120) encrypted block at offset 0x80: gold's
+        // r2004_file_header.spec reads 108 bytes of fields PLUS the 12-byte
+        // padding tail ("the padding is also encrypted, but ODA didn't
+        // grok that") as one unmasked region. The 256-byte magic sequence
+        // masks cyclically (i % 256), so unmasking the full 120 bytes is
+        // byte-ledger-compatible with the historical 0x6C read.
         self.stream.seek(SeekFrom::Start(0x80))?;
-        let mut inner = [0u8; 0x6C];
+        let mut inner = [0u8; 0x78];
         self.stream.read_exact(&mut inner)?;
 
         // XOR unmask with magic sequence
@@ -1716,22 +1729,86 @@ impl<R: Read + Seek> DwgReader<R> {
             ));
         }
 
-        // Parse inner file header fields
+        // Parse the inner file header — gold's field ledger
+        // (r2004_file_header.spec): file_ID_string @0x00 (12 bytes,
+        // NUL-terminated), header_address/size, x04, the three tree-node
+        // gaps, unknown_long (=1), last_section_id @0x28, the two u64
+        // addresses, numgaps/numsections, x20/x80/x40,
+        // section_map_id @0x50, section_map_address @0x54 (stored =
+        // actual − 0x100; gold prints the RAW stored value — the +0x100
+        // is decode-side navigation only), section_info_id @0x5C,
+        // section_array_size, gap_array_size, crc32 @0x68, and the
+        // 12-byte padding @0x6C.
         let mut cursor = Cursor::new(&inner[..]);
-        cursor.set_position(0x28);
-        let _last_page_id = cursor.read_i32::<LittleEndian>()?;
-        let _last_section_addr = cursor.read_u64::<LittleEndian>()?;
-        let _second_header_addr = cursor.read_u64::<LittleEndian>()?;
-        let _gap_amount = cursor.read_u32::<LittleEndian>()?;
-        let _section_amount = cursor.read_u32::<LittleEndian>()?;
+        cursor.set_position(0x0C);
+        let header_address = cursor.read_i32::<LittleEndian>()?;
+        let header_size = cursor.read_i32::<LittleEndian>()?;
+        let x04 = cursor.read_i32::<LittleEndian>()?;
+        let root_tree_node_gap = cursor.read_i32::<LittleEndian>()?;
+        let lowermost_left_tree_node_gap = cursor.read_i32::<LittleEndian>()?;
+        let lowermost_right_tree_node_gap = cursor.read_i32::<LittleEndian>()?;
+        let unknown_long = cursor.read_i32::<LittleEndian>()?;
 
-        cursor.set_position(0x50);
-        let _section_page_map_id = cursor.read_u32::<LittleEndian>()?;
+        let last_section_id = cursor.read_i32::<LittleEndian>()?;
+        let last_section_address = cursor.read_u64::<LittleEndian>()?;
+        let secondheader_address = cursor.read_u64::<LittleEndian>()?;
+        let numgaps = cursor.read_u32::<LittleEndian>()?;
+        let numsections = cursor.read_u32::<LittleEndian>()?;
+        let x20 = cursor.read_i32::<LittleEndian>()?;
+        let x80 = cursor.read_i32::<LittleEndian>()?;
+        let x40 = cursor.read_i32::<LittleEndian>()?;
+
+        let section_map_id_hdr = cursor.read_u32::<LittleEndian>()?;
         let page_map_address_stored = cursor.read_u64::<LittleEndian>()?;
-        let section_map_id = cursor.read_u32::<LittleEndian>()?;
+        // Gold's `section_info_id` @0x5C — historically mislabeled
+        // section_map_id (the real section_map_id sits @0x50).
+        let section_info_id = cursor.read_i32::<LittleEndian>()?;
+        let section_array_size = cursor.read_i32::<LittleEndian>()?;
+        let gap_array_size = cursor.read_i32::<LittleEndian>()?;
+        let crc32 = cursor.read_u32::<LittleEndian>()?;
+        let padding = {
+            use std::fmt::Write;
+            let mut s = String::new();
+            for b in &inner[0x6C..0x78] {
+                let _ = write!(s, "{:02X}", b);
+            }
+            s
+        };
+
+        info.r2004_system = Some(crate::document::DwgR2004SystemHeader {
+            file_ID_string: String::from_utf8_lossy(&inner[..12])
+                .trim_end_matches('\0')
+                .to_string(),
+            header_address,
+            header_size,
+            x04,
+            root_tree_node_gap,
+            lowermost_left_tree_node_gap,
+            lowermost_right_tree_node_gap,
+            unknown_long,
+            last_section_id,
+            last_section_address,
+            secondheader_address,
+            numgaps,
+            numsections,
+            x20,
+            x80,
+            x40,
+            section_map_id: section_map_id_hdr,
+            // Gold prints the RAW stored value (pinned by sample_2018:
+            // gold 19328 = the raw; stored+0x100 = 19584 is the
+            // decode-side navigation address only).
+            section_map_address: page_map_address_stored,
+            section_info_id,
+            section_array_size,
+            gap_array_size,
+            crc32,
+            padding,
+        });
 
         // The stored address is (actual - 0x100)
         let page_map_address = page_map_address_stored + 0x100;
+        let section_map_id = section_info_id as u32;
 
         info.is_ac18_format = true;
 

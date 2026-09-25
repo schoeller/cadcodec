@@ -161,6 +161,11 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
             fh["maint_rel_version"] = doc["maintenance_version"]
         if fh:
             views["FILEHEADER"] = fh
+    # H2's R2004_Header sub-row: the document's r2004 summary is gold's
+    # shape 1:1 (AC18-format files only; the separate R2007_Header
+    # sub-row stays open).
+    if isinstance(doc.get("dwg_r2004_header"), dict):
+        views["R2004_Header"] = doc["dwg_r2004_header"]
     if isinstance(doc.get("header"), dict):
         views["HEADER"] = doc["header"]
     if isinstance(doc.get("summary_info"), dict):

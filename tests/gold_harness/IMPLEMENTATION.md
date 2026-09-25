@@ -4440,8 +4440,8 @@ Signature) — the parse side is further along than the emission side.
   rewrite re-read by gold). Byte-level re-emission fidelity for the
   header/system sections gets the layer-4 treatment (dump + compare
   the rewritten header region for one fixture per version-class).
-- **H2 — the file header family** (`FILEHEADER` landed 2026-09-25;
-  R2004_Header/R2007_Header/SecondHeader/AuxHeader open):
+- **H2 — the file header family** (`FILEHEADER` + `R2004_Header`
+  landed 2026-09-25; R2007_Header/SecondHeader/AuxHeader open):
   **The FILEHEADER drop landed at ZERO read gaps corpus-wide**
   (4151 matched = 273×15 + 7×8 leaves exactly; 0 value diffs; 0
   missing; the corpus read key-gap 259,073 → 255,482, −3,591 = the
@@ -4477,7 +4477,31 @@ Signature) — the parse side is further along than the emission side.
   field names 1:1) → the dump emits it through CadDocument's serde →
   struct_axis projects it with version-family gates (the R2004+ tail
   drops on pre-2004 files; `sections` drops on R2004+ — both gold
-  gates). Mostly
+  gates).
+  **The R2004_Header sub-row landed at ZERO read gaps corpus-wide**
+  (232/232 files; 5,336 matched = 232 × 23 leaves exactly; 0 value
+  diffs; 0 missing; the corpus read key-gap 255,482 → 250,146, −5,336
+  = the census component verbatim; the write-target R2004_Header
+  1,771 diffs are the address/count shifts — H7). The 120-byte
+  encrypted block at 0x80 (XOR-masked, 256-byte cyclic magic) holds
+  gold's 23 fields + the 12-byte padding tail ("the padding is also
+  encrypted, but ODA didn't grok that") — silver's historical 0x6C
+  read extended to 0x78, byte-ledger-safe because the mask cycles at
+  i % 256. The parse: the reader had been reading the 0x28/0x50
+  windows for container navigation but DISCARDING them (underscore
+  locals) and mislabeling `section_info_id` (@0x5C) as
+  `section_map_id` (gold's real section_map_id sits @0x50 — ODA and
+  gold name the two slots oppositely; the container navigation value
+  is unchanged, the JSON projection follows gold's names). Two
+  emission facts pinned by sample_2018: gold prints
+  `section_map_address` RAW (19328 = the stored value; the +0x100 is
+  decode-side navigation only — the first draft's adjusted value
+  produced the packet's only value diff, fixed to raw), and
+  `padding` prints as 12-byte uppercase hex. The retention path:
+  `DwgFileHeaderInfo.r2004_system` → `document.dwg_r2004_header`
+  (gold's field names 1:1, AC18-format files only) → the dump's serde
+  → struct_axis's `R2004_Header` view (absent on R2007/R2000 by
+  construction — gold's separate R2007_Header row stays open). Mostly
   projection work on silver's existing reads (`_common_dwg`), plus
   whatever the census says is missing. Scope notes from the review:
   `SecondHeader` carries the R2000 section-locator table (6

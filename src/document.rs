@@ -1077,6 +1077,47 @@ pub struct SummaryInfo {
     pub custom_properties: Vec<(String, String)>,
 }
 
+/// The R2004-format system-section summary — gold's `R2004_Header` shape
+/// (§19 H2's second sub-row). The 120-byte encrypted block at file offset
+/// 0x80 (XOR-masked with the 256-byte magic sequence): 108 bytes of
+/// header fields + 12 bytes of padding, all unmasked as one region.
+/// Field names match gold's JSON exactly; `padding` is the 12-byte
+/// tail as uppercase hex (gold's serialization). Only populated on the
+/// AC18-format files (R2004/R2010/R2013/R2018); `None` on R2007 (gold's
+/// separate `R2007_Header` shape, its own sub-row) and pre-R2004.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgR2004SystemHeader {
+    /// The 11-char magic ("AcFssFcAJMB" — the trailing NUL trimmed)
+    pub file_ID_string: String,
+    pub header_address: i32,
+    pub header_size: i32,
+    pub x04: i32,
+    pub root_tree_node_gap: i32,
+    pub lowermost_left_tree_node_gap: i32,
+    pub lowermost_right_tree_node_gap: i32,
+    pub unknown_long: i32,
+    pub last_section_id: i32,
+    pub last_section_address: u64,
+    pub secondheader_address: u64,
+    pub numgaps: u32,
+    pub numsections: u32,
+    pub x20: i32,
+    pub x80: i32,
+    pub x40: i32,
+    pub section_map_id: u32,
+    /// The RAW stored value — gold prints it unadjusted (the +0x100 the
+    /// readers apply for navigation stays decode-side; pinned by
+    /// sample_2018: gold 19328, stored+0x100 19584)
+    pub section_map_address: u64,
+    pub section_info_id: i32,
+    pub section_array_size: i32,
+    pub gap_array_size: i32,
+    pub crc32: u32,
+    /// The 12-byte encrypted tail, hex-encoded
+    pub padding: String,
+}
+
 /// The DWG file-header summary — gold's `FILEHEADER` shape (§19 H2 of the
 /// harness plan). Field names match gold's JSON exactly (except `codepage`,
 /// kept as one word per gold) so the structure axis projects 1:1. Retained
@@ -1270,6 +1311,13 @@ pub struct CadDocument {
     /// axis. `None` on DXF-sourced or default documents.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub dwg_file_header: Option<DwgFileHeaderSummary>,
+
+    /// The R2004-format system-section summary (§19 H2): gold's
+    /// `R2004_Header` shape, unmasked from the 120-byte encrypted block.
+    /// `None` on R2007 files (the separate R2007_Header shape) and
+    /// non-R2004 formats.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_r2004_header: Option<DwgR2004SystemHeader>,
 
     /// Embedded preview/thumbnail image. Populated by the DWG reader from the
     /// file's preview section; the DWG writer embeds it when `Some` and emits an
@@ -1482,6 +1530,7 @@ impl CadDocument {
             block_entity_handles: HashMap::new(),
             dwg_source_version: None,
             dwg_file_header: None,
+            dwg_r2004_header: None,
             preview: None,
             acis_sab_handles: Vec::new(),
             raw_acds_data: None,
