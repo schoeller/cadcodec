@@ -4318,9 +4318,9 @@ assertion that no UNDECLARED top-level key silently leaks —
 | gold key | R2000 | R2004–R2018 | size (samples) | silver coverage today |
 |---|---|---|---|---|
 | `HEADER` | ✓ (228) | ✓ (298) | the variables section (`AcDb:Header`) | `header` dict (267 keys on sample_2018) — parsed, never compared |
-| `FILEHEADER` | ✓ (8) | ✓ (15) | version/maint/codepage/time/save addresses | `version`/`maintenance_version`/`dwg_source_version` + `_common_dwg` — partial |
-| `R2004_Header` | — | ✓ (23) on R2004/R2010/R2013/R2018 | the R2004-based system section | `_common_dwg` + the section reader — partial |
-| `R2007_Header` | — | ✓ (33) on R2007 ONLY | the AC1021 system section (33 fields — its own layout, not the R2004 one) | same machinery; per-field coverage unverified |
+| `FILEHEADER` | ✓ (8) | ✓ (15) | version/maint/codepage/time/save addresses | **LANDED 0/0** (`bdf8107`): the full field family retained via `document.dwg_file_header` (the byte-position ledger in dwg_reader.rs) |
+| `R2004_Header` | — | ✓ (23) on R2004/R2010/R2013/R2018 | the R2004-based system section | **LANDED 0/0** (`7abb0af`): all 23 fields + the 12-byte padding hex via `document.dwg_r2004_header` |
+| `R2007_Header` | — | ✓ (33) on R2007 ONLY | the AC1021 system section (33 fields — its own layout, not the R2004 one) | **LANDED 0/0** (`73935b7`): all 33 fields via `document.dwg_r2007_header` (the gold-named projection of the container metadata) |
 | `SecondHeader` | ✓ (10) | — | the R13–R2000 second header | read (the roundtrip survives); no comparison |
 | `AuxHeader` | ✓ (25) | — (absent on the corpus R2004+ files) | aux data | read; no comparison |
 | `SummaryInfo` | — | ✓ (13) | `AcDb:SummaryInfo` | `summary_info` dict (9) — partial |
@@ -4504,7 +4504,10 @@ Signature) — the parse side is further along than the emission side.
   (232/232 files; 5,336 matched = 232 × 23 leaves exactly; 0 value
   diffs; 0 missing; the corpus read key-gap 255,482 → 250,146, −5,336
   = the census component verbatim; the write-target R2004_Header
-  1,771 diffs are the address/count shifts — H7). The 120-byte
+  1,771 diffs are the address/count/CRC shifts — the rewrite's new
+  container layout legitimately moves the addresses and re-CRCs the
+  content (sample_2018: numsections 15→17, crc32 differs) — H7). The
+  120-byte
   encrypted block at 0x80 (XOR-masked, 256-byte cyclic magic) holds
   gold's 23 fields + the 12-byte padding tail ("the padding is also
   encrypted, but ODA didn't grok that") — silver's historical 0x6C
@@ -4531,7 +4534,10 @@ Signature) — the parse side is further along than the emission side.
   (41/41 files; 1,353 matched = 41 × 33 leaves exactly; 0 value
   diffs; 0 missing; the corpus read key-gap 250,146 → 248,793,
   −1,353 = the census component verbatim; the write-target
-  R2007_Header 979 diffs are the address/count shifts — H7). This
+  R2007_Header 979 diffs are the address/count/CRC shifts — the
+  rewrite's new container layout moves the addresses and re-CRCs
+  the content (example_2007: file_size/pages_map2_offset shift,
+  pages_map_crc_compressed/crc_seed re-CRC) — H7). This
   sub-row was PURE PROJECTION: silver's AC1021 container reader
   (`Dwg21CompressedMetadata`, the Reed-Solomon-decoded 0x110-byte
   metadata block) already parsed every field — the summary is the
