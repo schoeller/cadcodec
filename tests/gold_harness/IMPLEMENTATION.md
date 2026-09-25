@@ -4463,8 +4463,12 @@ Signature) — the parse side is further along than the emission side.
   header/system sections gets the layer-4 treatment (dump + compare
   the rewritten header region for one fixture per version-class).
 - **H2 — the file header family (COMPLETE 2026-09-25 — all five
-  sub-rows landed at zero read gaps; the family's 10,840 + 652 =
-  11,492 leaves closed)**:
+  sub-rows landed at zero read gaps; 11,492 leaves now MATCHED
+  (4,151 + 5,336 + 1,353 + 386 + 266), the read key-gap −10,932
+  vs the H0 baseline — the 560-leaf difference is FILEHEADER's
+  version/maint_rel pair, already name-matched at H0; the
+  9e945fe commit subject's "leaves closed" phrasing means the
+  matched count)**:
   **The FILEHEADER drop landed at ZERO read gaps corpus-wide**
   (4151 matched = 273×15 + 7×8 leaves exactly; 0 value diffs; 0
   missing; the corpus read key-gap 259,073 → 255,482, −3,591 = the
