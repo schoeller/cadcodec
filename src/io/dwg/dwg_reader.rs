@@ -776,7 +776,7 @@ fn parse_summary_info(buf: &[u8], utf16: bool) -> crate::document::SummaryInfo {
     // TDINDWG, TDCREATE, TDUPDATE — each a TIMERLL (2×u32 = 8 bytes;
     // gold prints each as a `[days, ms]` pair).
     if cur.len() >= 24 {
-        let mut timer = |cur: &mut &[u8]| -> [u32; 2] {
+        let timer = |cur: &mut &[u8]| -> [u32; 2] {
             let days = u32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
             let ms = u32::from_le_bytes([cur[4], cur[5], cur[6], cur[7]]);
             *cur = &cur[8..];
@@ -931,7 +931,7 @@ fn parse_file_dep_list_section(
         let filepath = read_tu32(&mut cur, utf16);
         let fingerprint = read_tu32(&mut cur, utf16);
         let version = read_tu32(&mut cur, utf16);
-        let mut rl = |cur: &mut &[u8]| -> i32 {
+        let rl = |cur: &mut &[u8]| -> i32 {
             if cur.len() < 4 {
                 *cur = &[];
                 return 0;
@@ -2265,19 +2265,19 @@ impl<R: Read + Seek> DwgReader<R> {
         self.stream.read_exact(&mut buf)?;
         let mut c = IoCursor::new(buf);
 
-        let mut rc = |c: &mut IoCursor<Vec<u8>>| -> Result<u8, DxfError> {
+        let rc = |c: &mut IoCursor<Vec<u8>>| -> Result<u8, DxfError> {
             use std::io::Read;
             let mut b = [0u8; 1];
             c.read_exact(&mut b)?;
             Ok(b[0])
         };
-        let mut rs = |c: &mut IoCursor<Vec<u8>>| -> Result<i16, DxfError> {
+        let rs = |c: &mut IoCursor<Vec<u8>>| -> Result<i16, DxfError> {
             use std::io::Read;
             let mut b = [0u8; 2];
             c.read_exact(&mut b)?;
             Ok(i16::from_le_bytes(b))
         };
-        let mut rl = |c: &mut IoCursor<Vec<u8>>| -> Result<i32, DxfError> {
+        let rl = |c: &mut IoCursor<Vec<u8>>| -> Result<i32, DxfError> {
             use std::io::Read;
             let mut b = [0u8; 4];
             c.read_exact(&mut b)?;

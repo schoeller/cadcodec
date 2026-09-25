@@ -1096,8 +1096,12 @@ pub struct SummaryInfo {
 /// separate `R2007_Header` shape, its own sub-row) and pre-R2004.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Default, PartialEq)]
+// `file_ID_string` is gold's JSON key spelling — the §19 convention
+// that field names match gold's emission exactly. The allow sits on the
+// struct so the serde-derive expansion is covered too.
+#[allow(non_snake_case)]
 pub struct DwgR2004SystemHeader {
-    /// The 11-char magic ("AcFssFcAJMB" — the trailing NUL trimmed)
+    /// The 11-char magic ("AcFssFcAJMB" — the trailing NUL trimmed).
     pub file_ID_string: String,
     pub header_address: i32,
     pub header_size: i32,

@@ -97,7 +97,9 @@ AuxHeader, both hand-validated before implementation — see §19.2's
 H2 row). **H4 LANDED** (the metadata blocks at zero read gaps corpus-wide:
 SummaryInfo 4,352 + AppInfo 2,396 + AppInfoHistory 546 + Template
 560 + FileDepList 1,055 + RevHistory 819 + Security 2,457 +
-ObjFreeSpace 3,441 = 13,450 leaves; read key-gap 234,691; the
+ObjFreeSpace 3,441 = 15,626 leaves matched (the gap −13,450; the
+2,176 difference is SummaryInfo's pre-matched strings); read
+key-gap 234,691; the
 load-bearing findings — the unconditional zeroed-struct emission,
 the AppInfo container split, the T32→TU32 sniffing semantics — in
 §19.2's H4 row). **Next: H5b — the CLASSES projection (~47,000

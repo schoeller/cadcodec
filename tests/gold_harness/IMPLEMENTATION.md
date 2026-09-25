@@ -4611,8 +4611,11 @@ Signature) — the parse side is further along than the emission side.
   per-variable quirk discovery the OBJECTS rows went through (gold's
   default-vs-unset emission idiosyncrasies); each lands with evidence.
 - **H4 — the metadata blocks (LANDED 2026-09-25 at ZERO read gaps
-  corpus-wide; 13,450 leaves closed — the read key-gap 248,141 →
-  234,691)**: `SummaryInfo` 4,352 matched (272×16: the existing 8
+  corpus-wide; 15,626 leaves now MATCHED, the read key-gap −13,450
+  [248,141 → 234,691] — the 2,176-leaf difference is SummaryInfo's
+  8 strings × 272, already name-matched at H0; the 50c246d commit
+  subject's "13,450 leaves" phrasing means the gap reduction — the
+  H2d-review metric convention)**: `SummaryInfo` 4,352 matched (272×16: the existing 8
   strings + the 3 TIMERLL pairs + the 2 trailing unknowns, captured
   where the old parse SKIPPED the 24 timer bytes), `AppInfo` 2,396
   (273 files, the version-gated shapes below), `AppInfoHistory` 546
