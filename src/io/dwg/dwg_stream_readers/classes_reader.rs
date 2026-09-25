@@ -235,9 +235,11 @@ fn classes_section_prelude(
 ///
 /// Mirrors libredwg's per-reader classes walks
 /// (`dwg->dwg_class[i].item_class_id`): R2004 and R2010+ files use
-/// `read_2004_section_classes` (decode.c), R2007 files
-/// `read_2007_section_classes` (decode_r2007.c), pre-R2004 files the
-/// plain `dwg_decode_classes` loop. The header goes through the shared
+/// `read_2004_section_classes` (decode.c:2249), R2007 files
+/// `read_2007_section_classes` (decode_r2007.c:1491), pre-R2004
+/// files the classes walk inside `decode_R13_R2000` (decode.c:290;
+/// the walk at decode.c:578-700 — byte-bounded with the CWE
+/// per-record cap, no header). The header goes through the shared
 /// prelude (over the buffer-extended slice — gold reads over the whole
 /// decompressed section); the per-record tail is read `BL instances,
 /// BS dwg_version, BS maint, BL, BL` — the BS/BS pair gold uses where

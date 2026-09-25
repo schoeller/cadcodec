@@ -1413,7 +1413,7 @@ Given a diff `(type, field, kind)`:
   the raw record bits from after the prologue to the handle-stream start
   in CLASSIC WIRE ORDER (opaque payload ++ the R2007+ string area incl.
   the `dxf_subclass` TU ++ the 17-bit RS size/has_strings trailer ++ pad;
-  `obj->hdlpos = obj->bitsize` via `obj_handle_stream`, decode.c:4362 —
+  `obj->hdlpos = obj->bitsize` via `obj_handle_stream`, decode.c:4370 —
   no parsed field set reproduces them). Silver:
   `DwgMergedReader::capture_proxy_window()` slices
   `main[pos .. handle_start_bit)` with bit_read_bits packing (full bytes
@@ -3861,7 +3861,7 @@ wireframe values on the same modeler backing).
 
 - **The surface twins' spec blocks exist but are NOT LIVE in the built
   oracle** (2026-09-24 correction of this bullet's first wording):
-  `REVOLVEDSURFACE`/`EXTRUDEDSURFACE`/`SWEPTSURFACE`/`LOFTEDSURFACE`
+  `EXTRUDEDSURFACE`/`REVOLVEDSURFACE`/`SWEPTSURFACE`/`LOFTEDSURFACE`
   sit in `dwg2.spec` (lines 3952/4029/4061/3984) reading the full
   field sets — `REVOLVEDSURFACE` axis_point/axis_vector/revolve_angle/
   start_angle/[16-BD transmatrix]/draft_angle/draft_start_distance/
@@ -3905,8 +3905,10 @@ with its evidence chain):**
 
 - **Gold's classes walk derails on the AutoCAD-2027.1 class
   tables (the root finding)**: gold's R2004+ numeric class walk
-  (`read_2004_section_classes` decode.c 2249 for AC1024+,
-  `read_2007_section_classes` decode_r2007.c 1568 for AC1021)
+  (`read_2004_section_classes` decode.c 2249 — the R2004-format
+  containers: AC1018 and AC1024+, called from the decode_R2004_header
+  flow at decode.c:3707; `read_2007_section_classes`
+  decode_r2007.c 1491 for AC1021)
   reads per class `BS number, BS proxy, [text], B zombie,
   BS item_class_id, BL instances, BS dwg_version,
   BS maint_version, BL, BL` — the two version fields as **BS**
@@ -3959,7 +3961,27 @@ with its evidence chain):**
   rewrite is bit-identical (gold_rt @731: same size/bitsize,
   the full 1708-hex-digit unknown_bits equal, eed/ownerhandle/
   xdicobjhandle equal; the layer-4 evidence for the writer
-  path).
+  path). **Walk semantics tree-verified (2026-09-25, the full
+  libredwg source review; every line below pinned in the tree):
+  both R2004+ readers are COUNT-bounded (`num_classes =
+  max_num - 499` at decode.c:2304 / decode_r2007.c:1540, then
+  `for (i = 0; i < num_classes; i++)` at decode.c:2332 /
+  decode_r2007.c:1564) with the bails exactly as the shadow
+  implements them (R2007: `max_num < 500 || max_num > 5000`,
+  decode_r2007.c:1541; R2004-format: `max_num < 500 ||
+  num_classes > 100 + size/sizeof(Dwg_Class)`, decode.c:2305 —
+  sizeof(Dwg_Class) = 64, verified by compiling against the
+  oracle's headers); the pre-R2004 reader is BYTE-bounded
+  (`while (byte < endpos - 1)`, decode.c:621) with the live CWE
+  per-record cap `i >= 100 + size/sizeof(Dwg_Class) ||
+  i >= 65535` (decode.c:630) and NO header — the "2004 max_num"
+  fragment in that reader is `#if 0` dead code (decode.c:606-619).
+  Two documented shadow simplifications on the pre-2004 arm, both
+  dispatch-neutral (a bail or misalignment yields non-0x1F2
+  values on both sides → object dispatch either way): gold's
+  strict size validation (`size != section.size - 2×sentinel - 6`
+  → zero classes, decode.c:581-604) and the second in-record
+  endpos check after appname (decode.c:662-664).**
 - **The BLOCK_HEADER.entities corollary**: gold prints the
   block's entity list from the wire handle vector (dwg2.spec
   HANDLE_VECTOR entities, code-3 children — `[3,2,727] CIRCLE +
@@ -4313,7 +4335,7 @@ assertion that no UNDECLARED top-level key silently leaks —
 | `CLASSES` | ✓ | ✓ | the class table | parsed (§18.6's gold-shadow); dropped by both normalizers |
 | `VBAProject` | — | absent from the corpus files | declared in the drop-list; never observed | none (an excluded row, H6) |
 | `Signature` | — | absent from the corpus files | **emitter deliberately disabled** (`out_json.c:2673`) — gold reads the section but never emits it | none (an excluded row, H6 — reason "readable but not emitted", distinct from corpus-absent) |
-| `created_by` | ✓ | ✓ | **NOT FILE CONTENT**: gold's `PACKAGE_STRING` ("LibreDWG 0.14.8597"), hardcoded as the first JSON key by `out_json.c:2617` | n/a — an excluded row (H6): each tool stamps itself |
+| `created_by` | ✓ | ✓ | **NOT FILE CONTENT**: gold's `PACKAGE_STRING` ("LibreDWG 0.14.8597", defined at src/config.h:361), hardcoded as the first JSON key by `out_json.c:2617` | n/a — an excluded row (H6): each tool stamps itself |
 | — (not JSON) | ✓ | ✓ | the **object map / Handles section**, CRCs, section map, page tables, sentinels | the byte level — the layer-4 oracle's domain |
 
 **The libredwg source-tree re-analysis (2026-09-25, the authoritative
