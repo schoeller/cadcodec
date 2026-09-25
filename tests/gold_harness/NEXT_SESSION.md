@@ -79,19 +79,35 @@ external authentic `ACSH_BREP_CLASS` specimen re-opens it.
 
 The OBJECTS axis is done (280 files at 0/0). The harness's scope
 extends next to everything the reader sees that is not an object
-record: the 17 top-level keys `normalize_gold.py` currently drops
-(FILEHEADER, the HEADER variables, R2004_Header, SecondHeader/
-AuxHeader, SummaryInfo, AppInfo/History, Template, FileDepList,
-RevHistory, Security, ObjFreeSpace, THUMBNAILIMAGE, AcDs, CLASSES,
-created_by) — a second, separately-gated structure axis with its own
-corpus counters, driven to 0 under the same per-packet workflow, with
-the whole-structure audit matrix (§19.2's H6) as the standing
+record — a second, separately-gated structure axis with its own
+corpus counters, driven to 0 under the same per-packet workflow,
+with the whole-structure audit matrix (§19.2's H6) as the standing
 deliverable proving every section of a DWG is either diffed or
-excluded with a recorded reason. First packet: **H0 — the axis
+excluded with a recorded reason. **The authoritative enumeration is
+CLOSED** (the libredwg tree re-analysis + the review passes, all in
+§19.1): 17 observed structure keys (16 per R2004+ file, 8 on R2000
+— including `R2007_Header`, its OWN 33-field AC1021 system section,
+not the R2004 shape's 23) + the declared-absent `VBAProject` and
+`Signature` + `created_by` (an EXCLUDED row: gold hardcodes its own
+`PACKAGE_STRING` there — an oracle identity stamp, not file content)
++ the not-JSON machinery (object map/Handles — gold's emitter is
+`#if 0`'d; the R2004+ container types SECTION_INFO/SYSTEM_MAP;
+CRCs/sentinels/padding). **14 spec files** in the gold tree
+(`header.spec` … `vbaproject.spec`; `appinfo.spec` covers both
+AppInfo and AppInfoHistory) are the authoritative field lists for
+the projections, exactly as `dwg2.spec` was for OBJECTS.
+Load-bearing facts for the rows: `AppInfoHistory` is located by
+section TYPE (12), not by an `AcDb:` name — silver's registry lacks
+it (a named H4 row); gold's emission is GATED by FILEHEADER fields
+(`sections` locator count on R2000; `summaryinfo_address`/
+`vbaproj_address` on R2004+) — a one-side-only key is a structural
+diff; `SecondHeader` carries the R2000 locator table and lives
+inside the ObjFreeSpace section. First packet: **H0 — the axis
 skeleton + the day-one census** (the per-key diff counts over the
-280-file corpus that set the attack order). The OBJECTS axis stays
-frozen at 0 throughout; the header comparison may interleave with
-the three decoder walks below per maintainer priority.
+280-file corpus that set the attack order; the no-leak assertion
+for undeclared keys). The OBJECTS axis stays frozen at 0
+throughout; the header comparison may interleave with the three
+decoder walks below per maintainer priority.
 
 ## The standing facts (the decode authority is §18.6)
 
@@ -170,8 +186,24 @@ plus the review follow-up (`62fb7bc`: the halt's code review landed
 all six findings — the full-count shadow mirror with gold's exact
 plausibility bounds, the shared section prelude, the O(1) block-list
 dedupe, the crafted-section invariant pins, the entity-marker
-constants; gates 1324 tests + corpus 280 at 0/0) are pushed together
-with this note. The remote head is the halt head.
+constants; gates 1324 tests + corpus 280 at 0/0) are pushed
+(`origin/gold-vs-silver` at `62fb7bc`). After that: the maintainer's
+AcDs/constructed-content session(s) landed and REVERTED (codec
+restored at the `7a7bd91` state — `96a2d6c`; their docs stand), and
+the 2026-09-25 PLAN SESSION added the §19 campaign docs (see the
+plan-session inventory below) — check `git log origin/gold-vs-silver..HEAD`
+for the current unpushed set and push when the maintainer asks.
+
+**PLAN-SESSION COMMIT INVENTORY (2026-09-25, docs-only — the codec
+untouched, the corpus 280 @ 0/0 stood through each commit)**:
+
+```
+<NEXT_SESSION.md refresh: the 19 section synced to the committed plan facts>   <- this session's last
+3f490bd docs(harness): the 19 completeness fixes — the duplicate created_by row, the vbaproject.spec miss, the Signature table row
+bb73e72 docs(harness): the 19 libredwg tree re-analysis — the structural enumeration closed, created_by reclassified, the emission gates recorded
+0740827 docs(harness): the 19 review pass — the inventory corrected, the completeness gaps pre-populated
+e1f75cd docs(harness): the 19 plan — the header & whole-structure campaign scoped, the rows ordered
+```
 
 (The session's arc, for context: the environment check confirmed
 the remote head == the previous handover; the 20 quarantined
