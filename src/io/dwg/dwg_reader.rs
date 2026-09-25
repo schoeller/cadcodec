@@ -189,6 +189,39 @@ pub struct DwgFileHeaderInfo {
     /// VBA project address
     pub vba_project_addr: i32,
 
+    // ── gold's FILEHEADER fields retained for the structure axis (§19 H2).
+    // These bytes were all parsed at their correct offsets before — but
+    // skipped or mislabeled: `zero_one_or_three` was "the unknown byte",
+    // the R2000 dwg_version/maint_version pair was "magic 0x1B/0x19",
+    // and the R2004+ tail (unknown_0/app_dwg/app_maint, rl_1c_address,
+    // r2004_header_address) was skipped wholesale. Byte layout facts
+    // pinned by hand-decoding sample_2000/2018 against gold's observed
+    // FILEHEADER values (the spec's field ORDER is misleading; the
+    // @0x0d comment and gold's JSON carry the truth):
+    // [0..6] version, [6..11] 5 zero bytes, [11] maint_rel_version,
+    // [12] zero_one_or_three, [13..17] thumbnail_address, [17] dwg_version,
+    // [18] maint_version, [19..21] codepage, then R2000: [21..25] sections
+    // (the locator-record count); R2004+: [21] unknown_0, [22] app_dwg,
+    // [23] app_maint, [24..28] security, [28..32] rl_1c_address,
+    // [32..36] summaryinfo, [36..40] vbaproj, [40..44] r2004_header addr.
+    /// Gold's `zero_one_or_three` (byte 12)
+    pub zero_one_or_three: u8,
+    /// Gold's `maint_version` (byte 18 — the same byte historically read
+    /// into `app_release_version`; both stay set from the one read)
+    pub maint_version: u8,
+    /// Gold's `sections` (R2000: the section-locator record count)
+    pub sections: i32,
+    /// Gold's R2004+ `unknown_0` (byte 21)
+    pub unknown_0: u8,
+    /// Gold's R2004+ `app_dwg_version` (byte 22)
+    pub app_dwg_version: u8,
+    /// Gold's R2004+ `app_maint_version` (byte 23)
+    pub app_maint_version: u8,
+    /// Gold's R2004+ `rl_1c_address` (mostly 0)
+    pub rl_1c_address: i32,
+    /// Gold's R2004+ `r2004_header_address` (mostly 128/0x80)
+    pub r2004_header_address: i32,
+
     // ── AC1021-specific data ──
     /// AC1021 compressed metadata (contains CRC-64 and section layout)
     pub ac21_metadata: Option<Dwg21CompressedMetadata>,
@@ -953,6 +986,27 @@ impl<R: Read + Seek> DwgReader<R> {
         let mut document = crate::document::CadDocument::with_version(dxf_version);
         document.maintenance_version = info.acad_maintenance_version;
         document.dwg_source_version = Some(dxf_version);
+        // The file-header summary (§19 H2): gold's FILEHEADER shape, kept
+        // in the document so the structure axis can compare it (the dump
+        // emits it automatically through CadDocument's serde).
+        document.dwg_file_header = Some(crate::document::DwgFileHeaderSummary {
+            version: info.version_string.clone(),
+            maint_rel_version: info.acad_maintenance_version,
+            zero_one_or_three: info.zero_one_or_three,
+            thumbnail_address: info.preview_address,
+            dwg_version: info.dwg_version,
+            maint_version: info.maint_version,
+            codepage: info.code_page,
+            sections: info.sections,
+            unknown_0: info.unknown_0,
+            app_dwg_version: info.app_dwg_version,
+            app_maint_version: info.app_maint_version,
+            security_type: info.security_type,
+            rl_1c_address: info.rl_1c_address,
+            summaryinfo_address: info.summary_info_addr,
+            vbaproj_address: info.vba_project_addr,
+            r2004_header_address: info.r2004_header_address,
+        });
 
         // 2. Read Classes (AcDb:Classes)
         match self.get_section_buffer("AcDb:Classes", &info) {
@@ -1381,6 +1435,14 @@ impl<R: Read + Seek> DwgReader<R> {
             security_type: 0,
             summary_info_addr: 0,
             vba_project_addr: 0,
+            zero_one_or_three: 0,
+            maint_version: 0,
+            sections: 0,
+            unknown_0: 0,
+            app_dwg_version: 0,
+            app_maint_version: 0,
+            rl_1c_address: 0,
+            r2004_header_address: 0,
             ac21_metadata: None,
             ac21_header_crc: None,
             ac21_unknown_key: None,
@@ -1421,8 +1483,8 @@ impl<R: Read + Seek> DwgReader<R> {
         // Maintenance version (1 byte)
         info.acad_maintenance_version = self.stream.read_u8()?;
 
-        // Skip 1 byte
-        self.stream.read_exact(&mut [0u8; 1])?;
+        // Gold's `zero_one_or_three` (1 byte — previously "skip 1")
+        info.zero_one_or_three = self.stream.read_u8()?;
 
         // Preview address (4 bytes)
         info.preview_address = self.stream.read_i32::<LittleEndian>()?;
@@ -1430,20 +1492,25 @@ impl<R: Read + Seek> DwgReader<R> {
         // DWG version (1 byte)
         info.dwg_version = self.stream.read_u8()?;
 
-        // App release version (1 byte)
+        // App release version (1 byte) — this byte IS gold's `maint_version`
+        // (the same position ledger as the R2000 path: byte 18)
         info.app_release_version = self.stream.read_u8()?;
+        info.maint_version = info.app_release_version;
 
         // Drawing code page (2 bytes)
         info.code_page = self.stream.read_u16::<LittleEndian>()?;
 
-        // Skip 3 bytes
-        self.stream.read_exact(&mut [0u8; 3])?;
+        // Gold's R2004+ tail (previously "skip 3"): unknown_0 (1 byte),
+        // app_dwg_version (1 byte), app_maint_version (1 byte)
+        info.unknown_0 = self.stream.read_u8()?;
+        info.app_dwg_version = self.stream.read_u8()?;
+        info.app_maint_version = self.stream.read_u8()?;
 
         // Security type (4 bytes)
         info.security_type = self.stream.read_i32::<LittleEndian>()?;
 
-        // Skip unknown (4 bytes)
-        self.stream.read_i32::<LittleEndian>()?;
+        // Gold's `rl_1c_address` (4 bytes — previously "skip unknown")
+        info.rl_1c_address = self.stream.read_i32::<LittleEndian>()?;
 
         // Summary info address (4 bytes)
         info.summary_info_addr = self.stream.read_i32::<LittleEndian>()?;
@@ -1451,11 +1518,16 @@ impl<R: Read + Seek> DwgReader<R> {
         // VBA project address (4 bytes)
         info.vba_project_addr = self.stream.read_i32::<LittleEndian>()?;
 
-        // Skip 2 unknown ints (8 bytes)
-        self.stream.read_i32::<LittleEndian>()?;
+        // Gold's `r2004_header_address` (4 bytes — previously the first
+        // half of the "skip 2 unknown ints" tail)
+        info.r2004_header_address = self.stream.read_i32::<LittleEndian>()?;
+        // and the remaining 4 stub bytes of the old 8-byte skip
         self.stream.read_i32::<LittleEndian>()?;
 
-        // Skip 80 bytes of padding/unknown data
+        // Skip 80 bytes of trailing padding — the byte ledger is
+        // unchanged: the r2004_header_address+stub pair above covers
+        // exactly the old 8-byte skip, and this lands the cursor at the
+        // 0x100 file-header end (byte 128) exactly as before.
         let mut pad = [0u8; 80];
         self.stream.read_exact(&mut pad)?;
 
@@ -1494,20 +1566,29 @@ impl<R: Read + Seek> DwgReader<R> {
         let mut pad = [0u8; 5];
         self.stream.read_exact(&mut pad)?;
         info.acad_maintenance_version = self.stream.read_u8()?;
-        let _unknown = self.stream.read_u8()?;
+        // Byte 12 — gold's `zero_one_or_three` (pinned by hand-decoding
+        // sample_2000: gold's observed 1 sits at exactly this byte; the
+        // historical "unknown" label was wrong)
+        info.zero_one_or_three = self.stream.read_u8()?;
 
         // 0x0D: Preview seeker (4 bytes LE)
         info.preview_address = self.stream.read_i32::<LittleEndian>()?;
 
-        // 0x11: Magic bytes (2 bytes)
-        let _magic1 = self.stream.read_u8()?;
-        let _magic2 = self.stream.read_u8()?;
+        // 0x11/0x12: gold's `dwg_version` (byte 17 — the historical "magic
+        // 0x1B/0x19" was gold's dwg_version=25 on sample_2000) and
+        // `maint_version` (byte 18)
+        info.dwg_version = self.stream.read_u8()?;
+        info.maint_version = self.stream.read_u8()?;
+        info.app_release_version = info.maint_version;
 
         // 0x13: Code page (2 bytes LE)
         info.code_page = self.stream.read_u16::<LittleEndian>()?;
 
-        // 0x15: Number of locator records (4 bytes LE) — should be 6
+        // 0x15: Number of locator records (4 bytes LE) — should be 6.
+        // This IS gold's FILEHEADER `sections` field (sample_2000:
+        // gold's "sections": 6 = this count).
         let record_count = self.stream.read_i32::<LittleEndian>()?;
+        info.sections = record_count;
 
         // 0x19: Read locator records
         // Each record: number(1) + seeker(4) + size(4) = 9 bytes

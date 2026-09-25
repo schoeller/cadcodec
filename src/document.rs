@@ -1077,6 +1077,39 @@ pub struct SummaryInfo {
     pub custom_properties: Vec<(String, String)>,
 }
 
+/// The DWG file-header summary — gold's `FILEHEADER` shape (§19 H2 of the
+/// harness plan). Field names match gold's JSON exactly (except `codepage`,
+/// kept as one word per gold) so the structure axis projects 1:1. Retained
+/// from the reader's `DwgFileHeaderInfo`; `None` on DXF-sourced or
+/// default-constructed documents.
+///
+/// Version-family gates: the R2004+ tail (`unknown_0` through
+/// `r2004_header_address`) only exists on R2004+ files — the reader leaves
+/// it at 0 on earlier versions and gold does not emit those leaves; the
+/// structure-axis projection drops them by version instead of comparing.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgFileHeaderSummary {
+    /// The 6-byte version string ("AC1015", "AC1032", …)
+    pub version: String,
+    pub maint_rel_version: u8,
+    pub zero_one_or_three: u8,
+    pub thumbnail_address: i32,
+    pub dwg_version: u8,
+    pub maint_version: u8,
+    pub codepage: u16,
+    /// The section-locator record count (R2000 files).
+    pub sections: i32,
+    pub unknown_0: u8,
+    pub app_dwg_version: u8,
+    pub app_maint_version: u8,
+    pub security_type: i32,
+    pub rl_1c_address: i32,
+    pub summaryinfo_address: i32,
+    pub vbaproj_address: i32,
+    pub r2004_header_address: i32,
+}
+
 /// A CAD document containing all drawing data
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -1231,6 +1264,12 @@ pub struct CadDocument {
     /// corruption; the writer drops them on an incompatible cross-version save.
     /// `None` when not loaded from DWG (new/DXF).
     pub dwg_source_version: Option<DxfVersion>,
+
+    /// The DWG file-header summary (§19 H2): gold's `FILEHEADER` shape,
+    /// retained from the reader's `DwgFileHeaderInfo` for the structure
+    /// axis. `None` on DXF-sourced or default documents.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_file_header: Option<DwgFileHeaderSummary>,
 
     /// Embedded preview/thumbnail image. Populated by the DWG reader from the
     /// file's preview section; the DWG writer embeds it when `Some` and emits an
@@ -1442,6 +1481,7 @@ impl CadDocument {
             unknown_bits_by_handle: HashMap::new(),
             block_entity_handles: HashMap::new(),
             dwg_source_version: None,
+            dwg_file_header: None,
             preview: None,
             acis_sab_handles: Vec::new(),
             raw_acds_data: None,

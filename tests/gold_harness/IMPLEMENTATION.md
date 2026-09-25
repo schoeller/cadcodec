@@ -4440,9 +4440,38 @@ Signature) — the parse side is further along than the emission side.
   rewrite re-read by gold). Byte-level re-emission fidelity for the
   header/system sections gets the layer-4 treatment (dump + compare
   the rewritten header region for one fixture per version-class).
-- **H2 — the file header family**: `FILEHEADER` + `R2004_Header` (and
-  `SecondHeader`/`AuxHeader` on R2000) — version, maintenance,
-  codepage, times, save addresses, the system-section numbers. Mostly
+- **H2 — the file header family** (`FILEHEADER` landed 2026-09-25;
+  R2004_Header/R2007_Header/SecondHeader/AuxHeader open):
+  **The FILEHEADER drop landed at ZERO read gaps corpus-wide**
+  (4151 matched = 273×15 + 7×8 leaves exactly; 0 value diffs; 0
+  missing; the corpus read key-gap 259,073 → 255,482, −3,591 = the
+  HUDSON's measured FILEHEADER component verbatim; the write-target
+  FILEHEADER 1,205 diffs are the address/maintenance shifts — H7).
+  The byte-ledger facts the packet pinned: the reader's byte math was
+  ALREADY correct on both version paths — every field had been
+  SKIPPED or MISLABELED, never misread: `zero_one_or_three` = byte 12
+  ("the unknown byte"), the R2000 dwg_version/maint_version pair =
+  bytes 17/18 (the "magic 0x1B/0x19"), `sections` = the R2000
+  locator-record count, and the R2004+ tail (unknown_0/app_dwg/
+  app_maint at 21-23, rl_1c_address at 28-31, r2004_header_address at
+  40-43, mostly 128/0x80 observed) skipped wholesale. The position
+  table lives in `dwg_reader.rs`'s DwgFileHeaderInfo doc comment; the
+  changes were additive, verified byte-ledger-neutral (the
+  hand-decode of sample_2000/raw bytes vs gold's observed values
+  resolved the header.spec's misleading FIELD ORDER — the `@0x0d`
+  comment and gold's JSON carry the truth). Two H2-authentic
+  pitfalls recorded: (a) inserting the summary struct above
+  `pub struct CadDocument` stole the struct's derive attribute
+  (caught by compile, restored); (b) shrinking the R2004+ trailing
+  pad 80→76 broke the 0x100 ledger — caught by the SAB and
+  R2007-solid-3D hermetic tests (both green at the fix, 1324/0), the
+  OBJECTS axis held 0/0 across all gates. The retention path:
+  DwgFileHeaderInfo → the reader populates
+  `document.dwg_file_header: Option<DwgFileHeaderSummary>` (gold's
+  field names 1:1) → the dump emits it through CadDocument's serde →
+  struct_axis projects it with version-family gates (the R2004+ tail
+  drops on pre-2004 files; `sections` drops on R2004+ — both gold
+  gates). Mostly
   projection work on silver's existing reads (`_common_dwg`), plus
   whatever the census says is missing. Scope notes from the review:
   `SecondHeader` carries the R2000 section-locator table (6

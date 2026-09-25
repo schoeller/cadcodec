@@ -117,22 +117,50 @@ def gold_structure_views(data: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str
     return views, undeclared
 
 
-#: Silver's minimal seed projection (the H0 baseline — H2-H5 packets
-#: replace these with real field-list projections from the spec files):
-#: what silver's dwg2json emits today, mapped into gold's key names.
+#: Silver's seed projections — replaced per-packet with real field-list
+#: projections from the spec files (H0 established the baseline; H2
+#: lands FILEHEADER).
 def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
     views: Dict[str, Any] = {}
-    fh: Dict[str, Any] = {}
-    if isinstance(doc.get("version"), str):
-        fh["version"] = doc["version"]
-    if isinstance(doc.get("maintenance_version"), int):
-        # silver's `maintenance_version` is gold's `maint_rel_version`
-        # (the release level: AC1015 files carry 15 there while gold's
-        # `maint_version` stays 0 — the R2000 census finding that pinned
-        # this mapping).
-        fh["maint_rel_version"] = doc["maintenance_version"]
-    if fh:
+    fh_doc = doc.get("dwg_file_header")
+    if isinstance(fh_doc, dict):
+        # The H2 projection: the reader's DwgFileHeaderSummary carries
+        # gold's FILEHEADER field names 1:1 (codepage included). The
+        # R2004+ tail is dropped on pre-2004 files — gold emits only the
+        # 8-field family there (version gates: gold's PRE(R_2004a)).
+        fh = dict(fh_doc)
+        version = str(fh.get("version", ""))
+        if version in ("AC1012", "AC1014", "AC1015"):
+            for k in (
+                "unknown_0",
+                "app_dwg_version",
+                "app_maint_version",
+                "security_type",
+                "rl_1c_address",
+                "summaryinfo_address",
+                "vbaproj_address",
+                "r2004_header_address",
+            ):
+                fh.pop(k, None)
+        else:
+            # The R2004+ family: gold emits no `sections` (the locator
+            # count is PRE(R_2004a), and the reader leaves it 0 there).
+            fh.pop("sections", None)
         views["FILEHEADER"] = fh
+    else:
+        # The H0 seed (documents predating the H2 retention): the two
+        # document-level scalars.
+        fh: Dict[str, Any] = {}
+        if isinstance(doc.get("version"), str):
+            fh["version"] = doc["version"]
+        if isinstance(doc.get("maintenance_version"), int):
+            # silver's `maintenance_version` is gold's `maint_rel_version`
+            # (the release level: AC1015 files carry 15 there while gold's
+            # `maint_version` stays 0 — the R2000 census finding that pinned
+            # this mapping).
+            fh["maint_rel_version"] = doc["maintenance_version"]
+        if fh:
+            views["FILEHEADER"] = fh
     if isinstance(doc.get("header"), dict):
         views["HEADER"] = doc["header"]
     if isinstance(doc.get("summary_info"), dict):
