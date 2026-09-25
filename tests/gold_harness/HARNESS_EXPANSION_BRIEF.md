@@ -8,9 +8,10 @@ durable rules; this brief never overrides it.
 ## 0. Environment and current state
 
 - Repo: `~/work/cadcodec` (WSL Ubuntu-24.04), crate `acadrust`, branch
-  `gold-vs-silver`. Baseline for this work: commit `1966bf4`
-  ("fix(dwg): constructed SAB embeds the classic form - the ds_version=1
-  container pairing"). The tree is clean at that commit.
+  `gold-vs-silver`. Baseline for this work: commit `66d25bf`
+  (revert of the 37a0675 entity-stream changes — see §1 and the G3
+  caveat — on top of `1966bf4`'s classic-embed pairing). The tree is
+  clean at that commit plus the probe-example regeneration.
 - Oracle: LibreDWG checkout at `~/work/libredwg` — READ-ONLY (AGENTS.md).
   Binary: `$HOME/work/libredwg/programs/dwgread`.
   Test data: `$HOME/work/libredwg/test/test-data`.
@@ -27,13 +28,20 @@ durable rules; this brief never overrides it.
 
 ## 1. Evidence: why each gate exists (verified this campaign)
 
-1. **Symmetric-bug blindness.** Four R2013+ entity-stream genus bugs
-   (leading acis_empty bit, phantom R2007 BL, phantom silhouettes count
-   outside the isoline_present gate, unconditional 3DSOLID history_id
-   handle) were each symmetric in reader+writer: captured round-trips
-   stayed byte-faithful, the census stayed 0/0, and BricsCAD refused
-   every constructed solid. Only the gold oracle's manual `-v5` trace
-   caught them (commit `37a0675`).
+1. **Symmetric-bug blindness.** The 2026-09-25 entity-stream episode
+   cut both ways and is the strongest argument for G3: four
+   "divergences" were inferred from the gold oracle's `-v5` trace and
+   "fixed" symmetrically (commit 37a0675) — the oracle then decoded
+   constructed records with zero errors, but BricsCAD REFUSED every
+   probe carrying the new form, while the pre-fix form (gen_all @
+   9ed5e42, user-verified) had opened clean. The oracle misparses
+   native R2013+ 3DSOLID records itself (garbage revision fields on
+   the authored Box_2018 fixture); its interpretation is NOT ground
+   truth for that family. Reverted in 66d25bf. The lesson for the
+   harness: constructed-content gates need an ERROR BASELINE with a
+   known-divergence allow-list (see the G3 caveat), and BricsCAD
+   probe verdicts — not oracle traces alone — are the only authority
+   for entity-stream genus changes.
 2. **AcDs container blindness.** The AcDsPrototype_1b section is not
    censused at all. The silver writer builds an IntelliCAD-style
    `ds_version=1` container; native R2018 files carry `ds_version=16`
@@ -125,13 +133,30 @@ silver via its own section map (the reader's section enumeration).
 
 ### G3 — Constructed-content gate (the symmetric-bug killer)
 
-Run `dwgread -v5` over `gen_all_entities_all_versions.dwg` and assert
-ZERO lines matching `^ERROR` (stderr). Wire it into the zero-keeping
+Run `dwgread -v5` over `gen_all_entities_all_versions.dwg` and count
+lines matching `^ERROR` (stderr). Wire it into the zero-keeping
 workflow (README "The zero-keeping workflow") as a required step after
 the corpus run, and mirror it as a `cargo test --features gold-harness`
 test alongside `gold_roundtrip.rs` (env-gated like that test: skip with
-a notice when GOLD_DWGREAD is unset). This gate alone would have caught
-all three failing rounds at commit time.
+a notice when GOLD_DWGREAD is unset).
+
+**CRITICAL CAVEAT (2026-09-25 verdict, commit 66d25bf):** the oracle's
+R2013+ 3DSOLID-family decode is a KNOWN DIVERGENCE — libredwg's spec
+expects a leading `acis_empty` bit that BricsCAD-accepted records do
+NOT carry (its "clean" decode of the authored Box_2018 fixture yields
+garbage `revision_major 3490658304` / `end_marker 3458369980` from a
+misaligned read; BricsCAD opens the same file flawlessly). The
+empirically BricsCAD-verified entity-stream form is the pre-37a0675
+one (no leading bit, an unconditional R2007 BL, silhouettes count
+outside the isoline gate, unconditional history handle). Therefore:
+G3 must assert zero NEW errors against a BASELINE allow-list — seed
+the baseline with the known 3DSOLID-family oracle divergence (grep the
+`^ERROR` lines on the current canonical gen_all, record them verbatim
+in the gate's allow-list with a pointer to this caveat). The gate's
+value is catching REGRESSIONS (new error classes), not re-litigating
+the oracle's known-wrong 3DSOLID interpretation. If a future packet
+changes the entity stream, the baseline is re-earned ONLY through a
+BricsCAD probe verdict, never through the oracle alone.
 
 ### G4 — SAB dialect marker census
 
