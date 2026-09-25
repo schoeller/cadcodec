@@ -26,7 +26,12 @@ the independent oracle on both the original and the rewritten file.
 
 The header is tested **laxly** (out of strict-diff scope — only entity/object
 non-header parts must match exactly). The loop is **bounded to the test-data
-corpus** and must respect the **R2000–R2018 version scope**.
+corpus** and must respect the **R2000–R2018 version scope**. **Phase 2
+(planned 2026-09-25, §19): the laxly-tested header itself comes under a
+second, separately-gated structure axis — the OBJECTS zero stays frozen
+while the 17 structure keys get their own drive to 0, with a
+whole-structure audit matrix proving every section is diffed or
+excluded-with-reason.**
 
 The immediate blocker is an AutoCAD `AcDbVisualStyle` "Object improperly read"
 error on rewritten DWGs (see §7).
@@ -880,6 +885,19 @@ Given a diff `(type, field, kind)`:
   `normalize_value()` in `normalize_gold.py`.
 
 ### 8.1.6 Current work queue (ordered)
+
+> **Next major arc (planned 2026-09-25, not yet started): the header &
+> whole-structure campaign — §19.** The OBJECTS axis (this queue's
+> completed 0/0 target) extends to a second structure axis: the 17
+> top-level keys the normalizers currently drop (FILEHEADER, HEADER
+> variables, R2004_Header, SecondHeader/AuxHeader, SummaryInfo,
+> AppInfo/History, Template, FileDepList, RevHistory, Security,
+> ObjFreeSpace, THUMBNAILIMAGE, AcDs, CLASSES, created_by), with
+> separate corpus counters and the whole-structure audit matrix (H6)
+> as the standing deliverable. First packet: H0 (the axis skeleton +
+> the day-one census). The OBJECTS axis is frozen at 0 throughout.
+> Before this arc: check the live decoder rows (§18/next-session
+> notes) — they may be interleaved.
 
 > **Reading the counts:** corpus `report.md`/`report.json` counts are
 > stem-collision inflated (§7 "How to start cold"). Use them for *ranking*
@@ -4243,3 +4261,120 @@ center of gravity, owned by **RevolveP (perpendicular-plane
 profile), RevolveW (the typed original mirror), RevolveN (the
 270° angle), RevolveS (the short-form radius)**, plus the axis
 stems O (point) and T (direction) and the angle stem F (360).
+
+---
+
+## 19. The header & whole-structure campaign (planned 2026-09-25 — not yet started)
+
+The campaign target to date is the **OBJECTS axis**: silver's parsed
+entity/object records must match gold's, plus the write-side re-read
+must match the original read (mission §1: "the header is tested laxly").
+The harness enforces that axis at 0/0 over 280 files. This section is
+the plan for **PHASE 2: the structure axis** — extend the gold-vs-silver
+comparison to everything the reader sees that is NOT an object record,
+and produce an audit matrix proving every piece of the DWG file
+structure is either diffed or explicitly excluded with a recorded
+reason.
+
+### 19.1 The measured inventory (the ground facts, 2026-09-25 probes)
+
+Gold's `dwgread -O JSON` emits the whole structure; the harness's
+`normalize_gold.py` drops it all (the drop-list at its lines 87–105 IS
+the inventory). Survey commands: gold over `sample_2018.dwg` /
+`sample_2000.dwg` (the `-nan` shim where applicable) — top-level keys:
+
+| gold key | R2000 | R2004+ | size (sample) | silver coverage today |
+|---|---|---|---|---|
+| `HEADER` | ✓ (228) | ✓ (298) | the variables section (`AcDb:Header`) | `header` dict (267 keys on sample_2018) — parsed, never compared |
+| `FILEHEADER` | ✓ (8) | ✓ (15) | version/maint/codepage/time/save addresses | `version`/`maintenance_version`/`dwg_source_version` + `_common_dwg` — partial |
+| `R2004_Header` | — | ✓ (23) | the R2004+ system section | `_common_dwg` + the section reader — partial |
+| `SecondHeader` | ✓ (10) | — | the R13–R2000 second header | read (the roundtrip survives); no comparison |
+| `AuxHeader` | ✓ (25) | (R2013+ variant) | aux data | read; no comparison |
+| `SummaryInfo` | — | ✓ (13) | `AcDb:SummaryInfo` | `summary_info` dict (9) — partial |
+| `AppInfo`/`AppInfoHistory` | — | ✓ (10/2) | `AcDb:AppInfo` | section read; no model emission |
+| `Template` | ✓ | ✓ | `AcDb:Template` | section read; no model emission |
+| `FileDepList` | — | ✓ (1) | `AcDb:FileDepList` | none |
+| `RevHistory` | — | ✓ (3) | `AcDb:RevHistory` | none |
+| `Security` | — | ✓ (9) | zero constants on unprotected files | none |
+| `ObjFreeSpace` | — | ✓ (12) | `AcDb:ObjFreeSpace` | none |
+| `THUMBNAILIMAGE` | ✓ | ✓ | the preview blob | `preview` dict — parsed, never compared |
+| `AcDs` | — | R2013+ (15) | the AcDs data section | the embedded-record decode (§18); no section-level comparison |
+| `CLASSES` | ✓ | ✓ | the class table | parsed (§18.6's gold-shadow); dropped by both normalizers |
+| `created_by` | ✓ | ✓ | author string (file header) | `_common_dwg` partial |
+| — (not JSON) | ✓ | ✓ | the **object map / Handles section**, CRCs, section map, page tables, sentinels | the byte level — the layer-4 oracle's domain |
+
+Silver's section registry knows every `AcDb:*` name
+(`section_definition.rs`: Objects, AcDsPrototype_1b, AppInfo,
+AuxHeader, Header, Classes, Handles, ObjFreeSpace, Template,
+SummaryInfo, FileDepList, Preview, RevHistory, Security, VBAProject,
+Signature) — the parse side is further along than the emission side.
+
+### 19.2 The rows (ordered; each lands under the §8.1.2 per-packet workflow)
+
+- **H0 — the axis skeleton + the day-one census** (the first session's
+  concrete packet): add a second comparison axis to the harness. The
+  normalizers gain a structure mode (or sibling functions) projecting
+  the 17 top-level keys to comparable flat dicts; `diff_fields.py`'s
+  comparer is reused (it compares flat dicts already); run_roundtrip
+  and run_corpus report SEPARATE counters (`struct_read_diffs` /
+  `struct_write_diffs`) beside the frozen OBJECTS pair. **The OBJECTS
+  axis is frozen: nothing in the existing diffrer, ignore list, or
+  normalizer OBJECTS paths may change semantics** — the campaign
+  extends, never re-loosens. Day-one deliverable: the per-key diff
+  counts over the 280-file corpus (the §7-style baseline) that set the
+  attack order for H2–H5.
+- **H1 — the corollary write-fidelity definition**: the structure axis
+  compares `gold_orig` vs `silver_orig` (read) and — the same rule as
+  the OBJECTS axis — `gold_orig` vs `gold_rt` (write, i.e. silver's
+  rewrite re-read by gold). Byte-level re-emission fidelity for the
+  header/system sections gets the layer-4 treatment (dump + compare
+  the rewritten header region for one fixture per version-class).
+- **H2 — the file header family**: `FILEHEADER` + `R2004_Header` (and
+  `SecondHeader`/`AuxHeader` on R2000) — version, maintenance,
+  codepage, times, save addresses, the system-section numbers. Mostly
+  projection work on silver's existing reads (`_common_dwg`), plus
+  whatever the census says is missing.
+- **H3 — the variables (`HEADER`)**: the big row (228–298 keys). Silver
+  parses them (`header`); the projection maps silver variable names →
+  gold's `$VAR` names with typed comparisons. Expect the same
+  per-variable quirk discovery the OBJECTS rows went through (gold's
+  default-vs-unset emission idiosyncrasies); each lands with evidence.
+- **H4 — the metadata blocks**: `SummaryInfo`, `AppInfo(History)`,
+  `Template`, `FileDepList`, `RevHistory`, `Security`, `ObjFreeSpace`,
+  `created_by` — small dicts, one packet, low risk. `Security` is
+  zero-constants on the unprotected corpus; `FileDepList`/`RevHistory`
+  are empty-or-single-entry on the corpus set.
+- **H5 — the bulk/binary sections**: `THUMBNAILIMAGE` and `AcDs`
+  compare by content DIGEST (byte-blobs are not field-diffs); the CLASSES
+  section is already carried verbatim (the pre-R2013 verbatim rule,
+  §F2) — the axis pins its gold-shadow findings where they surface
+  JSON-wise; VBAProject/Signature (absent from the corpus) land as
+  excluded rows with reasons in H6.
+- **H6 — the whole-structure audit matrix (the standing deliverable)**:
+  a generated table — every DWG section name × per-version presence ×
+  gold JSON emission × silver model coverage × axis status
+  (`diffed 0` / `excluded` + the recorded reason; e.g. the Handles
+  section transitively covered by the OBJECTS axis' handle resolution,
+  RCRC/page tables by the layer-4 byte oracle, VBAProject/Signature
+  absent). A probe run refreshes it; it goes in every future halt
+  report. **This is the row that answers "the entire file structure is
+  gold-vs-silver tested" with a table, not an assertion.**
+- **H7 — the writer's structure byte-fidelity**: once reads are 0,
+  byte-walk the rewritten files' header/system sections against the
+  originals (layer 4) and pin the re-emission (the current corpus only
+  proves the re-read matches; the byte oracle proves the encoding).
+
+### 19.3 Standing rules for the campaign
+
+- Both axes' zero-keeping runs under the same gates: every packet lands
+  with `cargo test --features serde` green, the smokes 0/0, and BOTH
+  corpus counters unchanged (OBJECTS 0 frozen; struct moves only
+  toward 0).
+- The fixture surface is NOT extended by this campaign (the corpus of
+  280 stands; version-class coverage comes from the existing R2000 →
+  R2018 spans). If a metadata section needs a genuine fixture (e.g. a
+  FileDepList with entries), that is a maintainer ask, recorded as a
+  blocked row — the no-authoring stance holds.
+- The §18 (SH) decoder rows and the 8757a7c AcDs/section census brief
+  stay live: the AcDs row here and that brief share findings but keep
+  their own queues.

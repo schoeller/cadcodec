@@ -75,6 +75,24 @@ REVOLVE command (the typed anchor is in-corpus via RevolveM's
 bit-retained raw tail); **BREP stays deferred** — only an
 external authentic `ACSH_BREP_CLASS` specimen re-opens it.
 
+## The next major arc (planned 2026-09-25, not yet started): §19 — the header & whole-structure campaign
+
+The OBJECTS axis is done (280 files at 0/0). The harness's scope
+extends next to everything the reader sees that is not an object
+record: the 17 top-level keys `normalize_gold.py` currently drops
+(FILEHEADER, the HEADER variables, R2004_Header, SecondHeader/
+AuxHeader, SummaryInfo, AppInfo/History, Template, FileDepList,
+RevHistory, Security, ObjFreeSpace, THUMBNAILIMAGE, AcDs, CLASSES,
+created_by) — a second, separately-gated structure axis with its own
+corpus counters, driven to 0 under the same per-packet workflow, with
+the whole-structure audit matrix (§19.2's H6) as the standing
+deliverable proving every section of a DWG is either diffed or
+excluded with a recorded reason. First packet: **H0 — the axis
+skeleton + the day-one census** (the per-key diff counts over the
+280-file corpus that set the attack order). The OBJECTS axis stays
+frozen at 0 throughout; the header comparison may interleave with
+the three decoder walks below per maintainer priority.
+
 ## The standing facts (the decode authority is §18.6)
 
 - The four raw-retained SH tails decode to typed views with the

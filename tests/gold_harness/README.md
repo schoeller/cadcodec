@@ -1,10 +1,13 @@
 # Gold-vs-Silver Roundtrip Harness
 
 A repeatable test harness that closes the read/write fidelity gap between
-**LibreDWG** (the *gold* oracle) and **cadcodec** (`acadrust`, the *silver*
-implementation) for DWG files. It decodes a DWG with both libraries, rewrites
-it with cadcodec, decodes the rewrite again, and reports field-level
-differences in the non-header object data.
+**LibreDWG** (the *gold* oracle) and **cadcodec** (the *silver* implementation)
+for DWG files. It decodes a DWG with both libraries, rewrites it with cadcodec,
+decodes the rewrite again, and reports field-level differences in the
+non-header object data. **Phase 2 (planned, §19 of
+[`IMPLEMENTATION.md`](./IMPLEMENTATION.md)): the header and remaining file
+structure come under a second, separately-gated comparison axis with its own
+drive to 0 and a whole-structure audit matrix; the OBJECTS 0/0 stays frozen.**
 
 The full plan, architecture rationale, and the autonomous fix-loop
 specification live in [`IMPLEMENTATION.md`](./IMPLEMENTATION.md). This README
@@ -18,7 +21,7 @@ is the practical entry point: install, run, interpret.
 |---|---|---|---|
 | 1 | Deep unit gates — `cargo test --features serde` (47 ok segments; roundtrip asserts `diffs <= max_known`) | model/retention regressions; a new raw-retention field without a `normalize_entity_for_comparison` arm trips the budget and the failing test names it | **no** — fully hermetic |
 | 2 | Harness integration test — `cargo test --features gold-harness --test gold_roundtrip` | harness self-check + prohibited storage-only `EntityCommon` fields | **optional** — skips (with a notice written to `target/gold_harness_oracle_skipped.txt`) when `GOLD_DWGREAD`/`GOLD_TESTDATA` are absent; set `GOLD_HARNESS_REQUIRE=1` to make absence a hard failure (CI) |
-| 3 | Full corpus — `run_corpus.py` → `report.json` + the residue dump (`pk18a_all_rows.py`) | non-header field divergences; read/write 0/0 is the campaign target (`per_file` is truth; the by-type tables truncate) | yes |
+| 3 | Full corpus — `run_corpus.py` → `report.json` + the residue dump (`pk18a_all_rows.py`) | non-header field divergences; read/write 0/0 is the OBJECTS-axis campaign target (`per_file` is truth; the by-type tables truncate); the planned structure axis (§19) adds separate counters | yes |
 | 4 | Authored-wire byte-fidelity — byte-compare silver's *rewrite* of an authored file against the authored original, record by record | writer **form** defects both decoders tolerate (legal-but-different bitcode choices — a BS short form where the authored wire used the raw-16 form, BD shortforms vs raw doubles, alpha-method nibbles) that strict CAD consumers (BricsCAD, AutoCAD) reject | yes |
 
 Layers 1–3 keep gold-vs-silver **parser parity** at 0/0. Layer 4 closes their
@@ -443,5 +446,6 @@ are reassigned on rewrite. Records are aligned by `(type, ordinal-within-type)`.
 ---
 
 For the design decisions, corpus coverage analysis, the Phase 6 loop
-specification, and future work (header comparison, authoring coverage-gap
-fixtures), see [`IMPLEMENTATION.md`](./IMPLEMENTATION.md).
+specification, the planned header & structure campaign (IMPLEMENTATION.md
+§19), and authoring coverage-gap fixtures, see
+[`IMPLEMENTATION.md`](./IMPLEMENTATION.md).
