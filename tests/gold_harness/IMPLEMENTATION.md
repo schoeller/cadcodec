@@ -4445,7 +4445,8 @@ Signature) — the parse side is further along than the emission side.
   **The FILEHEADER drop landed at ZERO read gaps corpus-wide**
   (4151 matched = 273×15 + 7×8 leaves exactly; 0 value diffs; 0
   missing; the corpus read key-gap 259,073 → 255,482, −3,591 = the
-  HUDSON's measured FILEHEADER component verbatim; the write-target
+  H0 day-one census's measured FILEHEADER component, verbatim; the
+  write-target
   FILEHEADER 1,205 diffs are the address/maintenance shifts — H7).
   The byte-ledger facts the packet pinned: the reader's byte math was
   ALREADY correct on both version paths — every field had been
@@ -4457,15 +4458,20 @@ Signature) — the parse side is further along than the emission side.
   40-43, mostly 128/0x80 observed) skipped wholesale. The position
   table lives in `dwg_reader.rs`'s DwgFileHeaderInfo doc comment; the
   changes were additive, verified byte-ledger-neutral (the
-  hand-decode of sample_2000/raw bytes vs gold's observed values
+  hand-decode of sample_2000's raw bytes vs gold's observed values
   resolved the header.spec's misleading FIELD ORDER — the `@0x0d`
   comment and gold's JSON carry the truth). Two H2-authentic
   pitfalls recorded: (a) inserting the summary struct above
   `pub struct CadDocument` stole the struct's derive attribute
   (caught by compile, restored); (b) shrinking the R2004+ trailing
-  pad 80→76 broke the 0x100 ledger — caught by the SAB and
-  R2007-solid-3D hermetic tests (both green at the fix, 1324/0), the
-  OBJECTS axis held 0/0 across all gates. The retention path:
+  pad 80→76 broke the 0x80 file-header ledger (the R2004+ FILEHEADER
+  is 128 bytes: 6 version + 122 metadata/pad; gold's
+  `r2004_header_address` = 128/0x80 is where the encrypted system
+  section starts, and the reader's next reads continue from that
+  position) — caught by the SAB and R2007-solid-3D hermetic tests
+  (both green at the fix, 1324/0), the OBJECTS axis held 0/0 across
+  all gates. (The bdf8107 commit message says "0x100" — the wrong
+  constant; this row is the corrected record.) The retention path:
   DwgFileHeaderInfo → the reader populates
   `document.dwg_file_header: Option<DwgFileHeaderSummary>` (gold's
   field names 1:1) → the dump emits it through CadDocument's serde →
