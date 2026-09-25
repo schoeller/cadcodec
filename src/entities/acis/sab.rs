@@ -2035,14 +2035,15 @@ mod tests {
                 expected,
                 "raw SAB must remain unchanged"
             );
-            // DWG-embedded expectation: pre-R2013 embeds the classic
-            // stream verbatim; R2013+ (AcDs) embeds the ASM
-            // (ShapeManager) restructuring of the SAME document — the
-            // binary-role spans pass through unchanged inside their
-            // records; only the wrapper (asmheader/transform/reversed
-            // order/terminator, 2026-09-24 ASM port) differs. The ASM
-            // expectation is built exactly the way the writer's queue
-            // path builds it: parse → strip → asm → validate.
+            // DWG-embedded expectation: every version embeds the CLASSIC
+            // stream. The 2026-09-25 verdict matrix: the AcDs datastore
+            // this queue feeds is the IntelliCAD-style ds_version=1
+            // container, whose restore path pairs with classic ACIS
+            // blobs — BricsCAD-verified via the gen_all 9ed5e42 round —
+            // while ASM blobs in the same container fail the modeler
+            // restore. The ASM machinery itself stays verified by the
+            // round-trip below (a future native-style ds_version=16
+            // container may embed it).
             let mut asm_doc = SatDocument::parse(&doc.to_sat_string()).unwrap();
             let expected_asm = asm_doc.to_sab_asm_checked().unwrap();
             let expected_raw_asm = {
@@ -2072,12 +2073,7 @@ mod tests {
                 let crate::EntityType::Solid3D(solid) = read.entities().next().unwrap() else {
                     panic!("missing solid");
                 };
-                let expected = if version >= crate::DxfVersion::AC1027 {
-                    &expected_asm
-                } else {
-                    &expected
-                };
-                assert_eq!(solid.acis_data.sab_data, *expected, "DWG {version:?}");
+                assert_eq!(solid.acis_data.sab_data, expected, "DWG {version:?}");
             }
         }
     }

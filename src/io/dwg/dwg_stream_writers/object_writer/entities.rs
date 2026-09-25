@@ -5670,19 +5670,23 @@ impl<'a> DwgObjectWriter<'a> {
             self.sab_entries
                 .push((entity_handle, acis.sab_data.clone()));
         } else if !acis.sat_data.is_empty() {
-            // Convert SAT text → SAB binary via SatDocument.
-            // R2013+ AcDs data store requires ASM (ShapeManager) SAB;
-            // classic ACIS 7.0 SAB is rejected by AutoCAD/BricsCAD for
-            // constructed solids ("Object improperly read" — the
-            // fix/sat-validate-before-sab verdict, 2026-09-15, and the
-            // 2026-09-24 box campaign: the native Box_2018 fixture's
-            // SAB is an asmheader/transform stream, version 22300).
+            // Convert SAT text → SAB binary via SatDocument. The AcDs
+            // datastore this queue feeds is the IntelliCAD-style
+            // ds_version=1 container (build_acds_prototype); its restore
+            // path pairs with CLASSIC ACIS blobs. The 2026-09-25 verdict
+            // matrix: this container + classic SAB opens clean in
+            // BricsCAD (the gen_all 9ed5e42 round, user-verified), while
+            // the same container + ASM blobs — even byte-verbatim native
+            // ASM — fails the modeler restore ("Out of Memory" /
+            // "Object improperly read"). ASM (ShapeManager) belongs to
+            // the native ds_version=16 datastore genus, whose container
+            // layout is not yet modeled (the native jard carries
+            // ds_version=16, num_segidx 91, segidx-first ordering —
+            // see the gold-oracle acds trace). Constructed documents
+            // therefore embed the classic form at every DWG version;
+            // captured binary SAB (sab_data) echoes verbatim above.
             if let Ok(mut sat_doc) = crate::entities::acis::SatDocument::parse(&acis.sat_data) {
-                let result = if self.needs_acds_section() {
-                    sat_doc.to_sab_asm_checked()
-                } else {
-                    sat_doc.to_sab_checked()
-                };
+                let result = sat_doc.to_sab_checked();
                 match result {
                     Ok(sab) => self.sab_entries.push((entity_handle, sab)),
                     Err(errors) => {
