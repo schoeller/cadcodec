@@ -771,10 +771,22 @@ fn parse_summary_info(buf: &[u8], utf16: bool) -> crate::document::SummaryInfo {
         revision_number: read_t16(&mut cur, utf16),
         hyperlink_base: read_t16(&mut cur, utf16),
         custom_properties: Vec::new(),
+        ..Default::default()
     };
-    // TDINDWG, TDCREATE, TDUPDATE — each a TIMERLL (2×u32 = 8 bytes).
+    // TDINDWG, TDCREATE, TDUPDATE — each a TIMERLL (2×u32 = 8 bytes;
+    // gold prints each as a `[days, ms]` pair).
     if cur.len() >= 24 {
-        cur = &cur[24..];
+        let mut timer = |cur: &mut &[u8]| -> [u32; 2] {
+            let days = u32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+            let ms = u32::from_le_bytes([cur[4], cur[5], cur[6], cur[7]]);
+            *cur = &cur[8..];
+            [days, ms]
+        };
+        si.tdindwg = timer(&mut cur);
+        si.tdcreate = timer(&mut cur);
+        si.tdupdate = timer(&mut cur);
+    } else {
+        cur = &[];
     }
     if cur.len() >= 2 {
         let n = u16::from_le_bytes([cur[0], cur[1]]) as usize;
@@ -788,7 +800,448 @@ fn parse_summary_info(buf: &[u8], utf16: bool) -> crate::document::SummaryInfo {
             si.custom_properties.push((tag, val));
         }
     }
+    // The two trailing raw longs (gold's `unknown1`/`unknown2`).
+    if cur.len() >= 8 {
+        si.unknown1 = u32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+        si.unknown2 = u32::from_le_bytes([cur[4], cur[5], cur[6], cur[7]]);
+    }
     si
+}
+
+/// Read one `TU32` string — gold's `bit_read_TU32` exactly (§19 H4):
+/// 4-byte BYTE-count prefix; pre-2007 `size` single-byte chars; R2007+
+/// the char width is sniffed — the overflow check comes FIRST (`size +
+/// byte >= total` → NULL with only the prefix consumed; in remaining-
+/// slice terms `size >= remaining`), then the next RL is peeked
+/// (consumed): if its `0x00ff0000` bits are set the payload is UCS-2
+/// (rewind, `size/2` RS chars = `size` bytes), else 4-byte chars
+/// (`size/4` RLs with the peek as the first char, low 16 bits kept).
+/// `FIELD_T32` expands to this same reader on R2007+ (dec_macros.h:616)
+/// — an "empty" string still consumes the peek (8 bytes total), which
+/// is load-bearing for the FileDepList record alignment (pinned by
+/// 2018/Arc.dwg: three empty strings consume 8+8+4 — the third's size RL
+/// is 0xFFFFFFFF and overflows).
+fn read_tu32(cur: &mut &[u8], utf16: bool) -> String {
+    if cur.len() < 4 {
+        *cur = &[];
+        return String::new();
+    }
+    let size = u32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]) as u64;
+    *cur = &cur[4..];
+    if !utf16 {
+        let bytes = (size as usize).min(cur.len());
+        let s = String::from_utf8_lossy(&cur[..bytes]).into_owned();
+        *cur = &cur[bytes..];
+        return s.trim_end_matches('\0').to_string();
+    }
+    // R2007+: the overflow check precedes the peek — NULL with only the
+    // prefix consumed (gold: `size + dat->byte >= dat->size || size >
+    // dat->size`; in remaining-slice terms size >= remaining).
+    if size >= cur.len() as u64 {
+        return String::new();
+    }
+    if cur.len() < 4 {
+        *cur = &[];
+        return String::new();
+    }
+    let pre_peek: &[u8] = cur;
+    let peek = u32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+    *cur = &cur[4..];
+    if peek & 0x00ff_0000 != 0 {
+        // UCS-2 payload: rewind to before the peek, size/2 RS chars
+        let bytes = (size as usize).min(pre_peek.len());
+        let units: Vec<u16> = pre_peek[..bytes]
+            .chunks_exact(2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
+        *cur = &pre_peek[bytes..];
+        String::from_utf16_lossy(&units)
+            .trim_end_matches('\0')
+            .to_string()
+    } else {
+        // 4-byte chars: the peeked RL is the first char (low half kept),
+        // then size/4 − 1 more RLs
+        let count = (size / 4) as usize;
+        let mut units = Vec::with_capacity(count);
+        units.push(peek as u16);
+        for _ in 1..count {
+            if cur.len() < 4 {
+                *cur = &[];
+                break;
+            }
+            let rl = u32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+            *cur = &cur[4..];
+            units.push(rl as u16);
+        }
+        String::from_utf16_lossy(&units)
+            .trim_end_matches('\0')
+            .to_string()
+    }
+}
+
+/// Parse the `AcDb:Template` section — gold's `Template` shape (§19 H4):
+/// description (T16) + MEASUREMENT (RS).
+fn parse_template_section(buf: &[u8], utf16: bool) -> crate::document::DwgTemplateSummary {
+    let mut cur: &[u8] = buf;
+    let description = read_t16(&mut cur, utf16);
+    let measurement = if cur.len() >= 2 {
+        i16::from_le_bytes([cur[0], cur[1]])
+    } else {
+        0
+    };
+    crate::document::DwgTemplateSummary {
+        description,
+        measurement,
+    }
+}
+
+/// Parse the `AcDb:FileDepList` section — gold's `FileDepList` shape
+/// (§19 H4): num_features RL + features (TU32 vector) + num_files RL +
+/// the file records (T32 filename/filepath/fingerprint/version + the
+/// numeric fields). The count fields do not print.
+fn parse_file_dep_list_section(
+    buf: &[u8],
+    utf16: bool,
+) -> crate::document::DwgFileDepListSummary {
+    let mut cur: &[u8] = buf;
+    let num_features = if cur.len() >= 4 {
+        let v = i32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+        cur = &cur[4..];
+        v
+    } else {
+        return Default::default();
+    };
+    let mut features = Vec::new();
+    for _ in 0..num_features.clamp(0, 4096) {
+        features.push(read_tu32(&mut cur, utf16));
+    }
+    let num_files = if cur.len() >= 4 {
+        let v = i32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+        cur = &cur[4..];
+        v
+    } else {
+        return crate::document::DwgFileDepListSummary { features, files: Vec::new() };
+    };
+    let mut files = Vec::new();
+    for _ in 0..num_files.clamp(0, 4096) {
+        // FIELD_T32 = TU32 semantics on R2007+ (dec_macros.h:616) — the
+        // sniffing reader, whose peek/overflow behavior is load-bearing
+        // for the record alignment.
+        let filename = read_tu32(&mut cur, utf16);
+        let filepath = read_tu32(&mut cur, utf16);
+        let fingerprint = read_tu32(&mut cur, utf16);
+        let version = read_tu32(&mut cur, utf16);
+        let mut rl = |cur: &mut &[u8]| -> i32 {
+            if cur.len() < 4 {
+                *cur = &[];
+                return 0;
+            }
+            let v = i32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+            *cur = &cur[4..];
+            v
+        };
+        let feature_index = rl(&mut cur);
+        let timestamp = rl(&mut cur);
+        let filesize = rl(&mut cur);
+        let affects_graphics = if cur.len() >= 2 {
+            let v = i16::from_le_bytes([cur[0], cur[1]]);
+            cur = &cur[2..];
+            v
+        } else {
+            0
+        };
+        let refcount = rl(&mut cur);
+        files.push(crate::document::DwgFileDepFileInfo {
+            filename,
+            filepath,
+            fingerprint,
+            version,
+            feature_index,
+            timestamp,
+            filesize,
+            affects_graphics,
+            refcount,
+        });
+    }
+    crate::document::DwgFileDepListSummary { features, files }
+}
+
+/// Parse the `AcDb:RevHistory` section — gold's `RevHistory` shape
+/// (§19 H4): class_version RL, class_minor RL, num_histories RL +
+/// the RL values (the count does not print).
+fn parse_rev_history_section(buf: &[u8]) -> crate::document::DwgRevHistorySummary {
+    let mut cur: &[u8] = buf;
+    let mut rl = || -> i32 {
+        if cur.len() < 4 {
+            cur = &[];
+            return 0;
+        }
+        let v = i32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+        cur = &cur[4..];
+        v
+    };
+    let class_version = rl();
+    let class_minor = rl();
+    let num_histories = rl().clamp(0, 65536);
+    let mut histories = Vec::with_capacity(num_histories as usize);
+    for _ in 0..num_histories {
+        histories.push(rl());
+    }
+    crate::document::DwgRevHistorySummary {
+        class_version,
+        class_minor,
+        histories,
+    }
+}
+
+/// Parse the `AcDb:Security` section — gold's `Security` shape (§19 H4):
+/// three RLx unknowns, crypto_id, T32 crypto_name, algo_id, key_len,
+/// encr_size + the encr_size bytes as hex.
+fn parse_security_section(buf: &[u8], utf16: bool) -> crate::document::DwgSecuritySummary {
+    let mut cur: &[u8] = buf;
+    fn rl(cur: &mut &[u8]) -> u32 {
+        if cur.len() < 4 {
+            *cur = &[];
+            return 0;
+        }
+        let v = u32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+        *cur = &cur[4..];
+        v
+    }
+    let unknown_1 = rl(&mut cur);
+    let unknown_2 = rl(&mut cur);
+    let unknown_3 = rl(&mut cur);
+    let crypto_id = rl(&mut cur);
+    // FIELD_T32 → TU32 semantics on R2007+ (see read_tu32)
+    let crypto_name = read_tu32(&mut cur, utf16);
+    let algo_id = rl(&mut cur);
+    let key_len = rl(&mut cur);
+    let encr_size = rl(&mut cur);
+    let n = (encr_size as usize).min(cur.len());
+    let mut encr_buffer = String::with_capacity(n * 2);
+    for b in &cur[..n] {
+        use std::fmt::Write;
+        let _ = write!(encr_buffer, "{:02X}", b);
+    }
+    crate::document::DwgSecuritySummary {
+        unknown_1,
+        unknown_2,
+        unknown_3,
+        crypto_id,
+        crypto_name,
+        algo_id,
+        key_len,
+        encr_size,
+        encr_buffer,
+    }
+}
+
+/// Parse the `AcDb:ObjFreeSpace` section — gold's `ObjFreeSpace` shape
+/// (§19 H4), version-gated per objfreespace.spec: ≤R2007 (incl. R2000)
+/// reads 4-byte `zero`/`numhandles` (FIELD_CAST into 64-bit stores),
+/// TDUPDATE TIMERLL, `objects_address` RLx, `numnums` RC, then the
+/// four plain RLL maxes; R2010+ reads 64-bit `zero`/`numhandles`, no
+/// objects_address, `numnums` RC, and each max as the 128-bit lo/hi
+/// pair.
+fn parse_obj_free_space_section(
+    buf: &[u8],
+    r2010_plus: bool,
+) -> crate::document::DwgObjFreeSpaceSummary {
+    let mut cur: &[u8] = buf;
+    fn rll(cur: &mut &[u8]) -> u64 {
+        if cur.len() < 8 {
+            *cur = &[];
+            return 0;
+        }
+        let v = u64::from_le_bytes([
+            cur[0], cur[1], cur[2], cur[3], cur[4], cur[5], cur[6], cur[7],
+        ]);
+        *cur = &cur[8..];
+        v
+    }
+    fn rl32(cur: &mut &[u8]) -> u32 {
+        if cur.len() < 4 {
+            *cur = &[];
+            return 0;
+        }
+        let v = u32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+        *cur = &cur[4..];
+        v
+    }
+    fn rc1(cur: &mut &[u8]) -> u8 {
+        if cur.is_empty() {
+            return 0;
+        }
+        let v = cur[0];
+        *cur = &cur[1..];
+        v
+    }
+    if r2010_plus {
+        let zero = rll(&mut cur);
+        let numhandles = rll(&mut cur);
+        let tdupdate = [rl32(&mut cur), rl32(&mut cur)];
+        let numnums = rc1(&mut cur);
+        let max32 = rll(&mut cur);
+        let max32_hi = rll(&mut cur);
+        let max64 = rll(&mut cur);
+        let max64_hi = rll(&mut cur);
+        let maxtbl = rll(&mut cur);
+        let maxtbl_hi = rll(&mut cur);
+        let maxrl = rll(&mut cur);
+        let maxrl_hi = rll(&mut cur);
+        crate::document::DwgObjFreeSpaceSummary {
+            zero,
+            numhandles,
+            tdupdate,
+            numnums,
+            objects_address: None,
+            max32,
+            max32_hi: Some(max32_hi),
+            max64,
+            max64_hi: Some(max64_hi),
+            maxtbl,
+            maxtbl_hi: Some(maxtbl_hi),
+            maxrl,
+            maxrl_hi: Some(maxrl_hi),
+        }
+    } else {
+        let zero = rl32(&mut cur) as u64;
+        let numhandles = rl32(&mut cur) as u64;
+        let tdupdate = [rl32(&mut cur), rl32(&mut cur)];
+        let objects_address = rl32(&mut cur);
+        let numnums = rc1(&mut cur);
+        let max32 = rll(&mut cur);
+        let max64 = rll(&mut cur);
+        let maxtbl = rll(&mut cur);
+        let maxrl = rll(&mut cur);
+        crate::document::DwgObjFreeSpaceSummary {
+            zero,
+            numhandles,
+            tdupdate,
+            numnums,
+            objects_address: Some(objects_address),
+            max32,
+            max32_hi: None,
+            max64,
+            max64_hi: None,
+            maxtbl,
+            maxtbl_hi: None,
+            maxrl,
+            maxrl_hi: None,
+        }
+    }
+}
+
+/// Parse the `AcDb:AppInfo` section — gold's `AppInfo` shape (§19 H4):
+/// the parsed fields plus, on the R2004-format containers (AC1018 and
+/// AC1024+), the whole section as `size` + `unknown_bits` hex. The
+/// AC1021 (R2007) container's reader never sets size/unknown_bits —
+/// gold prints 0 and '' there (the container split pinned empirically:
+/// example_2007 size=0 vs sample_2018/example_2004 size=698).
+fn parse_app_info_section(
+    buf: &[u8],
+    utf16: bool,
+    ac1021: bool,
+) -> crate::document::DwgAppInfoSummary {
+    let mut cur: &[u8] = buf;
+    let mut summary = crate::document::DwgAppInfoSummary::default();
+    if !ac1021 {
+        let mut hex = String::with_capacity(buf.len() * 2);
+        for b in buf {
+            use std::fmt::Write;
+            let _ = write!(hex, "{:02X}", b);
+        }
+        summary.size = buf.len() as i32;
+        summary.unknown_bits = hex;
+    }
+    if !utf16 {
+        // R2004 (AC1018): the pre-2007 branch — gold's bit_read_T16
+        // semantics are C-string truncation at the first NUL plus
+        // overflow-to-empty (CHK_OVERFLOW returns NULL after consuming
+        // only the RS). The R2004 corpus files carry R2007-format
+        // content (class_version=3 first), so this branch misparses:
+        // appinfo_name reads a 3-byte NUL-led prefix (→ ""), the bogus
+        // num_strings length then overflows every later T16 (→ "") —
+        // gold's emission is size + hex + four empty strings.
+        fn t16_pre2007(cur: &mut &[u8]) -> String {
+            if cur.len() < 2 {
+                *cur = &[];
+                return String::new();
+            }
+            let count = u16::from_le_bytes([cur[0], cur[1]]) as usize;
+            *cur = &cur[2..];
+            if count > cur.len() {
+                // CHK_OVERFLOW: NULL, cursor stays after the RS
+                return String::new();
+            }
+            let bytes = &cur[..count];
+            *cur = &cur[count..];
+            let end = bytes.iter().position(|&b| b == 0).unwrap_or(count);
+            String::from_utf8_lossy(&bytes[..end]).into_owned()
+        }
+        summary.appinfo_name = t16_pre2007(&mut cur);
+        if cur.len() >= 4 {
+            cur = &cur[4..];
+        }
+        summary.comment = t16_pre2007(&mut cur);
+        summary.product_info = t16_pre2007(&mut cur);
+        summary.version = t16_pre2007(&mut cur);
+    } else {
+        // R2007+: class_version RL, appinfo_name, num_strings RL,
+        // version_checksum (16 raw bytes), version, then per num_strings
+        // the comment/product checksum+string pairs.
+        fn rl(cur: &mut &[u8]) -> i32 {
+            if cur.len() < 4 {
+                *cur = &[];
+                return 0;
+            }
+            let v = i32::from_le_bytes([cur[0], cur[1], cur[2], cur[3]]);
+            *cur = &cur[4..];
+            v
+        }
+        fn checksum16(cur: &mut &[u8]) -> String {
+            if cur.len() < 16 {
+                *cur = &[];
+                return String::new();
+            }
+            let mut s = String::with_capacity(32);
+            for b in &cur[..16] {
+                use std::fmt::Write;
+                let _ = write!(s, "{:02X}", b);
+            }
+            *cur = &cur[16..];
+            s
+        }
+        summary.class_version = Some(rl(&mut cur));
+        summary.appinfo_name = read_t16(&mut cur, utf16);
+        let num_strings = rl(&mut cur);
+        summary.version_checksum = Some(checksum16(&mut cur));
+        summary.version = read_t16(&mut cur, utf16);
+        if num_strings >= 2 {
+            summary.comment_checksum = Some(checksum16(&mut cur));
+            summary.comment = read_t16(&mut cur, utf16);
+        }
+        if num_strings >= 3 {
+            summary.product_checksum = Some(checksum16(&mut cur));
+            summary.product_info = read_t16(&mut cur, utf16);
+        }
+    }
+    summary
+}
+
+/// Parse the `AcDb:AppInfoHistory` section — gold's `AppInfoHistory`
+/// shape (§19 H4): the whole section as `size` + `unknown_bits` hex
+/// (gold's spec include for it is commented out — never parsed).
+fn parse_app_info_history_section(buf: &[u8]) -> crate::document::DwgAppInfoHistorySummary {
+    let mut hex = String::with_capacity(buf.len() * 2);
+    for b in buf {
+        use std::fmt::Write;
+        let _ = write!(hex, "{:02X}", b);
+    }
+    crate::document::DwgAppInfoHistorySummary {
+        size: buf.len() as i32,
+        unknown_bits: hex,
+    }
 }
 
 pub struct DwgReader<R: Read + Seek> {
@@ -1360,6 +1813,11 @@ impl<R: Read + Seek> DwgReader<R> {
             document.summary_info = parse_summary_info(&buf, utf16);
         }
 
+        // The §19 H4 metadata sections (gold-JSON-shaped summaries for
+        // the structure axis; every section optional — a missing section
+        // is a skip, never an error).
+        self.read_metadata_sections(&info, dxf_version, &mut document);
+
         // R2000/R14 down-saved gradient hatches store their gradient in the
         // ACAD round-trip mechanism, not the object stream (the DWG gradient
         // block is R2004+): the two colours in EED (GradientColor1ACI /
@@ -1424,6 +1882,9 @@ impl<R: Read + Seek> DwgReader<R> {
                 .unwrap_or(true);
             document.summary_info = parse_summary_info(&buf, utf16);
         }
+
+        // The §19 H4 metadata sections (both read flows).
+        self.read_metadata_sections(&info, dxf_version, &mut document);
 
         // Transfer reader notifications to the document so callers can
         // inspect them via `document.notifications`.
@@ -2001,9 +2462,91 @@ impl<R: Read + Seek> DwgReader<R> {
         Ok(())
     }
 
+    /// Read the §19 H4 metadata sections into their gold-JSON-shaped
+    /// summaries (Template, ObjFreeSpace, FileDepList, RevHistory,
+    /// Security, AppInfo, AppInfoHistory). Every section is optional:
+    /// a missing section (no locator / no map entry) is a skip, never
+    /// an error — gold's own emission gates (the FILEHEADER address
+    /// fields and the R2000 locator counts) make presence file-driven,
+    /// and the structure axis compares only what both sides carry.
+    fn read_metadata_sections(
+        &mut self,
+        info: &DwgFileHeaderInfo,
+        dxf_version: crate::types::DxfVersion,
+        document: &mut crate::document::CadDocument,
+    ) {
+        use crate::io::dwg::file_headers::section_definition::names;
+        let utf16 = crate::io::dwg::dwg_version::DwgVersion::from_dxf_version(dxf_version)
+            .map(|v| v.r2007_plus())
+            .unwrap_or(true);
+        // ObjFreeSpace's 128-bit max split is R2010+ (objfreespace.spec's
+        // UNTIL (R_2007) branch — inclusive — covers R2000/R2004/R2007).
+        let r2010_plus = matches!(
+            dxf_version,
+            crate::types::DxfVersion::AC1024
+                | crate::types::DxfVersion::AC1027
+                | crate::types::DxfVersion::AC1032
+        );
+        // The R2004+ emission arm (out_json.c's `dat->version >= R_2004`
+        // gate) — the metadata sections exist there (or print zeroed).
+        let r2004_plus = matches!(
+            dxf_version,
+            crate::types::DxfVersion::AC1018
+                | crate::types::DxfVersion::AC1021
+                | crate::types::DxfVersion::AC1024
+                | crate::types::DxfVersion::AC1027
+                | crate::types::DxfVersion::AC1032
+        );
+
+        // The R2004+-only sections. Gold emits these UNCONDITIONALLY on
+        // R2004+ files (out_json.c's R_2004 arm has no address gates for
+        // them — only SummaryInfo/VBAProject are gated): when the section
+        // is absent from the map, gold prints the ZEROED struct (e.g.
+        // Security's 9 zero constants on files without the section —
+        // pinned by sample_2018 whose map carries only the 13 core
+        // names). Parsing the empty buffer reproduces the zeroed
+        // emission exactly. On R2000 the sections do not exist at all
+        // (locator-gated emission there), so the fetch-failure skip is
+        // the correct gate.
+        if r2004_plus {
+            let buf = self
+                .get_section_buffer(names::FILE_DEP_LIST, info)
+                .unwrap_or_default();
+            document.dwg_file_dep_list = Some(parse_file_dep_list_section(&buf, utf16));
+            let buf = self.get_section_buffer(names::REV_HISTORY, info).unwrap_or_default();
+            document.dwg_rev_history = Some(parse_rev_history_section(&buf));
+            let buf = self.get_section_buffer(names::SECURITY, info).unwrap_or_default();
+            document.dwg_security = Some(parse_security_section(&buf, utf16));
+            let buf = self.get_section_buffer(names::APP_INFO, info).unwrap_or_default();
+            let ac1021 = dxf_version == crate::types::DxfVersion::AC1021;
+            document.dwg_app_info = Some(parse_app_info_section(&buf, utf16, ac1021));
+            let buf = self
+                .get_section_buffer(names::APP_INFO_HISTORY, info)
+                .unwrap_or_default();
+            document.dwg_app_info_history = Some(parse_app_info_history_section(&buf));
+            // ObjFreeSpace/Template: emitted on R2000 too (locator-gated
+            // there), so their zeroed fallback belongs to the R2004+ arm
+            // only; the R2000 arm below re-reads them when present.
+            let buf = self.get_section_buffer(names::OBJ_FREE_SPACE, info).unwrap_or_default();
+            document.dwg_obj_free_space = Some(parse_obj_free_space_section(&buf, r2010_plus));
+            let buf = self.get_section_buffer(names::TEMPLATE, info).unwrap_or_default();
+            document.dwg_template = Some(parse_template_section(&buf, utf16));
+        } else {
+            // R2000: emission gated on the locator counts (Template
+            // sections>=4, ObjFreeSpace sections>=3) — the locator
+            // lookup IS the gate.
+            if let Ok(buf) = self.get_section_buffer(names::OBJ_FREE_SPACE, info) {
+                document.dwg_obj_free_space = Some(parse_obj_free_space_section(&buf, r2010_plus));
+            }
+            if let Ok(buf) = self.get_section_buffer(names::TEMPLATE, info) {
+                document.dwg_template = Some(parse_template_section(&buf, utf16));
+            }
+        }
+    }
+
     /// Read AC18 (R2004/R2010/R2013/R2018) inner file header, page map, and section map.
     ///
-    /// The AC18 format stores a 0x6C-byte inner file header at file offset 0x80,
+    /// The AC18 format stores a 0x78-byte (120) inner file header at file offset 0x80,
     /// XOR'd with a magic sequence. This header contains pointers to the page map
     /// and section map, which together describe the layout of all section pages.
     fn read_file_header_ac18(&mut self, info: &mut DwgFileHeaderInfo) -> Result<(), DxfError> {

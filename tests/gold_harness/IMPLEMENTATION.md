@@ -4323,13 +4323,13 @@ assertion that no UNDECLARED top-level key silently leaks —
 | `R2007_Header` | — | ✓ (33) on R2007 ONLY | the AC1021 system section (33 fields — its own layout, not the R2004 one) | **LANDED 0/0** (`73935b7`): all 33 fields via `document.dwg_r2007_header` (the gold-named projection of the container metadata) |
 | `SecondHeader` | ✓ (10) | — | the R13–R2000 second header | **LANDED 0/0** (the H2d packet): the sentinel-located read via `document.dwg_second_header` |
 | `AuxHeader` | ✓ (25) | — (absent on the corpus R2004+ files) | aux data | **LANDED 0/0** (the H2d packet): the locator-addressed read via `document.dwg_aux_header` |
-| `SummaryInfo` | — | ✓ (13) | `AcDb:SummaryInfo` | `summary_info` dict (9) — partial |
-| `AppInfo`/`AppInfoHistory` | — | ✓ (10/2) | `AcDb:AppInfo` | section read; no model emission |
-| `Template` | ✓ | ✓ | `AcDb:Template` | section read; no model emission |
-| `FileDepList` | — | ✓ (1) | `AcDb:FileDepList` | none |
-| `RevHistory` | — | ✓ (3) | `AcDb:RevHistory` | none |
-| `Security` | — | ✓ (9) | zero constants on unprotected files | none |
-| `ObjFreeSpace` | — | ✓ (12) | `AcDb:ObjFreeSpace` | none |
+| `SummaryInfo` | — | ✓ (13) | `AcDb:SummaryInfo` | **LANDED 0/0** (the H4 packet): the 8 strings + the 3 timer pairs + the 2 unknowns via the extended `summary_info` |
+| `AppInfo`/`AppInfoHistory` | — | ✓ (10/2) | `AcDb:AppInfo` | **LANDED 0/0** (the H4 packet): the raw-section + parsed shapes via `document.dwg_app_info`/`dwg_app_info_history` |
+| `Template` | ✓ | ✓ | `AcDb:Template` | **LANDED 0/0** (the H4 packet): via `document.dwg_template` |
+| `FileDepList` | — | ✓ (1) | `AcDb:FileDepList` | **LANDED 0/0** (the H4 packet): features + the files records via `document.dwg_file_dep_list` |
+| `RevHistory` | — | ✓ (3) | `AcDb:RevHistory` | **LANDED 0/0** (the H4 packet): via `document.dwg_rev_history` |
+| `Security` | — | ✓ (9) | zero constants on unprotected files | **LANDED 0/0** (the H4 packet): via `document.dwg_security` |
+| `ObjFreeSpace` | — | ✓ (12) | `AcDb:ObjFreeSpace` | **LANDED 0/0** (the H4 packet): the version-gated shapes via `document.dwg_obj_free_space` |
 | `THUMBNAILIMAGE` | ✓ | ✓ | the preview blob | `preview` dict — parsed, never compared |
 | `AcDs` | — | ✓ (13 keys on 2004/2007; 15 on 2013/2018) | the AcDs data section | the embedded-record decode (§18); no section-level comparison |
 | `CLASSES` | ✓ | ✓ | the class table | parsed (§18.6's gold-shadow); dropped by both normalizers |
@@ -4369,10 +4369,12 @@ FILEHEADER's locator count** (ObjFreeSpace/Template/AuxHeader only
 when `header.sections` ≥ 3/4/6) and R2004+ SummaryInfo/VBAProject by
 `summaryinfo_address`/`vbaproj_address` — FILEHEADER fields are
 structurally load-bearing for WHICH keys appear (an H2 comparison
-coupling); **AppInfoHistory has no `AcDb:` name string** — it is
-located by section TYPE (12) in the R2004+ map (`read_2007_section_
-appinfohistory`, decode_r2007.c:1963), which is why name-based
-registries miss it. The enumeration is CLOSED: 14 spec files (15
+coupling); **AppInfoHistory's wire name IS "AcDb:AppInfoHistory"**
+(corrected in the H4 landing: gold's -v4 trace shows the map entry
+carrying the name; gold's internal lookup is by section TYPE 12
+(`read_2007_section_appinfohistory`, decode_r2007.c:1963), but the
+name-based registry only needed the constant — the earlier "no name
+string" claim in this section was wrong). The enumeration is CLOSED: 14 spec files (15
 spec'd parts — `appinfo.spec` covers two) + the two spec-less readers
 (THUMBNAILIMAGE, CLASSES) + the 3 container types + the object map +
 CRCs/sentinels — nothing else exists in the tree.
@@ -4389,11 +4391,13 @@ entries or page-map contents; silver reads them: `PAGE_TYPE_*`,
 the locators themselves ARE comparable via `SecondHeader.sections`),
 per-section CRCs/sentinels/0x16-padding, and the AcDs segment-index
 internals beyond gold's emitted keys (`segidx_offset`/`segidx_unknown`
-point at it). One REAL silver gap surfaced: **`AcDb:AppInfoHistory` is
-unknown to silver's section registry** (`ALL_SECTION_NAMES` holds 14
-names — it also omits `AcDsPrototype_1b` and `Signature`, which exist
-as constants but not in the list); silver survives R2004+ roundtrips
-only via generic section-map skipping. That lands as a named H4 row.
+point at it). One REAL silver gap surfaced: **`AcDb:AppInfoHistory`
+was unknown to silver's section registry** (`ALL_SECTION_NAMES` held
+14 names — it also omits `AcDsPrototype_1b` and `Signature`, which
+exist as constants but not in the list) — RESOLVED in the H4
+landing: the `APP_INFO_HISTORY` constant exists and the descriptor
+lookup by wire name works (the map entry carries the name; the
+"located by TYPE, not name" claim below was corrected).
 Also confirmed comparable: the R2000 section-locator table + its
 per-locator handle vector live in `SecondHeader.sections`/`.handles`
 (6 nr/address/size records + 5 hdl records on sample_2000), and
@@ -4606,23 +4610,55 @@ Signature) — the parse side is further along than the emission side.
   gold's `$VAR` names with typed comparisons. Expect the same
   per-variable quirk discovery the OBJECTS rows went through (gold's
   default-vs-unset emission idiosyncrasies); each lands with evidence.
-- **H4 — the metadata blocks**: `SummaryInfo`, `AppInfo(History)`,
-  `Template`, `FileDepList`, `RevHistory`, `Security`, `ObjFreeSpace`
-  — small dicts, one packet, low risk. `Security` is zero-constants on
-  the unprotected corpus; `FileDepList`/`RevHistory` are empty-or-
-  single-entry on the corpus set. **`created_by` is EXCLUDED from
+- **H4 — the metadata blocks (LANDED 2026-09-25 at ZERO read gaps
+  corpus-wide; 13,450 leaves closed — the read key-gap 248,141 →
+  234,691)**: `SummaryInfo` 4,352 matched (272×16: the existing 8
+  strings + the 3 TIMERLL pairs + the 2 trailing unknowns, captured
+  where the old parse SKIPPED the 24 timer bytes), `AppInfo` 2,396
+  (273 files, the version-gated shapes below), `AppInfoHistory` 546
+  (273×2 — the raw section as size + hex; gold's spec include for it
+  is commented out, never parsed), `Template` 560 (280×2, all
+  versions), `FileDepList` 1,055 (features + the 9-field `files`
+  records), `RevHistory` 819 (273×3), `Security` 2,457 (273×9
+  zero-constants), `ObjFreeSpace` 3,441 (276 files — 273 R2004+ plus
+  the 3 R2000 files whose locator count ≥ 3). **The load-bearing
+  findings:** (a) the EMISSION is unconditional on R2004+ (out_json's
+  R_2004 arm gates only SummaryInfo/VBAProject by address) — files
+  without the section print the ZEROED struct (sample_2018's map
+  carries only the 13 core names; Security's 9 zeros come from
+  files that have no Security section), so the reader parses the
+  empty buffer on fetch-failure to reproduce the zeroed emission,
+  while R2000 keeps the locator-gated skip; (b) the AppInfo
+  CONTAINER split: the R2004-format container (AC1018 + AC1024+)
+  sets size/unknown_bits from the whole section, the AC1021
+  container never does (gold prints size 0 / '' on R2007 — pinned by
+  example_2007 vs sample_2018); (c) the R2004 AppInfo parse of the
+  R2007-format content misparses via C-string truncation at the
+  first NUL + CHK_OVERFLOW-to-empty (the bogus num_strings length
+  overflows every later T16 → gold prints four EMPTY strings —
+  silver's t16_pre2007 replicates the semantics exactly); (d)
+  `FIELD_T32` expands to `bit_read_TU32` on R2007+ (dec_macros.h:616)
+  — the SNIFFING reader whose peek-RL consumption is load-bearing for
+  record alignment: an "empty" string still consumes the peek (8
+  bytes total), the overflow check (`size + byte >= total`) precedes
+  the peek and consumes only the prefix, the UCS-2 branch rewinds
+  and reads size/2 RS chars, the 4-byte branch keeps the peek as the
+  first char's low half — pinned byte-for-byte by 2018/Arc.dwg's
+  FileDepList record (three empty strings consume 8+8+4, the third's
+  size RL is 0xFFFFFFFF and overflows). The `props` REPEAT divergence
+  is latent-not-corpus: silver's custom_properties serialize as
+  tuples vs gold's {tag, value} dicts — no corpus file carries
+  custom props (16 leaves × 272 exactly). **`created_by` is EXCLUDED from
   comparison** (the re-analysis: gold hardcodes its own
   `PACKAGE_STRING` there — an oracle identity stamp, not file
-  content). **The review's named row: `AcDb:AppInfoHistory` is
-  unknown to silver's section registry (`ALL_SECTION_NAMES` lacks it
-  — and also `AcDsPrototype_1b` and `Signature`, which exist as
-  constants); R2004+ roundtrips survive via generic section-map
-  skipping. The packet decides: a named AppInfoHistory read, or the
-  recorded generic-skip + projection of gold's 2 emitted keys. Note:
-  it is located by section TYPE (12), not by an `AcDb:` name —
-  name-based registries structurally miss it. `ObjFreeSpace` has
-  per-version field shapes (`max32_hi`-style 64-bit splits on R2018)
-  the projection must map.**
+  content). **The review's named row RESOLVED: the
+  `APP_INFO_HISTORY` registry constant landed with the H4 read —
+  the wire name IS "AcDb:AppInfoHistory" (gold's -v4 trace pins the
+  map entry; the "located by TYPE, not name" claim was wrong — gold's
+  internal lookup is by TYPE 12, but the name is on the wire and
+  silver's descriptor lookup works). `ObjFreeSpace`'s per-version
+  field shapes (`max32_hi`-style splits on R2010+) landed with the
+  version-gated parse.**
 - **H5 — the bulk/binary sections**: `THUMBNAILIMAGE` and `AcDs`
   compare by content DIGEST (byte-blobs are not field-diffs); the AcDs
   segment-index internals beyond gold's emitted keys

@@ -1075,6 +1075,15 @@ pub struct SummaryInfo {
     pub hyperlink_base: String,
     /// Custom document properties as `(name, value)` pairs.
     pub custom_properties: Vec<(String, String)>,
+    /// TDINDWG — total editing time (gold prints a `[days, ms]` pair).
+    pub tdindwg: [u32; 2],
+    /// TDCREATE — creation time (`[days, ms]`).
+    pub tdcreate: [u32; 2],
+    /// TDUPDATE — last-update time (`[days, ms]`).
+    pub tdupdate: [u32; 2],
+    /// The two trailing raw longs gold prints as `unknown1`/`unknown2`.
+    pub unknown1: u32,
+    pub unknown2: u32,
 }
 
 /// The R2004-format system-section summary — gold's `R2004_Header` shape
@@ -1253,6 +1262,134 @@ pub struct DwgAuxHeaderSummary {
     pub numsaves_4: i32,
     pub zero_5: i32,
     pub zero_6: i32,
+}
+
+/// The Template section summary — gold's `Template` shape (§19 H4).
+/// Present on every version (R2000 locator nr 4; R2004+ section map):
+/// `description` (T16 string) + `MEASUREMENT` (RS, 0=imperial, 1=metric).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgTemplateSummary {
+    pub description: String,
+    pub measurement: i16,
+}
+
+/// One FileDepList file-dependency record (§19 H4).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgFileDepFileInfo {
+    pub filename: String,
+    pub filepath: String,
+    pub fingerprint: String,
+    pub version: String,
+    pub feature_index: i32,
+    pub timestamp: i32,
+    pub filesize: i32,
+    pub affects_graphics: i16,
+    pub refcount: i32,
+}
+
+/// The FileDepList section summary — gold's `FileDepList` shape (§19
+/// H4). `features` (TU32 strings) and the `files` records; the count
+/// fields (`num_features`/`num_files`) do not print.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgFileDepListSummary {
+    pub features: Vec<String>,
+    pub files: Vec<DwgFileDepFileInfo>,
+}
+
+/// The RevHistory section summary — gold's `RevHistory` shape (§19 H4).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgRevHistorySummary {
+    pub class_version: i32,
+    pub class_minor: i32,
+    pub histories: Vec<i32>,
+}
+
+/// The Security section summary — gold's `Security` shape (§19 H4).
+/// All-zero constants on the unprotected corpus files; `encr_buffer`
+/// is the `encr_size` bytes as uppercase hex (empty when 0).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgSecuritySummary {
+    pub unknown_1: u32,
+    pub unknown_2: u32,
+    pub unknown_3: u32,
+    pub crypto_id: u32,
+    pub crypto_name: String,
+    pub algo_id: u32,
+    pub key_len: u32,
+    pub encr_size: u32,
+    pub encr_buffer: String,
+}
+
+/// The ObjFreeSpace section summary — gold's `ObjFreeSpace` shape
+/// (§19 H4). Two wire shapes: ≤R2007 (incl. R2000) reads `objects_address`
+/// and plain `max*` (the FIELD_CAST zero/numhandles read 4-byte wires
+/// into 64-bit stores); R2010+ reads 64-bit `zero`/`numhandles`, drops
+/// `objects_address`, and splits each max into a 128-bit lo/hi pair
+/// (`max32_hi` etc. — "num types are not 64 bit, but 128"). The Option
+/// fields carry the version-family gates: `None` drops the leaf so the
+/// axis compares exactly the keys gold emits per family.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgObjFreeSpaceSummary {
+    pub zero: u64,
+    pub numhandles: u64,
+    pub tdupdate: [u32; 2],
+    pub numnums: u8,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub objects_address: Option<u32>,
+    pub max32: u64,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub max32_hi: Option<u64>,
+    pub max64: u64,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub max64_hi: Option<u64>,
+    pub maxtbl: u64,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub maxtbl_hi: Option<u64>,
+    pub maxrl: u64,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub maxrl_hi: Option<u64>,
+}
+
+/// The AppInfo section summary — gold's `AppInfo` shape (§19 H4): the
+/// WHOLE section as `size` + `unknown_bits` hex, plus the parsed
+/// fields. Version-gated parse (appinfo.spec): R2004 reads
+/// appinfo_name/comment/product_info/version (no class_version — the
+/// decoder sets it to 2 internally, unprinted); R2007+ reads
+/// class_version RL + the 16-byte checksums before each string. The
+/// Option fields drop the R2004-absent leaves.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAppInfoSummary {
+    pub size: i32,
+    pub unknown_bits: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub class_version: Option<i32>,
+    pub appinfo_name: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub version_checksum: Option<String>,
+    pub version: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub comment_checksum: Option<String>,
+    pub comment: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub product_checksum: Option<String>,
+    pub product_info: String,
+}
+
+/// The AppInfoHistory section summary — gold's `AppInfoHistory` shape
+/// (§19 H4): the whole section as `size` + `unknown_bits` hex — gold's
+/// spec include for it is commented out (never parsed).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAppInfoHistorySummary {
+    pub size: i32,
+    pub unknown_bits: String,
 }
 
 /// The DWG file-header summary — gold's `FILEHEADER` shape (§19 H2 of the
@@ -1474,6 +1611,29 @@ pub struct CadDocument {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub dwg_aux_header: Option<DwgAuxHeaderSummary>,
 
+    // ── The §19 H4 metadata-block summaries (gold-JSON-shaped) ──
+    /// `Template` (all versions): description + MEASUREMENT.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_template: Option<DwgTemplateSummary>,
+    /// `FileDepList` (R2004+): features + the dependency records.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_file_dep_list: Option<DwgFileDepListSummary>,
+    /// `RevHistory` (R2004+).
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_rev_history: Option<DwgRevHistorySummary>,
+    /// `Security` (R2004+): zero-constants on unprotected files.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_security: Option<DwgSecuritySummary>,
+    /// `ObjFreeSpace` (R2000 locator + R2004+): the version-gated shape.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_obj_free_space: Option<DwgObjFreeSpaceSummary>,
+    /// `AppInfo` (R2004+): the raw section + the parsed fields.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_app_info: Option<DwgAppInfoSummary>,
+    /// `AppInfoHistory` (R2004+): the raw section (never parsed by gold).
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_app_info_history: Option<DwgAppInfoHistorySummary>,
+
     /// Embedded preview/thumbnail image. Populated by the DWG reader from the
     /// file's preview section; the DWG writer embeds it when `Some` and emits an
     /// empty preview when `None`. Not part of DXF.
@@ -1689,6 +1849,13 @@ impl CadDocument {
             dwg_r2007_header: None,
             dwg_second_header: None,
             dwg_aux_header: None,
+            dwg_template: None,
+            dwg_file_dep_list: None,
+            dwg_rev_history: None,
+            dwg_security: None,
+            dwg_obj_free_space: None,
+            dwg_app_info: None,
+            dwg_app_info_history: None,
             preview: None,
             acis_sab_handles: Vec::new(),
             raw_acds_data: None,

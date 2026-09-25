@@ -177,10 +177,27 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
         views["SecondHeader"] = doc["dwg_second_header"]
     if isinstance(doc.get("dwg_aux_header"), dict):
         views["AuxHeader"] = doc["dwg_aux_header"]
-    if isinstance(doc.get("header"), dict):
-        views["HEADER"] = doc["header"]
+    # H4's metadata blocks — gold-JSON-shaped summaries (the canonical
+    # name matcher aligns snake_case onto gold's names, e.g.
+    # tdindwg → TDINDWG, measurement → MEASUREMENT).
     if isinstance(doc.get("summary_info"), dict):
         views["SummaryInfo"] = doc["summary_info"]
+    if isinstance(doc.get("dwg_template"), dict):
+        views["Template"] = doc["dwg_template"]
+    if isinstance(doc.get("dwg_file_dep_list"), dict):
+        views["FileDepList"] = doc["dwg_file_dep_list"]
+    if isinstance(doc.get("dwg_rev_history"), dict):
+        views["RevHistory"] = doc["dwg_rev_history"]
+    if isinstance(doc.get("dwg_security"), dict):
+        views["Security"] = doc["dwg_security"]
+    if isinstance(doc.get("dwg_obj_free_space"), dict):
+        views["ObjFreeSpace"] = doc["dwg_obj_free_space"]
+    if isinstance(doc.get("dwg_app_info"), dict):
+        views["AppInfo"] = doc["dwg_app_info"]
+    if isinstance(doc.get("dwg_app_info_history"), dict):
+        views["AppInfoHistory"] = doc["dwg_app_info_history"]
+    if isinstance(doc.get("header"), dict):
+        views["HEADER"] = doc["header"]
     if isinstance(doc.get("preview"), dict):
         views["THUMBNAILIMAGE"] = doc["preview"]
     if isinstance(doc.get("classes"), dict) and isinstance(

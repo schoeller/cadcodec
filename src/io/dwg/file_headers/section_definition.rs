@@ -12,6 +12,12 @@ pub mod names {
     pub const ACDB_OBJECTS: &str = "AcDb:AcDbObjects";
     pub const ACDS_PROTOTYPE: &str = "AcDb:AcDsPrototype_1b";
     pub const APP_INFO: &str = "AcDb:AppInfo";
+    /// The R2004+ AppInfoHistory section. Located in the section map by
+    /// its wire name (gold's internal lookup is by section TYPE 12, but
+    /// the map entry carries this name — pinned by the -v4 trace on
+    /// sample_2018: `name: "AcDb:AppInfoHistory"`); the historical
+    /// registry omission is the §19.1 named gap.
+    pub const APP_INFO_HISTORY: &str = "AcDb:AppInfoHistory";
     pub const AUX_HEADER: &str = "AcDb:AuxHeader";
     pub const HEADER: &str = "AcDb:Header";
     pub const CLASSES: &str = "AcDb:Classes";
