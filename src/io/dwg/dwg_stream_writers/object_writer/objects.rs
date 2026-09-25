@@ -302,25 +302,9 @@ fn matrix_to_row_major(m: &crate::types::Matrix4) -> [f64; 12] {
 /// node classes (Wedge, Cylinder, Cone, Torus, Pyramid, and BREP)
 /// stay elided until a fixture lands for each — unverified elide
 /// removals are strict-reader risk.
-pub(crate) fn elided_solid_history_class(dxf_name: &str, captured: bool) -> bool {
-    if !dxf_name.starts_with("ACSH_") {
-        return false;
-    }
-    // Constructed-tree verdict (2026-09-24): trees assembled by
-    // CadDocument::create_solid_history — even with the full census
-    // genus (33/427 trio, eval-graph interposition, native placement,
-    // ByLayer material) — are still refused by BricsCAD's modeler
-    // ("General modeling failure / Object improperly read:
-    // <AcDb3dSolid> ... Invalid input"), while the SAT-only shape the
-    // region/solid probes carry loads clean. Only BYTE-CAPTURED
-    // records of the calibrated classes are written; constructed
-    // records of every class elide until a constructed probe passes a
-    // strict loader (the discriminating flag is
-    // DynamicBlockObject::captured — set by the DWG reader).
-    if !captured {
-        return true;
-    }
-    dxf_name != "ACSH_HISTORY_CLASS"
+pub(crate) fn elided_solid_history_class(dxf_name: &str) -> bool {
+    dxf_name.starts_with("ACSH_")
+        && dxf_name != "ACSH_HISTORY_CLASS"
         && dxf_name != "ACSH_SWEEP_CLASS"
         && dxf_name != "ACSH_EXTRUSION_CLASS"
         && dxf_name != "ACSH_LOFT_CLASS"
@@ -349,26 +333,9 @@ impl<'a> DwgObjectWriter<'a> {
         //
         // The elision verdict and the pointer-nulling verdict share one
         // authority: elided_solid_history_class above (see its doc for
-        // the Phase A state of each class and the constructed-tree
-        // verdict).
+        // the Phase A state of each class).
         if let ObjectType::DynamicBlock(d) = obj {
-            if elided_solid_history_class(&d.dxf_name, d.captured) {
-                return;
-            }
-            // The SH-tree evaluation graphs interposed by
-            // create_solid_history are constructed companions of
-            // elided records — a written graph whose history and node
-            // targets were elided dangles. Captured graphs and the
-            // association networks' graphs (owned outside an SH tree)
-            // are unaffected.
-            if d.dxf_name == "ACAD_EVALUATION_GRAPH"
-                && !d.captured
-                && matches!(
-                    self.document.objects.get(&d.owner),
-                    Some(crate::objects::ObjectType::DynamicBlock(owner))
-                        if owner.dxf_name.starts_with("ACSH_")
-                )
-            {
+            if elided_solid_history_class(&d.dxf_name) {
                 return;
             }
         }

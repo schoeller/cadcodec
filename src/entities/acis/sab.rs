@@ -82,11 +82,6 @@ pub mod tags {
 
 /// SAB header magic string.
 const SAB_MAGIC: &[u8] = b"ACIS BinaryFile";
-/// ASM (Autodesk ShapeManager) header magic — DWG R2013+ AcDs data store.
-/// Note the ASM magic is 14 bytes; a single trailing byte (0x34) follows
-/// before the version u32 (so the header ints still begin 15 bytes in,
-/// like classic ACIS).
-const SAB_MAGIC_ASM: &[u8] = b"ASM BinaryFile";
 
 // ============================================================================
 // SAT → SAB Writer
@@ -96,54 +91,24 @@ const SAB_MAGIC_ASM: &[u8] = b"ASM BinaryFile";
 pub struct SabWriter;
 
 impl SabWriter {
-    /// Convert a SAT document to classic ACIS SAB binary data.
+    /// Convert a SAT document to SAB binary data.
     pub fn write(doc: &SatDocument) -> Vec<u8> {
-        Self::write_impl(doc, false)
-    }
-
-    /// Convert a SAT document to ASM (ShapeManager) SAB binary data, the
-    /// form DWG R2013+ stores in the `AcDsPrototype_1b` section.
-    /// Differs from classic ACIS SAB in the magic, the trailing byte
-    /// after it, the real record count, and the `End-of-ASM-data`
-    /// terminator (fix/sat-validate-before-sab, 2026-09-15: classic SAB
-    /// is rejected by the ASM loader in AutoCAD/BricsCAD with "Object
-    /// improperly read").
-    pub fn write_asm(doc: &SatDocument) -> Vec<u8> {
-        Self::write_impl(doc, true)
-    }
-
-    fn write_impl(doc: &SatDocument, asm: bool) -> Vec<u8> {
         let mut buf = Vec::with_capacity(8192);
 
         // Restore-file record order (2026-09-22 region probe, third
-        // verdict; CLASSIC ONLY — ASM documents arrive with their own
-        // canonical asmheader/body-first/reversed topological order
-        // from SatDocument::to_asm_structure, which the rank sort would
-        // destroy): the strict restorer takes the leading records as
-        // the top-level entities to restore AND walks the record
-        // stream in the native class ranking. Cadkernel-assembled
-        // documents append the body last (2026-09-22: body-first fix);
-        // the 2026-09-24 box probe proved the complementary failure -
-        // a body-FIRST assembly whose tail is unranked
-        // (build_planar_body interleaves point/vertex pairs and emits
-        // surfaces after edges) still reads as "Invalid input", while
-        // the identical inventory in rank order (gen_all's solids,
-        // every native specimen) restores clean. The gate is therefore
-        // rank-awareness, not body position: any constructed document
-        // whose class sequence is not already non-decreasing in rank
-        // order is sorted; ranked documents (gen_all's builders, the
-        // echo-compatible primitives) pass through untouched -
-        // byte-stable.
-        let is_ranked = doc
-            .records
-            .windows(2)
-            .all(|pair| {
-                Self::class_rank(&pair[0].entity_type) <= Self::class_rank(&pair[1].entity_type)
-            });
+        // verdict): the strict restorer takes the leading records as
+        // the top-level entities to restore — cadkernel-assembled
+        // documents append the body last, so the restorer starts from
+        // a `point` record and reports "Data stream is empty" /
+        // "Audit Failed" while the identical inventory, body-first,
+        // audits clean. Documents whose first record is already the
+        // body — primitive-built (`SatDocument::new_body`) and
+        // captured genus alike — and documents carrying raw binary
+        // tokens are left untouched, keeping echo rewrites
+        // byte-faithful.
         let reordered;
-        let doc = if !asm
-            && !doc.records.is_empty()
-            && !is_ranked
+        let doc = if !doc.records.is_empty()
+            && doc.records[0].entity_type != "body"
             && doc.records.iter().any(|r| r.entity_type == "body")
             && !doc
                 .records
@@ -171,48 +136,29 @@ impl SabWriter {
             .count();
 
         // Header
-        Self::write_header(&mut buf, &doc.header, body_count, asm);
+        Self::write_header(&mut buf, &doc.header, body_count);
 
         // Entity records
         for record in &doc.records {
             Self::write_record(&mut buf, record);
         }
 
-        // End marker.
-        // Classic ACIS uses the bare "End-of-ACIS-data" entity-type string.
-        // ASM (ShapeManager) uses the tagged-token terminator:
-        //   0E"End" 0E"of" 0E"ASM" 0D"data"
-        if asm {
-            Self::write_subtype(&mut buf, "End");
-            Self::write_subtype(&mut buf, "of");
-            Self::write_subtype(&mut buf, "ASM");
-            Self::write_entity_type(&mut buf, "data");
-        } else {
-            Self::write_entity_type(&mut buf, "End-of-ACIS-data");
-        }
+        // End marker: entity type "End-of-ACIS-data" with no end-of-record tag
+        Self::write_entity_type(&mut buf, "End-of-ACIS-data");
 
         buf
     }
 
-    fn write_header(buf: &mut Vec<u8>, header: &SatHeader, body_count: usize, asm: bool) {
+    fn write_header(buf: &mut Vec<u8>, header: &SatHeader, body_count: usize) {
         // Magic
-        if asm {
-            buf.extend_from_slice(SAB_MAGIC_ASM);
-            // ASM magic is 14 bytes; one trailing byte precedes the version u32.
-            buf.push(0x34);
-        } else {
-            buf.extend_from_slice(SAB_MAGIC);
-        }
+        buf.extend_from_slice(SAB_MAGIC);
 
         // Version number (4 bytes LE)
         let ver = header.version.sat_version_number();
         buf.extend_from_slice(&ver.to_le_bytes());
 
-        // num_records field (4 bytes LE). Classic ACIS 7.0+ writes 0;
-        // the ASM ShapeManager writer records the actual record count.
-        let num_records: u32 = if asm {
-            header.num_records as u32
-        } else if header.version.has_explicit_indices() {
+        // num_records field (4 bytes LE) — always 0 for ACIS 7.0+
+        let num_records: u32 = if header.version.has_explicit_indices() {
             0
         } else {
             header.num_records as u32
@@ -231,9 +177,9 @@ impl SabWriter {
         let declared = header.num_bodies.max(body_count);
         buf.extend_from_slice(&(declared as u32).to_le_bytes());
 
-        // has_history / flags word (4 bytes LE) — retained verbatim (the
-        // native census: 26/24/12/4 by version; 0/1 for text-parsed).
-        buf.extend_from_slice(&header.has_history.to_le_bytes());
+        // has_history (4 bytes LE)
+        let history: u32 = if header.has_history { 1 } else { 0 };
+        buf.extend_from_slice(&history.to_le_bytes());
 
         // Product info strings
         Self::write_string(buf, &header.product_id);
@@ -357,8 +303,8 @@ impl SabWriter {
     /// curves, vertices, edges, coedges, loops, faces, shells, lumps,
     /// then anything else in assembly order). Position-based ids are
     /// remapped across every pointer token and the attribute field.
-    fn class_rank(entity_type: &str) -> u8 {
-        match base_entity_type(entity_type) {
+    fn reorder_restore_file(doc: &SatDocument) -> SatDocument {
+        let rank = |record: &SatRecord| match base_entity_type(&record.entity_type) {
             "body" => 0u8,
             "point" => 1,
             "surface" => 2,
@@ -371,11 +317,7 @@ impl SabWriter {
             "shell" => 9,
             "lump" => 10,
             _ => 11,
-        }
-    }
-
-    fn reorder_restore_file(doc: &SatDocument) -> SatDocument {
-        let rank = |record: &SatRecord| Self::class_rank(&record.entity_type);
+        };
         let mut order: Vec<usize> = (0..doc.records.len()).collect();
         order.sort_by_key(|&old| rank(&doc.records[old]));
         let mut old_to_new = vec![0i32; doc.records.len()];
@@ -429,43 +371,6 @@ impl SabWriter {
             ],
             // `add_edge` width 9: ... + sense + the @7 unknown tether.
             ("edge", 8) => vec![SatToken::String("unknown".to_string())],
-            // The 2026-09-24 cylinder_2 verdict: cadkernel's exporter
-            // emits the geometry spine of the conic/quadric classes
-            // without the trailing role idents (its ellipse carries no
-            // I I; its cone carries no `forward I I I I`) - the same
-            // class-width failure plane-surface had, one genus wider.
-            // `add_ellipse_curve` width 13: $-1 + 9 floats + ratio + I I.
-            ("ellipse-curve", 11) => vec![
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-            ],
-            // `add_cone_surface` width 21: $-1 + origin/axis/major +
-            // ratio + I I + sin/cos/radius + forward I I I I.
-            ("cone-surface", 16) => vec![
-                SatToken::Ident("forward".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-            ],
-            // `add_sphere_surface` width 16: $-1 + origin + radius +
-            // u_dir + pole + forward_v I I I I.
-            ("sphere-surface", 11) => vec![
-                SatToken::Ident("forward_v".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-            ],
-            // `add_torus_surface` width 17: $-1 + origin + normal +
-            // major + minor + u_dir + forward_v I I I I.
-            ("torus-surface", 12) => vec![
-                SatToken::Ident("forward_v".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-                SatToken::Ident("I".to_string()),
-            ],
             _ => return None,
         };
         let mut completed = tokens.to_vec();
@@ -1098,7 +1003,7 @@ impl SabReader {
         let version_num = read_u32(data, &mut pos)?;
         let num_records = read_u32(data, &mut pos)? as usize;
         let num_bodies = read_u32(data, &mut pos)? as usize;
-        let has_history = read_u32(data, &mut pos)?;
+        let has_history = read_u32(data, &mut pos)? != 0;
 
         let version = SatVersion::from_sat_number(version_num);
 
@@ -1717,15 +1622,9 @@ mod tests {
 
         assert_eq!(roundtrip.header.version, doc.header.version);
         assert_eq!(roundtrip.records.len(), doc.records.len());
-        // The write ranks the record stream in the native class order
-        // (2026-09-24 rank-aware gate): body, then surfaces, faces,
-        // shells, lumps - the source text's body/lump/shell/face/
-        // plane-surface assembly re-emits ranked, pointers remapped.
         assert_eq!(roundtrip.records[0].entity_type, "body");
-        assert_eq!(roundtrip.records[1].entity_type, "plane-surface");
-        assert_eq!(roundtrip.records[2].entity_type, "face");
-        assert_eq!(roundtrip.records[3].entity_type, "shell");
-        assert_eq!(roundtrip.records[4].entity_type, "lump");
+        assert_eq!(roundtrip.records[3].entity_type, "face");
+        assert_eq!(roundtrip.records[4].entity_type, "plane-surface");
     }
 
     #[test]
@@ -1798,9 +1697,7 @@ mod tests {
             ["no_rotate", "no_reflect", "no_shear"]
         );
         let text = roundtrip.to_sat_string();
-        // The history/flags word is retained verbatim (the native census:
-        // 26/24/12/4 by version) — no bool truncation on the round-trip.
-        assert!(text.starts_with("21200 2 1 26\n"));
+        assert!(text.starts_with("21200 2 1 1\n"));
         assert!(text.contains(" forward double out #\n"));
         assert!(text.contains(" no_rotate no_reflect no_shear #\n"));
     }
@@ -2034,25 +1931,6 @@ mod tests {
                 SabWriter::write(&raw),
                 expected,
                 "raw SAB must remain unchanged"
-            );
-            // DWG-embedded expectation: every version embeds the CLASSIC
-            // stream. The 2026-09-25 verdict matrix: the AcDs datastore
-            // this queue feeds is the IntelliCAD-style ds_version=1
-            // container, whose restore path pairs with classic ACIS
-            // blobs — BricsCAD-verified via the gen_all 9ed5e42 round —
-            // while ASM blobs in the same container fail the modeler
-            // restore. The ASM machinery itself stays verified by the
-            // round-trip below (a future native-style ds_version=16
-            // container may embed it).
-            let mut asm_doc = SatDocument::parse(&doc.to_sat_string()).unwrap();
-            let expected_asm = asm_doc.to_sab_asm_checked().unwrap();
-            let expected_raw_asm = {
-                let mut raw_doc = SabReader::read(&expected_asm).unwrap();
-                raw_doc.to_sab_asm_checked().unwrap()
-            };
-            assert_eq!(
-                expected_raw_asm, expected_asm,
-                "raw ASM SAB must remain unchanged (rational={rational})"
             );
             for version in [
                 crate::DxfVersion::AC1018,

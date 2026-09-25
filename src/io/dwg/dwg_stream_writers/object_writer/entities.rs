@@ -5169,7 +5169,7 @@ impl<'a> DwgObjectWriter<'a> {
                 if matches!(
                     self.document.objects.get(&handle),
                     Some(crate::objects::ObjectType::DynamicBlock(d))
-                        if super::objects::elided_solid_history_class(&d.dxf_name, d.captured)
+                        if super::objects::elided_solid_history_class(&d.dxf_name)
                 ) =>
             {
                 0
@@ -5646,40 +5646,15 @@ impl<'a> DwgObjectWriter<'a> {
     /// `queue_sab_data()` approach).
     fn queue_sab_entry(&mut self, acis: &AcisData, entity_handle: Handle) {
         if acis.is_binary && !acis.sab_data.is_empty() {
-            // Already have SAB binary data (captured records echo verbatim —
-            // captured genus is byte-faithful regardless of format).
+            // Already have SAB binary data
             self.sab_entries
                 .push((entity_handle, acis.sab_data.clone()));
         } else if !acis.sat_data.is_empty() {
-            // Convert SAT text → SAB binary via SatDocument. The AcDs
-            // datastore this queue feeds is the IntelliCAD-style
-            // ds_version=1 container (build_acds_prototype); its restore
-            // path pairs with CLASSIC ACIS blobs. The 2026-09-25 verdict
-            // matrix: this container + classic SAB opens clean in
-            // BricsCAD (the gen_all 9ed5e42 round, user-verified), while
-            // the same container + ASM blobs — even byte-verbatim native
-            // ASM — fails the modeler restore ("Out of Memory" /
-            // "Object improperly read"). ASM (ShapeManager) belongs to
-            // the native ds_version=16 datastore genus, whose container
-            // layout is not yet modeled (the native jard carries
-            // ds_version=16, num_segidx 91, segidx-first ordering —
-            // see the gold-oracle acds trace). Constructed documents
-            // therefore embed the classic form at every DWG version;
-            // captured binary SAB (sab_data) echoes verbatim above.
+            // Convert SAT text → SAB binary via SatDocument
             if let Ok(mut sat_doc) = crate::entities::acis::SatDocument::parse(&acis.sat_data) {
-                let result = sat_doc.to_sab_checked();
-                match result {
-                    Ok(sab) => self.sab_entries.push((entity_handle, sab)),
-                    Err(errors) => {
-                        // Never embed a corrupt blob: a missing AcDs record
-                        // reads back as an empty solid, whereas a malformed
-                        // SAB can fail the whole file in the ACIS kernel.
-                        eprintln!(
-                            "[dwg-writer] skipping SAB blob for handle {:?}: SAT validation failed: {:?}",
-                            entity_handle, errors
-                        );
-                    }
-                }
+                sat_doc.strip_for_sab();
+                let sab = crate::entities::acis::SabWriter::write(&sat_doc);
+                self.sab_entries.push((entity_handle, sab));
             }
         }
     }

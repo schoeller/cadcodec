@@ -2328,9 +2328,7 @@ impl CadDocument {
             }
             visited.push(node_id);
             reversed.push((*current).clone());
-            // Root sentinels: 0 = legacy constructed genus, -1 = the
-            // native census (see create_solid_history).
-            if parent_id <= 0 {
+            if parent_id == 0 {
                 break;
             }
             let mut parent_matches = operations.iter().copied().filter(|operation| {
@@ -2368,73 +2366,14 @@ impl CadDocument {
         }
         let step_id = base.step_id;
 
-        // Constructed-native stance (2026-09-24 box probe): the SH tree
-        // natives author (the sh_history fixture census, identical at
-        // every DWG version) carries the 33/427 class-version trio on
-        // the history root, eval block, node block and operation; the
-        // no-value eval sentinel -9999; a live record_history; and an
-        // ACAD_EVALUATION_GRAPH interposed between the history root and
-        // the primitive node (history payload owner -> graph, graph owns
-        // the node, the graph's node list points at the node). The old
-        // 1/0-genus factory shape (node owned directly by the history,
-        // no graph) made BricsCAD's modeler refuse the whole file
-        // ("Cannot open file: Object improperly read: <AcDb3dSolid>
-        // ... Previous error: Invalid input" - the Wuerfel probe).
-        operation.stamp_class_version(33, 427);
-        // The created root node is parentless in the native census
-        // (parent_id -1), and its node transform defaults to identity -
-        // a zero-initialized transform is not a genus any authored
-        // specimen carries.
-        {
-            // Native node placement (the box census): the node transform
-            // carries the primitive-to-world translation (L/2, W/2, H/2)
-            // - the modeler replays the origin-centered primitive and
-            // applies it, so the cached SAT and the replay must agree.
-            // Only stamped when the caller left the transform at
-            // identity; explicit placements win.
-            let half_dims = match &operation {
-                SolidHistoryOperation::Box(value) | SolidHistoryOperation::Wedge(value) => {
-                    Some((value.length / 2.0, value.width / 2.0, value.height / 2.0))
-                }
-                _ => None,
-            };
-            let base = operation.base_mut()?;
-            base.eval.parent_id = -1;
-            if base.transform.iter().all(|value| *value == 0.0) {
-                base.transform = [
-                    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-                    0.0, 1.0,
-                ];
-            }
-            if let Some((half_x, half_y, half_z)) = half_dims {
-                if base.transform
-                    == [
-                        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-                        0.0, 1.0,
-                    ]
-                {
-                    base.transform[3] = half_x;
-                    base.transform[7] = half_y;
-                    base.transform[11] = half_z;
-                }
-            }
-        }
-
         self.delete_solid_history(entity);
         let root = self.allocate_handle();
-        let graph = self.allocate_handle();
         let node = self.allocate_handle();
 
         if !self.classes.contains("ACSH_HISTORY_CLASS") {
             self.classes.add_or_update(crate::classes::DxfClass::new(
                 "ACSH_HISTORY_CLASS",
                 "AcDbShHistory",
-            ));
-        }
-        if !self.classes.contains("ACAD_EVALUATION_GRAPH") {
-            self.classes.add_or_update(crate::classes::DxfClass::new(
-                "ACAD_EVALUATION_GRAPH",
-                "AcDbEvalGraph",
             ));
         }
         if !self.classes.contains(dxf_name) {
@@ -2446,47 +2385,23 @@ impl CadDocument {
         root_object.handle = root;
         root_object.owner = entity;
         root_object.data = DynamicBlockData::SolidHistory(SolidHistory {
-            major: 33,
-            minor: 427,
-            owner: graph,
+            major: 1,
+            owner: entity,
             history_node_id: step_id,
-            show_history: false,
-            record_history: true,
+            record_history: self.header.record_solid_history,
+            ..SolidHistory::default()
         });
-
-        let mut graph_object =
-            DynamicBlockObject::new("ACAD_EVALUATION_GRAPH", "AcDbEvalGraph");
-        graph_object.handle = graph;
-        graph_object.owner = root;
-        graph_object.data = DynamicBlockData::EvaluationGraph(
-            crate::objects::BlockEvaluationGraph {
-                first_node_id: step_id,
-                first_node_id_copy: step_id,
-                nodes: vec![crate::objects::BlockEvaluationNode {
-                    id: 0,
-                    edge_flags: 32,
-                    next_id: step_id,
-                    expression: node,
-                    node_data: [-1, -1, -1, -1],
-                    active_cycles: None,
-                }],
-                edges: Vec::new(),
-            },
-        );
 
         let mut node_object = DynamicBlockObject::new(dxf_name, cpp_class_name);
         node_object.handle = node;
-        node_object.owner = graph;
+        node_object.owner = root;
         node_object.data = DynamicBlockData::SolidHistoryNode(operation);
         self.objects
             .insert(root, ObjectType::DynamicBlock(root_object));
         self.objects
-            .insert(graph, ObjectType::DynamicBlock(graph_object));
-        self.objects
             .insert(node, ObjectType::DynamicBlock(node_object));
         if !self.set_entity_history_handle(entity, Some(root)) {
             self.objects.remove(&root);
-            self.objects.remove(&graph);
             self.objects.remove(&node);
             return None;
         }
@@ -2556,49 +2471,18 @@ impl CadDocument {
         base.step_id = step_id;
         base.eval.node_id = step_id;
         base.eval.parent_id = parent_node_id;
-        // Constructed-native class-version trio (see create_solid_history);
-        // the parent linkage above stays the caller's.
-        operation.stamp_class_version(33, 427);
 
         if !self.classes.contains(dxf_name) {
             self.classes
                 .add_or_update(crate::classes::DxfClass::new(dxf_name, cpp_class_name));
         }
-        // The native tree owns operation nodes through the evaluation
-        // graph interposed on the history root (create_solid_history
-        // census) - resolve it from the history payload's owner field.
-        let graph_handle = match self.objects.get(&graph.root) {
-            Some(ObjectType::DynamicBlock(value)) => match &value.data {
-                DynamicBlockData::SolidHistory(history) => history.owner,
-                _ => return None,
-            },
-            _ => return None,
-        };
         let node = self.allocate_handle();
         let mut node_object = DynamicBlockObject::new(dxf_name, cpp_class_name);
         node_object.handle = node;
-        node_object.owner = graph_handle;
+        node_object.owner = graph.root;
         node_object.data = DynamicBlockData::SolidHistoryNode(operation);
         self.objects
             .insert(node, ObjectType::DynamicBlock(node_object));
-        // Extend the evaluation graph's node list (the native
-        // single-node census carries id 0 / edge_flags 32 / expression
-        // -> the node handle; appended nodes take the next free id and
-        // a terminal next_id - no authored multi-node specimen exists
-        // in the fixture corpus yet).
-        if let Some(ObjectType::DynamicBlock(value)) = self.objects.get_mut(&graph_handle) {
-            if let DynamicBlockData::EvaluationGraph(eval_graph) = &mut value.data {
-                let id = eval_graph.nodes.iter().map(|n| n.id).max().unwrap_or(-1) + 1;
-                eval_graph.nodes.push(crate::objects::BlockEvaluationNode {
-                    id,
-                    edge_flags: 32,
-                    next_id: 0,
-                    expression: node,
-                    node_data: [-1, -1, -1, -1],
-                    active_cycles: None,
-                });
-            }
-        }
         if let Some(ObjectType::DynamicBlock(value)) = self.objects.get_mut(&graph.root) {
             if let DynamicBlockData::SolidHistory(history) = &mut value.data {
                 history.history_node_id = step_id;
@@ -2658,9 +2542,6 @@ impl CadDocument {
             base.eval.node_id = base.step_id;
         }
         let step_id = base.step_id;
-        // Constructed-native class-version trio (see
-        // create_solid_history) - replaced nodes keep the genus.
-        operation.stamp_class_version(33, 427);
 
         if !self.classes.contains(dxf_name) {
             self.classes
@@ -2776,33 +2657,8 @@ impl CadDocument {
         }
         self.get_entity(target)?;
         let graph = self.solid_history_graph(source)?;
-        // The native tree interposes an evaluation graph between the
-        // history root and the nodes (see create_solid_history); copy
-        // it too, rewiring the payload owner and node expressions.
-        // Legacy trees (no graph object) copy unchanged.
-        let graph_handle = match self.objects.get(&graph.root) {
-            Some(ObjectType::DynamicBlock(value)) => match &value.data {
-                DynamicBlockData::SolidHistory(history)
-                    if matches!(
-                        self.objects.get(&history.owner),
-                        Some(ObjectType::DynamicBlock(candidate))
-                            if matches!(
-                                candidate.data,
-                                DynamicBlockData::EvaluationGraph(_)
-                            )
-                    ) =>
-                {
-                    Some(history.owner)
-                }
-                _ => None,
-            },
-            _ => None,
-        };
-        let mut source_handles = Vec::with_capacity(graph.nodes.len() + 2);
+        let mut source_handles = Vec::with_capacity(graph.nodes.len() + 1);
         source_handles.push(graph.root);
-        if let Some(graph_handle) = graph_handle {
-            source_handles.push(graph_handle);
-        }
         source_handles.extend(graph.nodes.iter().copied());
         let source_objects = source_handles
             .iter()
@@ -2829,17 +2685,8 @@ impl CadDocument {
             if old_handle == graph.root {
                 value.owner = target;
                 if let DynamicBlockData::SolidHistory(history) = &mut value.data {
-                    history.owner = match graph_handle {
-                        // The new evaluation graph handle.
-                        Some(old_graph) => remap[&old_graph],
-                        // Legacy trees keep the entity-linked payload.
-                        None => target,
-                    };
+                    history.owner = target;
                 }
-            } else if Some(old_handle) == graph_handle {
-                // The evaluation graph hangs off the new history root;
-                // its node expressions remap through visit_handles_mut.
-                value.owner = new_root;
             } else {
                 value.owner = remap.get(&value.owner).copied().unwrap_or(value.owner);
                 new_nodes.push(new_handle);

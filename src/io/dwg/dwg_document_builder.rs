@@ -6195,7 +6195,6 @@ impl DwgDocumentBuilder {
                                     "ACDB_BLOCKREPRESENTATION_DATA".to_string(),
                                 cpp_class_name:
                                     "AcDbBlockRepresentationData".to_string(),
-                                captured: true,
                                 data:
                                     crate::objects::DynamicBlockData::Representation(
                                         crate::objects::BlockRepresentationData {
@@ -6353,7 +6352,6 @@ impl DwgDocumentBuilder {
                                             .map(Handle::from),
                                         dxf_name: dxf_name.to_string(),
                                         cpp_class_name,
-                                        captured: true,
                                         data,
                                     },
                                 ),
@@ -6395,7 +6393,6 @@ impl DwgDocumentBuilder {
                                                 .map(Handle::from),
                                             dxf_name: dxf_name.to_string(),
                                             cpp_class_name,
-                                            captured: true,
                                             data,
                                         },
                                     ),
