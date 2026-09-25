@@ -68,6 +68,7 @@ DECLARED_ABSENT: Dict[str, str] = {
 }
 
 _MAX_SAMPLES = 8
+_MAX_SAMPLE_CHARS = 120
 _REL_TOL = 1e-6
 
 
@@ -237,7 +238,13 @@ def compare_key_views(
         if not _leaves_equal(v, hit[1]):
             value_diffs += 1
             if len(samples) < _MAX_SAMPLES:
-                samples.append(f"{k}: gold={v!r} vs {other_side}={hit[1]!r}")
+                # Trim each repr: sample leaves can be multi-KB hex blobs
+                # (thumbnails, AppInfo unknown_bits) that would bloat every
+                # per-file census artifact.
+                entry = f"{k}: gold={v!r} vs {other_side}={hit[1]!r}"
+                if len(entry) > _MAX_SAMPLE_CHARS:
+                    entry = entry[:_MAX_SAMPLE_CHARS] + "…"
+                samples.append(entry)
     for k in o:
         if _canon(k) not in g_by_canon:
             missing_gold += 1

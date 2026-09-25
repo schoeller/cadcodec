@@ -4400,27 +4400,40 @@ Signature) — the parse side is further along than the emission side.
   per-key census into report.json/report.md. **The OBJECTS axis held
   0/0 through the landing (before AND after: 280 files read 0 /
   write 0).**
-  **Day-one census (the H2-H5 attack order):** read key-gap **259,073**
-  leaf-gaps; write-target key-gap **21,822**. Per key (summed over both
-  axes' file-sides — the files-column double-counts by design):
-  HEADER dominates the read gap (**128,489 missing + 9,532 name-matched,
-  0 value diffs on matched** — the gap is name-set coverage, i.e. the
-  H3 variable ledger is THE row); AcDs **58,471** (section-level view,
-  present 273/273 silver-covered on the write side at **0/0** — the
-  verbatim property the §18 record pinned, now corpus-wide); CLASSES
-  42,713 missing + 4,460 value diffs (the value diffs are the §18.6
-  gold-shadow garbage-vs-sane class reads — the divergences are the
-  EXPECTED loose name matching at this stage; H5 projects the table
-  properly); R2004_Header 5,336; FILEHEADER 3,591; ObjFreeSpace/
-  Security/AppInfo/SummaryInfo ~2.2-3.4k each (H2/H4); THUMBNAIL tiny
-  (558 — the blob-compare work is H5's digest); SecondHeader/AuxHeader
-  (R2000-only, small). Write-target: FILEHEADER 1,205 (address shifts +
-  maint_rel 0→4), R2004_Header 1,771 (numsections 15→17 — silver
-  writes MORE sections), ObjFreeSpace 2,453, AppInfo 1,651 (silver
-  rewrites its own blob), SummaryInfo 1,533 (times zeroed), THUMBNAIL
-  re-encoded (442) — the H7 preservation ledger; Template/RevHistory/
-  Security/FileDepList write-target 0-diff (silver re-preserves them
-  trivially).
+  **Day-one census (the H2-H5 attack order; corrected aggregation
+  2026-09-25 — presence counts read-axis-only, per-axis leaf sums,
+  trimmed census samples, an `--aggregate-only` report-regeneration
+  mode so aggregation changes never need the 10-minute corpus cycle):**
+  read key-gap **259,073**; write-target key-gap **21,822**; zero census
+  errors; zero undeclared keys. READ axis per key (presence gold/silver
+  → matched+diffs+missing): HEADER **280/280 → 9,532 matched + 0
+  value-diffs + 128,489 missing** — the gap is pure name-set coverage,
+  the H3 variable ledger is THE dominant row; AcDs **273/0 → 58,471
+  unprojected** (no section-level silver view at all); CLASSES 280/280
+  → 18,241 matched + 4,460 value-diffs + 42,713 missing (the value
+  diffs are the §18.6 gold-shadow garbage-vs-sane reads surfacing on
+  the loose canonical name match — H5 projects the table properly);
+  R2004_Header 232/0 → 5,336; FILEHEADER 280/280 → 560 matched (the
+  version/maint_rel pair) + 3,591 missing; ObjFreeSpace 276/0 → 3,441;
+  Security 273/0 → 2,457; AppInfo 273/0 → 2,396; SummaryInfo 272/272
+  → 2,176 matched + 2,176 missing (silver's 9-field shape covers
+  half); R2007_Header 41/0 → 1,353; FileDepList 273/0 → 1,055;
+  RevHistory 273/0 → 819; Template 280/0 → 560; THUMBNAILIMAGE
+  279/177 → 558 (the H5 digest work); AppInfoHistory 273/0 → 546;
+  SecondHeader 7/0 → 386 and AuxHeader 7/0 → 266 (R2000-only).
+  WRITE-TARGET axis (the H7 preservation ledger): **AcDs 58,471
+  matched at 0 diffs 0 missing — the §18 verbatim re-emission,
+  corpus-wide**; Template/RevHistory/Security 0-diff too; HEADER
+  6,366 value-diffs (gold's unknown slots + the time fields); CLASSES
+  3,246 (num_instances silver values); ObjFreeSpace 2,453+30 (content
+  not preserved); R2004_Header 1,771 (address/numsections shifts:
+  15→17 — silver writes MORE sections); AppInfo 1,651 (silver rewrites
+  its own blob); FILEHEADER 1,205 (address shifts + maint_rel 0→4);
+  SummaryInfo 1,533 (times zeroed); R2007_Header 979; THUMBNAIL 442
+  (re-encoded); AppInfoHistory 342; AuxHeader 95 — **plus two
+  whole-section drops: SecondHeader (386 leaves) and FileDepList
+  (1,055 leaves) — silver's writer omits those sections entirely on
+  the rewrite; H7 owns them.**
 - **H1 — the corollary write-fidelity definition**: the structure axis
   compares `gold_orig` vs `silver_orig` (read) and — the same rule as
   the OBJECTS axis — `gold_orig` vs `gold_rt` (write, i.e. silver's

@@ -140,6 +140,55 @@ def aggregate(results: List[Dict[str, Any]], workdir: Path) -> Tuple[Dict[Tuple[
     return read_counts, write_counts
 
 
+def rebuild_rows_aggregate_only(workdir: Path, files: List[Path]) -> List[Dict[str, Any]]:
+    """Rebuild the per-file rows from the on-disk per-file diff/struct
+    JSONs without re-running the roundtrip pipeline — the aggregate
+    logic can evolve without paying the ~10-minute corpus cycle again.
+    `stdout`/`returncode` are not persisted per file; the rows carry
+    markers instead (the report consumers read the counters)."""
+    rows: List[Dict[str, Any]] = []
+    for path in files:
+        stem = path.stem
+        fdir = workdir / stem
+        row: Dict[str, Any] = {
+            "file": str(path),
+            "returncode": 0,
+            "stdout": "(aggregate-only)",
+        }
+        diff_orig: Dict[str, Any] = {"total_diffs": -1}
+        diff_rt: Dict[str, Any] = {"total_diffs": -1}
+        struct_orig: Dict[str, Any] = {"totals": {"key_gap_sum": -1}}
+        struct_rt: Dict[str, Any] = {"totals": {"key_gap_sum": -1}}
+        for name, holder in (
+            (f"{stem}_diff_orig.json", diff_orig),
+            (f"{stem}_diff_rt.json", diff_rt),
+        ):
+            p = fdir / name
+            if p.exists():
+                try:
+                    with open(p, "r", encoding="utf-8") as f:
+                        holder.update(json.load(f))
+                except json.JSONDecodeError:
+                    pass
+        for name, holder in (
+            (f"{stem}_struct_orig.json", struct_orig),
+            (f"{stem}_struct_rt.json", struct_rt),
+        ):
+            p = fdir / name
+            if p.exists():
+                try:
+                    with open(p, "r", encoding="utf-8") as f:
+                        holder.update(json.load(f))
+                except json.JSONDecodeError:
+                    pass
+        row["read_fidelity_diffs"] = diff_orig.get("total_diffs", -1)
+        row["write_fidelity_diffs"] = diff_rt.get("total_diffs", -1)
+        row["struct_read_key_gap"] = struct_orig.get("totals", {}).get("key_gap_sum", -1)
+        row["struct_write_key_gap"] = struct_rt.get("totals", {}).get("key_gap_sum", -1)
+        rows.append(row)
+    return rows
+
+
 def main() -> int:
     testdata = Path(GOLD_TESTDATA)
     workdir = default_workdir()
@@ -148,10 +197,18 @@ def main() -> int:
     files = in_scope_files(testdata)
     print(f"[corpus] {len(files)} files in scope")
 
-    results: List[Dict[str, Any]] = []
-    for i, f in enumerate(files, 1):
-        print(f"[{i}/{len(files)}] {f.name}")
-        results.append(run_file(f, workdir))
+    aggregate_only = "--aggregate-only" in sys.argv
+    if aggregate_only:
+        print("[corpus] aggregate-only mode: reusing the on-disk per-file JSONs")
+        results = rebuild_rows_aggregate_only(workdir, files)
+        for i, path in enumerate(files, 1):
+            if not (workdir / path.stem).exists():
+                print(f"[corpus] WARNING: no per-file dir for {path.name}")
+    else:
+        results: List[Dict[str, Any]] = []
+        for i, f in enumerate(files, 1):
+            print(f"[{i}/{len(files)}] {f.name}")
+            results.append(run_file(f, workdir))
 
     read_counts, write_counts = aggregate(results, workdir)
 
@@ -183,8 +240,8 @@ def main() -> int:
                 struct_write_total += st.get("totals", {}).get("key_gap_sum", 0)
             for key, kres in (st.get("per_key") or {}).items():
                 row = struct_census.setdefault(key, {
-                    "files_gold": 0,
-                    "files_other": 0,
+                    "read_files_gold": 0,
+                    "read_files_other": 0,
                     "read_matched": 0,
                     "read_value_diffs": 0,
                     "read_missing_other": 0,
@@ -196,24 +253,28 @@ def main() -> int:
                 status = kres.get("status", "?")
                 if status == "absent_both":
                     continue
-                if status != "missing_gold":
-                    # gold carries the key (present_both or missing_other)
-                    row["files_gold"] += 1
+                if side_name == "orig":
+                    # Presence counts come from the READ axis only (one
+                    # per corpus file); the write-target columns carry
+                    # their own sums below.
+                    if status != "missing_gold":
+                        row["read_files_gold"] += 1
                     if status == "present_both":
-                        row["files_other"] += 1
-                        row[f"{prefix}matched"] += kres.get("matched", 0)
-                        row[f"{prefix}value_diffs"] += kres.get("value_diffs", 0)
-                        row[f"{prefix}missing_other"] += kres.get(
-                            "missing_silver" if side_name == "orig" else "missing_gold_rt", 0
-                        )
-                        if side_name == "orig":
-                            row["read_gold_leaves"] += kres.get("gold_leaves", 0)
-                    else:
-                        # the whole key is the gap (gold has it, the other
-                        # side projects nothing)
-                        row[f"{prefix}missing_other"] += kres.get("gold_leaves", 0)
-                        if side_name == "orig":
-                            row["read_gold_leaves"] += kres.get("gold_leaves", 0)
+                        row["read_files_other"] += 1
+                if status != "missing_gold" and status != "present_both":
+                    # the whole key is the gap on this side (gold has
+                    # it, the other side projects nothing)
+                    row[f"{prefix}missing_other"] += kres.get("gold_leaves", 0)
+                    if side_name == "orig":
+                        row["read_gold_leaves"] += kres.get("gold_leaves", 0)
+                elif status == "present_both":
+                    row[f"{prefix}matched"] += kres.get("matched", 0)
+                    row[f"{prefix}value_diffs"] += kres.get("value_diffs", 0)
+                    row[f"{prefix}missing_other"] += kres.get(
+                        "missing_silver" if side_name == "orig" else "missing_gold_rt", 0
+                    )
+                    if side_name == "orig":
+                        row["read_gold_leaves"] += kres.get("gold_leaves", 0)
             if side_name == "orig":
                 for u in st.get("undeclared_keys", []) or []:
                     undeclared_len[u] = undeclared_len.get(u, 0) + 1
@@ -248,16 +309,17 @@ def main() -> int:
             md.append(f"- {u}: {c} files\n")
         md.append("\n")
     md.append("## Structure census per key (§19 H0 day-one; the H2-H5 attack surface)\n")
-    md.append("| key | files gold/other | read: matched+diffs+missing | write-target: diffs+missing |\n")
+    md.append("Presence = the READ axis (files where gold emits the key / silver projects it); leaf sums over both axes.\n")
+    md.append("| key | read files gold/silver | read: matched+diffs+missing | write-target: matched+diffs+missing |\n")
     md.append("|---|---|---|---|\n")
     for key, row in sorted(
         struct_census.items(),
         key=lambda kv: -(kv[1].get("read_missing_other", 0) + kv[1].get("read_value_diffs", 0)),
     ):
         md.append(
-            f"| {key} | {row['files_gold']}/{row['files_other']} "
+            f"| {key} | {row.get('read_files_gold', 0)}/{row.get('read_files_other', 0)} "
             f"| {row.get('read_matched', 0)}+{row['read_value_diffs']}+{row['read_missing_other']} "
-            f"| {row['write_value_diffs']}+{row['write_missing_other']} |\n"
+            f"| {row['write_matched']}+{row['write_value_diffs']}+{row['write_missing_other']} |\n"
         )
     md.append("\n## Top read-fidelity divergences\n")
     for k, v in sorted(read_counts.items(), key=lambda x: -x[1])[:30]:
