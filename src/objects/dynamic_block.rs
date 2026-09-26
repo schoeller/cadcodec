@@ -1166,6 +1166,25 @@ pub struct SolidHistorySweepTail {
     /// (Polysolid rectangle: [(2.5, 0), (-2.5, 0), (-2.5, 2), (2.5, 2)];
     /// gold's 3DSOLID wireframe anchor z = 1.0 is the pair-height mid).
     pub profile_corners: Vec<[f64; 2]>,
+    /// Trailing unpaired entry of the corner block (§18.7's post-corner
+    /// singles walk): the record constant 4.00024414192312, bit-identical
+    /// across every corpus Polysolid profile (width/height/path
+    /// differentials) and across the §18.7 confirmation quads —
+    /// authored record state, third-confirmed by the P-probes.
+    pub record_constant: Option<f64>,
+    /// The post-corner single of the gap between the corner block and
+    /// the segment-end block (§18.7's singles stream): a '00'-marked BD
+    /// frame preceded by four zero pad bits and closed by a short-BD
+    /// pair. Its value carries the width coupling of the profile
+    /// (PolysolidX/L/D 32.0625 = 32 + 2/32, PolysolidW 32.21875 =
+    /// 32 + 7/32, Polysolid 32.15625 = 32 + 5/32 — the fraction tracks
+    /// the authored width on W/PS and the width−1 offset on the
+    /// X-profile family; path/direction inert: the diagonal-direction
+    /// PolysolidD is bit-identical to X there). The earlier scan-level
+    /// aliases of this region ("2.0109", the "width single" 3.0/7.0,
+    /// the 8.06-class reads at overlapping offsets) derive from the
+    /// same zero-heavy bits — this field pins the disjoint frame.
+    pub post_corner_single: Option<f64>,
     /// Final byte-aligned LE64 pair ending at the tail end: the sweep
     /// path's segment end in the record frame (the Polysolid ends at
     /// (3065.007936309483, 1463.5113930448078); gold's R2010 wireframe

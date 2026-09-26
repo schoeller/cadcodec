@@ -34,6 +34,19 @@ fn unhex(value: &str) -> Vec<u8> {
 const POLYSOLID_SWEEP_HEX: &str = "AAA9A812056ACE738225AB193DB3F8346875DD7FE0ECBF8346875DD7FE0ECBF8E738225AB193DBBFA6AA4E738225AB193DB3F8346875DD7FE0ECBF8346875DD7FE0ECBF8E738225AB193DBBFA6AA54D2A008000001020D1A1D775FF83B2FCE738225AB193DBBF9040000000000000440000000000000000000000000000004C0000000000000000000000000000004C0000000000000004000000000000004400000000000000040314D160040001040000000000000510102000000000000000000000000000000005C5B3A1004F2A740684B9EAA0BDE964000";
 const POLYSOLID_SWEEP_BITS: u32 = 1738;
 
+// The §18.7 PolysolidX/W/L differential quads (AC2018 twins of the
+// fixture set; bit-identical across the 2007/2010/2013/2018 versions).
+// X: profile 3 wide / 5 high, path to (12, 0) with drag residue
+// 12.00001; W: profile 7/3, clean 12.0; L: profile 3/5, path to (5, 0).
+const POLYSOLID_SWEEP_X_HEX: &str = "AAA9A812056AE8000000000000F0BF8000000000000F0BFAA6AA68000000000000F0BF8000000000000F0BFAA6AA54D1A008000001020000000000003C2FE904000000000000F83F0000000000000000000000000000F8BF0000000000000000000000000000F8BF0000000000001440000000000000F83F0000000000001440314D160040001040000000000000210102000000000000000000000000000000008E588B4F01002840000000000000000000";
+const POLYSOLID_SWEEP_X_BITS: u32 = 1418;
+
+const POLYSOLID_SWEEP_W_HEX: &str = "AAA9A812056AE8000000000000F0BF8000000000000F0BFAA6AA68000000000000F0BF8000000000000F0BFAA6AA54D1A008000001020000000000003C2FE9040000000000000C4000000000000000000000000000000CC000000000000000000000000000000CC000000000000008400000000000000C400000000000000840314D160040001040000000000000710102000000000000000000000000000000000000000000002840000000000000000000";
+const POLYSOLID_SWEEP_W_BITS: u32 = 1418;
+
+const POLYSOLID_SWEEP_L_HEX: &str = "AAA9A812056AE8000000000000F0BF8000000000000F0BFAA6AA68000000000000F0BF8000000000000F0BFAA6AA54D1A008000001020000000000003C2FE904000000000000F83F0000000000000000000000000000F8BF0000000000000000000000000000F8BF0000000000001440000000000000F83F0000000000001440314D160040001040000000000000210102000000000000000000000000000000000000000000001440000000000000000000";
+const POLYSOLID_SWEEP_L_BITS: u32 = 1418;
+
 const EXTRUDE_SWEEP_HEX: &str = "A00000000000000102A9B2052A9AA6A9AA5AA6A9AA512442A692";
 const EXTRUDE_SWEEP_BITS: u32 = 208;
 const EXTRUDE_T_HEX: &str = "A0000000000000010065732D3852C1D03FA9B2052A9AA6A9AA5AA6A9AA512442A692";
@@ -100,12 +113,53 @@ fn polysolid_sweep_tail_decodes_the_pinned_semantics() {
         view.profile_corners,
         vec![[2.5, 0.0], [-2.5, 0.0], [-2.5, 2.0], [2.5, 2.0]]
     );
+    // The record constant (the trailing unpaired corner-block entry) and
+    // the post-corner single of the gap (the profile-coupled 32+n/32
+    // frame; this fixture's width is 5 → the fraction 5/32).
+    assert_eq!(view.record_constant, Some(4.00024414192312));
+    assert_eq!(view.post_corner_single, Some(32.15625));
     // Segment end in the record frame; gold's R2010 wireframe anchor
     // reads exactly its half (the live-oracle overlap).
     assert_eq!(
         view.segment_end,
         Some([3065.007936309483, 1463.5113930448078])
     );
+}
+
+#[test]
+fn polysolid_xwl_quads_decode_the_post_corner_singles() {
+    // The §18.7 singles walk, pinned across the X/W/L differentials:
+    // the record constant is bit-invariant (third P-probe
+    // confirmation); the post-corner single tracks the profile
+    // (X/L share the 3x5 profile → 32 + 2/32; W's 7x3 → 32 + 7/32);
+    // the segment end is the only path-coupled entry (12.00001 drag
+    // residue on X, clean 12.0 on W, 5.0 on L).
+    let x = sweep_tail_view(&unhex(POLYSOLID_SWEEP_X_HEX), POLYSOLID_SWEEP_X_BITS)
+        .expect("the PolysolidX quad must decode");
+    let w = sweep_tail_view(&unhex(POLYSOLID_SWEEP_W_HEX), POLYSOLID_SWEEP_W_BITS)
+        .expect("the PolysolidW quad must decode");
+    let l = sweep_tail_view(&unhex(POLYSOLID_SWEEP_L_HEX), POLYSOLID_SWEEP_L_BITS)
+        .expect("the PolysolidL quad must decode");
+    for quad in [&x, &w, &l] {
+        assert_eq!(quad.record_constant, Some(4.00024414192312));
+    }
+    assert_eq!(
+        x.profile_corners,
+        vec![[1.5, 0.0], [-1.5, 0.0], [-1.5, 5.0], [1.5, 5.0]]
+    );
+    assert_eq!(
+        w.profile_corners,
+        vec![[3.5, 0.0], [-3.5, 0.0], [-3.5, 3.0], [3.5, 3.0]]
+    );
+    // X and L share the profile: identical corner block and post-corner
+    // single; the segment-end pair alone carries the path difference.
+    assert_eq!(x.profile_corners, l.profile_corners);
+    assert_eq!(x.post_corner_single, l.post_corner_single);
+    assert_eq!(x.post_corner_single, Some(32.0625));
+    assert_eq!(w.post_corner_single, Some(32.21875));
+    assert_eq!(x.segment_end, Some([12.00001, 0.0]));
+    assert_eq!(w.segment_end, Some([12.0, 0.0]));
+    assert_eq!(l.segment_end, Some([5.0, 0.0]));
 }
 
 #[test]
@@ -383,6 +437,54 @@ fn edited_segment_end_lands_bit_locally() {
     let view = sweep.tail_decode.as_ref().unwrap();
     assert_eq!(view.profile_corners.len(), 4);
     assert_eq!(view.raw_doubles.len(), 10);
+}
+
+#[test]
+fn edited_post_corner_singles_land_bit_locally() {
+    // The post-corner singles walk (§18.7): a programmatic edit of the
+    // record constant or the post-corner single re-encodes only its own
+    // 64 value bits; the tail keeps its size and every other byte.
+    let tail = unhex(POLYSOLID_SWEEP_X_HEX);
+    let original = sweep_tail_view(&tail, POLYSOLID_SWEEP_X_BITS)
+        .expect("the PolysolidX quad must decode");
+    assert_eq!(original.record_constant, Some(4.00024414192312));
+    assert_eq!(original.post_corner_single, Some(32.0625));
+
+    let mut document = CadDocument::with_version(DxfVersion::AC1032);
+    let entity = document
+        .add_entity(EntityType::Solid3D(Solid3D::new()))
+        .unwrap();
+    document
+        .create_solid_history(entity, sweep_op(&tail, POLYSOLID_SWEEP_X_BITS))
+        .unwrap();
+    let mut replacement = document.solid_history_operations(entity).unwrap()[0].clone();
+    let SolidHistoryOperation::Sweep(sweep) = &mut replacement else {
+        panic!("expected a sweep operation node");
+    };
+    let view = sweep.tail_decode.get_or_insert_with(SolidHistorySweepTail::default);
+    view.record_constant = Some(4.25);
+    view.post_corner_single = Some(40.5);
+    document.update_solid_history_step(entity, replacement).unwrap();
+
+    let bytes = DwgWriter::write_to_vec(&document).unwrap();
+    let roundtrip = DwgReader::from_stream(Cursor::new(bytes)).read().unwrap();
+    let SolidHistoryOperation::Sweep(sweep) =
+        roundtrip.solid_history_operations(entity).unwrap()[0].clone()
+    else {
+        panic!("expected a sweep operation node");
+    };
+    assert_eq!(sweep.shsw_raw_tail.len(), tail.len());
+    assert_eq!(sweep.shsw_raw_tail_bit_len, POLYSOLID_SWEEP_X_BITS);
+    let view = sweep.tail_decode.as_ref().unwrap();
+    assert_eq!(view.record_constant, Some(4.25));
+    assert_eq!(view.post_corner_single, Some(40.5));
+    // Un-edited anchors keep their bits (splices are local): the corners,
+    // the record-constant neighbors, and the segment end.
+    assert_eq!(
+        view.profile_corners,
+        vec![[1.5, 0.0], [-1.5, 0.0], [-1.5, 5.0], [1.5, 5.0]]
+    );
+    assert_eq!(view.segment_end, Some([12.00001, 0.0]));
 }
 
 #[test]

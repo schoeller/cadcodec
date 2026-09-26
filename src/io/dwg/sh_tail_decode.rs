@@ -235,6 +235,31 @@ fn read_head_shorts(bits: &TailBits, start: u32) -> (Vec<f64>, Vec<Span>, u32) {
     (values, spans, end)
 }
 
+/// The FIRST '00'-framed plausible BD frame fully inside `[start, bound)`,
+/// scanning at 2-bit offsets (the post-corner singles walk, §18.7). A
+/// zero value under a raw marker is a misaligned alias, not an entry —
+/// the same rule `scan_raws` applies.
+fn first_plausible_frame(bits: &TailBits, start: u32, bound: u32) -> (Option<f64>, Option<Span>) {
+    let mut pos = start;
+    while pos + 66 <= bound {
+        if bits.code(pos) == Some(0b00) {
+            if let Some(value) = bits.le64(pos + 2) {
+                if plausible_raw(value) {
+                    return (
+                        Some(value),
+                        Some(Span {
+                            start: pos,
+                            len: 66,
+                        }),
+                    );
+                }
+            }
+        }
+        pos += 2;
+    }
+    (None, None)
+}
+
 /// Sweep-family frame entries: raw BD doubles found at '00' markers
 /// between `start` and `bound` (exclusive), advancing 2 bits at a time
 /// when a marker does not decode to a plausible raw double.
@@ -296,6 +321,8 @@ pub(crate) struct SweepTailInfo {
     pub option_spans: Vec<Span>,
     pub raw_spans: Vec<Span>,
     pub corner_spans: Vec<[Span; 2]>,
+    pub record_constant_span: Option<Span>,
+    pub post_corner_single_span: Option<Span>,
     pub segment_end_spans: Option<[Span; 2]>,
     pub profile_circle_spans: Option<ProfileCircleSpans>,
 }
@@ -463,14 +490,20 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
         option_doubles: extras,
         raw_doubles: raw_values,
         profile_corners: Vec::new(),
+        record_constant: None,
+        post_corner_single: None,
         segment_end: None,
         profile: None,
     };
     let mut corner_spans = Vec::new();
+    let mut record_constant_span = None;
+    let mut post_corner_single_span = None;
     if let Some((positions, values)) = runs.first() {
-        // Pair the (x, height) corner entries; a trailing unpaired entry
-        // (the specimen's run ends on the block-boundary double) is left
-        // out of the view but keeps its verbatim bits in the tail.
+        // Pair the (x, height) corner entries. A single trailing unpaired
+        // entry is the record constant (the post-corner singles walk,
+        // §18.7: 4.00024414192312 — bit-identical across every corpus
+        // Polysolid profile and across the §18.7 confirmation quads);
+        // more than one unpaired entry keeps the verbatim-only shape.
         let pairs = values.len() / 2;
         for pair in 0..pairs {
             let x = values[pair * 2];
@@ -486,6 +519,30 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
                     len: 64,
                 },
             ]);
+        }
+        if values.len() % 2 == 1 {
+            view.record_constant = values.last().copied();
+            record_constant_span = Some(Span {
+                start: positions[positions.len() - 1],
+                len: 64,
+            });
+        }
+    }
+    // The post-corner single (§18.7's singles stream): the gap between
+    // the corner block (incl. its record-constant tail entry) and the
+    // segment-end block carries one '00'-marked BD frame — four zero
+    // pad bits ahead of it, a short '10' pair after it. The FIRST
+    // plausible frame fully inside the gap is the frame: earlier even
+    // offsets alias into the zero pad (the scan-level "singles" of the
+    // §18.7 P-probes — "2.0109", the "width single" 3.0/7.0, the
+    // 8.06-class reads — all derive from the same zero-heavy bits and
+    // never pin a span).
+    if let (Some(first), Some(second)) = (runs.first(), runs.get(1)) {
+        let gap_start = first.0.last().map_or(0, |p| p + 64);
+        let gap_end = second.0[0];
+        if let (Some(value), span) = first_plausible_frame(&bits, gap_start, gap_end) {
+            view.post_corner_single = Some(value);
+            post_corner_single_span = span;
         }
     }
     let mut segment_end_spans = None;
@@ -537,6 +594,8 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
                     option_spans,
                     raw_spans,
                     corner_spans,
+                    record_constant_span,
+                    post_corner_single_span,
                     segment_end_spans,
                     profile_circle_spans: None,
                 });
@@ -556,6 +615,8 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
         option_spans,
         raw_spans,
         corner_spans,
+        record_constant_span,
+        post_corner_single_span,
         segment_end_spans,
         profile_circle_spans,
     })
@@ -858,6 +919,27 @@ pub(crate) fn render_sweep_tail(
         splice_short_run(&mut bits, &info.option_spans, &view.option_doubles, &info.view.option_doubles);
         splice_raw_run(&mut bits, &info.raw_spans, &view.raw_doubles, &info.view.raw_doubles);
         slice_pairs(&mut bits, &info.corner_spans, &view.profile_corners, &info.view.profile_corners);
+        // The record constant and the post-corner single: same-form LE64
+        // entries, spliced only when a programmatic edit differs from the
+        // decoded bits (§18.7 — authored file state by default).
+        if let (Some(new), Some(old), Some(span)) =
+            (view.record_constant, info.view.record_constant, info.record_constant_span)
+        {
+            if new != old {
+                let _ = bits.set_le64(span.start, new);
+            }
+        }
+        if let (Some(new), Some(old), Some(span)) = (
+            view.post_corner_single,
+            info.view.post_corner_single,
+            info.post_corner_single_span,
+        ) {
+            if new != old {
+                // Raw BD frame: the marker sits at span.start, the value
+                // two bits past it.
+                let _ = bits.set_le64(span.start + 2, new);
+            }
+        }
         if let (Some(new), Some(old), Some(spans)) = (
             view.segment_end,
             info.view.segment_end,
