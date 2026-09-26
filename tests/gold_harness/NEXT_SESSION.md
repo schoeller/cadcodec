@@ -103,19 +103,26 @@ gold-shadow record carries the desynced tables' garbage
 record-for-record; the landing exposed and fixed the latent
 wire-color field-type bug — WIRESTRUCT's color is a BS on every
 version, the §18 reader/writer had it BL on R2004+ — see §19.2's
-H5 row). **H5c PARTIALLY LANDED** (the THUMBNAILIMAGE projection + the
-Preview.raw retention + the container-tail family split — see
-§19.2's H5 row; the 17-file AC1032 compressed-preview fallback
-OPEN: get_section_buffer("AcDb:Preview") returns Err on exactly
-those files, the next step recorded in the row). **FIRST GATE OF
-THIS SESSION: run the full corpus** (`python3
-tests/gold_harness/run_corpus.py`) — the H5c packet landed on
-smokes + the hermetic suite (49 ok, all smokes OBJECTS 0/0) but
-the corpus re-run is pending; verify 280 files read 0 / write 0
-and that the THUMBNAILIMAGE row improves (558 → ~34, the 17-file
-remainder). **Then: the H5c fallback fix (the recorded next step),
-H5a AcDs (58,471 — the section-level view), and H3's HEADER
-ledger (128,489 — the dominant row).** **The authoritative enumeration is
+H5 row). **H5c LANDED (2026-09-26) — the THUMBNAILIMAGE read axis at
+gold parity** (the previous session's open-item record was WRONG in
+its central claim: the 280-file probe shows the AcDb:Preview fetch
+succeeds on ALL 58 AC1032 files — the 17-file class is containers
+with only the 80-byte header block and NO image descriptor, which
+`parse_preview`'s image requirement dropped; plus the AC1021
+cut-both-sentinels tail rule gold pins in decode_R2007 (58
+Box_2007-class valuediffs, fixed driver-side in struct_axis), and
+the 2013/RAY overall-window truncation — the reader now fetches
+the decompressed section FIRST on R2004+ — see §19.2's H5 row for
+the full corrected record, including the two per-file exclusion
+rows: 2010/Leader (gold skips the section by its decompression-size
+guard) and 2000/PolyLine2D (absent on both sides)). **First gate
+of the 2026-09-26 session CLEARED: the corpus held 280 files
+read 0 / write 0; then the H5c completion packet landed on
+smokes + the hermetic suite + the corpus.** **Next: H5a AcDs
+(58,471 — the section-level view), H3's HEADER ledger (128,489 —
+the dominant row), interleaved with the three SH decoder walks
+(§18.6's queue: the post-corner BD walk, the loft container walk,
+the ExtrudeP polyline header) per maintainer priority.** **The authoritative enumeration is
 CLOSED** (the libredwg tree re-analysis + the review passes, all in
 §19.1): 17 observed structure keys (16 per R2004+ file, 8 on R2000
 — including `R2007_Header`, its OWN 33-field AC1021 system section,

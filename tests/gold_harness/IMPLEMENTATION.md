@@ -4689,31 +4689,61 @@ Signature) — the parse side is further along than the emission side.
   (c) the BS `'11'` code is the same 256 in both readers (already
   aligned). **The landing exposed and fixed a latent BODY-AXIS
   field-type bug** — see the wire-color finding below.
-  **The THUMBNAILIMAGE sub-row (H5c, PARTIALLY LANDED 2026-09-25 —
-  the projection + the raw retention in; the 17-file AC1032 fallback
-  OPEN)**: gold's shape is `{size, chain}` (json_thumbnail_write) —
-  the container's data hex-encoded, starting exactly 16 bytes past
-  the thumbnail address on EVERY layout (pinned by
-  sample_2000/2018 + example_2004), with `size` == the chain byte
-  count. The container TAILS split by family: pre-R2004 sections are
-  sentinel-BRACKETED (`[16 start][data][16 end]`, no CRC —
-  sample_2000: 17039 = 16 + 17007 + 16); R2004+ carry the 2-byte
-  CRC inside the data extent and no end sentinel (sample_2018:
-  2150 = 16 + 2134). Silver's `Preview.raw` now retains the whole
-  container; struct_axis projects `{size, chain}` per the family
-  split — sample_2000/2018 at 0/0. **The open item:** 17 AC1032
-  corpus files whose AcDb:Preview section is stored compressed —
-  the raw-address read yields compressed bytes whose overall-size
-  field passes the allocation guard, `parse_preview` rejects them,
-  and the section-map fallback (keyed on the PARSE failing, not the
-  read) finds `get_section_buffer("AcDb:Preview")` returning Err on
-  exactly those files (Arc_2018 pinned: thumbnail_address 448, gold
-  size 110 — the section fetch itself fails; the NEXT STEP is to
-  instrument get_section_buffer's failure reason there: name-in-map?
-  page records? the compression flag?). 34 leaves (17×2) remain.
-  The corpus re-run after this packet is the standing first gate of
-  the next session. `AcDs` still compares by content DIGEST; the
-  AcDs segment-index internals stay byte-level (H6);
+  **The THUMBNAILIMAGE sub-row (H5c COMPLETE 2026-09-26 — the read
+  axis at gold parity, driver + reader sides)**: gold's shape is
+  `{size, chain}` (json_thumbnail_write) — the container data
+  hex-encoded from exactly 16 bytes past the thumbnail address,
+  `size` == the chain byte count. **The previous session's open-item
+  record was WRONG in its central claim** — the recorded next step
+  (instrument `get_section_buffer`'s failure reason) ran as the
+  280-file probe: the AcDb:Preview fetch succeeds on ALL 58 AC1032
+  files, and the 17-file class is NOT a fetch failure — those
+  containers carry ONLY the 80-byte reserved header block with NO
+  image descriptor (count=1, code-1: Arc_2018's whole container =
+  126 bytes = [16 start][chain 110]), so `parse_preview` (which
+  requires BMP/WMF/PNG) returned None and the reader dropped a
+  container gold still prints. **Three findings + fixes landed:**
+  (a) gold's tail rules pinned in the C tree, per decoder —
+  pre-R2004 searches BOTH sentinels (chain = the mid-section);
+  decode_R2007 cuts BOTH (`size = sec − 32`, decode.c "2x
+  sentinel"); the rest of the R2004 family KEEPS the whole tail
+  (`size = sec − 16`, read_2004_section_preview — even a 16-byte
+  end sentinel where the author wrote one: 2018/Arc's 110-byte
+  chain byte-pinned ending in the END sentinel). struct_axis's old
+  R2004-vs-pre-R2004 split put AC1021 on the wrong side (58
+  Box_2007-class files at size = gold+16) — the cut-32 rule was
+  added for AC1021 alongside the pre-R2004 set; (b) the
+  raw-address container_len (overall-window) read TRUNCATES
+  sections whose author undershot the window (2013/RAY:
+  container_len(overall) = 1076 vs gold's true 1114-byte section,
+  the IEND+CRC+end-sentinel cut off) and returns compressed bytes
+  on compressed stores — for R2004+ files the reader now FETCHES THE
+  DECOMPRESSED SECTION FIRST (gold's own read path; the raw read
+  stays the fallback, and stays primary pre-R2004 where it is
+  exact); (c) a fetched container with NO image is now RETAINED
+  (`PreviewFormat::Unknown` + empty `data` + the raw bytes) so the
+  structure axis projects it — the 17 header-only AC1032 files at
+  byte parity (Arc_2018 size 110 chain byte-equal); the writer
+  treats empty data exactly like `None` (placeholder preview, the
+  H7 write-target row unchanged). **Two per-file exclusions stand
+  (H6 rows, not codec gaps):** 2010/Leader.dwg — gold SKIPS its
+  AcDb:Preview section by its own guard ("Skip section with max
+  decompression size 0x4d800 > 0x4a000", gold -v4) while the
+  316KB container silver reads is valid → silver-extra by
+  gold-limit; 2000/PolyLine2D.dwg — no thumbnail on either side
+  (absent_both, parity). Pre-fix census read rows were inflated by
+  the stem-collision-collapsed aggregate (the "279/177" presence
+  split the prior session projected from — the per-file sweep is
+  the truth: 255 present + 18 missing + 7 example files, of which
+  the real mismatch set was the 58 AC1021 valuediffs, the 17
+  header-only missings, and the RAY truncation). Post-fix corpus
+  aggregate: THUMBNAILIMAGE read **279/279 → 558 matched + 0
+  value-diffs + 0 missing** — the read row at ZERO gaps; the read
+  key-gap −286 (187,246 → 186,960, exactly the pre-fix 82+204
+  leaves). The write-target 442 re-encode leaves remain the H7
+  row. Every other key unchanged; the OBJECTS axis 0/0 held across
+  all gates. `AcDs` still compares by content DIGEST; the AcDs
+  segment-index internals stay byte-level (H6);
   VBAProject/Signature land as excluded rows with reasons in H6.
 
   **The wire-color field-type fix (the H5b landing's body-axis
@@ -4753,7 +4783,12 @@ Signature) — the parse side is further along than the emission side.
   `created_by` (the oracle's own PACKAGE_STRING stamp — not file
   content), `Signature` (readable by gold but its JSON emitter is
   deliberately disabled, `out_json.c:2673` — reason "not emitted",
-  distinct from corpus-absent), `VBAProject` (corpus-absent), and the
+  distinct from corpus-absent), `VBAProject` (corpus-absent),
+  2010/Leader.dwg's THUMBNAILIMAGE (a per-file row: gold SKIPS its
+  AcDb:Preview section by its own decompression-size guard
+  — `max decompression size 0x4d800 > 0x4a000`, gold -v4 — while
+  the valid 316KB container silver reads censuses as silver-extra;
+  a gold read-limit, not file content), and the
   object map / Handles section (gold's `json_handles_write` is
   `#if 0`'d — deliberately unemitted; covered transitively by the
   OBJECTS axis' handle resolution + layer 4). The matrix also audits

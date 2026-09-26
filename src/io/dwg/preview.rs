@@ -116,6 +116,9 @@ pub fn build_preview(preview: Option<&Preview>, base: u64) -> Vec<u8> {
         PreviewFormat::Bmp => (CODE_BMP, true),
         PreviewFormat::Wmf => (CODE_WMF, false),
         PreviewFormat::Png => (CODE_PNG, false),
+        // A container-only retention (§19 H5c: containers with no image
+        // descriptor) never re-encodes — same as the `None` case.
+        PreviewFormat::Unknown => return empty_preview(),
     };
     let count = if with_header { 2usize } else { 1usize };
     let descriptors_len = 9 * count;

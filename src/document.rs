@@ -1021,6 +1021,13 @@ pub enum PreviewFormat {
     Wmf,
     /// PNG (written by R2013+).
     Png,
+    /// No decodable image in the container. Some previews carry only the
+    /// 80-byte reserved header block with no BMP/WMF/PNG descriptor
+    /// behind it (e.g. the R2018 corpus files whose drawing was never
+    /// rendered). `data` is then empty, but `raw` still holds the whole
+    /// container — gold's read keeps such thumbnails and prints their
+    /// size/chain, so the §19 structure axis projects them from `raw`.
+    Unknown,
 }
 
 /// An embedded preview/thumbnail image stored in a DWG file.

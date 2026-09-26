@@ -211,16 +211,24 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
             or doc.get("version")
             or ""
         )
-        pre_r2004 = version in ("AC1012", "AC1014", "AC1015")
-        if isinstance(raw, list) and len(raw) > (32 if pre_r2004 else 16):
-            # The container tails differ: pre-R2004 sections are
-            # sentinel-BRACKETED ([16 start][data][16 end], no CRC —
-            # sample_2000: len 17039 = 16 + 17007 + 16); R2004+ carry the
-            # 2-byte CRC inside the data extent and no end sentinel
-            # (sample_2018: len 2150 = 16 + 2134, the chain INCLUDING the
-            # CRC). Gold's chain starts exactly 16 past the thumbnail
-            # address on every layout; size == the chain byte count.
-            if pre_r2004:
+        # The tail families are gold's PER-DECODER rules (H5c, pinned in
+        # libredwg decode.c — not a simple version split):
+        # - pre-R2004 (bracketed container read): chain = the mid-section
+        #   between the two 16-byte sentinels (sample_2000: len 17039 =
+        #   16 + 17007 + 16);
+        # - AC1021 (decode_R2007 thumbnail read): size = sec − 32 — also
+        #   cuts BOTH sentinels (Box_2007: len 36783 -> size 36751;
+        #   decode.c "2x sentinel");
+        # - the rest of the R2004 family (read_2004_section_preview):
+        #   size = sec − 16, the whole tail KEPT — the 2-byte CRC inside
+        #   the extent (sample_2018: len 2150 -> size 2134) or even a
+        #   16-byte end sentinel where the author wrote one (2018/Arc:
+        #   len 126 -> size 110, byte-pinned). The chain starts exactly
+        #   16 past the thumbnail address on every layout; size == the
+        #   chain byte count.
+        both_sentinels = version in ("AC1012", "AC1014", "AC1015", "AC1021")
+        if isinstance(raw, list) and len(raw) > (32 if both_sentinels else 16):
+            if both_sentinels:
                 views["THUMBNAILIMAGE"] = {
                     "size": len(raw) - 32,
                     "chain": bytes(raw[16:-16]).hex().upper(),
