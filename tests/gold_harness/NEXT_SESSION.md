@@ -1,16 +1,16 @@
-# Zero-context prompt — the post-surface halt: the three decoder walks
+# Zero-context prompt — the post-H5a halt: the HEADER ledger + the three decoder walks
 
-> Campaign state 2026-09-24 (the halt after the surface-parser row).
+> Campaign state 2026-09-26 (the halt after the H5a row).
 > **The ACS/SH campaign is COMPLETE at 0/0: the corpus stands at
 > 280 files, read 0, write 0** (the 180 campaign baseline + every
 > §18.7 differential quad — solid AND surface twins **all landed;
 > the quarantine tree no longer exists**). The maintainer's fixture
 > surface is EMPTY: no DWG authoring is requested. All remaining
-> work is agent decoder code on the four raw-retained SH tails.
+> work is agent decoder code: the §19 HEADER ledger (the LAST open
+> read row) and the four raw-retained SH tails' decoder walks.
 > Read `tests/gold_harness/AGENTS.md` first, then §F2.1–F2.3 +
 > §18.5–18.7 in `IMPLEMENTATION.md` (§18.6 carries the full decode
-> record — including the gold-shadow classes-walk finding that
-> closed the surface row — with its evidence chains), then this
+> record), then §19.1–19.3 (the structure campaign), then this
 > file top to bottom.
 
 ## What the surface-parser row established (the load-bearing facts)
@@ -127,7 +127,11 @@ the top-level type-body singletons (last same-typed segment wins), the
 unconditional zeroed-header emission on R2004+ files without the
 section, and the REPEAT-count suppression; plus the R2004
 nameless-descriptor fix: AcDs sections with an empty 64-byte name
-field resolve by the section TYPE id 17). **Next: H3's HEADER ledger
+field resolve by the section TYPE id 17). **The structure read
+key-gap now stands at 128,489 — EXACTLY the HEADER row alone; every
+other structure key reads at zero gaps** (THUMBNAILIMAGE 558+0+0,
+AcDs 58,471+0+0, CLASSES 60,954+0+0, every H2/H4 row 0/0; the
+write-target key-gap 21,822 is the H7 row set). **Next: H3's HEADER ledger
 (128,489 — the dominant row; scoped 2026-09-26: the gap is a TOTAL
 NAMING SPLIT — silver's header model prints its own snake_case names
 (angle_base, acad_group_dict_handle, …) while gold prints the spec
@@ -223,31 +227,22 @@ target/debug/dump_section_bytes <file> <A> <N>
 ## Commit inventory (this halt)
 
 ```
-<this halt's handover note: the NEXT_SESSION.md commit-inventory hash fix>   <- HEAD
-72xxx docs(harness): the halt refresh — the gold-shadow decode record, the 18.7 landed rows, the queue state
-247e8e9's true neighbors below (the halt's three commits, oldest first):
-f11f7a1 fix(dwg): the classes gold-shadow walk + the R2013+ surface action-body grammar — the surface-parser row closes
-52491d7 test(harness): the 20 surface-twin files land — the quarantine tree closes, the corpus goes 260 -> 280 at 0/0
-247e8e9 docs(harness): the halt refresh — the gold-shadow decode record, the 18.7 landed rows, the queue state
-5c89b59 fix(dwg): the sweep spine named + the extrusion profile CALL — §18.7 differential decode
-57232a6 test(harness): the §18.7 differential set lands — 14 solid stems in-corpus, 3 M-stems quarantined
-... (the full session arc: 804e892, daedfb7, 05368b3, 839012c, a656f99,
-9d08280, ac5c47e, 86ce5a7, f2891b1, 7f2a77f, 9a260ae, e1dff05)
+<this halt's handover note: the NEXT_SESSION.md refresh>   <- HEAD
+ea8e731 fix(dwg): the AcDs section-level view — the H5a read row at gold parity (58,471 @ 0/0)
+83d9819 fix(dwg): the preview section-first read + the no-image retention + the AC1021 tail rule — the H5c THUMBNAILIMAGE read row closes
+... (the 2026-09-25/26 §19 arc below, oldest first: the plan-session
+docs e1f75cd/0740827/bb73e72/3f490bd, the H0 axis skeleton + day-one
+census d27c0c7 with the 15a4a01 review, the H2 header rows through
+9e945fe + the 902eadc review, the H4 metadata rows 50c246d + the
+745b7af review, the H5b CLASSES landing 5bbd79c, the H5c partial
+35e3a9f — the corpus held 280 files at 0/0 through every commit)
 ```
 
-**PUSH STATE**: the halt's four commits (`f11f7a1` fix, `52491d7`
-fixture landing, `247e8e9` halt refresh, `6103dcd` handover note)
-plus the review follow-up (`62fb7bc`: the halt's code review landed
-all six findings — the full-count shadow mirror with gold's exact
-plausibility bounds, the shared section prelude, the O(1) block-list
-dedupe, the crafted-section invariant pins, the entity-marker
-constants; gates 1324 tests + corpus 280 at 0/0) are pushed
-(`origin/gold-vs-silver` at `62fb7bc`). After that: the maintainer's
-AcDs/constructed-content session(s) landed and REVERTED (codec
-restored at the `7a7bd91` state — `96a2d6c`; their docs stand), and
-the 2026-09-25 PLAN SESSION added the §19 campaign docs (see the
-plan-session inventory below) — check `git log origin/gold-vs-silver..HEAD`
-for the current unpushed set and push when the maintainer asks.
+**PUSH STATE (2026-09-26)**: the remote currently has NO
+`gold-vs-silver` ref (only `origin/main`) — the entire local
+`gold-vs-silver` branch (the §18 campaign + the §19 packets through
+this halt) is unpushed relative to the remote. Push when the
+maintainer asks (`git push origin gold-vs-silver`).
 
 **PLAN-SESSION COMMIT INVENTORY (2026-09-25, docs-only — the codec
 untouched, the corpus 280 @ 0/0 stood through each commit)**:
