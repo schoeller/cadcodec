@@ -3331,7 +3331,12 @@ Fixture rules (deltas from the gold-tree convention above):
    0/0 on all four versions each). What remains is agent code work —
    the post-corner singles walk, the loft container walk (the
    per-section slots are named; the inter-value regions are not), the
-   ExtrudeP polyline header — and the no-authoring-path rows (LoftD
+   ExtrudeP polyline header — **ALL THREE WALKS LANDED 2026-09-26
+   (see §18.6's records: the record constant + width-coupled single
+   named; the loft per-section fields spliced same-form; the kind-77
+   body through the embedded grammar; hermetic cover 15 → 20); the
+   remaining opaque regions are catalogued there** — and the
+   no-authoring-path rows (LoftD
    dead; the revolve option shorts + flags — the typed anchor is now
    in-corpus via RevolveM; BREP external-only).** | the blob-autopsy remainder (§18.6) | 2007/2010/2013/2018 each, landed |
 
@@ -3778,9 +3783,15 @@ wireframe values on the same modeler backing).
     short BD, CALL length 16; ExtrudeR: r 3.125 raw, length 80;
     ExtrudeH/T: the landed circle unchanged — the height lives
     only in the direction head, the draft only in the spine), kind
-    77 = OBJ_LWPOLYLINE (ExtrudeP, length 544 — the packed
-    (x, y) vertex array of the drawn rectangle is inside; its
-    header grammar is the one deferred item). The pre-CALL region is
+    77 = OBJ_LWPOLYLINE (ExtrudeP, length 544 — **LANDED 2026-09-26,
+    the §18 walk 3**: the body decodes through the embedded-LWPOLYLINE
+    grammar — the in-repo `read_embedded_lwpolyline` field order,
+    raw-points vertex arms — `[BS flag 512 closed][BL num_points 4]
+    [raw LE64 (x, y) pairs — the 4×3 rectangle (0,0) (4,0) (4,3)
+    (0,3)][bulges/vertex-ids/widths per the flag gates][the trailing
+    reserved '11' pair that closes the window exactly]`; the model
+    gains `SolidHistoryProfilePolyline` on the CALL, and a vertex
+    edit splices bit-locally in its own 128-bit frames). The pre-CALL region is
     RESOLVED (2026-09-24, the re-authored ExtrudeC): it MOVES with
     the profile position, carrying the profile center as its own
     raw-BD run (the ExtrudeC center (2.0, 3.0) appears TWICE — once
@@ -3794,10 +3805,35 @@ wireframe values on the same modeler backing).
 - **Loft** (`raw_tail`): an all-short `[1.0]` head, then raw BD
   entries the marker scan reads positionally — the landed fixture
   lists `[2.0, 2.0, 5.0, 0.3, pi/2, pi/2]` (the 5.0 top height
-  matches the wires, the pi/2 pair the 90-degree drafts). The
-  §18.7 differential (LoftH/R/3, 2026-09-24) named the leading
-  slots: `[top-section z][top-section radius]` — LoftH (top z 7)
-  reads `[7.0, pi/2, pi/2]` (its r 1.0 top takes the two-bit short
+  matches the wires, the pi/2 pair the 90-degree drafts).
+  **The §18 container walk (2026-09-26) names the per-section
+  fields:** the raw frames group into contiguous runs — a 2-bit
+  gap between value frames is plain adjacency (the next frame's
+  '00' marker), a 4-bit gap is an elided canonical short field
+  BETWEEN raws, anything wider is a section boundary — and the
+  final 2-frame run names the trailing draft-angle pair
+  (`[pi/2, pi/2]` everywhere; the LoftD settings row stays dead,
+  the naming provisional per its §18.7 verdict). Every earlier run
+  attributes to the closed per-section reading
+  `[center.x][center.y][height][radius]`: 4 contiguous frames =
+  all four (Loft_'s (2, 2, 5, 0.3)); 3 frames with the wide gap
+  after the second = `[cx][cy][elided z short][r]` (LoftC's
+  section 1: (3, 4, z 0 short, 1.5)); 2 frames = `[z][r]` (LoftR);
+  1 frame = `[z]` (LoftH (7); Loft3's mid sections at 2.5/5.0). Any
+  other shape leaves the whole tail positional (nothing named, the
+  conservative decode-fidelity rule). The leading region (8 bits on
+  LoftC, 48 on LoftH/R/3, 68 on Loft_ — holds a fully elided origin
+  section's four shorts plus per-record state), the inter-section
+  gaps (up to 52 bits), and the constant 14-bit trailer
+  `10100111010110` stay documented-verbatim: the named fields never
+  claim their bits. Model: `SolidHistoryLoftSection` per section
+  (per-field `Option` for the elisions) + `draft_angles` on
+  `SolidHistoryLoftTail`; named edits splice same-form LE64s in
+  their own frames; positional `raw_doubles` edits keep working
+  unchanged. The §18.7 differential (LoftH/R/3, 2026-09-24) named
+  the leading slots: `[top-section z][top-section radius]` —
+  LoftH (top z 7) reads `[7.0, pi/2, pi/2]` (its r 1.0 top takes
+  the two-bit short
   and does not appear in the raws), LoftR (top r 2.5) reads
   `[5.0, 2.5, pi/2, pi/2]`, Loft3 adds the mid-section z
   (`[2.5, 5.0, pi/2, pi/2]`). And the landed original's
@@ -4099,8 +4135,23 @@ carry the unit direction in a repeating pattern whose un-named
 remainder (the -0.9446..., -1689439.46-class entries) stays
 opaque, the Extrusion's 64-bit payload after its option spine is
 undecoded, and the Loft's leading 68-bit region before its raw run
-is likewise opaque. Those bits round-trip verbatim and stay
-untouched by the writer; naming them needs the differential
+is likewise opaque. **The three walk rows landed 2026-09-26 (the
+§18 decoder-walk queue): the sweep POST-CORNER walk names the
+corner block's trailing unpaired entry as the record constant
+(4.00024414192312 — bit-invariant across every quiz differential)
+and the gap's first plausible '00'-framed BD as the width-coupled
+single `32 + n/32` (X/L/D n=2, W n=7, Polysolid n=5 — the
+W/PS numerators track the authored width exactly, the X-family at
+a width−1 offset whose closed form stays UNRESOLVED; the §18.7
+P-era "singles" — "2.0109", the "width single" 3.0/7.0, the
+8.06-class reads — are overlapping ALIASES of the same zero-heavy
+bits, documented, never pinned); the loft container walk and the
+ExtrudeP polyline walk close their records above. Still opaque
+after the walks: the sweep frame-block repeats, the extrusion
+64-bit payload, the loft leading/inter-section regions and
+14-bit trailer, and the 32+n/32 single's closed form. Those bits
+round-trip verbatim and stay untouched by the writer; naming them
+needs the differential
 instrument the brief predicts (a second specimen per family with
 different geometry — the fixture tree has one distinct specimen
 per family, and the strict-load gold tree carries no other
@@ -5158,22 +5209,79 @@ Signature) — the parse side is further along than the emission side.
   interleaved-roundtrip pins); the corpus 280 files at 0/0,
   structure read key-gap 0, write-target key-gap 10,410 → 8,718
   with AppInfo/AppInfoHistory 0 across all 273 R2004+ files.
-  **Still open (post-H7d, 8,718):** ObjFreeSpace 2,453+30
-  (rebuilt content), R2004_Header 2,088 (address/numsections
-  shifts: silver writes its own section set where the author's
-  table carries id gaps; +313 of these are the H7d
-  AppInfoHistory-add id-coincidence, +4 the review's gh209_1
-  case — the row's fix rewrites the author's section table),
-  FILEHEADER 1,204 (address shifts + maint_rel 0→4), R2007_Header
-  966, THUMBNAILIMAGE 442 (re-encoded — `preview.raw` is retained;
-  the row is ADDRESS-COUPLED: the container descriptors hold
-  absolute file offsets, so a byte-identical chain needs the
-  section at the original offset or gold-style address
-  re-computation, which itself changes the chain), the
-  whole-section write drops FileDepList 1,055 + SecondHeader 386
-  (R2000, lives inside ObjFreeSpace), AuxHeader 94 — the
-  verbatim-re-emit family follows the AcDs precedent (raw section
-  bytes + a fingerprint gate).
+  **Landed since (2026-09-26):** H7e — the ObjFreeSpace verbatim
+  row at ZERO (2,453 + 30 → 0; corpus write-target 10,410 → 6,235
+  counting H7d's baseline): the reader retains the raw section
+  bytes (`raw_obj_free_space_data`) on both arms (the decompressed
+  container section on R2004+, the raw 53-byte locator section on
+  R2000 — clean content; the 2ndheader sentinel follows the section
+  end, outside the retained span); all three writer paths re-emit
+  the author's bytes verbatim on a same-version roundtrip, write a
+  NUL locator record (seeker 0 — the author's own absent form, cf.
+  PolyLine2D's Template nr4 at address 0) when the source carried
+  no section, and keep the historical rebuild for programmatic
+  documents and conversions. THE R2000 PLACEMENT FIX: gold reads
+  the section only when its locator address equals the file
+  position DIRECTLY after the handles map (decode.c's
+  `section[OBJFREESPACE].address == pvz` gate, the post-terminator
+  CRC position) — the AC15 writer now places ObjFreeSpace AFTER
+  the HANDLES record (the R13/R14 branch's own order), which closed
+  the 3 R2000 presence rows (PolyLine2D/entities-2d/entities-3d,
+  10 leaves each) without touching the parallel session's
+  SecondHeader row; a never-populated record keeps the NUL form so
+  it never points at live bytes. The corpus: ObjFreeSpace 3,441
+  matched 0/0 both axes; every other row unchanged.
+
+  H7f — the FILEHEADER identity bytes: 1,204 → 553 (−651). The five
+  identity bytes were stamped with per-writer constants (AC18: the
+  canonical per-version table at 0x0B/0x12, dwg_version hardcoded
+  0x21, the app pair zeroed; AC21: 0x19/0x1B/0x19/30 + zeros; AC15:
+  the fixed 0x1B/0x19 pair) where the authors wrote per-build bytes
+  (example_2004's maint_rel 104 / maint 29 / app pair 33/29;
+  Revolve_2018's maint 0 vs the canonical 4; Box_2007's
+  maint_rel 50 / dwg_version 33 / maint 255 / app pair 33/255;
+  PolyLine2D's 31/8 version pair). All three file-header writers take
+  a same-version source mirror from the retained
+  `DwgFileHeaderSummary` (`set_source_header_bytes` /
+  `set_source_version_pair`), AC21's codepage included (previously
+  hardcoded 30). The effective layout maint in write_ac18 becomes
+  the author's `maint_version` byte: LAYOUT-NEUTRAL for every
+  corpus class (the R2004 header-vars path reads no bitsize_hi at
+  all — gold's PRE(R_2007a) arm; the R2010/2013 authors' bytes are
+  all > 3 like the canonical 30/29 so `has_section_extra_rl` keeps
+  the extra RL present; R2018's gate carries the `|| >= R2018`
+  arm; R2007 has no maint-gated arms in its reader path). The
+  residual 553 = the pure address-shift family (thumbnail_address +
+  summaryinfo_address leaf pairs on R2004+, the preview seeker on
+  R2000) — layout-coupled, not byte-identity. The generation
+  identity is untouched (programmatic docs keep the historical
+  constants byte-for-byte; the current identity 40ab5d356cf05a71333f
+  208e1651daf, 25,344 bytes — it moved at an earlier landing
+  without a re-record; the README's recorded 0217fbac… was stale).
+
+  **Still open (post-H7f, 5,584) — the container-parity wall:** the
+  remaining owned rows reduce to ONE root: silver's container
+  page-space differs from the author's. R2004_Header 2,088 +
+  R2007_Header 966: gold's `numsections` (inner header @0x40) IS the
+  page-array slot count — example_2004's author runs 26 page-ids
+  (gaps to id 28) where silver's rewrite carries 42 pages for the
+  same section set (the verified example_2004 tables: 13
+  section-info descriptors both sides, but the author's per-page
+  split differs — classes single-paged at 31,776 bytes with custom
+  per-descriptor maxdecomp vs silver's conventional splits);
+  last_section_id/section_map_id/section_info_id/section_array_size
+  follow the page space, and the three address fields move with the
+  layout. Closing them requires reproducing the author's per-page
+  split shape (a container-shape mirror: the author's per-descriptor
+  maxdecomp_size + page-count per section with our own content — the
+  verbatim sections now round-trip byte-equal, but header/objects
+  re-encode to different sizes, so page-count parity is approximate,
+  not exact). THUMBNAILIMAGE 442 is the same wall's address-coupled
+  face (the preview chain holds absolute file offsets). FILEHEADER
+  553 as above. The whole-section write drops FileDepList 1,055 +
+  SecondHeader 386 + AuxHeader 94 stay the PARALLEL SESSION's rows
+  (their untracked probes `h7_probe1.sh`/`h7_rows.sh` in the repo
+  root are not ours to commit).
 
 ### 19.3 Standing rules for the campaign
 
