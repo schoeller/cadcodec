@@ -31,6 +31,12 @@ pub mod names {
     pub const SECURITY: &str = "AcDb:Security";
     pub const VBA_PROJECT: &str = "AcDb:VBAProject";
     pub const SIGNATURE: &str = "AcDb:Signature";
+    /// R2013+ external-reference table. Not modeled in the document
+    /// and not JSON-printed by gold (no census row); the raw bytes are
+    /// retained (§19 H7g) so a same-version roundtrip's container
+    /// mirror can re-emit the author's page verbatim — its page is
+    /// part of the author's page space (Box_2013/Revolve_2018).
+    pub const XREF_MANIFEST: &str = "AcDb:XrefManifest";
 
     /// The R2004+ data-section TYPE → name table (gold's `DWG_SECTION_TYPE`
     /// order, include/dwg.h). Some writers (the R2004 corpus files' AcDs

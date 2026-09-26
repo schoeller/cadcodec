@@ -257,6 +257,15 @@ pub struct DwgFileHeaderInfo {
     /// Whether this file uses AC18 format (R2004/R2010/R2013/R2018).
     /// Determines which decompression path to use in `get_section_buffer`.
     pub is_ac18_format: bool,
+
+    // ── The §19 H7g container-shape retention (R2004 family) ──
+    /// The section page map entries in the author's physical order
+    /// (page id + on-disk size), from `read_page_map_ac18`.
+    pub ac18_map_order: Vec<crate::document::DwgAc18PageEntry>,
+    /// The per-descriptor page shapes in the author's table order,
+    /// from `read_section_map_ac18` (every descriptor, including the
+    /// unnamed AcDs ones).
+    pub ac18_section_shapes: Vec<crate::document::DwgAc18SectionShape>,
 }
 
 /// Information about a DWG section (from the section map).
@@ -1404,7 +1413,7 @@ impl<R: Read + Seek> DwgReader<R> {
 
         // 1. Read the DWG file header and section map
         let stage_started = web_time::Instant::now();
-        let info = match self.read_file_header() {
+        let mut info = match self.read_file_header() {
             Ok(info) => info,
             Err(e) if failsafe => {
                 report_read_error(
@@ -1475,6 +1484,24 @@ impl<R: Read + Seek> DwgReader<R> {
         // The R2004-format system-section summary (§19 H2's second
         // sub-row) — set on AC18-format files only.
         document.dwg_r2004_header = info.r2004_system.clone();
+        // The §19 H7g container shape: the author's page space
+        // (per-descriptor page boundaries/ids, the physical map order,
+        // the box-page identity), retained for the same-version
+        // roundtrip's container-shape mirror. AC18-family files only —
+        // the write gate below falls back to the conventional layout
+        // whenever the re-encoded content does not fit the author's
+        // page space.
+        if info.is_ac18_format {
+            if let Some(sys) = info.r2004_system.as_ref() {
+                document.dwg_ac18_shape = Some(crate::document::DwgAc18ContainerShape {
+                    sections: std::mem::take(&mut info.ac18_section_shapes),
+                    map_order: std::mem::take(&mut info.ac18_map_order),
+                    section_map_id: sys.section_map_id,
+                    section_info_id: sys.section_info_id as u32,
+                    section_array_size: sys.section_array_size as u32,
+                });
+            }
+        }
         // The R2007-format system-section summary (§19 H2's third
         // sub-row) — the gold-named projection of the AC1021 container
         // metadata silver already parses (Dwg21CompressedMetadata). The
@@ -2111,6 +2138,8 @@ impl<R: Read + Seek> DwgReader<R> {
             section_locators: HashMap::new(),
             objects_base_offset: 0,
             is_ac18_format: false,
+            ac18_map_order: Vec::new(),
+            ac18_section_shapes: Vec::new(),
         };
 
         match version {
@@ -2680,6 +2709,19 @@ impl<R: Read + Seek> DwgReader<R> {
                 document.raw_obj_free_space_data = Some(std::sync::Arc::new(buf.clone()));
             }
             document.dwg_obj_free_space = Some(parse_obj_free_space_section(&buf, r2010_plus));
+            // §19 H7g: the XrefManifest bytes (the R2013+ external-
+            // reference table — authored state, unmodeled, unprinted
+            // by gold) retained verbatim for the same-version
+            // container mirror.
+            let buf = self
+                .get_section_buffer(
+                    crate::io::dwg::file_headers::section_definition::names::XREF_MANIFEST,
+                    info,
+                )
+                .unwrap_or_default();
+            if !buf.is_empty() {
+                document.raw_xref_manifest_data = Some(std::sync::Arc::new(buf.clone()));
+            }
             let buf = self.get_section_buffer(names::TEMPLATE, info).unwrap_or_default();
             document.dwg_template = Some(parse_template_section(&buf, utf16));
         } else {
@@ -2880,6 +2922,13 @@ impl<R: Read + Seek> DwgReader<R> {
             if page_number > 0 {
                 info.page_records
                     .insert(page_number, (file_offset, page_size as i64));
+                // §19 H7g: the map order is the author's physical page
+                // order — the container-shape mirror's emission order.
+                info.ac18_map_order
+                    .push(crate::document::DwgAc18PageEntry {
+                        id: page_number,
+                        on_disk_size: page_size as i64,
+                    });
             }
             // Only advance for positive sizes; negative/zero sizes in gap entries are
             // invalid and must not corrupt subsequent page offsets.
@@ -2972,7 +3021,8 @@ impl<R: Read + Seek> DwgReader<R> {
             // survives and the name fails to match (e.g. "AcDb:Handles\0t…").
             let mut name_buf = [0u8; 64];
             cursor.read_exact(&mut name_buf)?;
-            let mut name = section_name_from_field(&name_buf);
+            let raw_name = section_name_from_field(&name_buf);
+            let mut name = raw_name.clone();
             if name.is_empty() {
                 // Nameless descriptor: resolve by the section type id
                 // (gold's type-based lookups find these; the R2004 corpus
@@ -3013,9 +3063,26 @@ impl<R: Read + Seek> DwgReader<R> {
                     hash_code: 0,
                     encoding: compressed_code as u64,
                     page_count: page_count as u64,
-                    pages,
+                    pages: pages.clone(),
                 });
             }
+
+            // §19 H7g: retain the descriptor's container shape —
+            // every descriptor (the unnamed AcDs ones included; their
+            // page lists may be empty), with the raw 64-byte name so
+            // the re-emitted table matches the author's bytes.
+            info.ac18_section_shapes
+                .push(crate::document::DwgAc18SectionShape {
+                    name,
+                    raw_name,
+                    size: data_size,
+                    max_decomp: max_decomp_page_size as u32,
+                    compressed_code,
+                    pages: pages
+                        .iter()
+                        .map(|p| (p.page_number as i32, p.offset))
+                        .collect(),
+                });
         }
 
         self.notifications.notify(

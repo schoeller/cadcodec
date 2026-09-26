@@ -462,6 +462,15 @@ pub struct DwgFileHeaderWriterAC21 {
     /// the unknown 0x15 byte, `app_dwg_version`, `app_maint_version`).
     /// `None` keeps the historical R2007 constants.
     source_header_bytes: Option<(u8, u8, u8, u16, u8, u8, u8)>,
+    /// The author's `random_seed` for a same-version roundtrip (§19
+    /// H7g): the seed IS the CRC random encoder's input (spec
+    /// §5.2.1.1.1), so adopting it makes the derived fields —
+    /// `sections_map_crc_seed`, `pages_map_crc_seed` and
+    /// `crc_seed_encoded`, all deterministic draws from (seed,
+    /// crc_seed) — land the author's values too (every corpus author
+    /// carries `crc_seed` 0 like our writer). `None` keeps the
+    /// historical constant (0).
+    source_random_seed: Option<u64>,
 }
 
 impl DwgFileHeaderWriterAC21 {
@@ -486,7 +495,15 @@ impl DwgFileHeaderWriterAC21 {
             next_page_id: 1,
             skip_lz77: false,
             source_header_bytes: None,
+            source_random_seed: None,
         })
+    }
+
+    /// Mirror the source author's `random_seed` (§19 H7g). Must be set
+    /// before the metadata is finalized; the derived CRC-seed fields
+    /// follow the author's RNG sequence then.
+    pub fn set_source_random_seed(&mut self, random_seed: u64) {
+        self.source_random_seed = Some(random_seed);
     }
 
     /// Mirror the source file's FILEHEADER identity bytes (§19 H7f,
@@ -693,9 +710,15 @@ impl DwgFileHeaderWriterAC21 {
         metadata.sections_map_correction_factor = section_map_result.correction_factor;
 
         // CRC/random fields (spec §5.2.1.1 — order is critical for RNG state)
-        // §5.2.1.1.1: RandomSeed IS the CRC encoder's seed (input, not output)
-        // Using a fixed value (we can use any value; AutoCAD verifies consistency)
-        let random_seed = FILE_RANDOM_SEED;
+        // §5.2.1.1.1: RandomSeed IS the CRC encoder's seed (input, not output).
+        // §19 H7g: a same-version roundtrip adopts the AUTHOR's seed —
+        // a retained file identity (gold's `R2007_Header.random_seed`),
+        // decode-inert (gold only prints it in JSON) — and every
+        // downstream draw (`sections_map_crc_seed`,
+        // `pages_map_crc_seed`, `crc_seed_encoded`) is a deterministic
+        // function of (seed, crc_seed), so those fields land the
+        // author's values too.
+        let random_seed = self.source_random_seed.unwrap_or(FILE_RANDOM_SEED);
         metadata.random_seed = random_seed;
         metadata.crc_seed = self.crc_seed; // always 0 per §5.2.1.1.2
         let mut rng = CrcRandomEncoder::new(random_seed);

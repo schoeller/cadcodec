@@ -90,6 +90,18 @@ pub struct DwgFileHeaderWriterAC18 {
     /// Set for a same-version roundtrip of a read document; `None`
     /// keeps the historical constants.
     source_header_bytes: Option<[u8; 6]>,
+    /// The §19 H7g container-identity mirror: the author's system
+    /// header count/id fields (section_info_id @0x5C, the page-map
+    /// box's id @0x50, section_array_size @0x60), applied at
+    /// `write_file` time when the same-version roundtrip's
+    /// content-parity gate passed. `None` keeps the historical
+    /// sequential conventions (boxes at data-count+1/+2, array size
+    /// = data-count+2).
+    mirror_ids: Option<(i32, i32, u32)>,
+    /// The §19 H7g raw 64-byte name fields (canonical name → the
+    /// author's bytes) for the mirrored descriptor table; sections
+    /// absent here write their canonical name as before.
+    raw_names: std::collections::HashMap<String, String>,
 }
 
 impl DwgFileHeaderWriterAC18 {
@@ -124,11 +136,42 @@ impl DwgFileHeaderWriterAC18 {
             page_map_address: 0,
             gap_amount: 0,
             source_header_bytes: None,
+            mirror_ids: None,
+            raw_names: std::collections::HashMap::new(),
         })
     }
 
     pub fn set_code_page(&mut self, code_page: u16) {
         self.code_page = code_page;
+    }
+
+    /// Adopt the author's container identity for the §19 H7g
+    /// container-shape mirror: the section-info box's page id
+    /// (gold's `section_info_id` @0x5C), the page-map box's page id
+    /// (gold's `section_map_id` @0x50) and the max page id
+    /// (`section_array_size` @0x60, including the author's id gaps).
+    /// Must be set BEFORE `write_file`; the page-ids of the two box
+    /// pages and the inner-file-header count fields then follow the
+    /// author instead of the sequential convention. Only valid when
+    /// the emitted entry count equals the author's `numsections` —
+    /// the caller (the same-version content-parity gate) guarantees
+    /// that.
+    pub fn set_mirror_ids(&mut self, section_info_id: i32, section_page_map_id: i32, section_array_size: u32) {
+        self.mirror_ids = Some((section_info_id, section_page_map_id, section_array_size));
+    }
+
+    /// The file offset where the NEXT section's page data would start
+    /// (§19 H7g): the 0x20-aligned page-header position plus the
+    /// 32-byte header — the address the preview container's absolute
+    /// image offsets are based on. Mirrors `add_section`'s emission
+    /// math; call before emitting the section.
+    pub fn next_page_data_address<W: Write + Seek>(
+        &self,
+        output: &mut W,
+    ) -> Result<u64, DxfError> {
+        let cur = output.seek(SeekFrom::End(0))? as usize;
+        let aligned = cur + (cur % 0x20);
+        Ok(aligned as u64 + 0x20)
     }
 
     /// Mirror the source file's FILEHEADER identity bytes (§19 H7f,
@@ -240,6 +283,7 @@ impl DwgFileHeaderWriterAC18 {
                     decomp_size,
                     compressed,
                     encoded,
+                    None,
                 )?;
             }
         }
@@ -259,11 +303,130 @@ impl DwgFileHeaderWriterAC18 {
         Ok(())
     }
 
+    /// Add one section on the author's page space (§19 H7g — the
+    /// container-shape mirror): the data is chunked at the AUTHOR's
+    /// per-page start offsets and every page carries the AUTHOR's
+    /// page id, so the page count, the id pattern and — with the
+    /// author's emission order — the physical page layout mirror the
+    /// source file. The gate upstream (the same-version
+    /// content-parity check in `write_ac18`) has already verified the
+    /// section set and that our content covers the author's last page
+    /// offset within the author's max-decomp capacity.
+    ///
+    /// `raw_name` re-emits the author's 64-byte descriptor-name field
+    /// verbatim (empty for the unnamed AcDs descriptors); `name` stays
+    /// the canonical key for the writer's own lookups.
+    pub fn add_section_shaped<W: Write + Seek>(
+        &mut self,
+        output: &mut W,
+        name: &str,
+        raw_name: &str,
+        data: &[u8],
+        compressed: bool,
+        max_decomp: usize,
+        author_pages: &[(i32, u64)],
+    ) -> Result<(), DxfError> {
+        let perf = std::env::var_os("PERF").is_some();
+        let started = web_time::Instant::now();
+
+        let mut descriptor = DwgSectionDescriptor::new(name);
+        descriptor.decompressed_size = max_decomp as u64;
+        descriptor.compressed_size = data.len() as u64;
+        descriptor.compressed_code = if compressed { 2 } else { 1 };
+        descriptor.section_id = self.next_section_id;
+        self.next_section_id += 1;
+        if raw_name != name {
+            self.raw_names
+                .insert(name.to_string(), raw_name.to_string());
+        }
+
+        // Chunk at the author's per-page offsets: page j covers
+        // [offset_j, offset_{j+1}) of OUR content; the last page runs
+        // to our content's end (bounded by the author's capacity, as
+        // gated upstream).
+        let mut page_inputs: Vec<(usize, usize, i32, &[u8])> = Vec::new();
+        for (index, (id, offset)) in author_pages.iter().enumerate() {
+            let start = *offset as usize;
+            let end = author_pages
+                .get(index + 1)
+                .map(|(_, next)| (*next as usize).min(data.len()))
+                .unwrap_or(data.len());
+            if start >= end {
+                return Err(DxfError::InvalidFormat(format!(
+                    "container mirror: section {name} page {id} empty (start {start}, end {end}, len {})",
+                    data.len()
+                )));
+            }
+            page_inputs.push((start, end - start, *id, &data[start..end]));
+        }
+
+        use crate::io::dwg::parallel::{map_slice, worker_count};
+        let batch_pages = worker_count().saturating_mul(2);
+        for page_batch in page_inputs.chunks(batch_pages) {
+            let encoded: Vec<_> = map_slice(page_batch, |&(offset, total_size, id, bytes)| {
+                let mut padded = vec![0u8; max_decomp];
+                padded[..total_size].copy_from_slice(bytes);
+                let encoded = if compressed {
+                    let mut compressor = DwgLZ77AC18Compressor::new();
+                    compressor.compress(&padded, 0, max_decomp)
+                } else {
+                    padded
+                };
+                (offset, total_size, id, encoded)
+            });
+
+            for (offset, total_size, id, encoded) in encoded {
+                self.create_local_section(
+                    output,
+                    &mut descriptor,
+                    offset,
+                    total_size,
+                    max_decomp,
+                    compressed,
+                    encoded,
+                    Some(id),
+                )?;
+            }
+        }
+
+        if descriptor.page_count != author_pages.len() as i32 {
+            return Err(DxfError::InvalidFormat(format!(
+                "container mirror: section {name} emitted {} pages, author shape has {}",
+                descriptor.page_count,
+                author_pages.len()
+            )));
+        }
+        let pages = descriptor.page_count;
+        self.descriptors.insert(name.to_string(), descriptor);
+        if perf {
+            eprintln!(
+                "[perf] dwg-write-section name={} format=ac18-mirrored time={:.1}ms bytes={} pages={}",
+                name,
+                started.elapsed().as_secs_f64() * 1000.0,
+                data.len(),
+                pages,
+            );
+        }
+        Ok(())
+    }
+
     /// Finalize the file: write section map, page map, and file metadata.
     pub fn write_file<W: Write + Seek>(&mut self, output: &mut W) -> Result<(), DxfError> {
-        self.section_array_page_size = (self.local_section_maps.len() + 2) as u32;
-        self.section_page_map_id = self.section_array_page_size;
-        self.section_map_id = self.section_array_page_size - 1;
+        match self.mirror_ids {
+            // §19 H7g: the author's box ids and max page id. The entry
+            // count is recomputed below from the emitted pages and must
+            // equal the author's numsections (the gate guaranteed it).
+            Some((info_id, page_map_id, array_size)) => {
+                self.section_array_page_size = array_size;
+                self.section_page_map_id = page_map_id as u32;
+                self.section_map_id = info_id as u32;
+            }
+            None => {
+                self.section_array_page_size = (self.local_section_maps.len() + 2) as u32;
+                self.section_page_map_id = self.section_array_page_size;
+                self.section_map_id = self.section_array_page_size - 1;
+            }
+        }
 
         self.write_descriptors(output)?;
         self.write_records(output)?;
@@ -275,6 +438,9 @@ impl DwgFileHeaderWriterAC18 {
     // ── Internal page writing ──
 
     /// Create and write a single page (local section) to the output stream.
+    /// `page_number` overrides the sequential id (§19 H7g: the author's
+    /// page ids).
+    #[allow(clippy::too_many_arguments)]
     fn create_local_section<W: Write + Seek>(
         &mut self,
         output: &mut W,
@@ -284,6 +450,7 @@ impl DwgFileHeaderWriterAC18 {
         page_decomp_size: usize,
         compressed: bool,
         compressed_data: Vec<u8>,
+        page_number: Option<i32>,
     ) -> Result<(), DxfError> {
         // Write magic number alignment padding
         self.write_magic_number(output)?;
@@ -294,7 +461,8 @@ impl DwgFileHeaderWriterAC18 {
         let mut local_map = DwgLocalSectionMap::new();
         local_map.offset = offset as u64;
         local_map.seeker = position;
-        local_map.page_number = self.local_section_maps.len() as i32 + 1;
+        local_map.page_number = page_number
+            .unwrap_or(self.local_section_maps.len() as i32 + 1);
 
         // ODA checksum: Adler-32 over compressed data only
         local_map.oda = adler32_checksum(0, &compressed_data);
@@ -427,9 +595,15 @@ impl DwgFileHeaderWriterAC18 {
             // 0x1C: Encrypted (4 bytes)
             stream.write_i32::<LittleEndian>(descriptor.encrypted)?;
 
-            // 0x20: Section name (64 bytes, zero-padded)
+            // 0x20: Section name (64 bytes, zero-padded). §19 H7g: the
+            // mirrored sections re-emit the AUTHOR's raw name field
+            // (empty for the unnamed AcDs descriptors).
             let mut name_buf = [0u8; 64];
-            let name_bytes = descriptor.name.as_bytes();
+            let name_bytes = self
+                .raw_names
+                .get(&descriptor.name)
+                .unwrap_or(&descriptor.name)
+                .as_bytes();
             let copy_len = name_bytes.len().min(64);
             name_buf[..copy_len].copy_from_slice(&name_bytes[..copy_len]);
             stream.write_all(&name_buf)?;
@@ -447,6 +621,19 @@ impl DwgFileHeaderWriterAC18 {
             }
         }
 
+        // §19 H7g: the mirrored table may END with a 0-page descriptor
+        // (the unnamed AcDs entries). Gold's descriptor parser runs
+        // `dec.byte + 8 + 6*4 + 64 >= dec.size` BEFORE every entry
+        // (decode.c read_R2004_section_info "out of range") — a table
+        // that ends exactly at the last descriptor's bytes fails it,
+        // while any pages-bearing final entry leaves its own page
+        // records as slack. Pad the mirrored stream so the final
+        // descriptor is always followed by slack bytes (gold ignores
+        // the tail; the historical writer's tables are unchanged).
+        if self.mirror_ids.is_some() {
+            stream.extend_from_slice(&[0u8; 32]);
+        }
+
         // Write as section map page (0x4163003B)
         let section_holder = self.set_seeker(output, PAGE_TYPE_SECTION_MAP, &stream)?;
         let padding = compression_padding(
@@ -458,7 +645,14 @@ impl DwgFileHeaderWriterAC18 {
         let mut holder = section_holder;
         holder.size = output.seek(SeekFrom::Current(0))? as i64 - holder.seeker;
 
-        self.add_local_section(holder);
+        // §19 H7g: the section-info box takes the author's id on a
+        // mirrored write (the author's box ids sit after an id gap,
+        // e.g. data pages 1..24 then boxes at 27/28).
+        let holder_id = match self.mirror_ids {
+            Some((info_id, _, _)) => info_id,
+            None => self.local_section_maps.len() as i32 + 1,
+        };
+        self.add_local_section(holder, holder_id);
 
         Ok(())
     }
@@ -467,9 +661,15 @@ impl DwgFileHeaderWriterAC18 {
     fn write_records<W: Write + Seek>(&mut self, output: &mut W) -> Result<(), DxfError> {
         self.write_magic_number(output)?;
 
-        // Create section page map entry
+        // Create section page map entry. §19 H7g: the page-map box
+        // takes the author's id on a mirrored write (gold's
+        // `section_map_id` @0x50, the last allocated page id).
         let mut section = DwgLocalSectionMap::with_section_map(PAGE_TYPE_SECTION_PAGE_MAP);
-        self.add_local_section(section.clone());
+        let page_map_id = match self.mirror_ids {
+            Some((_, pm_id, _)) => pm_id,
+            None => self.local_section_maps.len() as i32 + 1,
+        };
+        self.add_local_section(section.clone(), page_map_id);
 
         let counter = self.local_section_maps.len() * 8;
         section.seeker = output.seek(SeekFrom::Current(0))? as i64;
@@ -700,9 +900,9 @@ impl DwgFileHeaderWriterAC18 {
         Ok(())
     }
 
-    /// Add a local section map entry, assigning the next page number.
-    fn add_local_section(&mut self, mut section: DwgLocalSectionMap) {
-        section.page_number = self.local_section_maps.len() as i32 + 1;
+    /// Add a local section map entry with an explicit page id.
+    fn add_local_section(&mut self, mut section: DwgLocalSectionMap, id: i32) {
+        section.page_number = id;
         self.local_section_maps.push(section);
     }
 

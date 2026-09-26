@@ -1261,19 +1261,22 @@ fn write_ac18<W: Write + Seek>(
         header_encoding,
         document.dwg_header_raw.as_ref(),
     );
-    fhw.add_section(output, section_names::HEADER, &header_data, true, PAGE_SIZE)?;
+
+    // ── Build the remaining section buffers up front (§19 H7g) ──
+    // The container-shape mirror gates on the content lengths and may
+    // emit in the author's physical order, so every section is
+    // constructed before anything is written — the builders are pure,
+    // only `add_section` moves the output stream, so the conventional
+    // path below writes byte-identical output to the historical
+    // interleaved emission. The preview content is the one lazy
+    // section: its container embeds its own page-data address, so it
+    // is built at emission time.
+    let same_origin = document.dwg_source_version == Some(version);
 
     // ── Section: Classes ──
     let classes = reconciled_classes(document, &class_instance_counts, class_counts_complete);
     let classes_data =
-        classes_section_data(document, version, &classes, maint, header_encoding);
-    fhw.add_section(
-        output,
-        section_names::CLASSES,
-        &classes_data,
-        true,
-        PAGE_SIZE,
-    )?;
+        classes_section_data(document, version, &classes, maint, header_encoding).into_owned();
 
     // ── Section: SummaryInfo ──
     // The presence-coupling gate (§19 H7 review): gold emits SummaryInfo
@@ -1288,16 +1291,13 @@ fn write_ac18<W: Write + Seek>(
         .as_ref()
         .map(|fh| fh.summaryinfo_address != 0)
         .unwrap_or(true);
-    if summary_orig_present || document.summary_info != crate::document::SummaryInfo::default() {
-        let summary_data = build_summary_info(version, &document.summary_info);
-        fhw.add_section(
-            output,
-            section_names::SUMMARY_INFO,
-            &summary_data,
-            false,
-            0x100,
-        )?;
-    }
+    let summary_section =
+        if summary_orig_present || document.summary_info != crate::document::SummaryInfo::default()
+        {
+            Some(build_summary_info(version, &document.summary_info))
+        } else {
+            None
+        };
 
     // ── Section: Preview ──
     // The image `start` fields are absolute file offsets, so the preview page's
@@ -1305,22 +1305,12 @@ fn write_ac18<W: Write + Seek>(
     // checksum covers the final bytes — patching offsets afterward would break
     // it). `add_section` aligns via `write_magic_number` (pads by `pos % 0x20`)
     // then writes a 0x20 page header; the header's preview seeker points at
-    // `page + 0x20`, which is where the container lands.
-    let cur = output.seek(std::io::SeekFrom::Current(0))? as u64;
-    let preview_base = (cur + cur % 0x20) + 0x20;
-    let preview_data =
-        crate::io::dwg::preview::build_preview(document.preview.as_ref(), preview_base);
-    // Keep the whole preview in one contiguous page (a split would scatter the
-    // container across page headers): a decompressed size ≥ its length, rounded
-    // up to a 0x20 multiple so the uncompressed page needs no compression pad.
-    let preview_page = ((preview_data.len() + 0x1F) & !0x1F).max(0x20);
-    fhw.add_section(
-        output,
-        section_names::PREVIEW,
-        &preview_data,
-        false,
-        preview_page,
-    )?;
+    // `page + 0x20`, which is where the container lands. The content itself is
+    // built at emission time (see below); only its gate length is fixed here.
+    let preview_gate_len = match document.preview.as_ref() {
+        Some(p) if !p.raw.is_empty() => p.raw.len(),
+        p => crate::io::dwg::preview::build_preview(p, 0).len(),
+    };
 
     // ── Section: AppInfo ── (§19 H7: verbatim from the source when the
     // same-version roundtrip carried one; SKIPPED when the source had
@@ -1328,88 +1318,40 @@ fn write_ac18<W: Write + Seek>(
     // absent), so materializing the boilerplate there would diverge.
     // Programmatic documents and version conversions keep the
     // historical boilerplate.)
-    if document.dwg_source_version == Some(version) {
-        if let Some(raw) = document.raw_app_info_data.as_deref() {
-            fhw.add_section(output, section_names::APP_INFO, raw, false, SMALL_PAGE)?;
-        }
+    let app_info_section: Option<Vec<u8>> = if same_origin {
+        document.raw_app_info_data.as_deref().map(|raw| raw.to_vec())
     } else {
-        let app_info_data = app_info_writer::write_app_info(version);
-        fhw.add_section(
-            output,
-            section_names::APP_INFO,
-            &app_info_data,
-            false,
-            SMALL_PAGE,
-        )?;
-    }
+        Some(app_info_writer::write_app_info(version))
+    };
 
     // ── Section: AppInfoHistory ── (§19 H7: never written before this
     // row — same verbatim/skip rule; a source without the section keeps
     // gold's zeroed print on both sides.)
-    if document.dwg_source_version == Some(version) {
-        if let Some(raw) = document.raw_app_info_history_data.as_deref() {
-            fhw.add_section(
-                output,
-                section_names::APP_INFO_HISTORY,
-                raw,
-                false,
-                SMALL_PAGE,
-            )?;
-        }
-    }
+    let app_info_history_section: Option<Vec<u8>> = if same_origin {
+        document
+            .raw_app_info_history_data
+            .as_deref()
+            .map(|raw| raw.to_vec())
+    } else {
+        None
+    };
 
     // ── Section: FileDepList ──
     let file_dep_data = build_file_dep_list();
-    fhw.add_section(
-        output,
-        section_names::FILE_DEP_LIST,
-        &file_dep_data,
-        false,
-        SMALL_PAGE,
-    )?;
 
     // ── Section: RevHistory ──
     let rev_history_data = build_rev_history();
-    fhw.add_section(
-        output,
-        section_names::REV_HISTORY,
-        &rev_history_data,
-        true,
-        PAGE_SIZE,
-    )?;
 
     // ── Section: AuxHeader (uses corrected HANDSEED) ──
     let aux_data = aux_header_writer::write_aux_header(version, &corrected_header);
-    fhw.add_section(
-        output,
-        section_names::AUX_HEADER,
-        &aux_data,
-        true,
-        PAGE_SIZE,
-    )?;
-
-    // ── Section: AcDbObjects (pre-computed) ──
-    fhw.add_section(
-        output,
-        section_names::ACDB_OBJECTS,
-        &obj_data,
-        true,
-        PAGE_SIZE,
-    )?;
 
     // ── Section: AcDsPrototype_1b (AC1027+ ACIS SAB storage) ──
-    if !sab_entries.is_empty()
-        || (document.dwg_source_version == Some(version) && document.raw_acds_data.is_some())
-    {
-        let acds_data = acds_data(document, version, &sab_entries);
-        fhw.add_section(
-            output,
-            section_names::ACDS_PROTOTYPE,
-            &acds_data,
-            true,
-            PAGE_SIZE,
-        )?;
-    }
+    let acds_section: Option<Vec<u8>> =
+        if !sab_entries.is_empty() || (same_origin && document.raw_acds_data.is_some()) {
+            Some(acds_data(document, version, &sab_entries).into_owned())
+        } else {
+            None
+        };
 
     // ── Section: ObjFreeSpace ──
     // §19 H7e: the content is authored file state (the author's
@@ -1418,48 +1360,501 @@ fn write_ac18<W: Write + Seek>(
     // none materialized (gold prints the section unconditionally on
     // R2004+, zeroed when absent — both sides match then); programmatic
     // documents and version conversions keep the historical rebuild.
-    if document.dwg_source_version == Some(version) {
-        if let Some(raw) = document.raw_obj_free_space_data.clone() {
+    let obj_free_space_section: Option<Vec<u8>> = if same_origin {
+        document
+            .raw_obj_free_space_data
+            .as_deref()
+            .map(|raw| raw.to_vec())
+    } else {
+        Some(build_obj_free_space(version, document, handle_map_u32.len()))
+    };
+
+    // ── Section: XrefManifest ──
+    // §19 H7g: the R2013+ external-reference table — raw verbatim on a
+    // same-version roundtrip (authored state, unmodeled, unprinted by
+    // gold); never materialized otherwise. The mirror-only emission
+    // keeps the conventional path byte-identical to the historical
+    // writer.
+    let xref_manifest_section: Option<Vec<u8>> = if same_origin {
+        document
+            .raw_xref_manifest_data
+            .as_deref()
+            .map(|raw| raw.to_vec())
+    } else {
+        None
+    };
+
+    // ── Section: Template ──
+    let template = build_template(&[], document.header.measurement)?;
+
+    // ── Section: Handles (needs objects data) ──
+    let section_offset = fhw.handle_section_offset() as i32;
+    let handle_map_i64: Vec<(u64, i64)> =
+        handle_map_u32.iter().map(|&(h, o)| (h as u64, o as i64)).collect();
+    let handles_data = handle_writer::write_handles(&handle_map_i64, section_offset);
+
+    let sections = Ac18Sections {
+        header: &header_data,
+        classes: &classes_data,
+        summary: summary_section.as_deref(),
+        app_info: app_info_section.as_deref(),
+        app_info_history: app_info_history_section.as_deref(),
+        file_dep: &file_dep_data,
+        rev_history: &rev_history_data,
+        aux_header: &aux_data,
+        objects: &obj_data,
+        acds: acds_section.as_deref(),
+        obj_free_space: obj_free_space_section.as_deref(),
+        xref_manifest: xref_manifest_section.as_deref(),
+        template: &template,
+        handles: &handles_data,
+    };
+
+    // ── The §19 H7g container-shape mirror gate and emission ──
+    // One root closes three census families at once when it holds:
+    // `numsections` IS the page-map entry count and the id fields
+    // (@0x28 `last_section_id`, @0x50 `section_map_id`, @0x5C
+    // `section_info_id`, @0x60 `section_array_size`) follow the page
+    // space, so the author's per-descriptor page splitting + id
+    // pattern reproduce the R2004_Header counts exactly; the summary
+    // and preview pages are the FIRST TWO pages in every corpus
+    // author's layout, so an order-faithful prefix also reproduces
+    // `summaryinfo_address`/`thumbnail_address` (the FILEHEADER
+    // addresses are page-data positions, seeker+0x20) and the preview
+    // chain's absolute image offsets (the THUMBNAILIMAGE identity).
+    // The gate falls back to the conventional sequential layout on
+    // ANY divergence — an author section our content does not fit, a
+    // presence divergence, gap entries, interleaved pages: the
+    // rewrite stays valid everywhere, the residue rows stay open on
+    // the files it declines.
+    let mirror_plan = match (
+        document.dwg_ac18_shape.as_ref(),
+        document.dwg_r2004_header.as_ref(),
+    ) {
+        (Some(shape), Some(sys)) => {
+            if same_origin {
+                ac18_mirror_plan(shape, sys, &sections, preview_gate_len)
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+
+    if let Some(plan) = mirror_plan {
+        let shape = document
+            .dwg_ac18_shape
+            .as_ref()
+            .expect("the mirror plan implies the shape");
+        fhw.set_mirror_ids(
+            shape.section_info_id as i32,
+            shape.section_map_id as i32,
+            shape.section_array_size,
+        );
+        for sec_index in plan.order {
+            let sec = &shape.sections[sec_index];
+            if sec.name != section_names::PREVIEW {
+                // The gate verified the content parity; 0-page sections
+                // carry no bytes (our writer skipped them — the author's
+                // shape drives the presence).
+                let data: &[u8] = sections.get(&sec.name).unwrap_or(&[]);
+                fhw.add_section_shaped(
+                    output,
+                    &sec.name,
+                    &sec.raw_name,
+                    data,
+                    sec.compressed_code == 2,
+                    sec.max_decomp as usize,
+                    &sec.pages,
+                )?;
+                continue;
+            }
+            // The preview page lands at the author's `thumbnail_address`
+            // exactly when the pages before it (the byte-faithful
+            // summary-prefix) kept the author's on-disk sizes; then the
+            // retained raw container re-emits verbatim — its embedded
+            // offsets are the author's, and they are still the correct
+            // absolute addresses in our file. Otherwise the container
+            // is rebuilt around OUR actual address (honest bytes; the
+            // census row keeps its diff on that file).
+            let addr = fhw.next_page_data_address(output)?;
+            let thumbnail_addr = document
+                .dwg_file_header
+                .as_ref()
+                .map_or(0, |fh| fh.thumbnail_address);
+            let preview_bytes = match document.preview.as_ref() {
+                Some(p)
+                    if !p.raw.is_empty()
+                        && thumbnail_addr == addr as i32
+                        && p.raw.len() <= sec.max_decomp as usize =>
+                {
+                    p.raw.clone()
+                }
+                p => crate::io::dwg::preview::build_preview(p, addr),
+            };
+            fhw.add_section_shaped(
+                output,
+                &sec.name,
+                &sec.raw_name,
+                &preview_bytes,
+                sec.compressed_code == 2,
+                sec.max_decomp as usize,
+                &sec.pages,
+            )?;
+        }
+    } else {
+        // The conventional sequential layout (byte-identical to the
+        // historical emission for every non-mirrored file).
+        fhw.add_section(output, section_names::HEADER, &header_data, true, PAGE_SIZE)?;
+        fhw.add_section(output, section_names::CLASSES, &classes_data, true, PAGE_SIZE)?;
+        if let Some(summary_data) = &summary_section {
             fhw.add_section(
                 output,
-                section_names::OBJ_FREE_SPACE,
-                &raw,
+                section_names::SUMMARY_INFO,
+                summary_data,
+                false,
+                0x100,
+            )?;
+        }
+
+        let cur = output.seek(std::io::SeekFrom::Current(0))? as u64;
+        let preview_base = (cur + cur % 0x20) + 0x20;
+        let preview_data =
+            crate::io::dwg::preview::build_preview(document.preview.as_ref(), preview_base);
+        // Keep the whole preview in one contiguous page (a split would scatter the
+        // container across page headers): a decompressed size ≥ its length, rounded
+        // up to a 0x20 multiple so the uncompressed page needs no compression pad.
+        let preview_page = ((preview_data.len() + 0x1F) & !0x1F).max(0x20);
+        fhw.add_section(
+            output,
+            section_names::PREVIEW,
+            &preview_data,
+            false,
+            preview_page,
+        )?;
+
+        if let Some(app_info_data) = &app_info_section {
+            fhw.add_section(output, section_names::APP_INFO, app_info_data, false, SMALL_PAGE)?;
+        }
+        if let Some(app_info_history_data) = &app_info_history_section {
+            fhw.add_section(
+                output,
+                section_names::APP_INFO_HISTORY,
+                app_info_history_data,
+                false,
+                SMALL_PAGE,
+            )?;
+        }
+        fhw.add_section(
+            output,
+            section_names::FILE_DEP_LIST,
+            &file_dep_data,
+            false,
+            SMALL_PAGE,
+        )?;
+        fhw.add_section(
+            output,
+            section_names::REV_HISTORY,
+            &rev_history_data,
+            true,
+            PAGE_SIZE,
+        )?;
+        fhw.add_section(
+            output,
+            section_names::AUX_HEADER,
+            &aux_data,
+            true,
+            PAGE_SIZE,
+        )?;
+        fhw.add_section(
+            output,
+            section_names::ACDB_OBJECTS,
+            &obj_data,
+            true,
+            PAGE_SIZE,
+        )?;
+        if let Some(acds_data) = &acds_section {
+            fhw.add_section(
+                output,
+                section_names::ACDS_PROTOTYPE,
+                acds_data,
                 true,
                 PAGE_SIZE,
             )?;
         }
-    } else {
-        let obj_free_space = build_obj_free_space(version, document, handle_map_u32.len());
+        if let Some(obj_free_space) = &obj_free_space_section {
+            fhw.add_section(
+                output,
+                section_names::OBJ_FREE_SPACE,
+                obj_free_space,
+                true,
+                PAGE_SIZE,
+            )?;
+        }
+        fhw.add_section(output, section_names::TEMPLATE, &template, true, PAGE_SIZE)?;
         fhw.add_section(
             output,
-            section_names::OBJ_FREE_SPACE,
-            &obj_free_space,
+            section_names::HANDLES,
+            &handles_data,
             true,
             PAGE_SIZE,
         )?;
     }
 
-    // ── Section: Template ──
-    let template = build_template(&[], document.header.measurement)?;
-    fhw.add_section(output, section_names::TEMPLATE, &template, true, PAGE_SIZE)?;
-
-    // ── Section: Handles (last — needs objects data) ──
-    let section_offset = fhw.handle_section_offset() as i32;
-    let handle_map_i64: Vec<(u64, i64)> =
-        handle_map_u32.iter().map(|&(h, o)| (h, o as i64)).collect();
-    let handles_data = handle_writer::write_handles(&handle_map_i64, section_offset);
-    fhw.add_section(
-        output,
-        section_names::HANDLES,
-        &handles_data,
-        true,
-        PAGE_SIZE,
-    )?;
-
     // ── Write file header, section map, and page map ──
     fhw.write_file(output)?;
 
     Ok(())
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  AC18 container-shape mirror (§19 H7g)
+// ════════════════════════════════════════════════════════════════════════════
+
+/// The pre-built AC18 section buffers (§19 H7g), with the writer's own
+/// presence gates applied: `None` on an `Option` field = the section
+/// is skipped (the verbatim/skip arms); the preview section is
+/// excluded — its container embeds its own page-data address, so it is
+/// built at emission time.
+struct Ac18Sections<'a> {
+    header: &'a [u8],
+    classes: &'a [u8],
+    summary: Option<&'a [u8]>,
+    app_info: Option<&'a [u8]>,
+    app_info_history: Option<&'a [u8]>,
+    file_dep: &'a [u8],
+    rev_history: &'a [u8],
+    aux_header: &'a [u8],
+    objects: &'a [u8],
+    acds: Option<&'a [u8]>,
+    obj_free_space: Option<&'a [u8]>,
+    xref_manifest: Option<&'a [u8]>,
+    template: &'a [u8],
+    handles: &'a [u8],
+}
+
+impl Ac18Sections<'_> {
+    /// The buffer for a canonical section name; `None` = our writer
+    /// skips the section.
+    fn get(&self, name: &str) -> Option<&[u8]> {
+        Some(match name {
+            section_names::HEADER => self.header,
+            section_names::CLASSES => self.classes,
+            section_names::SUMMARY_INFO => self.summary?,
+            section_names::APP_INFO => self.app_info?,
+            section_names::APP_INFO_HISTORY => self.app_info_history?,
+            section_names::FILE_DEP_LIST => self.file_dep,
+            section_names::REV_HISTORY => self.rev_history,
+            section_names::AUX_HEADER => self.aux_header,
+            section_names::ACDB_OBJECTS => self.objects,
+            section_names::ACDS_PROTOTYPE => self.acds?,
+            section_names::OBJ_FREE_SPACE => self.obj_free_space?,
+            section_names::XREF_MANIFEST => self.xref_manifest?,
+            section_names::TEMPLATE => self.template,
+            section_names::HANDLES => self.handles,
+            _ => return None,
+        })
+    }
+}
+
+/// The §19 H7g mirror emission plan: the shape-section indices to
+/// emit, in the author's physical order (0-page descriptor-only
+/// sections appended).
+struct Ac18MirrorPlan {
+    order: Vec<usize>,
+}
+
+/// The §19 H7g content-parity gate. Every check is a fall-back-to-
+/// conventional trigger: the author's page space is mirrored only when
+/// our re-encoded content demonstrably fits it and the author's layout
+/// is one our writer can reproduce. Set `AC18_MIRROR_DEBUG` to trace
+/// the decline reason per file.
+fn ac18_mirror_plan(
+    shape: &crate::document::DwgAc18ContainerShape,
+    sys: &crate::document::DwgR2004SystemHeader,
+    sections: &Ac18Sections<'_>,
+    preview_len: usize,
+) -> Option<Ac18MirrorPlan> {
+    use std::collections::{HashMap, HashSet};
+
+    macro_rules! decline {
+        ($why:expr) => {{
+            if std::env::var_os("AC18_MIRROR_DEBUG").is_some() {
+                eprintln!("[ac18-mirror] declined: {}", $why);
+            }
+            return None;
+        }};
+    }
+
+    // Gap entries (negative map records) are not reproducible by our
+    // writer; the author's numgaps must count none.
+    if sys.numgaps != 0 {
+        decline!(format!("numgaps {} (gap map entries)", sys.numgaps));
+    }
+    // The retained identity must be self-coherent: gold validates
+    // max id == section_array_size, and last_section_id names the last
+    // allocated id (the page-map box on every corpus file).
+    let page_map_id = shape.section_map_id as i32;
+    if sys.section_map_id != shape.section_map_id
+        || sys.section_info_id != shape.section_info_id as i32
+        || sys.section_array_size != shape.section_array_size as i32
+        || sys.last_section_id != page_map_id
+        || sys.section_array_size < page_map_id
+    {
+        decline!("incoherent retained ids");
+    }
+    // The core sections: a shape without any of them is not a
+    // mirrorable container — rewriting must never drop one.
+    for must in [
+        section_names::HEADER,
+        section_names::CLASSES,
+        section_names::ACDB_OBJECTS,
+        section_names::HANDLES,
+    ] {
+        if !shape.sections.iter().any(|sec| sec.name == must) {
+            decline!(format!("shape lacks core section {must}"));
+        }
+    }
+
+    // Per-section content parity: our re-encoded content must cover
+    // the author's last page offset within the author's max-decomp
+    // capacity, and the per-page offsets must ascend (the reassembly
+    // is offset-driven).
+    for sec in &shape.sections {
+        if sec.compressed_code != 1 && sec.compressed_code != 2 {
+            decline!(format!(
+                "section {} compressed_code {}",
+                sec.name, sec.compressed_code
+            ));
+        }
+        let len: u64 = if sec.name == section_names::PREVIEW {
+            if sec.pages.len() != 1 {
+                decline!(format!(
+                    "preview has {} pages (single-page expected)",
+                    sec.pages.len()
+                ));
+            }
+            preview_len as u64
+        } else {
+            match sections.get(&sec.name) {
+                Some(data) => data.len() as u64,
+                None => {
+                    // Our writer skips this section: only a 0-page
+                    // descriptor can mirror then.
+                    if !sec.pages.is_empty() {
+                        decline!(format!(
+                            "our writer skips {} but the author has {} pages",
+                            sec.name,
+                            sec.pages.len()
+                        ));
+                    }
+                    0
+                }
+            }
+        };
+        if sec.pages.is_empty() {
+            continue;
+        }
+        for window in sec.pages.windows(2) {
+            if window[0].1 >= window[1].1 {
+                decline!(format!("section {} page offsets not ascending", sec.name));
+            }
+        }
+        let last_offset = sec.pages[sec.pages.len() - 1].1;
+        if len <= last_offset {
+            decline!(format!(
+                "section {} content len {len} does not reach the author's last page offset {last_offset}",
+                sec.name
+            ));
+        }
+        if len - last_offset > sec.max_decomp as u64 {
+            decline!(format!(
+                "section {} overflows the author's page space (len {len}, last offset {last_offset}, capacity {})",
+                sec.name, sec.max_decomp
+            ));
+        }
+    }
+
+    // The entry count: every declared data page plus the two boxes
+    // must match the author's map and her numsections.
+    let data_pages: usize = shape.sections.iter().map(|sec| sec.pages.len()).sum();
+    if data_pages + 2 != shape.map_order.len() {
+        decline!(format!(
+            "map entries {} vs declared pages {data_pages} + 2",
+            shape.map_order.len()
+        ));
+    }
+    if (data_pages + 2) as u32 != sys.numsections {
+        decline!(format!(
+            "numsections {} vs computed entry count {}",
+            sys.numsections,
+            data_pages + 2
+        ));
+    }
+
+    // The physical order: the map's entries minus the trailing box
+    // entries must walk the sections' pages contiguously (the boxes
+    // sit last in the author's layout; our writer appends them there
+    // too).
+    let n = shape.map_order.len();
+    if n < 2
+        || shape.map_order[n - 1].id != page_map_id
+        || shape.map_order[n - 2].id != shape.section_info_id as i32
+    {
+        decline!("the page map does not end with the two box pages");
+    }
+    let mut id_owner: HashMap<i32, usize> = HashMap::new();
+    for (index, sec) in shape.sections.iter().enumerate() {
+        for (id, _) in &sec.pages {
+            if id_owner.insert(*id, index).is_some() {
+                decline!(format!("duplicate page id {id}"));
+            }
+        }
+    }
+    let mut order: Vec<usize> = Vec::new();
+    for entry in &shape.map_order[..n - 2] {
+        let owner = match id_owner.get(&entry.id) {
+            Some(owner) => *owner,
+            None => decline!(format!("map id {} owns no descriptor page", entry.id)),
+        };
+        if order.last() != Some(&owner) {
+            if order.contains(&owner) {
+                // Interleaved section pages: not reproducible without
+                // scattering a section's pages across the emission.
+                decline!(format!(
+                    "interleaved pages around map id {}",
+                    entry.id
+                ));
+            }
+            order.push(owner);
+        }
+    }
+    // Every paged section must appear in the physical walk.
+    let paged: HashSet<usize> = shape
+        .sections
+        .iter()
+        .enumerate()
+        .filter(|(_, sec)| !sec.pages.is_empty())
+        .map(|(index, _)| index)
+        .collect();
+    if !order.iter().all(|index| paged.contains(index)) || order.len() != paged.len() {
+        decline!("a paged section is missing from the physical page walk");
+    }
+    // The 0-page descriptors (the unnamed AcDs) emit descriptor-table
+    // entries only — appended after the data sections.
+    for (index, sec) in shape.sections.iter().enumerate() {
+        if sec.pages.is_empty() {
+            order.push(index);
+        }
+    }
+
+    if std::env::var_os("AC18_MIRROR_DEBUG").is_some() {
+        eprintln!(
+            "[ac18-mirror] engaged: {} data pages, order {:?}",
+            data_pages, order
+        );
+    }
+    Some(Ac18MirrorPlan { order })
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1500,6 +1895,17 @@ fn write_ac21_impl<W: Write + Seek>(
                 fh.app_dwg_version,
                 fh.app_maint_version,
             );
+        }
+        // §19 H7g: the author's `random_seed` — the AC21 CRC encoder's
+        // seed — on the same-version roundtrip (decode-inert; the
+        // derived crc-seed fields follow the author's RNG sequence).
+        // Gated on the author's `crc_seed` matching our fixed 0 (the
+        // spec constant), so the draws stay the deterministic author
+        // sequence.
+        if let Some(sys) = document.dwg_r2007_header.as_ref() {
+            if sys.crc_seed == 0 {
+                fhw.set_source_random_seed(sys.random_seed);
+            }
         }
     }
 

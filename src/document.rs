@@ -1928,6 +1928,88 @@ pub struct DwgR2004SystemHeader {
     pub padding: String,
 }
 
+/// The R2004-family container shape (§19 H7g — the container-parity
+/// wall): the author's page space as read from the section page map and
+/// the section-info descriptor table, re-emitted verbatim on a
+/// same-version roundtrip when the write-time content-parity gate
+/// passes (every section's re-encoded content fits the author's
+/// per-descriptor page space at the author's own page boundaries).
+/// `numsections` (@0x40) IS the page-map entry count and the four id
+/// fields (@0x28/@0x50/@0x5C/@0x60) follow the page space — the corpus
+/// authors allocate the two box pages at `data_page_count + 3/+4`
+/// (leaving two ids unused), where the historical writer emitted them
+/// at `+1/+2`, and split the metadata sections with custom
+/// per-descriptor max-decomp sizes (AppInfo 0x300, AppInfoHistory
+/// 0x580, Preview 0x7C00, SummaryInfo 0x80 — single pages) where the
+/// historical writer used the uniform 0x80 SMALL_PAGE and 0x7400
+/// conventions. The emission order below is the author's PHYSICAL page
+/// order, which puts the summary page first and the preview page right
+/// after it at 0x1A0: the FILEHEADER addresses are page-data positions
+/// (seeker + 0x20), so an order- and size-faithful prefix reproduces
+/// `summaryinfo_address` and `thumbnail_address` exactly (the preview
+/// container's image descriptors hold those same absolute file
+/// offsets — the THUMBNAILIMAGE chain identity follows for free).
+/// Internal only: never serialized through the document (the census
+/// rows it serves are all gold-JSON fields, measured against gold's
+/// own dwgread output); the derive serves `DwgFileHeaderInfo`'s own
+/// serde, which carries the reader's parsed state.
+/// `None` on every non-AC18-family format (AC15, AC1021).
+#[derive(Debug, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DwgAc18ContainerShape {
+    /// The section-info descriptors in the author's table order.
+    pub sections: Vec<DwgAc18SectionShape>,
+    /// The page-map entries in the author's physical order (ids and
+    /// on-disk sizes as laid out from 0x100; the last two entries are
+    /// the section-info box and the page-map box pages).
+    pub map_order: Vec<DwgAc18PageEntry>,
+    /// The System Section (Section Page Map) box's page id — the
+    /// system header's `section_map_id` @0x50 (gold's naming; the
+    /// writer historically calls it `section_page_map_id`).
+    pub section_map_id: u32,
+    /// The Data Section (descriptor table) box's page id — the system
+    /// header's `section_info_id` @0x5C.
+    pub section_info_id: u32,
+    /// The max page id including the author's id gaps — the system
+    /// header's `section_array_size` @0x60 (== `last_section_id` on
+    /// every corpus file: both name the last allocated id).
+    pub section_array_size: u32,
+}
+
+/// One author descriptor of the R2004-family section-info table.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DwgAc18SectionShape {
+    /// The mapped section name (``-typed descriptors resolve through
+    /// `name_from_section_type`); `AcDb:AcDsPrototype_1b` for the
+    /// unnamed AcDs descriptors.
+    pub name: String,
+    /// The author's raw 64-byte name field (`` when the writer left it
+    /// empty), re-emitted verbatim into the descriptor table.
+    pub raw_name: String,
+    /// The descriptor's content size (the 8-byte `size` field — the
+    /// decompressed section length, not the compressed sum).
+    pub size: u64,
+    /// The per-descriptor maximum decompressed page size.
+    pub max_decomp: u32,
+    /// The compression code (1 = stored, 2 = LZ77).
+    pub compressed_code: i32,
+    /// The per-page shape in the author's declared order:
+    /// (page id, start offset within the decompressed section).
+    pub pages: Vec<(i32, u64)>,
+}
+
+/// One author entry of the R2004-family section page map, in the
+/// physical order the file accumulates from 0x100.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DwgAc18PageEntry {
+    /// The page id as written in the map.
+    pub id: i32,
+    /// The page's on-disk size (header + frame), as written in the map.
+    pub on_disk_size: i64,
+}
+
 /// The R2007-format system-section summary — gold's `R2007_Header` shape
 /// (§19 H2's third sub-row). The AC1021 (R2007) files carry their system
 /// section as a Reed-Solomon-encoded 0x110-byte metadata block; silver's
@@ -2654,6 +2736,13 @@ pub struct CadDocument {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub dwg_aux_header: Option<DwgAuxHeaderSummary>,
 
+    /// The R2004-family container shape (§19 H7g): the author's page
+    /// space (per-descriptor page boundaries, ids, physical order and
+    /// the box-page identity), re-emitted on a same-version roundtrip
+    /// when the write-time content-parity gate passes. Internal only.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub(crate) dwg_ac18_shape: Option<DwgAc18ContainerShape>,
+
     // ── The §19 H4 metadata-block summaries (gold-JSON-shaped) ──
     /// `Template` (all versions): description + MEASUREMENT.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -2751,6 +2840,17 @@ pub struct CadDocument {
     /// struct on both sides (R2004+, emitted unconditionally).
     #[cfg_attr(feature = "serde", serde(skip))]
     pub(crate) raw_obj_free_space_data: Option<Arc<Vec<u8>>>,
+
+    /// The raw (decompressed) `AcDb:XrefManifest` section bytes (§19
+    /// H7g): the R2013+ external-reference table — authored file
+    /// state, not modeled in the document and not JSON-printed by
+    /// gold. Re-emitted verbatim on a same-version roundtrip so the
+    /// container mirror can reproduce the author's page space (the
+    /// section owns a data page in the fixtures that carry it —
+    /// Box_2013/Revolve_2018); a source without the section writes
+    /// none, and conversions never materialize one.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub(crate) raw_xref_manifest_data: Option<Arc<Vec<u8>>>,
 
     /// Non-entity objects whose source record points into the AcDs data store.
     /// Retained for same-version saves together with the original section.
@@ -2944,6 +3044,7 @@ impl CadDocument {
             dwg_r2007_header: None,
             dwg_second_header: None,
             dwg_aux_header: None,
+            dwg_ac18_shape: None,
             dwg_template: None,
             dwg_file_dep_list: None,
             dwg_rev_history: None,
@@ -2961,6 +3062,7 @@ impl CadDocument {
             raw_app_info_data: None,
             raw_app_info_history_data: None,
             raw_obj_free_space_data: None,
+            raw_xref_manifest_data: None,
             dwg_data_store_handles: HashSet::new(),
             dimstyle_morehandles: Vec::new(),
             section_view_style: None,
