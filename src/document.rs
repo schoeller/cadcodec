@@ -1775,6 +1775,19 @@ pub struct DwgHeaderRaw {
     pub unknown_56: Option<i64>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
     pub unknown_57: Option<i64>,
+
+    // ── R2004+ trailing undocumented slots ── (§19 H7 review): consumed
+    // by the reader's walk after `unknown_57` but not emitted by gold's
+    // JSON — retained raw (BL, BL, B) so the writer re-emits the wire
+    // values verbatim instead of defaulting them. Serde-skipped: no
+    // gold-JSON counterpart exists (the census is blind here by
+    // construction; preservation is byte-level).
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub unknown_tail_long1: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub unknown_tail_long2: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub unknown_tail_bit: Option<bool>,
 }
 
 /// Format of an embedded DWG preview/thumbnail image.

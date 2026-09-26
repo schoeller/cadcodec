@@ -685,6 +685,23 @@ impl DwgBitWriter {
         }
     }
 
+    /// Write a raw retained handle form (§19 H7 review): the exact
+    /// `[code, size, value]` tuple the reader captured — the form byte
+    /// `(code << 4) | size` plus `size` big-endian payload bytes, without
+    /// canonicalizing the code or minimizing the size. Round-trips any
+    /// authored wire form bit-identically (`read_handle_raw`'s mirror:
+    /// the retained value already carries the dropped leading-zero
+    /// structure, and the size clamp matches the reader's own
+    /// `min(size, 8)` corrupt-data guard).
+    pub fn write_handle_form(&mut self, code: u8, size: u8, value: u64) {
+        let size = size.min(8) as usize;
+        self.write_byte(((code & 0x0F) << 4) | size as u8);
+        let bytes = value.to_be_bytes();
+        for i in (8 - size)..8 {
+            self.write_byte(bytes[i]);
+        }
+    }
+
     /// Write a handle reference using the compact offset form relative to the
     /// current object's handle.
     pub fn write_handle_relative(&mut self, reference_handle: u64, handle: u64) {

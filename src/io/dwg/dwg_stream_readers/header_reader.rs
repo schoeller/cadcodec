@@ -1325,11 +1325,13 @@ fn read_header_fields(
         raw.unknown_56 = Some(r.read_bit_short() as u16 as i64);
         raw.unknown_57 = Some(r.read_bit_short() as u16 as i64);
 
-        // R2004+: three undocumented trailing slots gold does not emit.
+        // R2004+: three undocumented trailing slots gold does not emit;
+        // retained raw (§19 H7 review) so the writer re-emits the wire
+        // values verbatim instead of defaulting 0/0/false.
         if r2004_plus(v) {
-            let _ = r.read_bit_long();
-            let _ = r.read_bit_long();
-            let _ = r.read_bit();
+            raw.unknown_tail_long1 = Some(r.read_bit_long() as u32 as i64);
+            raw.unknown_tail_long2 = Some(r.read_bit_long() as u32 as i64);
+            raw.unknown_tail_bit = Some(r.read_bit());
         }
     }
 }

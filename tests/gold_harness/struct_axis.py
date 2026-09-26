@@ -272,7 +272,21 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
     # name matcher aligns snake_case onto gold's names, e.g.
     # tdindwg → TDINDWG, measurement → MEASUREMENT).
     if isinstance(doc.get("summary_info"), dict):
-        views["SummaryInfo"] = doc["summary_info"]
+        # Gold emits SummaryInfo only when the FILEHEADER's
+        # summaryinfo_address is set (out_json.c:2663) — mirror the gate
+        # (§19 H7 review, the gh209_1 presence coupling): a document read
+        # from a file whose author carried no section stays absent on
+        # both sides. This also covers the pre-R2004 family: no address
+        # at all (the reader's field is 0 there), so no SummaryInfo view
+        # is ever projected for them — gold never emits it pre-R2004.
+        fh_raw = doc.get("dwg_file_header")
+        addr = (
+            fh_raw.get("summaryinfo_address", 0)
+            if isinstance(fh_raw, dict)
+            else 0
+        )
+        if isinstance(addr, int) and addr != 0:
+            views["SummaryInfo"] = doc["summary_info"]
     if isinstance(doc.get("dwg_template"), dict):
         views["Template"] = doc["dwg_template"]
     if isinstance(doc.get("dwg_file_dep_list"), dict):

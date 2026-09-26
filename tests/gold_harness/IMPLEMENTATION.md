@@ -4996,8 +4996,76 @@ Signature) — the parse side is further along than the emission side.
   on AC1018 / UTF-16LE on AC1021+, the `[days, ms]` u32 pairs for
   TDINDWG/TDCREATE/TDUPDATE, the u16 property count + the (tag,
   value) pairs, then the two trailing u32s; a default document emits
-  the historical empty block byte-for-byte). **Still open (post-H7b,
-  ~13,653):** CLASSES 3,246 (num_instances —
+  the   historical empty block byte-for-byte). **The H7a/H7b review pass
+  (2026-09-26, post-landing):** the re-derivations held —
+  `write_cm_color_raw` mirrors `bit_read_CMC` exactly (the re-read
+  reproduces the post-decode state: the index recomputed from rgb by
+  the palette, the flag<4 name gating symmetrical, the 0xC2 method
+  fixup idempotent); the SummaryInfo grammar matches
+  `summaryinfo.spec` + `bit_read_T16`/`bit_read_TU16` — the u16
+  count includes the null, and the AUTHOR's byte form is
+  `RS(1)+null` for empty strings on both AC1018 (cp1252) and AC1024
+  (UTF-16; pinned by dumping the originals: `01 00 00` / `01 00 00
+  00`), which silver matches byte-for-byte (gold's own encoder would
+  write `RS(0)` for an empty T16 — a gold-encoder quirk, not the
+  author's form; both decode to `""` so the census is blind to the
+  difference); the raw-handle analysis found every corpus header
+  handle already in the canonical form (`HardPointer.code() == 5`,
+  minimal sizes — the recomputed splice was byte-identical
+  everywhere). **Three fixes landed:** (a) **the raw handle forms**
+  — the raw-only slots re-emit the retained `[code, size, value]`
+  tuple verbatim (`write_handle_form` on the bit/merged writers, the
+  `read_handle_raw` mirror: big-endian leading-zero payload bytes
+  re-materialize from the value, the size clamp matches the
+  reader's own `min(size, 8)` corrupt-data guard) instead of a
+  recomputed HardPointer/minimal form — corpus-dead (0 byte deltas
+  on every probe), future-proof for authored non-canonical forms;
+  (b) **the three undocumented trailing slots after unknown_57 (BL,
+  BL, B) were read-discarded and re-written as 0/0/false — a LIVE
+  census-blind corruption**: the corpus sweep found **217 of 243
+  probed files carry nonzero values** (a constant `0xec99a4aa` word +
+  a per-file word on the R2004+ family — sample_2018
+  `ec99a4aa`/`40046004`, gh209_1 `ec99a4aa`/`38003`; example_2004's
+  tail is `0/0/true`). Gold emits nothing there (the census is
+  structurally blind), so the halt ledger never saw the damage; the
+  slots are now retained (`unknown_tail_long1/long2/bit`,
+  serde-skipped — no gold-JSON counterpart) and spliced — the
+  re-emission is byte-exact vs the author (the R2007+ merged main
+  stream grows +64 bits where the halt's compact-zero BL encoding
+  becomes the raw 32-bit codes; example_2004's final data bit
+  `B=true` is restored — the halt rt wrote `0x34` where the author
+  wrote `0x35`); (c) **the SummaryInfo presence coupling** — gold
+  gates its JSON key on `summaryinfo_address != 0` (out_json.c:2663);
+  gh209_1 (AC1024, address 0, the author wrote no section) exposed
+  the blind family on both axes: the read census carried a
+  `missing_gold` silver-extra row (16 leaves) and the rewrite
+  materialized a section gold never had (rt address 4448, key
+  present). Fixed: struct_axis projects SummaryInfo only when the
+  silver FILEHEADER's `summaryinfo_address` is set (mirrors gold's
+  own gate; also covers the 7 R2000-family files), and both writers
+  (ac18/ac21) skip the section when the read document's address was
+  0 and the model still holds the default — a programmatically
+  modified summary still writes the section (user intent wins over
+  roundtrip presence parity); the file headers derive the address
+  from the descriptor registry, so the skip yields address 0
+  automatically. Census effect on gh209_1: FILEHEADER vd 6→5 (the
+  rt address now matches the author's 0), SummaryInfo
+  missing_gold→absent_both, R2004_Header vd 5→9 — the
+  numsections/section-id coincidence: gold's own table carries id
+  gaps (15 sections but last_section_id 17); the halt rt's
+  17-section table landed last_section_id 17 by coincidence, the
+  skip's 16 sections end at id 16 — 4 more counted diffs inside an
+  already-open row whose fix (the author's ids/addresses) re-solves
+  those fields. **The census asymmetry pinned for the record:** the
+  write-target key-gap counts value_diffs + missing_gold_rt;
+  missing_gold (rt-extra) leaves are a blind family by design (the
+  read axis's projection-noise tolerance) — presence-coupling rows
+  live there. Verification: cargo test 1588/0; the six-version
+  probes 0/0 with UNCHANGED per-file write-target key-gaps
+  (34/31/35); the smokes identical (79/70/68); the corpus 280 @ 0/0
+  with the write-target key-gap 13,653 → 13,656 (gh209_1's +3
+  id-coincidence, documented above). **Still open (post-review,
+  ~13,656):** CLASSES 3,246 (num_instances —
   silver writes its sane-parse values where the original wire carries
   the desynced bytes), ObjFreeSpace 2,453+30 (rebuilt content),
   R2004_Header 1,771 (address/numsections shifts: silver writes 15→17

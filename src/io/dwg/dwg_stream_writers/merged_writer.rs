@@ -420,6 +420,13 @@ impl DwgMergedWriter {
         self.handle.write_handle(ref_type, handle);
     }
 
+    /// Write a raw retained handle form to the handle stream (§19 H7
+    /// review): the reader's `read_handle_raw` mirror — the exact wire
+    /// `[code, size, value]` tuple re-emitted verbatim.
+    pub fn write_handle_form(&mut self, code: u8, size: u8, value: u64) {
+        self.handle.write_handle_form(code, size, value);
+    }
+
     /// Write a compact handle offset relative to the current object's handle.
     pub fn write_handle_relative(&mut self, reference_handle: u64, handle: u64) {
         self.handle.write_handle_relative(reference_handle, handle);

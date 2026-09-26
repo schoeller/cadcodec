@@ -1198,14 +1198,28 @@ fn write_ac18<W: Write + Seek>(
     )?;
 
     // ── Section: SummaryInfo ──
-    let summary_data = build_summary_info(version, &document.summary_info);
-    fhw.add_section(
-        output,
-        section_names::SUMMARY_INFO,
-        &summary_data,
-        false,
-        0x100,
-    )?;
+    // The presence-coupling gate (§19 H7 review): gold emits SummaryInfo
+    // only when the original's summaryinfo_address was set (out_json.c:2663)
+    // — a document read from a file whose author carried no section keeps
+    // its zeroed model and the writer must not materialize a section out
+    // of nothing (gh209_1: address 0, no section, no gold key). The
+    // escape hatch: a programmatically modified summary (≠ the default)
+    // writes the section — user intent wins over roundtrip presence.
+    let summary_orig_present = document
+        .dwg_file_header
+        .as_ref()
+        .map(|fh| fh.summaryinfo_address != 0)
+        .unwrap_or(true);
+    if summary_orig_present || document.summary_info != crate::document::SummaryInfo::default() {
+        let summary_data = build_summary_info(version, &document.summary_info);
+        fhw.add_section(
+            output,
+            section_names::SUMMARY_INFO,
+            &summary_data,
+            false,
+            0x100,
+        )?;
+    }
 
     // ── Section: Preview ──
     // The image `start` fields are absolute file offsets, so the preview page's
@@ -1375,9 +1389,19 @@ fn write_ac21_impl<W: Write + Seek>(
     // AC21 add_section looks up encoding/encryption/page_size automatically
     // from ac21_section_info, so no page_size or compressed flag needed.
 
-    // SummaryInfo
-    let summary_data = build_summary_info(version, &document.summary_info);
-    fhw.add_section(output, section_names::SUMMARY_INFO, &summary_data)?;
+    // SummaryInfo — the same presence-coupling gate as the AC18 writer
+    // (§19 H7 review): skip the section when the original read carried
+    // summaryinfo_address 0 and the model still holds the default
+    // (a modified summary writes the section — user intent wins).
+    let summary_orig_present = document
+        .dwg_file_header
+        .as_ref()
+        .map(|fh| fh.summaryinfo_address != 0)
+        .unwrap_or(true);
+    if summary_orig_present || document.summary_info != crate::document::SummaryInfo::default() {
+        let summary_data = build_summary_info(version, &document.summary_info);
+        fhw.add_section(output, section_names::SUMMARY_INFO, &summary_data)?;
+    }
 
     // Preview
     // AC21 encoding=1 stores contiguous data followed by RS parity. The preview

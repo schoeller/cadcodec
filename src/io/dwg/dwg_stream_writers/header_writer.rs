@@ -185,6 +185,19 @@ impl SectionWriter {
         }
     }
 
+    /// Write a handle reference from its retained raw form (§19 H7
+    /// review): the raw-only slots re-emit the captured wire tuple
+    /// verbatim — same code, same counter size, same payload — instead
+    /// of a recomputed canonical HardPointer/absolute form (corpus-neutral
+    /// today: every corpus header handle already is the canonical form,
+    /// but a future authored non-canonical form would round-trip).
+    fn write_handle_raw(&mut self, t: &crate::document::DwgRawHandle) {
+        match &mut self.inner {
+            SectionWriterInner::BitWriter(w) => w.write_handle_form(t.code, t.size, t.value),
+            SectionWriterInner::MergedWriter(w) => w.write_handle_form(t.code, t.size, t.value),
+        }
+    }
+
     /// Write HANDSEED — always goes to the MAIN stream, even for R2007+.
     /// This matches C#: `this._writer.Main.HandleReference(...)`.
     fn write_handle_seed(&mut self, handle_seed: u64) {
@@ -399,11 +412,14 @@ fn write_header_fields(
             }
         };
     }
-    macro_rules! splice_handle {
-        ($raw:expr, $field:ident) => {
-            match $raw.and_then(|r| r.$field) {
-                Some(t) => Handle::new(t.absolute),
-                None => Handle::NULL,
+    // The raw-only handle slots re-emit the retained wire tuple
+    // verbatim (§19 H7 review) — a null-handle default for the
+    // programmatic documents.
+    macro_rules! splice_handle_raw {
+        ($field:ident) => {
+            match raw.and_then(|r| r.$field.as_ref()) {
+                Some(t) => w.write_handle_raw(t),
+                None => w.write_handle_ref(DwgReferenceType::HardPointer, Handle::NULL),
             }
         };
     }
@@ -624,24 +640,14 @@ fn write_header_fields(
     w.write_3bit_double(h.paper_space_ucs_y_axis);
 
     // UCSNAME (PSPACE)
-    w.write_handle_ref(
-        DwgReferenceType::HardPointer,
-        raw.and_then(|r| r.pucsname)
-            .map(|t| Handle::new(t.absolute))
-            .unwrap_or(Handle::NULL),
-    );
+    splice_handle_raw!(pucsname);
 
     if r2000_plus(v) {
         // PUCSORTHOREF
         w.write_handle_ref(DwgReferenceType::HardPointer, h.paper_ucs_ortho_ref);
         w.write_bit_short(h.paper_ucs_ortho_view);
         // PUCSBASE
-        w.write_handle_ref(
-            DwgReferenceType::HardPointer,
-            raw.and_then(|r| r.pucsbase)
-                .map(|t| Handle::new(t.absolute))
-                .unwrap_or(Handle::NULL),
-        );
+        splice_handle_raw!(pucsbase);
 
         // Paper space orthographic origins (6 × 3BD)
         w.write_3bit_double(splice_pt!(raw, pucsorgtop));
@@ -664,20 +670,14 @@ fn write_header_fields(
     w.write_3bit_double(h.model_space_ucs_y_axis);
 
     // UCSNAME (MSPACE)
-    w.write_handle_ref(
-        DwgReferenceType::HardPointer,
-        splice_handle!(raw, ucsname),
-    );
+    splice_handle_raw!(ucsname);
 
     if r2000_plus(v) {
         // UCSORTHOREF
         w.write_handle_ref(DwgReferenceType::HardPointer, h.ucs_ortho_ref);
         w.write_bit_short(h.ucs_ortho_view);
         // UCSBASE
-        w.write_handle_ref(
-            DwgReferenceType::HardPointer,
-            splice_handle!(raw, ucsbase),
-        );
+        splice_handle_raw!(ucsbase);
 
         // Model space orthographic origins (6 × 3BD)
         w.write_3bit_double(splice_pt!(raw, ucsorgtop));
@@ -842,10 +842,10 @@ fn write_header_fields(
     // R2000+ dimension handles
     if r2000_plus(v) {
         w.write_handle_ref(DwgReferenceType::HardPointer, h.dim_text_style_handle);
-        w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, dimldrblk)); // DIMLDRBLK
-        w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, dimblk)); // DIMBLK
-        w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, dimblk1)); // DIMBLK1
-        w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, dimblk2)); // DIMBLK2
+        splice_handle_raw!(dimldrblk); // DIMLDRBLK
+        splice_handle_raw!(dimblk); // DIMBLK
+        splice_handle_raw!(dimblk1); // DIMBLK1
+        splice_handle_raw!(dimblk2); // DIMBLK2
     }
 
     // R2007+ dimension linetype handles
@@ -914,7 +914,7 @@ fn write_header_fields(
             h.acad_visualstyle_dict_handle,
         );
         if r2013_plus(v) {
-            w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, unknown_20)); // unknown
+            splice_handle_raw!(unknown_20); // unknown
         }
     }
 
@@ -945,7 +945,7 @@ fn write_header_fields(
 
         if h.current_plotstyle_type == 3 {
             // CPSNID (only if CEPSNTYPE == 3/ByObjectId)
-            w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, cpsnid));
+            splice_handle_raw!(cpsnid);
         }
 
         w.write_variable_text(&h.fingerprint_guid);
@@ -1013,9 +1013,9 @@ fn write_header_fields(
             None => w.write_cm_color(&Color::None),
         }
 
-        w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, interfereobjvs));
-        w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, interferevpvs));
-        w.write_handle_ref(DwgReferenceType::HardPointer, splice_handle!(raw, dragvs));
+        splice_handle_raw!(interfereobjvs);
+        splice_handle_raw!(interferevpvs);
+        splice_handle_raw!(dragvs);
 
         w.write_byte(splice!(cshadow, 0) as u8); // CSHADOW
         w.write_bit_double(h.shadow_plane_location);
@@ -1028,10 +1028,13 @@ fn write_header_fields(
         w.write_bit_short(splice!(unknown_56, -1) as u16 as i16);
         w.write_bit_short(splice!(unknown_57, -1) as u16 as i16);
 
+        // R2004+: the three undocumented trailing slots (§19 H7 review) —
+        // spliced from the raw mirror (the reader's retained walk values);
+        // the historical 0/0/false stays the programmatic default.
         if r2004_plus(v) {
-            w.write_bit_long(0);
-            w.write_bit_long(0);
-            w.write_bit(false);
+            w.write_bit_long(splice!(unknown_tail_long1, 0) as u32 as i32);
+            w.write_bit_long(splice!(unknown_tail_long2, 0) as u32 as i32);
+            w.write_bit(splice!(unknown_tail_bit, false));
         }
     }
 }
