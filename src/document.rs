@@ -1010,6 +1010,773 @@ impl Default for HeaderVariables {
     }
 }
 
+/// Helper for `Option::is_none` used by the `DwgHeaderRaw` serde attrs.
+#[cfg(feature = "serde")]
+fn is_none<T>(v: &Option<T>) -> bool {
+    v.is_none()
+}
+
+/// A wire handle reference exactly as gold's JSON prints it:
+/// `[code, size, value, absolute]`. Retained verbatim by the header reader
+/// (§19 H3); `value` is the on-wire payload and `absolute` the resolved
+/// handle, which are identical for the absolute handle codes (≤ 5) the
+/// header section uses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DwgRawHandle {
+    /// The 4-bit handle code from the reference form byte.
+    pub code: u8,
+    /// The counter size from the reference form byte.
+    pub size: u8,
+    /// The raw on-wire payload (big-endian handle bytes).
+    pub value: u64,
+    /// The resolved absolute handle.
+    pub absolute: u64,
+}
+
+impl From<(u8, u8, u64, u64)> for DwgRawHandle {
+    fn from(t: (u8, u8, u64, u64)) -> Self {
+        DwgRawHandle { code: t.0, size: t.1, value: t.2, absolute: t.3 }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for DwgRawHandle {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeTuple;
+        let mut tup = serializer.serialize_tuple(4)?;
+        tup.serialize_element(&self.code)?;
+        tup.serialize_element(&self.size)?;
+        tup.serialize_element(&self.value)?;
+        tup.serialize_element(&self.absolute)?;
+        tup.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for DwgRawHandle {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let (code, size, value, absolute): (u8, u8, u64, u64) =
+            serde::Deserialize::deserialize(deserializer)?;
+        Ok(DwgRawHandle { code, size, value, absolute })
+    }
+}
+
+/// A CmColor in gold's **post-decode state** (§19 H3), mirroring libredwg
+/// `bit_read_CMC` exactly.
+///
+/// On R2004+ the reader retains the raw `rgb` word (method nibble in byte
+/// 3, RGB in bytes 0-2 — already method-validated: an out-of-range nibble
+/// is forced to `0xC2` with the low 24 bits kept) and the flag byte
+/// (already validated: a flag ≥ 4 is zeroed and the name/book-name
+/// strings are not read at all). `index` is the wire BS (informational on
+/// R2004+ — gold's decode overwrites it with a palette lookup of `rgb`,
+/// which the harness projection reproduces; on pre-R2004 it is the only
+/// field and gold prints it as the unsigned 16-bit value). The gold
+/// harness projects this into gold's JSON shape: a plain index on
+/// pre-R2004, the `{index?, rgb, flag?, name?, book_name?}` dict on
+/// R2004+ with the index palette-derived exactly as gold's decoder and
+/// emitter compute it.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DwgRawCmc {
+    /// The color index as read from the wire (unsigned 16-bit).
+    pub index: i64,
+    /// The raw color word: method nibble in byte 3, RGB in bytes 0-2
+    /// (post method-validation).
+    pub rgb: u32,
+    /// The flag byte (post validation: 0..=3, or 0 for an invalid wire
+    /// flag — the name/book-name bits are meaningful only when set).
+    pub flag: i64,
+    /// Optional color name (wire flag bit 0, read only behind a valid
+    /// flag).
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub name: Option<String>,
+    /// Optional color book name (wire flag bit 1, read only behind a
+    /// valid flag).
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub book_name: Option<String>,
+}
+
+impl DwgRawCmc {
+    /// Collapse an R2004+ raw color into the public [`Color`] model exactly
+    /// as the bit reader does.
+    pub fn to_color(&self) -> Color {
+        let bytes = self.rgb.to_le_bytes();
+        if self.rgb == 0xC000_0000 {
+            Color::ByLayer
+        } else if self.rgb == 0xC800_0000 {
+            Color::None
+        } else if (self.rgb & 0x0100_0000) != 0 {
+            Color::from_index(bytes[0] as i16)
+        } else {
+            Color::from_rgb(bytes[2], bytes[1], bytes[0])
+        }
+    }
+
+    /// Collapse a pre-R2004 raw index into the public [`Color`] model.
+    pub fn index_color(&self) -> Color {
+        Color::from_index(self.index as i16)
+    }
+}
+
+/// Gold-JSON mirror of the DWG `AcDb:Header` variables (§19 H3 read row).
+///
+/// One field per key of gold's `HEADER` JSON output, named after gold's
+/// spelling (`serde` renames carry the ALLCAPS spec names), shaped as gold
+/// prints it: handles as [`DwgRawHandle`] 4-tuples, points as `[f64; 3]`,
+/// limits as `[f64; 2]`, TIMEBLL values as `[days, ms]` pairs, colors as
+/// [`DwgRawCmc`] raw parts. Every field is `Option` and populated exactly
+/// where the reader walks the corresponding wire slot per file version, so
+/// the serialized dict is version-gated by construction; `None` fields are
+/// skipped. The gold harness projects this dict key-for-key against gold's
+/// `HEADER` section (the CMC parts get gold's emitter shape there).
+#[derive(Debug, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DwgHeaderRaw {
+    /// The file's version code (e.g. "AC1032"); consumed by the harness
+    /// projection (pre-R2004 CMC prints) and not part of gold's HEADER.
+    #[serde(rename = "__version")]
+    pub version: String,
+
+    // ── Header prefix ──
+    #[cfg_attr(feature = "serde", serde(rename = "REQUIREDVERSIONS", skip_serializing_if = "is_none"))]
+    pub required_versions: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unit1_ratio: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unit2_ratio: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unit3_ratio: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unit4_ratio: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unit1_name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unit2_name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unit3_name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unit4_name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_8: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_9: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "VX_TABLE_RECORD", skip_serializing_if = "is_none"))]
+    pub vx_table_record: Option<DwgRawHandle>,
+
+    // ── Drawing mode bits ──
+    #[cfg_attr(feature = "serde", serde(rename = "DIMASO", skip_serializing_if = "is_none"))]
+    pub dimaso: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSHO", skip_serializing_if = "is_none"))]
+    pub dimsho: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PLINEGEN", skip_serializing_if = "is_none"))]
+    pub plinegen: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "ORTHOMODE", skip_serializing_if = "is_none"))]
+    pub orthomode: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "REGENMODE", skip_serializing_if = "is_none"))]
+    pub regenmode: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "FILLMODE", skip_serializing_if = "is_none"))]
+    pub fillmode: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "QTEXTMODE", skip_serializing_if = "is_none"))]
+    pub qtextmode: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PSLTSCALE", skip_serializing_if = "is_none"))]
+    pub psltscale: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LIMCHECK", skip_serializing_if = "is_none"))]
+    pub limcheck: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_11: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USRTIMER", skip_serializing_if = "is_none"))]
+    pub usrtimer: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SKPOLY", skip_serializing_if = "is_none"))]
+    pub skpoly: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "ANGDIR", skip_serializing_if = "is_none"))]
+    pub angdir: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SPLFRAME", skip_serializing_if = "is_none"))]
+    pub splframe: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "MIRRTEXT", skip_serializing_if = "is_none"))]
+    pub mirrtext: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "WORLDVIEW", skip_serializing_if = "is_none"))]
+    pub worldview: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "TILEMODE", skip_serializing_if = "is_none"))]
+    pub tilemode: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PLIMCHECK", skip_serializing_if = "is_none"))]
+    pub plimcheck: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "VISRETAIN", skip_serializing_if = "is_none"))]
+    pub visretain: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DISPSILH", skip_serializing_if = "is_none"))]
+    pub dispsilh: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PELLIPSE", skip_serializing_if = "is_none"))]
+    pub pellipse: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PROXYGRAPHICS", skip_serializing_if = "is_none"))]
+    pub proxygraphics: Option<i64>,
+
+    // ── Unit settings ──
+    #[cfg_attr(feature = "serde", serde(rename = "TREEDEPTH", skip_serializing_if = "is_none"))]
+    pub treedepth: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LUNITS", skip_serializing_if = "is_none"))]
+    pub lunits: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LUPREC", skip_serializing_if = "is_none"))]
+    pub luprec: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "AUNITS", skip_serializing_if = "is_none"))]
+    pub aunits: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "AUPREC", skip_serializing_if = "is_none"))]
+    pub auprec: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "ATTMODE", skip_serializing_if = "is_none"))]
+    pub attmode: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PDMODE", skip_serializing_if = "is_none"))]
+    pub pdmode: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_12: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_13: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_14: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERI1", skip_serializing_if = "is_none"))]
+    pub useri1: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERI2", skip_serializing_if = "is_none"))]
+    pub useri2: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERI3", skip_serializing_if = "is_none"))]
+    pub useri3: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERI4", skip_serializing_if = "is_none"))]
+    pub useri4: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERI5", skip_serializing_if = "is_none"))]
+    pub useri5: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SPLINESEGS", skip_serializing_if = "is_none"))]
+    pub splinesegs: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SURFU", skip_serializing_if = "is_none"))]
+    pub surfu: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SURFV", skip_serializing_if = "is_none"))]
+    pub surfv: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SURFTYPE", skip_serializing_if = "is_none"))]
+    pub surftype: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SURFTAB1", skip_serializing_if = "is_none"))]
+    pub surftab1: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SURFTAB2", skip_serializing_if = "is_none"))]
+    pub surftab2: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SPLINETYPE", skip_serializing_if = "is_none"))]
+    pub splinetype: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SHADEDGE", skip_serializing_if = "is_none"))]
+    pub shadeedge: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SHADEDIF", skip_serializing_if = "is_none"))]
+    pub shadedif: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "UNITMODE", skip_serializing_if = "is_none"))]
+    pub unitmode: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "MAXACTVP", skip_serializing_if = "is_none"))]
+    pub maxactvp: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "ISOLINES", skip_serializing_if = "is_none"))]
+    pub isolines: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CMLJUST", skip_serializing_if = "is_none"))]
+    pub cmljust: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "TEXTQLTY", skip_serializing_if = "is_none"))]
+    pub textqlty: Option<i64>,
+
+    // ── Scale/size defaults ──
+    #[cfg_attr(feature = "serde", serde(rename = "LTSCALE", skip_serializing_if = "is_none"))]
+    pub ltscale: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "TEXTSIZE", skip_serializing_if = "is_none"))]
+    pub textsize: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "TRACEWID", skip_serializing_if = "is_none"))]
+    pub tracewid: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SKETCHINC", skip_serializing_if = "is_none"))]
+    pub sketchinc: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "FILLETRAD", skip_serializing_if = "is_none"))]
+    pub filletrad: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "THICKNESS", skip_serializing_if = "is_none"))]
+    pub thickness: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "ANGBASE", skip_serializing_if = "is_none"))]
+    pub angbase: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PDSIZE", skip_serializing_if = "is_none"))]
+    pub pdsize: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PLINEWID", skip_serializing_if = "is_none"))]
+    pub plinewid: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERR1", skip_serializing_if = "is_none"))]
+    pub userr1: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERR2", skip_serializing_if = "is_none"))]
+    pub userr2: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERR3", skip_serializing_if = "is_none"))]
+    pub userr3: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERR4", skip_serializing_if = "is_none"))]
+    pub userr4: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "USERR5", skip_serializing_if = "is_none"))]
+    pub userr5: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CHAMFERA", skip_serializing_if = "is_none"))]
+    pub chamfera: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CHAMFERB", skip_serializing_if = "is_none"))]
+    pub chamferb: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CHAMFERC", skip_serializing_if = "is_none"))]
+    pub chamferc: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CHAMFERD", skip_serializing_if = "is_none"))]
+    pub chamferd: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "FACETRES", skip_serializing_if = "is_none"))]
+    pub facetres: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CMLSCALE", skip_serializing_if = "is_none"))]
+    pub cmlscale: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CELTSCALE", skip_serializing_if = "is_none"))]
+    pub celtscale: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "MENU", skip_serializing_if = "is_none"))]
+    pub menu: Option<String>,
+    #[cfg_attr(feature = "serde", serde(rename = "TDUCREATE", skip_serializing_if = "is_none"))]
+    pub tducreate: Option<[i64; 2]>,
+    #[cfg_attr(feature = "serde", serde(rename = "TDUUPDATE", skip_serializing_if = "is_none"))]
+    pub tduupdate: Option<[i64; 2]>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_15: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_16: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_17: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "TDINDWG", skip_serializing_if = "is_none"))]
+    pub tdindwg: Option<[i64; 2]>,
+    #[cfg_attr(feature = "serde", serde(rename = "TDUSRTIMER", skip_serializing_if = "is_none"))]
+    pub tdusrtimer: Option<[i64; 2]>,
+
+    // ── Current-object handles + colors ──
+    #[cfg_attr(feature = "serde", serde(rename = "CECOLOR", skip_serializing_if = "is_none"))]
+    pub cecolor: Option<DwgRawCmc>,
+    #[cfg_attr(feature = "serde", serde(rename = "HANDSEED", skip_serializing_if = "is_none"))]
+    pub handseed: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "CLAYER", skip_serializing_if = "is_none"))]
+    pub clayer: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "TEXTSTYLE", skip_serializing_if = "is_none"))]
+    pub textstyle: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "CELTYPE", skip_serializing_if = "is_none"))]
+    pub celtype: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "CMATERIAL", skip_serializing_if = "is_none"))]
+    pub cmaterial: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSTYLE", skip_serializing_if = "is_none"))]
+    pub dimstyle: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "CMLSTYLE", skip_serializing_if = "is_none"))]
+    pub cmlstyle: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "PSVPSCALE", skip_serializing_if = "is_none"))]
+    pub psvpscale: Option<f64>,
+
+    // ── Paper-space extents/limits/UCS ──
+    #[cfg_attr(feature = "serde", serde(rename = "PINSBASE", skip_serializing_if = "is_none"))]
+    pub pinsbase: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PEXTMIN", skip_serializing_if = "is_none"))]
+    pub pextmin: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PEXTMAX", skip_serializing_if = "is_none"))]
+    pub pextmax: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PLIMMIN", skip_serializing_if = "is_none"))]
+    pub plimmin: Option<[f64; 2]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PLIMMAX", skip_serializing_if = "is_none"))]
+    pub plimmax: Option<[f64; 2]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PELEVATION", skip_serializing_if = "is_none"))]
+    pub pelevation: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORG", skip_serializing_if = "is_none"))]
+    pub pucsorg: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSXDIR", skip_serializing_if = "is_none"))]
+    pub pucsxdir: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSYDIR", skip_serializing_if = "is_none"))]
+    pub pucsydir: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSNAME", skip_serializing_if = "is_none"))]
+    pub pucsname: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORTHOREF", skip_serializing_if = "is_none"))]
+    pub pucsorthoref: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORTHOVIEW", skip_serializing_if = "is_none"))]
+    pub pucsorthoview: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSBASE", skip_serializing_if = "is_none"))]
+    pub pucsbase: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORGTOP", skip_serializing_if = "is_none"))]
+    pub pucsorgtop: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORGBOTTOM", skip_serializing_if = "is_none"))]
+    pub pucsorgbottom: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORGLEFT", skip_serializing_if = "is_none"))]
+    pub pucsorgleft: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORGRIGHT", skip_serializing_if = "is_none"))]
+    pub pucsorgright: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORGFRONT", skip_serializing_if = "is_none"))]
+    pub pucsorgfront: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "PUCSORGBACK", skip_serializing_if = "is_none"))]
+    pub pucsorgback: Option<[f64; 3]>,
+
+    // ── Model-space extents/limits/UCS ──
+    #[cfg_attr(feature = "serde", serde(rename = "INSBASE", skip_serializing_if = "is_none"))]
+    pub insbase: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "EXTMIN", skip_serializing_if = "is_none"))]
+    pub extmin: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "EXTMAX", skip_serializing_if = "is_none"))]
+    pub extmax: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "LIMMIN", skip_serializing_if = "is_none"))]
+    pub limmin: Option<[f64; 2]>,
+    #[cfg_attr(feature = "serde", serde(rename = "LIMMAX", skip_serializing_if = "is_none"))]
+    pub limmax: Option<[f64; 2]>,
+    #[cfg_attr(feature = "serde", serde(rename = "ELEVATION", skip_serializing_if = "is_none"))]
+    pub elevation: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORG", skip_serializing_if = "is_none"))]
+    pub ucsorg: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSXDIR", skip_serializing_if = "is_none"))]
+    pub ucsxdir: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSYDIR", skip_serializing_if = "is_none"))]
+    pub ucsydir: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSNAME", skip_serializing_if = "is_none"))]
+    pub ucsname: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORTHOREF", skip_serializing_if = "is_none"))]
+    pub ucsorthoref: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORTHOVIEW", skip_serializing_if = "is_none"))]
+    pub ucsorthoview: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSBASE", skip_serializing_if = "is_none"))]
+    pub ucsbase: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORGTOP", skip_serializing_if = "is_none"))]
+    pub ucsorgtop: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORGBOTTOM", skip_serializing_if = "is_none"))]
+    pub ucsorgbottom: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORGLEFT", skip_serializing_if = "is_none"))]
+    pub ucsorgleft: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORGRIGHT", skip_serializing_if = "is_none"))]
+    pub ucsorgright: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORGFRONT", skip_serializing_if = "is_none"))]
+    pub ucsorgfront: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCSORGBACK", skip_serializing_if = "is_none"))]
+    pub ucsorgback: Option<[f64; 3]>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMPOST", skip_serializing_if = "is_none"))]
+    pub dimpost: Option<String>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMAPOST", skip_serializing_if = "is_none"))]
+    pub dimapost: Option<String>,
+
+    // ── Dimension variables ──
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSCALE", skip_serializing_if = "is_none"))]
+    pub dimscale: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMASZ", skip_serializing_if = "is_none"))]
+    pub dimasz: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMEXO", skip_serializing_if = "is_none"))]
+    pub dimexo: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMDLI", skip_serializing_if = "is_none"))]
+    pub dimdli: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMEXE", skip_serializing_if = "is_none"))]
+    pub dimexe: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMRND", skip_serializing_if = "is_none"))]
+    pub dimrnd: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMDLE", skip_serializing_if = "is_none"))]
+    pub dimdle: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTP", skip_serializing_if = "is_none"))]
+    pub dimtp: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTM", skip_serializing_if = "is_none"))]
+    pub dimtm: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMFXL", skip_serializing_if = "is_none"))]
+    pub dimfxl: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMJOGANG", skip_serializing_if = "is_none"))]
+    pub dimjogang: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTFILL", skip_serializing_if = "is_none"))]
+    pub dimtfill: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTFILLCLR", skip_serializing_if = "is_none"))]
+    pub dimtfillclr: Option<DwgRawCmc>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTOL", skip_serializing_if = "is_none"))]
+    pub dimtol: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLIM", skip_serializing_if = "is_none"))]
+    pub dimlim: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTIH", skip_serializing_if = "is_none"))]
+    pub dimtih: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTOH", skip_serializing_if = "is_none"))]
+    pub dimtoh: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSE1", skip_serializing_if = "is_none"))]
+    pub dimse1: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSE2", skip_serializing_if = "is_none"))]
+    pub dimse2: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTAD", skip_serializing_if = "is_none"))]
+    pub dimtad: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMZIN", skip_serializing_if = "is_none"))]
+    pub dimzin: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMAZIN", skip_serializing_if = "is_none"))]
+    pub dimazin: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMARCSYM", skip_serializing_if = "is_none"))]
+    pub dimarcsym: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTXT", skip_serializing_if = "is_none"))]
+    pub dimtxt: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMCEN", skip_serializing_if = "is_none"))]
+    pub dimcen: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTSZ", skip_serializing_if = "is_none"))]
+    pub dimtsz: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTF", skip_serializing_if = "is_none"))]
+    pub dimaltf: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLFAC", skip_serializing_if = "is_none"))]
+    pub dimlfac: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTVP", skip_serializing_if = "is_none"))]
+    pub dimtvp: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTFAC", skip_serializing_if = "is_none"))]
+    pub dimtfac: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMGAP", skip_serializing_if = "is_none"))]
+    pub dimgap: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTRND", skip_serializing_if = "is_none"))]
+    pub dimaltrnd: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALT", skip_serializing_if = "is_none"))]
+    pub dimalt: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTD", skip_serializing_if = "is_none"))]
+    pub dimaltd: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTOFL", skip_serializing_if = "is_none"))]
+    pub dimtofl: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSAH", skip_serializing_if = "is_none"))]
+    pub dimsah: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTIX", skip_serializing_if = "is_none"))]
+    pub dimtix: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSOXD", skip_serializing_if = "is_none"))]
+    pub dimsoxd: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMCLRD", skip_serializing_if = "is_none"))]
+    pub dimclrd: Option<DwgRawCmc>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMCLRE", skip_serializing_if = "is_none"))]
+    pub dimclre: Option<DwgRawCmc>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMCLRT", skip_serializing_if = "is_none"))]
+    pub dimclrt: Option<DwgRawCmc>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMADEC", skip_serializing_if = "is_none"))]
+    pub dimadec: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMDEC", skip_serializing_if = "is_none"))]
+    pub dimdec: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTDEC", skip_serializing_if = "is_none"))]
+    pub dimtdec: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTU", skip_serializing_if = "is_none"))]
+    pub dimaltu: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTTD", skip_serializing_if = "is_none"))]
+    pub dimalttd: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMAUNIT", skip_serializing_if = "is_none"))]
+    pub dimaunit: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMFRAC", skip_serializing_if = "is_none"))]
+    pub dimfrac: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLUNIT", skip_serializing_if = "is_none"))]
+    pub dimlunit: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMDSEP", skip_serializing_if = "is_none"))]
+    pub dimdsep: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTMOVE", skip_serializing_if = "is_none"))]
+    pub dimtmove: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMJUST", skip_serializing_if = "is_none"))]
+    pub dimjust: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSD1", skip_serializing_if = "is_none"))]
+    pub dimsd1: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSD2", skip_serializing_if = "is_none"))]
+    pub dimsd2: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTOLJ", skip_serializing_if = "is_none"))]
+    pub dimtolj: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTZIN", skip_serializing_if = "is_none"))]
+    pub dimtzin: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTZ", skip_serializing_if = "is_none"))]
+    pub dimaltz: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTTZ", skip_serializing_if = "is_none"))]
+    pub dimalttz: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMUPT", skip_serializing_if = "is_none"))]
+    pub dimupt: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMATFIT", skip_serializing_if = "is_none"))]
+    pub dimatfit: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMFXLON", skip_serializing_if = "is_none"))]
+    pub dimfxlon: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTXTDIRECTION", skip_serializing_if = "is_none"))]
+    pub dimtxtdirection: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTMZF", skip_serializing_if = "is_none"))]
+    pub dimaltmzf: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMALTMZS", skip_serializing_if = "is_none"))]
+    pub dimaltmzs: Option<String>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMMZF", skip_serializing_if = "is_none"))]
+    pub dimmzf: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMMZS", skip_serializing_if = "is_none"))]
+    pub dimmzs: Option<String>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMTXSTY", skip_serializing_if = "is_none"))]
+    pub dimtxsty: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLDRBLK", skip_serializing_if = "is_none"))]
+    pub dimldrblk: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMBLK", skip_serializing_if = "is_none"))]
+    pub dimblk: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMBLK1", skip_serializing_if = "is_none"))]
+    pub dimblk1: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMBLK2", skip_serializing_if = "is_none"))]
+    pub dimblk2: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLTYPE", skip_serializing_if = "is_none"))]
+    pub dimltype: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLTEX1", skip_serializing_if = "is_none"))]
+    pub dimltex1: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLTEX2", skip_serializing_if = "is_none"))]
+    pub dimltex2: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLWD", skip_serializing_if = "is_none"))]
+    pub dimlwd: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMLWE", skip_serializing_if = "is_none"))]
+    pub dimlwe: Option<i64>,
+
+    // ── Table control objects ──
+    #[cfg_attr(feature = "serde", serde(rename = "BLOCK_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub block_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "LAYER_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub layer_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "STYLE_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub style_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "LTYPE_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub ltype_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "VIEW_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub view_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "UCS_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub ucs_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "VPORT_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub vport_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "APPID_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub appid_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMSTYLE_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub dimstyle_control_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "VX_CONTROL_OBJECT", skip_serializing_if = "is_none"))]
+    pub vx_control_object: Option<DwgRawHandle>,
+
+    // ── Dictionaries ──
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_ACAD_GROUP", skip_serializing_if = "is_none"))]
+    pub dictionary_acad_group: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_ACAD_MLINESTYLE", skip_serializing_if = "is_none"))]
+    pub dictionary_acad_mlinestyle: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_NAMED_OBJECT", skip_serializing_if = "is_none"))]
+    pub dictionary_named_object: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "TSTACKALIGN", skip_serializing_if = "is_none"))]
+    pub tstackalign: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "TSTACKSIZE", skip_serializing_if = "is_none"))]
+    pub tstacksize: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "HYPERLINKBASE", skip_serializing_if = "is_none"))]
+    pub hyperlinkbase: Option<String>,
+    #[cfg_attr(feature = "serde", serde(rename = "STYLESHEET", skip_serializing_if = "is_none"))]
+    pub stylesheet: Option<String>,
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_LAYOUT", skip_serializing_if = "is_none"))]
+    pub dictionary_layout: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_PLOTSETTINGS", skip_serializing_if = "is_none"))]
+    pub dictionary_plotsettings: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_PLOTSTYLENAME", skip_serializing_if = "is_none"))]
+    pub dictionary_plotstylename: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_MATERIAL", skip_serializing_if = "is_none"))]
+    pub dictionary_material: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_COLOR", skip_serializing_if = "is_none"))]
+    pub dictionary_color: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DICTIONARY_VISUALSTYLE", skip_serializing_if = "is_none"))]
+    pub dictionary_visualstyle: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_20: Option<DwgRawHandle>,
+
+    // ── R2000+ flags/plots and GUIDs ──
+    #[cfg_attr(feature = "serde", serde(rename = "FLAGS", skip_serializing_if = "is_none"))]
+    pub flags: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "INSUNITS", skip_serializing_if = "is_none"))]
+    pub insunits: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CEPSNTYPE", skip_serializing_if = "is_none"))]
+    pub cepsntype: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CPSNID", skip_serializing_if = "is_none"))]
+    pub cpsnid: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "FINGERPRINTGUID", skip_serializing_if = "is_none"))]
+    pub fingerprintguid: Option<String>,
+    #[cfg_attr(feature = "serde", serde(rename = "VERSIONGUID", skip_serializing_if = "is_none"))]
+    pub versionguid: Option<String>,
+
+    // ── R2004+ entity settings ──
+    #[cfg_attr(feature = "serde", serde(rename = "SORTENTS", skip_serializing_if = "is_none"))]
+    pub sortents: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "INDEXCTL", skip_serializing_if = "is_none"))]
+    pub indexctl: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "HIDETEXT", skip_serializing_if = "is_none"))]
+    pub hidetext: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "XCLIPFRAME", skip_serializing_if = "is_none"))]
+    pub xclipframe: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DIMASSOC", skip_serializing_if = "is_none"))]
+    pub dimassoc: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "HALOGAP", skip_serializing_if = "is_none"))]
+    pub halogap: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "OBSCOLOR", skip_serializing_if = "is_none"))]
+    pub obscolor: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "INTERSECTIONCOLOR", skip_serializing_if = "is_none"))]
+    pub intersectioncolor: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "OBSLTYPE", skip_serializing_if = "is_none"))]
+    pub obsltype: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "INTERSECTIONDISPLAY", skip_serializing_if = "is_none"))]
+    pub intersectiondisplay: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PROJECTNAME", skip_serializing_if = "is_none"))]
+    pub projectname: Option<String>,
+
+    // ── Block record / linetype handles ──
+    #[cfg_attr(feature = "serde", serde(rename = "BLOCK_RECORD_PSPACE", skip_serializing_if = "is_none"))]
+    pub block_record_pspace: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "BLOCK_RECORD_MSPACE", skip_serializing_if = "is_none"))]
+    pub block_record_mspace: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "LTYPE_BYLAYER", skip_serializing_if = "is_none"))]
+    pub ltype_bylayer: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "LTYPE_BYBLOCK", skip_serializing_if = "is_none"))]
+    pub ltype_byblock: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "LTYPE_CONTINUOUS", skip_serializing_if = "is_none"))]
+    pub ltype_continuous: Option<DwgRawHandle>,
+
+    // ── R2007+ extended block (camera, loft, geo, visual styles) ──
+    #[cfg_attr(feature = "serde", serde(rename = "CAMERADISPLAY", skip_serializing_if = "is_none"))]
+    pub cameradisplay: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_21: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_22: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_23: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "STEPSPERSEC", skip_serializing_if = "is_none"))]
+    pub stepspersec: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "STEPSIZE", skip_serializing_if = "is_none"))]
+    pub stepsize: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "_3DDWFPREC", skip_serializing_if = "is_none"))]
+    pub _3ddwfprec: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LENSLENGTH", skip_serializing_if = "is_none"))]
+    pub lenslength: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "CAMERAHEIGHT", skip_serializing_if = "is_none"))]
+    pub cameraheight: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SOLIDHIST", skip_serializing_if = "is_none"))]
+    pub solidhist: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SHOWHIST", skip_serializing_if = "is_none"))]
+    pub showhist: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PSOLWIDTH", skip_serializing_if = "is_none"))]
+    pub psolwidth: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "PSOLHEIGHT", skip_serializing_if = "is_none"))]
+    pub psolheight: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LOFTANG1", skip_serializing_if = "is_none"))]
+    pub loftang1: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LOFTANG2", skip_serializing_if = "is_none"))]
+    pub loftang2: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LOFTMAG1", skip_serializing_if = "is_none"))]
+    pub loftmag1: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LOFTMAG2", skip_serializing_if = "is_none"))]
+    pub loftmag2: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LOFTPARAM", skip_serializing_if = "is_none"))]
+    pub loftparam: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LOFTNORMALS", skip_serializing_if = "is_none"))]
+    pub loftnormals: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LATITUDE", skip_serializing_if = "is_none"))]
+    pub latitude: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LONGITUDE", skip_serializing_if = "is_none"))]
+    pub longitude: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "NORTHDIRECTION", skip_serializing_if = "is_none"))]
+    pub northdirection: Option<f64>,
+    #[cfg_attr(feature = "serde", serde(rename = "TIMEZONE", skip_serializing_if = "is_none"))]
+    pub timezone: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "LIGHTGLYPHDISPLAY", skip_serializing_if = "is_none"))]
+    pub lightglyphdisplay: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "TILEMODELIGHTSYNCH", skip_serializing_if = "is_none"))]
+    pub tilemodelightsynch: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DWFFRAME", skip_serializing_if = "is_none"))]
+    pub dwfframe: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "DGNFRAME", skip_serializing_if = "is_none"))]
+    pub dgnframe: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "REALWORLDSCALE", skip_serializing_if = "is_none"))]
+    pub realworldscale: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "INTERFERECOLOR", skip_serializing_if = "is_none"))]
+    pub interferecolor: Option<DwgRawCmc>,
+    #[cfg_attr(feature = "serde", serde(rename = "INTERFEREOBJVS", skip_serializing_if = "is_none"))]
+    pub interfereobjvs: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "INTERFEREVPVS", skip_serializing_if = "is_none"))]
+    pub interferevpvs: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "DRAGVS", skip_serializing_if = "is_none"))]
+    pub dragvs: Option<DwgRawHandle>,
+    #[cfg_attr(feature = "serde", serde(rename = "CSHADOW", skip_serializing_if = "is_none"))]
+    pub cshadow: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(rename = "SHADOWPLANELOCATION", skip_serializing_if = "is_none"))]
+    pub shadowplanelocation: Option<f64>,
+
+    // ── R14+ trailing shorts ──
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_54: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_55: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_56: Option<i64>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "is_none"))]
+    pub unknown_57: Option<i64>,
+}
+
 /// Format of an embedded DWG preview/thumbnail image.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -1842,6 +2609,13 @@ pub struct CadDocument {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub dwg_file_header: Option<DwgFileHeaderSummary>,
 
+    /// The gold-JSON-mirror of the AcDb:Header variables (§19 H3): one
+    /// field per key of gold's HEADER JSON, retained verbatim by the DWG
+    /// header reader. `None` on DXF-sourced or default documents (the
+    /// `header` field above remains the modeled API surface).
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_header_raw: Option<DwgHeaderRaw>,
+
     /// The R2004-format system-section summary (§19 H2): gold's
     /// `R2004_Header` shape, unmasked from the 120-byte encrypted block.
     /// `None` on R2007 files (the separate R2007_Header shape) and
@@ -2106,6 +2880,7 @@ impl CadDocument {
             block_entity_handles: HashMap::new(),
             dwg_source_version: None,
             dwg_file_header: None,
+            dwg_header_raw: None,
             dwg_r2004_header: None,
             dwg_r2007_header: None,
             dwg_second_header: None,

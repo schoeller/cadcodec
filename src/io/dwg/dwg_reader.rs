@@ -1564,7 +1564,10 @@ impl<R: Read + Seek> DwgReader<R> {
                     info.acad_maintenance_version,
                     crate::io::dxf::code_page::encoding_from_dwg_code_page(info.code_page),
                 ) {
-                    Ok(header_vars) => document.header = header_vars,
+                    Ok((header_vars, header_raw)) => {
+                        document.header = header_vars;
+                        document.dwg_header_raw = Some(header_raw);
+                    }
                     Err(e) => report_read_error(
                         &mut self.notifications,
                         &mut diagnostics,

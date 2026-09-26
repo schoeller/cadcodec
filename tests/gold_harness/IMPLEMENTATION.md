@@ -4605,11 +4605,74 @@ Signature) — the parse side is further along than the emission side.
   all, so the H2 projection must reproduce the same conditional
   presence (a key present in gold but absent in silver — or vice
   versa — is a structural diff, not a field diff).**
-- **H3 — the variables (`HEADER`)**: the big row (228–298 keys). Silver
-  parses them (`header`); the projection maps silver variable names →
-  gold's `$VAR` names with typed comparisons. Expect the same
-  per-variable quirk discovery the OBJECTS rows went through (gold's
-  default-vs-unset emission idiosyncrasies); each lands with evidence.
+- **H3 — the variables (`HEADER`) (LANDED 2026-09-26 at ZERO read gaps
+  corpus-wide — the LAST open structure read row; the whole structure
+  READ axis now at zero)**: HEADER 280/280 → **138,021 matched + 0
+  value-diffs + 0 missing** (the read key-gap 128,489 → **0**; the
+  OBJECTS axis held 0/0, the write-target key-gap unchanged at
+  21,822 — the H7 row). The day-one scoping held exactly: the gap was
+  a TOTAL NAMING SPLIT — silver's modeled `header` prints its own
+  snake_case names (267 unversioned keys, bare-handle/shape
+  serialization) while gold prints the ALLCAPS spec names with
+  component tuples; the 280-file gold harvest pinned the emission as
+  purely version-determined (identical key sets per class: 228 R2000 /
+  246 R2004 / 291 R2007 / 296 R2010 / 298 R2013+, a 300-key union).
+  **The design — the raw-mirror summary:** `DwgHeaderRaw` on the
+  document (document.rs, ~300 `Option` fields, one per gold key,
+  serde-renamed to gold's spelling, skip-if-none so the version gates
+  fall out of the reader walk's population), retained by TWIN
+  assignments in `read_header_fields` — every wire read taken once,
+  assigned to the model where silver models the field and stored raw
+  under gold's key (the `let _ =` discards became `raw.x = Some(..)`;
+  the walk's bit consumption unchanged, which the write axis at 0/0
+  had already proven per-version on all 280 files). Handles retain
+  the wire form `[code, size, value, absolute]` (gold's FORMAT_HREF —
+  `DwgRawHandle`), points `[f64; 3]`, limits `[f64; 2]`, TIMEBLL
+  `[days, ms]`, colors the post-decode CMC parts (`DwgRawCmc`).
+  struct_axis projects `dwg_header_raw` key-for-key (the modeled
+  `header` stays the API surface; the writer is untouched — the H7
+  write-target row stands).
+  **The "gold is unique" re-analysis (the print-exactness rules,
+  re-derived from the libredwg src before landing — every one
+  load-bearing):** (a) `FORMAT_BS` is `PRIu16` **UNSIGNED**
+  (include/dwg.h:152) while `FORMAT_BSd` is signed — the d-suffixed
+  emitted fields are exactly TREEDEPTH/USERI1-5/DIMLWD/DIMLWE, and
+  all eight `FIELD_CAST` fields (DIMALTD/DIMZIN/DIMTOLJ/DIMJUST/
+  DIMTZIN/DIMALTZ/DIMALTTZ/DIMTAD) cast to plain BS (the third macro
+  arg — unsigned); OBSCOLOR/INTERSECTIONCOLOR are plain BS — so the
+  raw walk casts BS→u16 except the four BSd families (the first
+  draft's blanket signed casts would have flipped negative BSd
+  values like DIMLWD −2); (b) `FORMAT_BL`/`BLx` are `PRIu32`
+  unsigned (FLAGS, unknown_8/9/12–17/21/22), TIMEZONE is `BLd`
+  signed, `FIELD_TIMEBLL` prints `[days, ms]` as unsigned BL, and
+  REQUIREDVERSIONS is BLL unsigned; (c) BD prints `%.14f` with
+  trailing-zero trim (out_json.c `_VALUE_RD`) — inside the axis
+  float tolerance (`_REL_TOL` 1e-6), no normalization needed; (d)
+  **the CMC post-decode state** (bits.c `bit_read_CMC`): decode
+  OVERWRITES the wire BS index with `dwg_find_color_index(rgb)`
+  (gold's 256-entry palette — 222 entries differ from silver's ACI
+  table; the palette is embedded hex in struct_axis), ZEROES a flag
+  ≥ 4 without reading the name/book strings, and forces an
+  out-of-range method nibble to 0xC2 keeping the low 24 bits; the
+  emitter (out_json.c `field_cmc`) then prints the index iff non-zero
+  — **INCLUDING 256** (INTERFERECOLOR `{index: 256, rgb: c3000001}`
+  — no palette match for the low bits), the rgb as `%06x`, the flag
+  iff non-zero, name/book behind bits 0/1; the emitter's else-branch
+  derivations (TRUECOLOR low byte, BYLAYER/BYBLOCK re-lookup) are
+  DEAD — a zero lookup implies rgb&0xFFFFFF==0 so they yield 0 too;
+  pre-R2004 prints the bare wire index via `%d` over the uint16
+  (0..65535). Silver's `read_cm_color_raw` mirrors the decode
+  validations exactly (the modeled `read_cm_color` is untouched);
+  (e) every spec `FIELD_VALUE` transform (FLAGS |= lweight, TSTACK
+  defaults, unit1_ratio = 412148564080.0, unknown_8 = 24) is
+  `ENCODER`/`IF_ENCODE_FROM_EARLIER` gated — decode emits wire values
+  verbatim; (f) the null-ref 2-element `[0,0]` handle emitter branch
+  is unreachable (every handle read creates a ref — the corpus shows
+  only 4-tuples). **Verification: the six-version probe set (one file
+  per class: 2000/Line, example_2004/2007/2010/2013, sample_2018)
+  at 401/419/489/494/499/499 leaves — 0 diffs, 0 missing, 0 extra on
+  every class; cargo test 1588/0; the sh_history smokes 0/0 with the
+  structure read key-gap 0; the full corpus 280 @ 0/0.**
 - **H4 — the metadata blocks (LANDED 2026-09-25 at ZERO read gaps
   corpus-wide; 15,626 leaves now MATCHED, the read key-gap −13,450
   [248,141 → 234,691] — the 2,176-leaf difference is SummaryInfo's

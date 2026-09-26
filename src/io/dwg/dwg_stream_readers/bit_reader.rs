@@ -631,6 +631,34 @@ impl DwgBitReader {
         self.read_handle_reference(0, &mut DwgReferenceType::SoftOwnership)
     }
 
+    /// Read a handle reference retaining the wire form exactly as gold's
+    /// JSON prints it: `(code, size, value, absolute)`. Mirrors the walk of
+    /// [`read_handle_reference`](Self::read_handle_reference) against a zero
+    /// reference (the header section read), with `value` the on-wire payload
+    /// and `absolute` the resolved handle.
+    pub fn read_handle_raw(&mut self) -> (u8, u8, u64, u64) {
+        // |CODE (4 bits)|COUNTER (4 bits)|HANDLE or OFFSET|
+        let form = self.read_byte();
+        let code = form >> 4;
+        let counter = form & 0x0F;
+        if code <= 0x5 {
+            let value = self.read_handle_bytes(counter as usize);
+            (code, counter, value, value)
+        } else if code == 0x6 {
+            (code, counter, 0, 1)
+        } else if code == 0x8 {
+            (code, counter, 0, u64::MAX)
+        } else if code == 0xA {
+            let offset = self.read_handle_bytes(counter as usize);
+            (code, counter, offset, offset)
+        } else if code == 0xC {
+            let offset = self.read_handle_bytes(counter as usize);
+            (code, counter, offset, 0u64.wrapping_sub(offset))
+        } else {
+            (code, counter, 0, 0)
+        }
+    }
+
     /// Read a handle reference relative to a reference handle.
     pub fn read_handle_relative(&mut self, reference_handle: u64) -> u64 {
         self.read_handle_reference(reference_handle, &mut DwgReferenceType::SoftOwnership)
@@ -834,6 +862,51 @@ impl DwgBitReader {
             // Pre-R2004: BS color index
             let index = self.read_bit_short();
             Color::from_index(index)
+        }
+    }
+
+    /// Read a CmColor retaining gold's post-decode state (`DwgRawCmc`),
+    /// mirroring libredwg `bit_read_CMC` exactly: the name/book-name
+    /// strings are read only behind a valid flag (< 4 — an invalid flag
+    /// is zeroed and NO strings are read), and an out-of-range method
+    /// nibble is forced to 0xC2 with the rgb low 24 bits kept. The
+    /// emitter-side index derivation (palette lookup) lives in the gold
+    /// harness projection.
+    pub fn read_cm_color_raw(&mut self) -> crate::document::DwgRawCmc {
+        if self.dxf_version >= DxfVersion::AC1018 {
+            let index = self.read_bit_short() as u16 as i64;
+            let mut rgb = self.read_bit_long() as u32;
+            // RC: color byte flags — gold reads the name/book-name
+            // strings only when the flag is valid (< 4).
+            let wire_flag = self.read_byte();
+            let (flag, name, book_name) = if wire_flag < 4 {
+                let name = if (wire_flag & 1) == 1 {
+                    Some(self.read_variable_text())
+                } else {
+                    None
+                };
+                // &2 => book name follows (TV)
+                let book_name = if (wire_flag & 2) == 2 {
+                    Some(self.read_variable_text())
+                } else {
+                    None
+                };
+                (wire_flag as i64, name, book_name)
+            } else {
+                // Invalid CMC flag: gold zeroes it and reads nothing.
+                (0, None, None)
+            };
+            // Method validation: force 0xC2 when out of 0xC0..=0xC8.
+            let method = (rgb >> 24) & 0xFF;
+            if !(0xC0..=0xC8).contains(&method) {
+                rgb = 0xC200_0000 | (rgb & 0x00FF_FFFF);
+            }
+            crate::document::DwgRawCmc { index, rgb, flag, name, book_name }
+        } else {
+            // Pre-R2004: BS color index (gold prints it via %d over the
+            // unsigned 16-bit value — 0..65535).
+            let index = self.read_bit_short() as u16 as i64;
+            crate::document::DwgRawCmc { index, ..Default::default() }
         }
     }
 

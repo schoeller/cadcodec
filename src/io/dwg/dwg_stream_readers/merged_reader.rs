@@ -489,6 +489,59 @@ impl DwgMergedReader {
         }
     }
 
+    /// Read a handle reference retaining the wire form (code, size, value,
+    /// absolute) — the raw twin of [`read_handle`](Self::read_handle).
+    pub fn read_handle_raw(&mut self) -> (u8, u8, u64, u64) {
+        match &mut self.handle {
+            Some(handle_reader) => handle_reader.read_handle_raw(),
+            None => self.main.read_handle_raw(),
+        }
+    }
+
+    /// Raw twin of [`read_main_handle`](Self::read_main_handle): the handle
+    /// form read from the MAIN (data) stream even when a handle stream
+    /// exists (e.g. HANDSEED in the header section).
+    pub fn read_main_handle_raw(&mut self) -> (u8, u8, u64, u64) {
+        self.main.read_handle_raw()
+    }
+
+    /// Raw twin of [`read_cm_color`](Self::read_cm_color), mirroring
+    /// libredwg `bit_read_CMC` exactly (see the bit-reader twin): the
+    /// name/book-name strings are read only behind a valid flag (< 4),
+    /// an out-of-range method nibble is forced to 0xC2, and text reads
+    /// route to the text sub-stream on R2007+.
+    pub fn read_cm_color_raw(&mut self) -> crate::document::DwgRawCmc {
+        if self.dxf_version < DxfVersion::AC1018 {
+            let index = self.main.read_bit_short() as u16 as i64;
+            return crate::document::DwgRawCmc { index, ..Default::default() };
+        }
+        let index = self.main.read_bit_short() as u16 as i64;
+        let mut rgb = self.main.read_bit_long() as u32;
+        let wire_flag = self.main.read_byte();
+        let (flag, name, book_name) = if wire_flag < 4 {
+            let name = if (wire_flag & 1) != 0 {
+                Some(self.read_variable_text())
+            } else {
+                None
+            };
+            let book_name = if (wire_flag & 2) != 0 {
+                Some(self.read_variable_text())
+            } else {
+                None
+            };
+            (wire_flag as i64, name, book_name)
+        } else {
+            // Invalid CMC flag: gold zeroes it and reads nothing.
+            (0, None, None)
+        };
+        // Method validation: force 0xC2 when out of 0xC0..=0xC8.
+        let method = (rgb >> 24) & 0xFF;
+        if !(0xC0..=0xC8).contains(&method) {
+            rgb = 0xC200_0000 | (rgb & 0x00FF_FFFF);
+        }
+        crate::document::DwgRawCmc { index, rgb, flag, name, book_name }
+    }
+
     pub fn handle_remaining_bits(&self) -> i64 {
         match &self.handle {
             Some(reader) => reader.data_len() as i64 * 8 - reader.position_in_bits(),

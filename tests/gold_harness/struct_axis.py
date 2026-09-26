@@ -117,6 +117,97 @@ def gold_structure_views(data: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str
     return views, undeclared
 
 
+
+#: Gold's 256-entry RGB palette (libredwg dwg.c rgb_palette), hex-packed
+#: 3 bytes per entry — the authority for the CMC derived-index prints
+#: (§19 H3: dwg_find_color_index is a first-match linear scan over the
+#: unsorted palette; silver's ACI table differs on 222 of 256 entries).
+_PALETTE_HEX = (
+    "000000ff0000ffff0000ff0000ffff0000ffff00ffffffff414141808080ff0000ffaaaa"
+    "bd0000bd7e7e8100008156566800006845454f00004f3535ff3f00ffbfaabd2e00bd8d7e"
+    "811f00816056681900684e454f13004f3b35ff7f00ffd4aabd5e00bd9d7e814000816b56"
+    "6834006856454f27004f4235ffbf00ffeaaabd8d00bdad7e816000817656684e00685f45"
+    "4f3b004f4935ffff00ffffaabdbd00bdbd7e8181008181566868006868454f4f004f4f35"
+    "bfff00eaffaa8dbd00adbd7e6081007681564e68005f68453b4f00494f357fff00d4ffaa"
+    "5ebd009dbd7e4081006b8156346800566845274f00424f353fff00bfffaa2ebd008dbd7e"
+    "1f81006081561968004e6845134f003b4f3500ff00aaffaa00bd007ebd7e008100568156"
+    "006800456845004f00354f3500ff3faaffbf00bd2e7ebd8d00811f56816000681945684e"
+    "004f13354f3b00ff7faaffd400bd5e7ebd9d00814056816b006834456856004f27354f42"
+    "00ffbfaaffea00bd8d7ebdad00816056817600684e45685f004f3b354f4900ffffaaffff"
+    "00bdbd7ebdbd008181568181006868456868004f4f354f4f00bfffaaeaff008dbd7eadbd"
+    "006081567681004e68455f68003b4f35494f007fffaad4ff005ebd7e9dbd004081566b81"
+    "00346845566800274f35424f003fffaabfff002ebd7e8dbd001f81566081001968454e68"
+    "00134f353b4f0000ffaaaaff0000bd7e7ebd00008156568100006845456800004f35354f"
+    "3f00ffbfaaff2e00bd8d7ebd1f00816056811900684e456813004f3b354f7f00ffd4aaff"
+    "5e00bd9d7ebd4000816b568134006856456827004f42354fbf00ffeaaaff8d00bdad7ebd"
+    "6000817656814e00685f45683b004f49354fff00ffffaaffbd00bdbd7ebd810081815681"
+    "6800686845684f004f4f354fff00bfffaaeabd008dbd7ead81006081567668004e68455f"
+    "4f003b4f3549ff007fffaad4bd005ebd7e9d81004081566b6800346845564f00274f3542"
+    "ff003fffaabfbd002ebd7e8d81001f81566068001968454e4f00134f353b333333505050"
+    "696969828282bebebeffffff"
+)
+
+_GOLD_PALETTE = bytes.fromhex(_PALETTE_HEX)
+
+
+def _gold_find_color_index(rgb: int) -> int:
+    """dwg_find_color_index: the first palette match of rgb's low 24 bits."""
+    rgb &= 0x00FFFFFF
+    r = (rgb >> 16) & 0xFF
+    g = (rgb >> 8) & 0xFF
+    b = rgb & 0xFF
+    for i in range(256):
+        j = 3 * i
+        if _GOLD_PALETTE[j] == r and _GOLD_PALETTE[j + 1] == g and _GOLD_PALETTE[j + 2] == b:
+            return i
+    return 256
+
+
+#: The HEADER keys whose DwgHeaderRaw value is a raw CMC (DwgRawCmc).
+_HEADER_CMC_KEYS = frozenset(
+    {"CECOLOR", "DIMCLRD", "DIMCLRE", "DIMCLRT", "DIMTFILLCLR", "INTERFERECOLOR"}
+)
+
+
+def _project_header_cmc(raw: Any, pre2004: bool) -> Any:
+    """Project a raw CMC into gold's JSON shape (out_json.c field_cmc).
+
+    The unique rule, re-derived from libredwg src (bits.c bit_read_CMC +
+    out_json.c field_cmc): decode overwrites the wire BS index with
+    dwg_find_color_index(rgb) and validates flag (>= 4 is zeroed, strings
+    not read) and method (out of 0xC0..0xC8 forced to 0xC2) — silver's
+    DwgRawCmc reader mirrors both validations, so this projection is a
+    pure emitter:
+
+    - pre-R2004: the bare (unsigned) index;
+    - R2004+: index printed iff the palette lookup is non-zero —
+      INCLUDING 256 (no palette match; the emitter's else-branch
+      derivations are dead: a zero lookup implies rgb & 0xFFFFFF == 0,
+      so the TRUECOLOR low-byte and BYLAYER/BYBLOCK re-lookup also
+      yield 0); rgb as "%06x"; flag iff non-zero (the alpha 0x20 /
+      handle 0x40 emitter branches are unreachable — the validated flag
+      is 0..3); name / book_name behind flag bits 0/1.
+    """
+    if not isinstance(raw, dict):
+        return raw
+    if pre2004:
+        return raw.get("index", 0)
+    rgb = int(raw.get("rgb", 0))
+    flag = int(raw.get("flag", 0))
+    out: Dict[str, Any] = {}
+    index = _gold_find_color_index(rgb)
+    if index:
+        out["index"] = index
+    out["rgb"] = "%06x" % rgb
+    if flag:
+        out["flag"] = flag
+    if flag & 1:
+        out["name"] = raw.get("name", "")
+    if flag & 2:
+        out["book_name"] = raw.get("book_name", "")
+    return out
+
+
 #: Silver's seed projections — replaced per-packet with real field-list
 #: projections from the spec files (H0 established the baseline; H2
 #: lands FILEHEADER).
@@ -202,7 +293,27 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
         # segments[] with the per-type sub-blocks, REPEAT counts
         # suppressed; absent entirely on the R2000 family.
         views["AcDs"] = doc["dwg_acds"]
-    if isinstance(doc.get("header"), dict):
+    if isinstance(doc.get("dwg_header_raw"), dict):
+        # H3: gold's HEADER shape (json_header_write →
+        # header_variables.spec): the reader's DwgHeaderRaw mirror, one
+        # field per gold key, named and version-gated exactly as gold
+        # prints them. The CMC fields carry the raw wire parts and get
+        # gold's emitter shape here (out_json.c field_cmc: the
+        # palette-derived index, the "%06x" rgb word, the flag-gated
+        # name/book_name), with pre-R2004 files printing the bare
+        # index.
+        raw = doc["dwg_header_raw"]
+        pre2004 = str(raw.get("__version", "")) in (
+            "AC1012",
+            "AC1014",
+            "AC1015",
+        )
+        views["HEADER"] = {
+            k: (_project_header_cmc(v, pre2004) if k in _HEADER_CMC_KEYS else v)
+            for k, v in raw.items()
+            if k != "__version"
+        }
+    elif isinstance(doc.get("header"), dict):
         views["HEADER"] = doc["header"]
     if isinstance(doc.get("preview"), dict):
         # H5c: gold's THUMBNAILIMAGE shape (json_thumbnail_write,

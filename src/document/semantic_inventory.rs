@@ -198,6 +198,7 @@ impl<'a> SemanticInventoryV1<'a> {
             block_entity_handles: _,
             dwg_source_version,
             dwg_file_header: _,
+            dwg_header_raw: _,
             dwg_r2004_header: _,
             dwg_r2007_header: _,
             dwg_second_header: _,
