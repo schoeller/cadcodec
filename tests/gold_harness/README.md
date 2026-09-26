@@ -310,7 +310,11 @@ md5sum gen_all_entities_all_versions.dwg
 ```
 
 **Expected:** both runs identical (the current zero-file identity is
-`0217fbac515a20b90e9c3aea883196e3`, 24986 bytes; LEADER 0x41 /
+`40ab5d356cf05a71333ff208e1651daf`, 25344 bytes — re-verified twice
+on 2026-09-26 and unchanged by the H7e/H7f landings and the §18
+walks (programmatic documents keep the historical bytes); it moved
+from the earlier `0217fbac…` / 24986 at an H5–H7 landing whose
+re-record landed only in `NEXT_SESSION.md`. LEADER 0x41 /
 MULTILEADER 0x51 — recompute and re-record the identity in
 `NEXT_SESSION.md` when an intended content change moves it, never to
 paper over a regression). Spot-verify the mleader's metafile survives

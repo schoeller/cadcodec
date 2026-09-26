@@ -457,11 +457,11 @@ pub struct DwgFileHeaderWriterAC21 {
     /// Skip LZ77 compression for debugging (store raw + RS only).
     pub skip_lz77: bool,
     /// The source file's FILEHEADER identity bytes on a same-version
-    /// roundtrip (§19 H7f): `maint_rel_version` (0x0B), `dwg_version`
-    /// (0x11), `maint_version` (0x12), codepage (0x13),
-    /// `app_dwg_version` (0x16), `app_maint_version` (0x17). `None`
-    /// keeps the historical R2007 constants.
-    source_header_bytes: Option<(u8, u8, u8, u16, u8, u8)>,
+    /// roundtrip (§19 H7f + the 2026-09-26 review pass): the tuple is
+    /// (`maint_rel_version`, `dwg_version`, `maint_version`, codepage,
+    /// the unknown 0x15 byte, `app_dwg_version`, `app_maint_version`).
+    /// `None` keeps the historical R2007 constants.
+    source_header_bytes: Option<(u8, u8, u8, u16, u8, u8, u8)>,
 }
 
 impl DwgFileHeaderWriterAC21 {
@@ -489,16 +489,17 @@ impl DwgFileHeaderWriterAC21 {
         })
     }
 
-    /// Mirror the source file's FILEHEADER identity bytes (§19 H7f):
-    /// the same five-byte set as the AC18 writer plus the R2007
-    /// codepage (the AC21 metadata hardcoded it before this row;
-    /// the source codepage is mirrored as an exactness fix too).
+    /// Mirror the source file's FILEHEADER identity bytes (§19 H7f,
+    /// extended by the 2026-09-26 review pass with the 0x15 unknown
+    /// byte): the AC18 writer's byte set plus the R2007 codepage (the
+    /// AC21 metadata hardcoded it before this row).
     pub fn set_source_header_bytes(
         &mut self,
         maint_rel_version: u8,
         dwg_version: u8,
         maint_version: u8,
         codepage: u16,
+        unknown_header_byte: u8,
         app_dwg_version: u8,
         app_maint_version: u8,
     ) {
@@ -507,6 +508,7 @@ impl DwgFileHeaderWriterAC21 {
             dwg_version,
             maint_version,
             codepage,
+            unknown_header_byte,
             app_dwg_version,
             app_maint_version,
         ));
@@ -1318,11 +1320,13 @@ impl DwgFileHeaderWriterAC21 {
             cursor
                 .write_u16::<LittleEndian>(self.source_header_bytes.map_or(30u16, |b| b.3))?; // ANSI_1252
 
-            // 0x15: unknown_0 (0) + 0x16/0x17: the app version pair — the
-            // source author's bytes on a same-version roundtrip.
-            cursor.write_all(&[0u8])?;
-            cursor.write_all(&[self.source_header_bytes.map_or(0u8, |b| b.4)])?;
+            // 0x15: the unknown byte + 0x16/0x17: the app version pair —
+            // the source author's bytes on a same-version roundtrip.
+            cursor.write_all(&[self
+                .source_header_bytes
+                .map_or(0u8, |b| b.4)])?;
             cursor.write_all(&[self.source_header_bytes.map_or(0u8, |b| b.5)])?;
+            cursor.write_all(&[self.source_header_bytes.map_or(0u8, |b| b.6)])?;
 
             // 0x18: SecurityType (4 bytes)
             cursor.write_i32::<LittleEndian>(0)?;

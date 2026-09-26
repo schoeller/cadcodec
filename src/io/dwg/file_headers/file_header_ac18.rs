@@ -83,12 +83,13 @@ pub struct DwgFileHeaderWriterAC18 {
     page_map_address: u64,
     /// Gap amount (0 for new files).
     gap_amount: u32,
-    /// The source file's five FILEHEADER identity bytes (§19 H7f), in
-    /// file order: `maint_rel_version` (0x0B), `dwg_version` (0x11),
-    /// `maint_version` (0x12), `app_dwg_version` (0x16),
-    /// `app_maint_version` (0x17). Set for a same-version roundtrip of
-    /// a read document; `None` keeps the historical constants.
-    source_header_bytes: Option<[u8; 5]>,
+    /// The source file's six FILEHEADER identity bytes (§19 H7f + the
+    /// review pass), in file order: `maint_rel_version` (0x0B),
+    /// `dwg_version` (0x11), `maint_version` (0x12), the unknown byte
+    /// (0x15), `app_dwg_version` (0x16), `app_maint_version` (0x17).
+    /// Set for a same-version roundtrip of a read document; `None`
+    /// keeps the historical constants.
+    source_header_bytes: Option<[u8; 6]>,
 }
 
 impl DwgFileHeaderWriterAC18 {
@@ -130,10 +131,13 @@ impl DwgFileHeaderWriterAC18 {
         self.code_page = code_page;
     }
 
-    /// Mirror the source file's FILEHEADER identity bytes (§19 H7f).
+    /// Mirror the source file's FILEHEADER identity bytes (§19 H7f,
+    /// extended by the 2026-09-26 review pass with the 0x15 unknown
+    /// byte — the writers hardcoded it to 0 where the summary retains
+    /// the author's; corpus-blind, all authors 0).
     ///
     /// For a same-version roundtrip the rewrite re-emits the author's
-    /// five bytes verbatim. `maint_version` (0x12) is the byte readers
+    /// bytes verbatim. `maint_version` (0x12) is the byte readers
     /// gate the R2010+ section extra-RL on — it must equal the
     /// maintenance value the header/classes writers were built with
     /// (the caller passes the same source byte there), so the layout
@@ -143,6 +147,7 @@ impl DwgFileHeaderWriterAC18 {
         maint_rel_version: u8,
         dwg_version: u8,
         maint_version: u8,
+        unknown_header_byte: u8,
         app_dwg_version: u8,
         app_maint_version: u8,
     ) {
@@ -150,6 +155,7 @@ impl DwgFileHeaderWriterAC18 {
             maint_rel_version,
             dwg_version,
             maint_version,
+            unknown_header_byte,
             app_dwg_version,
             app_maint_version,
         ]);
@@ -557,11 +563,11 @@ impl DwgFileHeaderWriterAC18 {
         // 0x13: Codepage (2 bytes)
         output.write_u16::<LittleEndian>(self.code_page)?;
 
-        // 0x15: unknown_0 (0) + 0x16/0x17: the app version pair —
+        // 0x15: the unknown byte + 0x16/0x17: the app version pair —
         // the source author's bytes on a same-version roundtrip.
-        output.write_all(&[0u8])?;
         output.write_all(&[self.source_header_bytes.map_or(0u8, |b| b[3])])?;
         output.write_all(&[self.source_header_bytes.map_or(0u8, |b| b[4])])?;
+        output.write_all(&[self.source_header_bytes.map_or(0u8, |b| b[5])])?;
 
         // 0x18: SecurityType (4 bytes)
         output.write_i32::<LittleEndian>(0)?;

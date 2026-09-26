@@ -1213,6 +1213,7 @@ fn write_ac18<W: Write + Seek>(
             fh.maint_rel_version,
             fh.dwg_version,
             fh.maint_version,
+            fh.unknown_0,
             fh.app_dwg_version,
             fh.app_maint_version,
         );
@@ -1495,6 +1496,7 @@ fn write_ac21_impl<W: Write + Seek>(
                 fh.dwg_version,
                 fh.maint_version,
                 fh.codepage,
+                fh.unknown_0,
                 fh.app_dwg_version,
                 fh.app_maint_version,
             );

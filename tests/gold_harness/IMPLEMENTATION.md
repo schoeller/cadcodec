@@ -5232,11 +5232,13 @@ Signature) — the parse side is further along than the emission side.
   it never points at live bytes. The corpus: ObjFreeSpace 3,441
   matched 0/0 both axes; every other row unchanged.
 
-  H7f — the FILEHEADER identity bytes: 1,204 → 553 (−651). The five
-  identity bytes were stamped with per-writer constants (AC18: the
-  canonical per-version table at 0x0B/0x12, dwg_version hardcoded
-  0x21, the app pair zeroed; AC21: 0x19/0x1B/0x19/30 + zeros; AC15:
-  the fixed 0x1B/0x19 pair) where the authors wrote per-build bytes
+  H7f — the FILEHEADER identity bytes: 1,204 → 553 (−651). The six
+  identity bytes (maint_rel, dwg_version, maint_version, the 0x15
+  unknown byte, the app pair) were stamped with per-writer constants
+  (AC18: the canonical per-version table at 0x0B/0x12, dwg_version
+  hardcoded 0x21, the app pair + the unknown byte zeroed; AC21:
+  0x19/0x1B/0x19/30 + zeros; AC15: the fixed 0x1B/0x19 pair) where
+  the authors wrote per-build bytes
   (example_2004's maint_rel 104 / maint 29 / app pair 33/29;
   Revolve_2018's maint 0 vs the canonical 4; Box_2007's
   maint_rel 50 / dwg_version 33 / maint 255 / app pair 33/255;
@@ -5244,7 +5246,10 @@ Signature) — the parse side is further along than the emission side.
   a same-version source mirror from the retained
   `DwgFileHeaderSummary` (`set_source_header_bytes` /
   `set_source_version_pair`), AC21's codepage included (previously
-  hardcoded 30). The effective layout maint in write_ac18 becomes
+  hardcoded 30; the 2026-09-26 review pass extended the mirror
+  with the 0x15 unknown byte — the writers hardcoded it to 0 while
+  the summary retains the author's; corpus-blind, every author 0).
+  The effective layout maint in write_ac18 becomes
   the author's `maint_version` byte: LAYOUT-NEUTRAL for every
   corpus class (the R2004 header-vars path reads no bitsize_hi at
   all — gold's PRE(R_2007a) arm; the R2010/2013 authors' bytes are

@@ -45,15 +45,22 @@ pointing at live bytes. The parallel session's SecondHeader row was
 NOT touched (the retained 53-byte span ends where the 2ndheader
 sentinel begins).
 
-**H7f — the FILEHEADER identity bytes (`03134e7`)**: the five
-identity bytes were per-writer constants where the authors wrote
-per-build bytes (example_2004's maint_rel 104 / dwg_version 33 /
-maint 29 / app pair 33/29; Revolve_2018's maint 0 vs the canonical
-4; Box_2007's maint_rel 50 / dwg_version 33 / maint 255 / app pair
-33/255 / codepage 30; PolyLine2D's version pair 31/8). All three
-file-header writers take a same-version source mirror
-(`set_source_header_bytes` / `set_source_version_pair` from the
-retained `DwgFileHeaderSummary`); AC21's codepage is mirrored too.
+**H7f — the FILEHEADER identity bytes (`03134e7`, extended by the
+2026-09-26 review pass)**: the six identity bytes were per-writer
+constants where the authors wrote per-build bytes (example_2004's
+maint_rel 104 / dwg_version 33 / maint 29 / app pair 33/29;
+Revolve_2018's maint 0 vs the canonical 4; Box_2007's maint_rel 50
+/ dwg_version 33 / maint 255 / app pair 33/255 / codepage 30;
+PolyLine2D's version pair 31/8). All three file-header writers take
+a same-version source mirror (`set_source_header_bytes` /
+`set_source_version_pair` from the retained `DwgFileHeaderSummary`);
+AC21's codepage is mirrored too, and the review pass added the 0x15
+unknown byte (the writers hardcoded 0 while the summary retains the
+author's — corpus-blind, every author 0). The H7e skip-arm's
+presence semantics closed in review as correct-by-doctrine: a
+channel where the section exists but the fetch fails has no
+faithful bytes to re-emit, and the READ census gates that class
+before the write ever runs.
 THE LAYOUT-NEUTRALITY of the maint byte: the write-ac18 effective
 maint becomes the author's `maint_version` — safe for every corpus
 class because gold's decode gates read: R2004 →
@@ -161,8 +168,9 @@ authentic `ACSH_BREP_CLASS` specimen re-opens it.
   re-record: the current deterministic identity is
   `40ab5d356cf05a71333ff208e1651daf`, 25,344 bytes (this session
   verified it twice, unchanged by H7e/H7f — programmatic documents
-  keep the historical bytes). The README's recorded
-  `0217fbac515a20b90e9c3aea883196e3`/24,986 was stale.**
+  keep the historical bytes). The review pass re-recorded it in the
+  README's step 5 as well (the `0217fbac…`/24,986 there was
+  stale).**
 - The gold tree is UNCHANGED at `34f02f54` (local build artifacts
   only). The anchors re-verified this session: the LOFTEDSURFACE
   typed spec `dwg2.spec:3984` (start/end_draft_angle+magnitude,
@@ -210,10 +218,14 @@ python3 tests/gold_harness/run_corpus.py
 target/debug/dump_section_bytes <file> <A> <N>
 ```
 
-## Commit inventory (this halt — all PUSHED through `74a75d2`)
+## Commit inventory (this halt — all PUSHED through the review pass)
 
 ```
-74a75d2 feat(sh): the loft container and ExtrudeP polyline walks — the per-section fields and the kind-77 CALL body named (§18 walks 2 and 3)   <- HEAD
+<review> docs(harness)/fix(dwg): the 2026-09-26 review pass — the 0x15 unknown-byte
+   mirror (the last unmirrored FILEHEADER identity byte) + the README
+   generation-identity re-record + the docs consistency replay
+10e9423 docs(harness): the halt refresh — the H7e/H7f landings, the container-parity wall, the three §18 walks landed
+74a75d2 feat(sh): the loft container and ExtrudeP polyline walks — the per-section fields and the kind-77 CALL body named (§18 walks 2 and 3)
 ade0de3 feat(sh): the post-corner singles walk — the sweep tail's record constant and width-coupled single named
 03134e7 fix(dwg): the FILEHEADER identity bytes from the source — the H7f maint/app row at 1204 -> 553
 dd7f854 fix(dwg): the ObjFreeSpace verbatim sections — the H7e write-target row at zero (2,453 + 30 @ 0/0)
@@ -227,8 +239,8 @@ held 280 files at 0/0 through every commit)
 ```
 
 **PUSH STATE (2026-09-26)**: the `gold-vs-silver` branch is PUSHED
-through `74a75d2` (push after each landing per the maintainer's
-loop instruction: `git push origin gold-vs-silver`).
+through the review pass (push after each landing per the
+maintainer's loop instruction: `git push origin gold-vs-silver`).
 
 **Session arc, for context**: the halt-state verification (corpus
 280 @ 0/0 at 8,718) → H7e (the reader retention both arms; the AC15
