@@ -1,19 +1,94 @@
-# Zero-context prompt — the post-H5a halt: the HEADER ledger + the three decoder walks
+# Zero-context prompt — the post-H3 halt: the structure READ axis at zero + the three decoder walks + the H7 write rows
 
-> Campaign state 2026-09-26 (the halt after the H5a row).
+> Campaign state 2026-09-26 (the halt after the H3 row).
 > **The ACS/SH campaign is COMPLETE at 0/0: the corpus stands at
 > 280 files, read 0, write 0** (the 180 campaign baseline + every
 > §18.7 differential quad — solid AND surface twins **all landed;
 > the quarantine tree no longer exists**). The maintainer's fixture
-> surface is EMPTY: no DWG authoring is requested. All remaining
-> work is agent decoder code: the §19 HEADER ledger (the LAST open
-> read row) and the four raw-retained SH tails' decoder walks.
-> Read `tests/gold_harness/AGENTS.md` first, then §F2.1–F2.3 +
-> §18.5–18.7 in `IMPLEMENTATION.md` (§18.6 carries the full decode
-> record), then §19.1–19.3 (the structure campaign), then this
-> file top to bottom.
+> surface is EMPTY: no DWG authoring is requested. **The §19
+> structure READ axis is now at ZERO gaps corpus-wide** (the H3
+> HEADER row landed 2026-09-26: 138,021 matched + 0 + 0; the read
+> key-gap 128,489 → 0). All remaining work is agent code: the three
+> SH decoder walks (§18.6's queue) and the §19 H7 write-target rows
+> (21,822 — the only open structure surface), per maintainer
+> priority. Read `tests/gold_harness/AGENTS.md` first, then
+> §F2.1–F2.3 + §18.5–18.7 in `IMPLEMENTATION.md` (§18.6 carries
+> the full decode record), then §19.1–19.3 (the structure campaign
+> — §19.2's H3 row carries the header landing), then this file top
+> to bottom.
 
-## What the surface-parser row established (the load-bearing facts)
+## What the H3 landing established (the load-bearing facts)
+
+**The gap was a TOTAL NAMING SPLIT, as scoped**: silver's modeled
+`header` prints its own snake_case names (267 unversioned keys,
+bare-handle/shape serialization) while gold prints the ALLCAPS
+spec names with component tuples — the 280-file gold harvest
+pinned the emission as purely version-determined (identical key
+sets per class: 228 R2000 / 246 R2004 / 291 R2007 / 296 R2010 /
+298 R2013+, a 300-key union).
+
+**The design — the raw-mirror summary**: `DwgHeaderRaw` on the
+document (~300 `Option` fields, one per gold key, serde-renamed to
+gold's spelling, skip-if-none so the version gates fall out of the
+reader walk's population), retained by TWIN assignments in
+`read_header_fields` — every wire read taken once, assigned to the
+model where silver models the field and stored raw under gold's
+key (the `let _ =` discards became `raw.x = Some(..)`; the walk's
+bit consumption is unchanged — the write axis at 0/0 had already
+proven it per-version on all 280 files). Handles retain the wire
+form `[code, size, value, absolute]` (`DwgRawHandle` — gold's
+FORMAT_HREF), points `[f64; 3]`, limits `[f64; 2]`, TIMEBLL
+`[days, ms]`, colors the post-decode CMC parts (`DwgRawCmc`).
+struct_axis projects `dwg_header_raw` key-for-key (the modeled
+`header` stays the API surface; the writer is untouched — the H7
+write-target row stands at 21,822).
+
+**The "gold is unique" re-analysis (the print-exactness rules,
+pinned in the libredwg src BEFORE landing — every one
+load-bearing, and the H7 writer row will need them again):**
+- `FORMAT_BS` is `PRIu16` **UNSIGNED** (include/dwg.h:152) while
+  `FORMAT_BSd` is signed — the d-suffixed emitted fields are
+  exactly TREEDEPTH/USERI1-5/DIMLWD/DIMLWE; all eight `FIELD_CAST`
+  fields (DIMALTD/DIMZIN/DIMTOLJ/DIMJUST/DIMTZIN/DIMALTZ/
+  DIMALTTZ/DIMTAD) cast to plain BS (the third macro arg —
+  unsigned); OBSCOLOR/INTERSECTIONCOLOR are plain BS.
+- `FORMAT_BL`/`BLx` are `PRIu32` unsigned (FLAGS,
+  unknown_8/9/12–17/21/22); TIMEZONE is `BLd` signed;
+  `FIELD_TIMEBLL` prints `[days, ms]` as unsigned BL;
+  REQUIREDVERSIONS is BLL unsigned.
+- BD prints `%.14f` with trailing-zero trim (out_json.c
+  `_VALUE_RD`) — inside the axis float tolerance (`_REL_TOL`
+  1e-6), no normalization needed.
+- **The CMC post-decode state** (bits.c `bit_read_CMC`): decode
+  OVERWRITES the wire BS index with `dwg_find_color_index(rgb)`
+  (gold's 256-entry palette — 222 entries differ from silver's ACI
+  table; embedded hex in struct_axis), ZEROES a flag ≥ 4 without
+  reading the name/book strings, and forces an out-of-range method
+  nibble to 0xC2 keeping the low 24 bits; the emitter
+  (out_json.c `field_cmc`) prints the index iff non-zero —
+  **INCLUDING 256** (INTERFERECOLOR `{index: 256, rgb:
+  c3000001}`), the rgb as `%06x`, the flag iff non-zero, name/book
+  behind bits 0/1; the emitter's else-branch derivations are DEAD
+  (a zero lookup implies rgb&0xFFFFFF==0 so they yield 0 too);
+  pre-R2004 prints the bare wire index via `%d` over the uint16
+  (0..65535). Silver's `read_cm_color_raw` mirrors the decode
+  validations exactly (the modeled `read_cm_color` is untouched).
+- Every spec `FIELD_VALUE` transform (FLAGS |= lweight, TSTACK
+  defaults, unit1_ratio = 412148564080.0, unknown_8 = 24) is
+  `ENCODER`/`IF_ENCODE_FROM_EARLIER` gated — decode emits wire
+  values verbatim.
+- The null-ref 2-element `[0,0]` handle emitter branch is
+  unreachable (every handle read creates a ref — the corpus shows
+  only 4-tuples).
+
+**Verification**: the six-version probe set (one file per class:
+2000/Line, example_2004/2007/2010/2013, sample_2018) at
+401/419/489/494/499/499 leaves — 0 diffs, 0 missing, 0 extra on
+every class; cargo test 1588/0; gold_roundtrip ok; the sh_history
+smokes 0/0 with the structure read key-gap 0; the full corpus 280
+@ 0/0 with the read key-gap 0.
+
+## What the surface-parser row established (still standing)
 
 **The gold-shadow classes walk** (§18.6's surface-parser decode
 record): gold (libredwg) reads the R2004+ class-record tails as
@@ -75,98 +150,36 @@ REVOLVE command (the typed anchor is in-corpus via RevolveM's
 bit-retained raw tail); **BREP stays deferred** — only an
 external authentic `ACSH_BREP_CLASS` specimen re-opens it.
 
-## The next major arc (planned 2026-09-25, not yet started): §19 — the header & whole-structure campaign
+## The §19 arc state (the read axis CLOSED; H7 next on the structure side)
 
-The OBJECTS axis is done (280 files at 0/0). The harness's scope
-extends next to everything the reader sees that is not an object
-record — a second, separately-gated structure axis with its own
-corpus counters, driven to 0 under the same per-packet workflow,
-with the whole-structure audit matrix (§19.2's H6) as the standing
-deliverable proving every section of a DWG is either diffed or
-excluded with a recorded reason. **Arc status (2026-09-25): H0
-LANDED** (`d27c0c7` + the `15a4a01` review pass: the axis wired, the
-day-one census measured — read key-gap 259,073 / write-target 21,822;
-AcDs verbatim 0/0 corpus-wide; two whole-section write drops found —
-SecondHeader, FileDepList — now H7 rows), **H2 COMPLETE** (all five sub-rows at zero read gaps: FILEHEADER
-4,151 + R2004_Header 5,336 + R2007_Header 1,353 + SecondHeader 386 +
-AuxHeader 266 = 11,492 leaves; read key-gap 248,141; the ledgers:
-hand-decoded byte positions, the R2007 shape a pure projection of
-silver's container metadata, the R2000 pair the family's only NEW
-READS — the sentinel-located SecondHeader and the locator-addressed
-AuxHeader, both hand-validated before implementation — see §19.2's
-H2 row). **H4 LANDED** (the metadata blocks at zero read gaps
-corpus-wide: 15,626 leaves matched, the gap −13,450; read key-gap
-234,691; the load-bearing findings in §19.2's H4 row). **H5b
-LANDED** (CLASSES at zero read gaps corpus-wide: 280/280 files,
-60,954 matched, the gap −47,173; read key-gap **187,518**; the full
-gold-shadow record carries the desynced tables' garbage
-record-for-record; the landing exposed and fixed the latent
-wire-color field-type bug — WIRESTRUCT's color is a BS on every
-version, the §18 reader/writer had it BL on R2004+ — see §19.2's
-H5 row). **H5c LANDED (2026-09-26) — the THUMBNAILIMAGE read axis at
-gold parity** (the previous session's open-item record was WRONG in
-its central claim: the 280-file probe shows the AcDb:Preview fetch
-succeeds on ALL 58 AC1032 files — the 17-file class is containers
-with only the 80-byte header block and NO image descriptor, which
-`parse_preview`'s image requirement dropped; plus the AC1021
-cut-both-sentinels tail rule gold pins in decode_R2007 (58
-Box_2007-class valuediffs, fixed driver-side in struct_axis), and
-the 2013/RAY overall-window truncation — the reader now fetches
-the decompressed section FIRST on R2004+ — see §19.2's H5 row for
-the full corrected record, including the two per-file exclusion
-rows: 2010/Leader (gold skips the section by its decompression-size
-guard) and 2000/PolyLine2D (absent on both sides)). **First gate
-of the 2026-09-26 session CLEARED: the corpus held 280 files
-read 0 / write 0; then the H5c completion packet landed on
-smokes + the hermetic suite + the corpus.** **H5a LANDED (2026-09-26)
-— the AcDs section-level view at gold parity** (silver parses the
-decompressed AcDb:AcDsPrototype_1b section into the gold
-json_section_acds shape: `DwgAcDsSummary` on the document; the wire
-grammar + gold's three non-obvious semantics pinned in §19.2's H5 row —
-the top-level type-body singletons (last same-typed segment wins), the
-unconditional zeroed-header emission on R2004+ files without the
-section, and the REPEAT-count suppression; plus the R2004
-nameless-descriptor fix: AcDs sections with an empty 64-byte name
-field resolve by the section TYPE id 17). **The structure read
-key-gap now stands at 128,489 — EXACTLY the HEADER row alone; every
-other structure key reads at zero gaps** (THUMBNAILIMAGE 558+0+0,
-AcDs 58,471+0+0, CLASSES 60,954+0+0, every H2/H4 row 0/0; the
-write-target key-gap 21,822 is the H7 row set). **Next: H3's HEADER ledger
-(128,489 — the dominant row; scoped 2026-09-26: the gap is a TOTAL
-NAMING SPLIT — silver's header model prints its own snake_case names
-(angle_base, acad_group_dict_handle, …) while gold prints the spec
-names (ANGBASE, DICTIONARY_ACAD_GROUP[0..3], …), so the census
-matches ZERO keys today; silver models ~295 leaves of gold's ~499
-(R2013+) / 401 (R2000) — the projection is a rename map for the
-overlap + ~200 genuinely unmodeled fields (the R2004+ variables, the
-handle [0..3] code splits, CECOLOR.rgb — header.spec is the ledger
-authority), interleaved with the three SH decoder walks
-(§18.6's queue: the post-corner BD walk, the loft container walk, the
-ExtrudeP polyline header) per maintainer priority.** **The authoritative enumeration is
-CLOSED** (the libredwg tree re-analysis + the review passes, all in
-§19.1): 17 observed structure keys (16 per R2004+ file, 8 on R2000
-— including `R2007_Header`, its OWN 33-field AC1021 system section,
-not the R2004 shape's 23) + the declared-absent `VBAProject` and
-`Signature` + `created_by` (an EXCLUDED row: gold hardcodes its own
-`PACKAGE_STRING` there — an oracle identity stamp, not file content)
-+ the not-JSON machinery (object map/Handles — gold's emitter is
-`#if 0`'d; the R2004+ container types SECTION_INFO/SYSTEM_MAP;
-CRCs/sentinels/padding). **14 spec files** in the gold tree
-(`header.spec` … `vbaproject.spec`; `appinfo.spec` covers both
-AppInfo and AppInfoHistory) are the authoritative field lists for
-the projections, exactly as `dwg2.spec` was for OBJECTS.
-Load-bearing facts for the rows: `AppInfoHistory` is located by
-section TYPE (12), not by an `AcDb:` name — silver's registry lacks
-it (a named H4 row); gold's emission is GATED by FILEHEADER fields
-(`sections` locator count on R2000; `summaryinfo_address`/
-`vbaproj_address` on R2004+) — a one-side-only key is a structural
-diff; `SecondHeader` carries the R2000 locator table and lives
-inside the ObjFreeSpace section. First packet: **H0 — the axis
-skeleton + the day-one census** (the per-key diff counts over the
-280-file corpus that set the attack order; the no-leak assertion
-for undeclared keys). The OBJECTS axis stays frozen at 0
-throughout; the header comparison may interleave with the three
-decoder walks below per maintainer priority.
+The OBJECTS axis is done (280 files at 0/0). The structure axis —
+everything the reader sees that is not an object record — is now
+**at ZERO read gaps corpus-wide**: H0 (the axis + day-one census,
+read key-gap 259,073), H2 (FILEHEADER/R2004_Header/R2007_Header/
+SecondHeader/AuxHeader — 11,492 leaves), H4 (the metadata blocks
+— 15,626 leaves), H5b (CLASSES — 60,954), H5c (THUMBNAILIMAGE —
+558), H5a (AcDs — 58,471), and **H3 (HEADER — 138,021: the raw
+mirror, landed 2026-09-26, `e7ead8f`; the full record in §19.2's
+H3 row)**. **The structure read key-gap stands at 0; every
+observed key reads at gold parity** (HEADER 138,021+0+0,
+CLASSES 60,954+0+0, AcDs 58,471+0+0, every H2/H4 row 0/0). The
+authoritative enumeration is CLOSED (§19.1): 17 observed
+structure keys + the declared-absent `VBAProject`/`Signature` +
+`created_by` (EXCLUDED: gold hardcodes its own `PACKAGE_STRING`
+there) + the not-JSON machinery. **The remaining structure
+surface is the H7 WRITE-TARGET axis (key-gap 21,822)**: HEADER
+6,366 value-diffs + 268 missing (gold's unknown slots + the time
+fields — silver's writer re-emits defaults for the unmodeled
+fields; the H3 raw mirror now carries the wire values the writer
+needs), ObjFreeSpace 2,453+30, CLASSES 3,246, R2004_Header
+1,771, AppInfo 1,651, SummaryInfo 1,533, FILEHEADER 1,205,
+R2007_Header 979, THUMBNAILIMAGE 442, AppInfoHistory 342,
+AuxHeader 95 — **plus the two whole-section write drops:
+SecondHeader (386) and FileDepList (1,055)**. The H7 work follows
+the same per-packet workflow (the write axis changes need the
+layer-4 byte-walk gate); the three decoder walks above interleave
+per maintainer priority. The OBJECTS axis stays frozen at 0
+throughout.
 
 ## The standing facts (the decode authority is §18.6)
 
@@ -228,6 +241,8 @@ target/debug/dump_section_bytes <file> <A> <N>
 
 ```
 <this halt's handover note: the NEXT_SESSION.md refresh>   <- HEAD
+e7ead8f fix(dwg): the header raw mirror — the H3 HEADER read row at gold parity (138,021 @ 0/0)
+721c22a docs(harness): the halt refresh — the H5c + H5a landings, the HEADER-only read gap, the queue state
 ea8e731 fix(dwg): the AcDs section-level view — the H5a read row at gold parity (58,471 @ 0/0)
 83d9819 fix(dwg): the preview section-first read + the no-image retention + the AC1021 tail rule — the H5c THUMBNAILIMAGE read row closes
 ... (the 2026-09-25/26 §19 arc below, oldest first: the plan-session
