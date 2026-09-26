@@ -1198,7 +1198,7 @@ fn write_ac18<W: Write + Seek>(
     )?;
 
     // ── Section: SummaryInfo ──
-    let summary_data = build_summary_info(version);
+    let summary_data = build_summary_info(version, &document.summary_info);
     fhw.add_section(
         output,
         section_names::SUMMARY_INFO,
@@ -1376,7 +1376,7 @@ fn write_ac21_impl<W: Write + Seek>(
     // from ac21_section_info, so no page_size or compressed flag needed.
 
     // SummaryInfo
-    let summary_data = build_summary_info(version);
+    let summary_data = build_summary_info(version, &document.summary_info);
     fhw.add_section(output, section_names::SUMMARY_INFO, &summary_data)?;
 
     // Preview
@@ -1524,7 +1524,8 @@ fn build_template(description: &[u8], measurement: i16) -> Result<Vec<u8>> {
 
 /// Build SummaryInfo section data (AC18+ only).
 ///
-/// Writes empty summary info fields (all empty strings).
+/// Writes the document's summary info (§19 H7: the values the H4 read
+/// retained — a default document emits the historical all-empty block).
 ///
 /// **AC1018 (R2004)**: Windows-1252 (ANSI) strings.
 ///   Format: UInt16(byte_count_incl_null) + bytes + null.
@@ -1533,42 +1534,65 @@ fn build_template(description: &[u8], measurement: i16) -> Result<Vec<u8>> {
 /// **AC1021 (R2007)**: UTF-16LE strings.
 ///   Format: UInt16(char_count_incl_null) + UTF-16LE chars.
 ///   Empty → UInt16(1) + 0x00 0x00 = 4 bytes.
-fn build_summary_info(version: DxfVersion) -> Vec<u8> {
-    let mut data = Vec::with_capacity(128);
+fn build_summary_info(version: DxfVersion, si: &crate::document::SummaryInfo) -> Vec<u8> {
     let is_utf16 = version >= DxfVersion::AC1021;
 
-    // 8 × empty strings
-    // Title, Subject, Author, Keywords, Comments, LastSavedBy, RevisionNumber, HyperlinkBase
-    for _ in 0..8 {
-        data.extend_from_slice(&1u16.to_le_bytes()); // char/byte count including null
-        if is_utf16 {
-            // UTF-16LE null terminator: 2 bytes
-            data.push(0);
+    let mut data = Vec::with_capacity(128);
+    let push_string = |data: &mut Vec<u8>, s: &str| {
+        if !is_utf16 {
+            let (bytes, _, _) = encoding_rs::WINDOWS_1252.encode(s);
+            let n = bytes.len() as u16 + 1; // byte count including null
+            data.extend_from_slice(&n.to_le_bytes());
+            data.extend_from_slice(&bytes);
             data.push(0);
         } else {
-            // ANSI null terminator: 1 byte
-            data.push(0);
+            let units: Vec<u16> = s.encode_utf16().collect();
+            let n = units.len() as u16 + 1; // char count including null
+            data.extend_from_slice(&n.to_le_bytes());
+            for u in units {
+                data.extend_from_slice(&u.to_le_bytes());
+            }
+            data.extend_from_slice(&0u16.to_le_bytes());
         }
+    };
+
+    // 8 fixed strings:
+    // Title, Subject, Author, Keywords, Comments, LastSavedBy, RevisionNumber, HyperlinkBase
+    for s in [
+        &si.title,
+        &si.subject,
+        &si.author,
+        &si.keywords,
+        &si.comments,
+        &si.last_saved_by,
+        &si.revision_number,
+        &si.hyperlink_base,
+    ] {
+        push_string(&mut data, s);
     }
 
-    // Total editing time: 2 × Int32 (zeros)
-    data.extend_from_slice(&0i32.to_le_bytes());
-    data.extend_from_slice(&0i32.to_le_bytes());
+    // Total editing time: 2 × u32 (days, ms)
+    data.extend_from_slice(&si.tdindwg[0].to_le_bytes());
+    data.extend_from_slice(&si.tdindwg[1].to_le_bytes());
 
-    // Created date: 8 bytes (zeros)
-    data.extend_from_slice(&0i32.to_le_bytes());
-    data.extend_from_slice(&0i32.to_le_bytes());
+    // Created date: 2 × u32
+    data.extend_from_slice(&si.tdcreate[0].to_le_bytes());
+    data.extend_from_slice(&si.tdcreate[1].to_le_bytes());
 
-    // Modified date: 8 bytes (zeros)
-    data.extend_from_slice(&0i32.to_le_bytes());
-    data.extend_from_slice(&0i32.to_le_bytes());
+    // Modified date: 2 × u32
+    data.extend_from_slice(&si.tdupdate[0].to_le_bytes());
+    data.extend_from_slice(&si.tdupdate[1].to_le_bytes());
 
-    // Property count: Int16 (0)
-    data.extend_from_slice(&0u16.to_le_bytes());
+    // Property count: u16, then the (tag, value) pairs
+    data.extend_from_slice(&(si.custom_properties.len() as u16).to_le_bytes());
+    for (tag, val) in &si.custom_properties {
+        push_string(&mut data, tag);
+        push_string(&mut data, val);
+    }
 
-    // 2 × Int32 (trailing zeros)
-    data.extend_from_slice(&0i32.to_le_bytes());
-    data.extend_from_slice(&0i32.to_le_bytes());
+    // 2 × u32 trailing (gold's unknown1/unknown2)
+    data.extend_from_slice(&si.unknown1.to_le_bytes());
+    data.extend_from_slice(&si.unknown2.to_le_bytes());
 
     data
 }
@@ -2310,7 +2334,7 @@ mod tests {
 
     #[test]
     fn test_build_summary_info_ac18() {
-        let d = build_summary_info(DxfVersion::AC1018);
+        let d = build_summary_info(DxfVersion::AC1018, &crate::document::SummaryInfo::default());
         // 8 × 3 bytes (u16(1) + ANSI null) + 8 + 16 + 2 + 8 = 58
         assert_eq!(d.len(), 58);
         assert_eq!(u16::from_le_bytes([d[0], d[1]]), 1);
@@ -2321,7 +2345,7 @@ mod tests {
 
     #[test]
     fn test_build_summary_info_ac21() {
-        let d = build_summary_info(DxfVersion::AC1021);
+        let d = build_summary_info(DxfVersion::AC1021, &crate::document::SummaryInfo::default());
         // 8 × 4 bytes (u16(1) + UTF-16LE null) + 8 + 16 + 2 + 8 = 66
         assert_eq!(d.len(), 66);
         // First string: u16(1) + 00 00

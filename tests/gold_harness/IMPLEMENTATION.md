@@ -4984,15 +4984,31 @@ Signature) — the parse side is further along than the emission side.
   diffs; the sh_history smokes 0/0 with the per-fixture write-target
   key-gap down (66→41, 82→60, 75→51, 99→71 — the remainder is the
   other H7 rows); cargo test 1588/0; the corpus 280 @ 0/0. **The
-  remaining H7 rows (the 15,187):** CLASSES 3,246 (num_instances —
+  remaining H7 rows:** **The SummaryInfo sub-row (H7b) LANDED
+  2026-09-26 — 4,352+1,533+0 → 4,352 matched + 0 value-diffs + 0
+  missing** (the writer's `build_summary_info` took only the version
+  and emitted the static all-empty block — strings, the three TIMERLL
+  pairs, the custom-property count, the trailing longs all zeroed; it
+  now writes the document's `summary_info` — the H4 read's 16-field
+  model — with the exact wire grammar: the 8 fixed strings in order
+  (Title, Subject, Author, Keywords, Comments, LastSavedBy,
+  RevisionNumber, HyperlinkBase) as u16-count-prefixed Windows-1252
+  on AC1018 / UTF-16LE on AC1021+, the `[days, ms]` u32 pairs for
+  TDINDWG/TDCREATE/TDUPDATE, the u16 property count + the (tag,
+  value) pairs, then the two trailing u32s; a default document emits
+  the historical empty block byte-for-byte). **Still open (post-H7b,
+  ~13,653):** CLASSES 3,246 (num_instances —
   silver writes its sane-parse values where the original wire carries
   the desynced bytes), ObjFreeSpace 2,453+30 (rebuilt content),
   R2004_Header 1,771 (address/numsections shifts: silver writes 15→17
   sections), AppInfo 1,651 + AppInfoHistory 342 (rewritten blobs —
   the raw section bytes are retained in the H4 summaries),
-  FILEHEADER 1,205 (address shifts + maint_rel 0→4), SummaryInfo
-  1,533 (times zeroed), R2007_Header 978, THUMBNAILIMAGE 442
-  (re-encoded — `preview.raw` is retained), the whole-section write
+  FILEHEADER 1,205 (address shifts + maint_rel 0→4), R2007_Header 978,
+  THUMBNAILIMAGE 442 (re-encoded — `preview.raw` is retained; the row
+  is ADDRESS-COUPLED: the container descriptors hold absolute file
+  offsets, so a byte-identical chain needs the section at the
+  original offset or gold-style address re-computation, which itself
+  changes the chain), the whole-section write
   drops FileDepList 1,055 + SecondHeader 386 (R2000, lives inside
   ObjFreeSpace), AuxHeader 95 — the verbatim-re-emit family follows
   the AcDs precedent (raw section bytes + a fingerprint gate).
