@@ -17,11 +17,19 @@ use encoding_rs::Encoding;
 ///   mapping table.
 pub fn encoding_from_code_page(code_page: &str) -> Option<&'static Encoding> {
     match code_page.to_ascii_lowercase().as_str() {
-        // Asian encodings
+        // Asian encodings. §19 H7g review: the GB2312/ANSI_936 (and the
+        // 932/949/950/1361) byte pairs share a CODEC FAMILY but NOT a
+        // codepage byte — 31 is GB2312-EUC-CN where 39 is CP936-GBK,
+        // 22 is DOS932 where 38 is ANSI_932 (windows-31j), 24 is BIG5
+        // where 41 is ANSI_950, 25 is CP949-"korean" where 40 is
+        // ANSI_949, 26 is JOHAB where 42 is ANSI_1361. The encoders
+        // stay the practical family choice (the families are
+        // byte-compatible on the low half); the name/index tables
+        // below carry the distinction.
         "gb2312" | "ansi_936" => Some(encoding_rs::GBK),
-        "big5" | "ansi_950" => Some(encoding_rs::BIG5),
-        "korean" | "ansi_949" | "johab" => Some(encoding_rs::EUC_KR),
-        "ansi_932" => Some(encoding_rs::SHIFT_JIS),
+        "big5" | "ansi_950" | "dos950" => Some(encoding_rs::BIG5),
+        "korean" | "ansi_949" | "johab" | "ansi_1361" => Some(encoding_rs::EUC_KR),
+        "ansi_932" | "dos932" => Some(encoding_rs::SHIFT_JIS),
 
         // DOS/OEM code pages
         "dos437" => Some(encoding_rs::IBM866), // closest available in encoding_rs
@@ -98,22 +106,30 @@ pub fn dwg_code_page_name(index: u16) -> &'static str {
         19 => "DOS864",
         20 => "DOS865",
         21 => "DOS869",
-        22 | 38 => "ANSI_932",
+        22 => "DOS932",
         23 => "MAC-ROMAN",
-        24 | 41 => "BIG5",
-        25 | 40 => "KOREAN",
-        26 | 42 => "JOHAB",
+        24 => "BIG5",
+        25 => "KOREAN",
+        26 => "JOHAB",
         27 => "DOS866",
         28 => "ANSI_1250",
         29 => "ANSI_1251",
         30 => "ANSI_1252",
-        31 | 39 => "GB2312",
+        31 => "GB2312",
         32 => "ANSI_1253",
         33 => "ANSI_1254",
         34 => "ANSI_1255",
         35 => "ANSI_1256",
         36 => "ANSI_1257",
         37 => "ANSI_874",
+        // The 38..42 windows-of-asia family (§19 H7g review): each pair
+        // shares a codec family with its DOS-era sibling above but is a
+        // distinct codepage byte.
+        38 => "ANSI_932",
+        39 => "ANSI_936",
+        40 => "ANSI_949",
+        41 => "ANSI_950",
+        42 => "ANSI_1361",
         43 => "UTF-8",
         44 => "ANSI_1258",
         _ => "ANSI_1252",
@@ -144,16 +160,26 @@ pub fn dwg_code_page_index(code_page: &str) -> u16 {
         "dos864" => 19,
         "dos865" => 20,
         "dos869" => 21,
-        "ansi_932" | "dos932" => 22,
+        "dos932" => 22,
         "mac-roman" => 23,
-        "big5" | "ansi_950" | "dos950" => 24,
-        "korean" | "ansi_949" => 25,
+        "big5" | "dos950" => 24,
+        "korean" => 25,
         "johab" => 26,
         "dos866" => 27,
         "ansi_1250" | "ansi1250" => 28,
         "ansi_1251" | "ansi1251" => 29,
         "ansi_1252" | "ansi1252" => 30,
-        "gb2312" | "ansi_936" => 31,
+        "gb2312" => 31,
+        // The 38..42 windows-of-asia family (§19 H7g review): distinct
+        // codepage bytes — the historical table conflated them with
+        // their DOS-era siblings and lost the author's byte on every
+        // roundtrip (gh109_1: the author's 39 = ANSI_936 re-emitted as
+        // 31 = GB2312).
+        "ansi_932" => 38,
+        "ansi_936" => 39,
+        "ansi_949" => 40,
+        "ansi_950" => 41,
+        "ansi_1361" => 42,
         "ansi_1253" | "ansi1253" => 32,
         "ansi_1254" | "ansi1254" => 33,
         "ansi_1255" | "ansi1255" => 34,
@@ -287,6 +313,34 @@ mod tests {
     fn test_unknown_returns_windows1252() {
         let enc = encoding_from_code_page("SOMETHING_UNKNOWN");
         assert_eq!(enc, Some(encoding_rs::WINDOWS_1252));
+    }
+
+    #[test]
+    fn test_codepage_index_name_roundtrip() {
+        // §19 H7g review: codepage byte → name → byte must round-trip.
+        // The historical tables conflated the DOS-era/Windows asian
+        // pairs (22|38, 24|41, 25|40, 26|42, 31|39) into one name, so
+        // the byte → model-string conversion lost the author's byte on
+        // every same-version roundtrip (gh109_1: the author's 39 =
+        // ANSI_936 re-emitted as 31 = GB2312; gold's enum pins the
+        // distinction, codepages.h: CP_GB2312 = 31, CP_ANSI_936 = 39).
+        for byte in [
+            22u16, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+        ] {
+            let name = dwg_code_page_name(byte);
+            assert_eq!(
+                dwg_code_page_index(name),
+                byte,
+                "roundtrip failed for byte {byte} ({name})"
+            );
+        }
+        // The new names still resolve an encoder (the codec families).
+        for name in ["DOS932", "ANSI_932", "ANSI_950", "ANSI_1361", "ANSI_936"] {
+            assert!(
+                encoding_from_code_page(name).is_some(),
+                "no encoder for {name}"
+            );
+        }
     }
 
     #[test]

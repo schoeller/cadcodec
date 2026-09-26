@@ -5350,9 +5350,32 @@ Signature) — the parse side is further along than the emission side.
   — `len − last_offset > maxdecomp`, where forcing the fit would
   trip gold's reassembly guard), and 2018/Leader (the author's
   real FileDepList content vs our 8-byte boilerplate — the
-  PARALLEL session's row). gh109_1 engages with its thumb at a
-  nonauthor address (1 FILEHEADER leaf). The AC21 companion
-  landing: `random_seed` mirrored from the retained
+  PARALLEL session's row). gh109_1 ENDED the landing with exactly one
+  FILEHEADER leaf — and this is where the review pass earned its keep:
+  the leaf is NOT an address but `codepage: gold=39 vs
+  gold_rt=31`. Once the mirror closed gh109_1's thumbnail and summary
+  address pairs (both matched even at the halt — the author carries
+  no preview), the surviving leaf exposed a PRE-EXISTING conversion
+  bug in the code-page tables: `dwg_code_page_name` mapped BOTH
+  bytes 31 and 39 to "GB2312" (and 22|38, 24|41, 25|40, 26|42 the
+  same way for the 932/949/950/1361 pairs) while
+  `dwg_code_page_index` folded the names back onto the low byte —
+  gold's enum (codepages.h) pins them apart: 31 = CP_GB2312 (EUC-CN)
+  where 39 = CP_ANSI_936 (CP936/GBK), 22 DOS932 vs 38 ANSI_932,
+  24 BIG5 vs 41 ANSI_950, 25 CP949-"korean" vs 40 ANSI_949,
+  26 JOHAB vs 42 ANSI_1361 — so the byte → model-string → byte
+  roundtrip lost the author's distinction (a byte-39 file re-emitted
+  byte 31, and the rt's claimed codepage DISAGREED with the very
+  strings its writers had encoded). The review fix: the five
+  dual-byte arms split in both tables, the codec families kept
+  (the pairs share byte-compatible low halves: GBK encodes both
+  2312/936), a roundtrip regression test
+  (`test_codepage_index_name_roundtrip`) added, and the issue55 GBK
+  test's name expectation updated to the now-identity-preserving
+  "ANSI_936" (byte-31 files keep "GB2312"). gh109_1's FILEHEADER is
+  0 now; the write-target 3,577 → 3,576; the generation identity
+  re-verified unchanged (programmatic docs write byte 30's family).
+  The AC21 companion landing: `random_seed` mirrored from the retained
   `DwgR2007SystemHeader` (gated on the author's crc_seed == our 0)
   — decode-inert (gold only prints it), and it IS the CRC random
   encoder's seed (spec §5.2.1.1.1), so the hope was the derived
@@ -5374,11 +5397,11 @@ Signature) — the parse side is further along than the emission side.
   fallbacks enumerate their exact reason per file), and the
   stash-check proving the fallback byte-identity.
 
-  **Still open (post-H7g, 3,577) — the wall's remaining faces:** the
-  AC18 residue is exactly the irreducible address/CRC family
-  (963 = 4 × 225 engaged + the 7 fallback files at the historical 9)
-  plus the gh109_1 thumbnail leaf; FILEHEADER 104 (= AC1021 82 +
-  R2000 7 + fallback 14 + gh109_1 1) and THUMBNAILIMAGE 50 close on
+  **Still open (post-H7g review, 3,576) — the wall's remaining
+  faces:** the AC18 residue is exactly the irreducible address/CRC
+  family (963 = 4 × 225 engaged + the 7 fallback files at the
+  historical 9); FILEHEADER 103 (= AC1021 82 + R2000 7 + fallback
+  14) and THUMBNAILIMAGE 50 close on
   the AC1021 side only through an AC21 container mirror (the
   RS-chunk page space) or, for the R2000 seeker pair, through
   flat-layout parity — both follow the AC18 analysis template.

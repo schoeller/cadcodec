@@ -131,9 +131,17 @@ fn first_text_value(doc: &CadDocument) -> String {
 #[test]
 fn gbk_codepage_text_roundtrip() {
     // Chinese text with the GBK code page decodes back to the same characters.
+    // §19 H7g review: "ANSI_936" is codepage byte 39 (CP936/GBK) and now
+    // round-trips name→byte→name identity-preserving — the historical
+    // table conflated it with byte 31 (GB2312/EUC-CN) and renamed the
+    // model on the way back. Byte 31 files keep the "GB2312" name.
     let doc = text_document("ANSI_936", "中文文本");
     let rt = read_dwg(DwgWriter::write_to_vec(&doc).unwrap());
     assert_eq!(first_text_value(&rt), "中文文本");
+    assert_eq!(rt.header.code_page, "ANSI_936");
+    let doc = text_document("GB2312", "测试");
+    let rt = read_dwg(DwgWriter::write_to_vec(&doc).unwrap());
+    assert_eq!(first_text_value(&rt), "测试");
     assert_eq!(rt.header.code_page, "GB2312");
 }
 

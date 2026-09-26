@@ -1,21 +1,22 @@
-# Zero-context prompt — the post-mirror halt: the write-target axis at 3,577 + the wall's residue map + the AC21 follow-ups
+# Zero-context prompt — the post-mirror halt: the write-target axis at 3,576 + the wall's residue map + the AC21 follow-ups
 
-> Campaign state 2026-09-26 (the halt after the H7g commit; the
-> session ran the review → update → commit → push → continue loop
-> from the 5,584 halt through the container-shape mirror landing).
-> **The ACS/SH campaign is COMPLETE at 0/0: the corpus stands at 280
-> files, read 0, write 0.** The §19 structure READ axis is at ZERO
-> gaps corpus-wide. The H7 write-target axis fell **5,584 → 3,577**
-> (H7g: the container-shape mirror — R2004_Header 2,088 → 963,
-> FILEHEADER 553 → 104, THUMBNAILIMAGE 442 → 50, R2007_Header
-> 966 → 925 via the AC21 random_seed mirror). The §18 decoder-walk
-> queue stays LANDED (all three walks). The maintainer's fixture
-> surface is EMPTY. Read `tests/gold_harness/AGENTS.md` first, then
-> §F2.1–F2.3 + §18.5–18.7 in `IMPLEMENTATION.md` (§18.6 carries the
-> full decode record including the three walk landings), then
-> §19.1–19.3 (the structure campaign — §19.2's H7 row carries the
-> H7a–H7g landings + the wall's residue map), then this file top to
-> bottom.
+> Campaign state 2026-09-26 (the halt after the H7g commit + its
+> review pass; the session ran the review → update → commit → push →
+> continue loop from the 5,584 halt through the container-shape
+> mirror landing). **The ACS/SH campaign is COMPLETE at 0/0: the
+> corpus stands at 280 files, read 0, write 0.** The §19 structure
+> READ axis is at ZERO gaps corpus-wide. The H7 write-target axis
+> fell **5,584 → 3,576** (H7g: the container-shape mirror —
+> R2004_Header 2,088 → 963, FILEHEADER 553 → 103, THUMBNAILIMAGE
+> 442 → 50, R2007_Header 966 → 925 via the AC21 random_seed mirror;
+> the review pass closed gh109_1's codepage leaf — the code-page
+> table conflations split). The §18 decoder-walk queue stays LANDED
+> (all three walks). The maintainer's fixture surface is EMPTY.
+> Read `tests/gold_harness/AGENTS.md` first, then §F2.1–F2.3 +
+> §18.5–18.7 in `IMPLEMENTATION.md` (§18.6 carries the full decode
+> record including the three walk landings), then §19.1–19.3 (the
+> structure campaign — §19.2's H7 row carries the H7a–H7g landings +
+> the wall's residue map), then this file top to bottom.
 
 ## What this session established (the load-bearing facts)
 
@@ -111,6 +112,27 @@ MT-variant pinned bit-exactly (a §5.11 instrument; the table init,
 the padding-table consumption, and the draw order all differ
 somewhere — the follow-up).
 
+**The H7g review pass (2026-09-26, the code-page conflation fix)**:
+the review found gh109_1's single surviving FILEHEADER leaf was
+NOT an address but `codepage: gold=39 vs gold_rt=31` — a
+PRE-EXISTING conversion bug the mirror's address closures exposed:
+`dwg_code_page_name` mapped BOTH bytes 31 and 39 to "GB2312" (and
+22|38, 24|41, 25|40, 26|42 the same way for the 932/949/950/1361
+pairs) while `dwg_code_page_index` folded the names back onto the
+low byte — gold's enum (codepages.h) pins them apart (31 =
+CP_GB2312/EUC-CN where 39 = CP_ANSI_936/CP936-GBK, 22 DOS932 vs 38
+ANSI_932, 24 BIG5 vs 41 ANSI_950, 25 CP949 vs 40 ANSI_949, 26
+JOHAB vs 42 ANSI_1361), so the byte → model-string → byte
+roundtrip lost the author's distinction (the byte-39 author was
+re-emitted byte 31 — the rt CLAIMED a different codepage than its
+own strings' encoding family). The fix split the five dual arms in
+both tables (the codec families kept — the pairs are
+byte-compatible low-half: GBK encodes both names), added the
+`test_codepage_index_name_roundtrip` regression, and updated the
+issue55 GBK test's expectation to the identity-preserving
+"ANSI_936". gh109_1's FILEHEADER is 0 now; FILEHEADER 553 → 103;
+write-target 3,577 → 3,576.
+
 **Verification surfaces kept**: the layer-4 −v9 map comparison
 (example_2004: pages 1–5 byte-exact at the author's addresses —
 summary 160@0x100, preview 31,776@0x1a0, the verbatim AppInfo
@@ -119,7 +141,7 @@ objects 13 pages both sides, the boxes at 27/28); the
 AC18_MIRROR_DEBUG trace; the stash-check fallback proof; the
 identity check.
 
-## The remaining queue (3,577) — the wall's residue map
+## The remaining queue (3,576) — the wall's residue map
 
 **The AC18 residue is irreducible-by-design**: last_section_address,
 secondheader_address, section_map_address, crc32 (4 per engaged
@@ -132,8 +154,8 @@ identity. The 7 fallback files keep their historical 9. The rows:
   fields) + the layout/content-coupled families (offsets, sizes,
   six CRCs, corrections) + the crc-seed derive family (the author's
   MT-variant).
-- **FILEHEADER 104** (= AC1021 82 + R2000 7 + fallback 14 +
-  gh109_1 1) and **THUMBNAILIMAGE 50**: the AC1021 side closes only
+- **FILEHEADER 103** (= AC1021 82 + R2000 7 + fallback 14) and
+  **THUMBNAILIMAGE 50**: the AC1021 side closes only
   through the AC21 mirror (the RS-chunk page space); the R2000
   seeker pair needs flat-layout parity.
 - **FileDepList 1,055 + SecondHeader 386 + AuxHeader 94**: the
@@ -196,7 +218,7 @@ export GOLD_TESTDATA="$HOME/work/libredwg/test/test-data"
 
 ```bash
 # 1. Build gates
-cargo test --features serde          # 1592 passed / 0 failed at this halt
+cargo test --features serde          # 1593 passed / 0 failed at this halt
 cargo test --features gold-harness --test gold_roundtrip
 
 # 2. Family smokes (any sh_history fixture must stay 0/0)
@@ -206,7 +228,7 @@ python3 tests/gold_harness/run_roundtrip.py \
 #  the residue family; Box_2007 stays 25 until the AC21 mirror)
 
 # 3. Full corpus (must stay 280 files 0/0; read key-gap 0;
-#    write-target key-gap 3,577 at this halt)
+#    write-target key-gap 3,576 at this halt)
 python3 tests/gold_harness/run_corpus.py
 # (the per-file mirror trace: AC18_MIRROR_DEBUG=1 in the env)
 
@@ -217,8 +239,9 @@ target/debug/dump_section_bytes <file> <A> <N>
 ## Commit inventory (this halt — all PUSHED)
 
 ```
-<docs> docs(harness): the post-mirror halt refresh — the H7g landing, the 3,577 residue map, the AC21 follow-ups
-<feat> fix(dwg): the H7g container-shape mirror — the author's page space reproduced at write (R2004_Header 2088 -> 963, FILEHEADER 553 -> 104, THUMBNAILIMAGE 442 -> 50, R2007_Header 966 -> 925)
+<review> fix(dwg): the H7g review pass — the code-page conflation split (31|39, 22|38, 24|41, 25|40, 26|42) — gh109_1's FILEHEADER at zero (FILEHEADER 104 -> 103, the write-target 3,577 -> 3,576)
+<docs> docs(harness): the post-mirror halt refresh — the H7g landing, the 3,576 residue map, the AC21 follow-ups
+da716e6 fix(dwg): the H7g container-shape mirror — the author's page space reproduced at write (R2004_Header 2088 -> 963, FILEHEADER 553 -> 104, THUMBNAILIMAGE 442 -> 50, R2007_Header 966 -> 925)
 a22e95a <review> docs(harness)/fix(dwg): the 2026-09-26 review pass — the 0x15 unknown-byte mirror + the README identity re-record + the docs consistency replay
 10e9423 docs(harness): the halt refresh — the H7e/H7f landings, the container-parity wall, the three §18 walks landed
 74a75d2 feat(sh): the loft container and ExtrudeP polyline walks — the per-section fields and the kind-77 CALL body named (§18 walks 2 and 3)
@@ -248,6 +271,12 @@ emitter + the gate + the identity overrides) → the slack-edge fix
 R2013+ fixture gates) → the AC21 random_seed mirror + the derived-
 draws divergence analysis → the full corpus (−2,007, the counted
 fallbacks) → the stash-check fallback proofs → the identity
-verification → the halt refresh. The corpus held 280 @ 0/0 and the
-tests 1592/0 through every step; the write-target key-gap fell
-5,584 → 3,577.
+verification → the halt refresh → THE REVIEW PASS: the gh109_1
+leaf audited (codepage, not an address — the stash-check against
+the halt build re-proved the fallback byte-identity and exposed
+the conflation's pre-existence), the code-page table rounds split
+with the regression test, the issue55 expectation updated to the
+identity-preserving name, and the full corpus re-run. The corpus
+held 280 @ 0/0 and the tests 1593/0 (1592 + the new roundtrip
+regression) through every step; the write-target key-gap fell
+5,584 → 3,577 → 3,576.
