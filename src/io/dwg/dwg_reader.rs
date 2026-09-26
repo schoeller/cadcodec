@@ -2651,10 +2651,22 @@ impl<R: Read + Seek> DwgReader<R> {
             document.dwg_security = Some(parse_security_section(&buf, utf16));
             let buf = self.get_section_buffer(names::APP_INFO, info).unwrap_or_default();
             let ac1021 = dxf_version == crate::types::DxfVersion::AC1021;
+            // §19 H7 AppInfo row: retain the raw section bytes for the
+            // verbatim same-version re-emission — gold prints the section
+            // unconditionally (zeroed when absent), so a source without
+            // one must not get a boilerplate section materialized.
+            if !buf.is_empty() {
+                document.raw_app_info_data = Some(std::sync::Arc::new(buf.clone()));
+            }
             document.dwg_app_info = Some(parse_app_info_section(&buf, utf16, ac1021));
             let buf = self
                 .get_section_buffer(names::APP_INFO_HISTORY, info)
                 .unwrap_or_default();
+            // §19 H7 AppInfoHistory row: same verbatim rule — the section
+            // was never written before this row.
+            if !buf.is_empty() {
+                document.raw_app_info_history_data = Some(std::sync::Arc::new(buf.clone()));
+            }
             document.dwg_app_info_history = Some(parse_app_info_history_section(&buf));
             // ObjFreeSpace/Template: emitted on R2000 too (locator-gated
             // there), so their zeroed fallback belongs to the R2004+ arm

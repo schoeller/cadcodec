@@ -116,6 +116,7 @@ pub enum DwgSectionHash {
     FileDepList = 0x6C4205CA,
     VbaProject = 0x586E0544,
     AppInfo = 0x3FA0043E,
+    AppInfoHistory = 0x96DE0737,
     Preview = 0x40AA0473,
     SummaryInfo = 0x717A060F,
     RevHistory = 0x60A205B3,
@@ -153,6 +154,7 @@ pub mod ac21_section_info {
             names::SUMMARY_INFO => Some(0x717A060F),
             names::PREVIEW => Some(0x40AA0473),
             names::APP_INFO => Some(0x3FA0043E),
+            names::APP_INFO_HISTORY => Some(0x96DE0737),
             names::FILE_DEP_LIST => Some(0x6C4205CA),
             names::SECURITY => Some(0x4A0204EA),
             names::VBA_PROJECT => Some(0x586E0544),
@@ -207,6 +209,7 @@ pub mod ac21_section_info {
             names::SUMMARY_INFO
             | names::PREVIEW
             | names::APP_INFO
+            | names::APP_INFO_HISTORY
             | names::FILE_DEP_LIST
             | names::SECURITY
             | names::VBA_PROJECT => Some(1),

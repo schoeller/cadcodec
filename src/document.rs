@@ -2724,6 +2724,20 @@ pub struct CadDocument {
     #[cfg_attr(feature = "serde", serde(skip))]
     pub(crate) raw_classes_fingerprint: u64,
 
+    /// The raw (decompressed) `AcDb:AppInfo` section bytes of the source
+    /// file (§19 H7 AppInfo row): re-emitted verbatim on a same-version
+    /// roundtrip. Gold prints the section unconditionally (zeroed when
+    /// absent), so a source without one must not get the boilerplate
+    /// section materialized — the writer skips it then.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub(crate) raw_app_info_data: Option<Arc<Vec<u8>>>,
+
+    /// The raw `AcDb:AppInfoHistory` section bytes (§19 H7): the section
+    /// was never written before this row — same verbatim/skip rule as
+    /// AppInfo.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub(crate) raw_app_info_history_data: Option<Arc<Vec<u8>>>,
+
     /// Non-entity objects whose source record points into the AcDs data store.
     /// Retained for same-version saves together with the original section.
     /// Serialized (as a plain handle list) like the other DWG round-trip
@@ -2930,6 +2944,8 @@ impl CadDocument {
             raw_acds_fingerprint: Vec::new(),
             raw_classes_data: None,
             raw_classes_fingerprint: 0,
+            raw_app_info_data: None,
+            raw_app_info_history_data: None,
             dwg_data_store_handles: HashSet::new(),
             dimstyle_morehandles: Vec::new(),
             section_view_style: None,

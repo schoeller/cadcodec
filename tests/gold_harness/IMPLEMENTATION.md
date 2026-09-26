@@ -5096,20 +5096,84 @@ Signature) — the parse side is further along than the emission side.
   other row unchanged); the smokes 79→43 / 70→35 / 68→33 (their
   CLASSES rows); cargo test 1588/0; the corpus 280 @ 0/0, read
   key-gap 0, write-target key-gap 10,410 with CLASSES 0 across
-  all 280. **Still open (post-H7c, 10,410):** ObjFreeSpace 2,453+30 (rebuilt content),
-  R2004_Header 1,775 (address/numsections shifts: silver writes 15→17
-  sections; +4 of these are the review's gh209_1 id-coincidence),
-  AppInfo 1,651 + AppInfoHistory 342 (rewritten/never-written blobs —
-  the raw section bytes are retained in the H4 summaries),
-  FILEHEADER 1,204 (address shifts + maint_rel 0→4), R2007_Header 978,
-  THUMBNAILIMAGE 442 (re-encoded — `preview.raw` is retained; the row
-  is ADDRESS-COUPLED: the container descriptors hold absolute file
-  offsets, so a byte-identical chain needs the section at the
-  original offset or gold-style address re-computation, which itself
-  changes the chain), the whole-section write
-  drops FileDepList 1,055 + SecondHeader 386 (R2000, lives inside
-  ObjFreeSpace), AuxHeader 94 — the verbatim-re-emit family follows
-  the AcDs precedent (raw section bytes + a fingerprint gate).
+  all 280. **The AppInfo/AppInfoHistory sub-rows (H7d) LANDED
+  2026-09-26 — AppInfo 2,396 @ 0/0 and AppInfoHistory 546 @ 0/0
+  (the write-target key-gap 10,410 → 8,718)**: gold prints both
+  sections unconditionally on R2004+ (out_json.c:2668-2669 —
+  zeroed when absent), so the rows carried three families:
+  silver's static boilerplate AppInfo where the author carried real
+  content (the version strings, checksums, comments), the
+  AppInfoHistory section NEVER written (gold_rt printed the zeroed
+  struct against the author's bytes), and the absent-source files
+  where the boilerplate materialized a section gold never had. The
+  fix follows the presence-coupling + verbatim doctrine: the
+  reader retains both sections' raw bytes (`raw_app_info_data` /
+  `raw_app_info_history_data`); a same-version roundtrip re-emits
+  them verbatim, a source without a section gets none
+  materialized (gold's zeroed print lands on both sides), and
+  programmatic documents / version conversions keep the historical
+  boilerplate. The AppInfoHistory hash for the AC21 section map
+  (0x96de0737, constant across the corpus) was extracted from the
+  author's files and added to the ac21 tables, with the author's
+  single-page align-0x80 form. **Three container bugs found and
+  fixed on the way — all census-masked by luck until the verbatim
+  sections exposed them:** (a) the AC18 page header's 0x0C
+  "page size - decompressed" field carried the stored FRAME size
+  (content+32) instead of the page's decompressed capacity —
+  gold's reassembly copies MIN(section-remaining, page_size)
+  bytes per uncompressed page (decode.c:2236), so the frame-sized
+  field overread 32 header bytes into the content and drove the
+  bytes_left balance negative, erroring the whole section on any
+  page parity that lands the negative balance before the last
+  page (the verbatim AppInfo at 6×0x80 pages hit it; the
+  historical small sections survived only by parity luck);
+  (b) the AC21 encoding-1 (stored) pages carried a
+  non-interleaved [data][parity] layout only silver's own reader
+  understands — gold picks its decode path by the page's physical
+  size (decode_r2007.c:854: the RS path iff page->size ==
+  page_size_if_rs_coded(comp) = align32(ceil(align8(comp)/251)×255))
+  and de-interleaves with stride ceil(align8(comp)/251); any
+  stored page whose physical size lands on the RS form gets
+  de-interleaved into garbage (the 1502-byte AppInfoHistory at
+  align32 1536 == the 6-block RS form 1536 hit it exactly). The
+  author's encoding-1 pages are RAW content + padding (their
+  1408/1536/1792-byte pages never match the RS form) — silver now
+  writes the same raw form, with a +0x20 collision guard for the
+  content sizes where align32(content) would land on the RS form
+  (the [225..248]-byte contents hit the 1-block form 0x100);
+  (c) the AC18 add_section SKIPPED all-zero tail pages — gold's
+  reassembly guard rejects the whole section when its size field
+  exceeds num_pages × max_decomp_size (gh209_1's AppInfoHistory:
+  642 = 5×128 + 2 zero bytes → the dropped tail page shorted the
+  section to 640). The tail page is now always written. Census
+  couplings absorbed by the open rows: the AppInfoHistory add
+  moves the AC18 numsections/section-id fields (the gh209_1
+  precedent — R2004_Header moved 1,775 → 2,088: the id-coincidence
+  lottery, its fix rewrites the author's section table anyway);
+  the raw-page layout moved R2007_Header 978 → 966. Verification:
+  the four family probes at AppInfo/AppInfoHistory 0 on both
+  writer paths (example_2004/Box_2010/Box_2007/Arc + gh209_1's
+  tail-page case); cargo test 1587/0 (the two legacy-layout
+  encoding-1 tests replaced by the raw-form + collision-guard +
+  interleaved-roundtrip pins); the corpus 280 files at 0/0,
+  structure read key-gap 0, write-target key-gap 10,410 → 8,718
+  with AppInfo/AppInfoHistory 0 across all 273 R2004+ files.
+  **Still open (post-H7d, 8,718):** ObjFreeSpace 2,453+30
+  (rebuilt content), R2004_Header 2,088 (address/numsections
+  shifts: silver writes its own section set where the author's
+  table carries id gaps; +313 of these are the H7d
+  AppInfoHistory-add id-coincidence, +4 the review's gh209_1
+  case — the row's fix rewrites the author's section table),
+  FILEHEADER 1,204 (address shifts + maint_rel 0→4), R2007_Header
+  966, THUMBNAILIMAGE 442 (re-encoded — `preview.raw` is retained;
+  the row is ADDRESS-COUPLED: the container descriptors hold
+  absolute file offsets, so a byte-identical chain needs the
+  section at the original offset or gold-style address
+  re-computation, which itself changes the chain), the
+  whole-section write drops FileDepList 1,055 + SecondHeader 386
+  (R2000, lives inside ObjFreeSpace), AuxHeader 94 — the
+  verbatim-re-emit family follows the AcDs precedent (raw section
+  bytes + a fingerprint gate).
 
 ### 19.3 Standing rules for the campaign
 

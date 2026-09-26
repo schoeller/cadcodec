@@ -217,6 +217,8 @@ impl<'a> SemanticInventoryV1<'a> {
             raw_acds_fingerprint: _,
             raw_classes_data: _,
             raw_classes_fingerprint: _,
+            raw_app_info_data: _,
+            raw_app_info_history_data: _,
             dwg_data_store_handles: _,
             dimstyle_morehandles: _,
             section_view_style: _,

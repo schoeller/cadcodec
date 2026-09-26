@@ -168,7 +168,13 @@ impl DwgFileHeaderWriterAC18 {
             .collect();
         let remainder = data.len() % decomp_size;
         let offset = n_full_pages * decomp_size;
-        if remainder > 0 && !is_all_zeros(&data[offset..]) {
+        // §19 H7: the tail page is ALWAYS written — gold's reassembly
+        // guard rejects the whole section when size > num_pages ×
+        // max_decomp_size (decode.c: "Invalid section … size N > P × M"),
+        // and dropping an all-zero remainder page shorts any section
+        // whose content ends in zeros (gh209_1's AppInfoHistory: 642 =
+        // 5×128 + 2 zero bytes).
+        if remainder > 0 {
             page_inputs.push((offset, remainder, &data[offset..]));
         }
 
@@ -193,6 +199,7 @@ impl DwgFileHeaderWriterAC18 {
                     &mut descriptor,
                     offset,
                     total_size,
+                    decomp_size,
                     compressed,
                     encoded,
                 )?;
@@ -236,6 +243,7 @@ impl DwgFileHeaderWriterAC18 {
         descriptor: &mut DwgSectionDescriptor,
         offset: usize,
         total_size: usize,
+        page_decomp_size: usize,
         compressed: bool,
         compressed_data: Vec<u8>,
     ) -> Result<(), DxfError> {
@@ -256,7 +264,17 @@ impl DwgFileHeaderWriterAC18 {
         let compress_diff = compression_padding(compressed_data.len());
         local_map.compressed_size = compressed_data.len() as u64;
         local_map.decompressed_size = total_size as u64;
-        local_map.page_size = local_map.compressed_size as i64 + 32 + compress_diff as i64;
+        // The page header's 0x0C "page size - decompressed" field is the
+        // page's decompressed CAPACITY, not the stored frame size: gold's
+        // reassembly copies MIN(section remaining, page_size) bytes per
+        // uncompressed page (decode.c:2236) — a frame-sized value overreads
+        // 32 header bytes into the content and drives the bytes_left
+        // balance negative, which errors on any section whose page parity
+        // lands the negative balance before the last page (the §19 H7
+        // verbatim AppInfo at 6×0x80 pages hit it; the historical small
+        // sections survived only because their parity deferred the
+        // negative past the final page).
+        local_map.page_size = page_decomp_size as i64;
         local_map.checksum = 0;
 
         // First pass: build data section header to compute checksum
@@ -291,9 +309,13 @@ impl DwgFileHeaderWriterAC18 {
             let magic = magic_sequence();
             output.write_all(&magic[..compress_diff])?;
         } else if compress_diff != 0 {
-            return Err(DxfError::InvalidFormat(
-                "Uncompressed page has non-zero compression padding".into(),
-            ));
+            // Uncompressed pages pad to the 0x20 alignment with zeros —
+            // the compression-trailer magic is the compressed-page form.
+            // The §19 H7 verbatim metadata sections (AppInfo/
+            // AppInfoHistory) carry arbitrary author lengths, so the
+            // last page is generally unaligned; the reader skips the
+            // pad via the page's size fields.
+            output.write_all(&vec![0u8; compress_diff])?;
         }
 
         // Update descriptor and local maps
@@ -700,11 +722,6 @@ impl DwgFileHeaderWriterAC18 {
     }
 }
 
-/// Check if all bytes in a slice are zero.
-fn is_all_zeros(data: &[u8]) -> bool {
-    data.iter().all(|&b| b == 0)
-}
-
 #[cfg(test)]
 mod tests {
     use super::super::section_definition::PAGE_TYPE_DATA_SECTION;
@@ -727,13 +744,6 @@ mod tests {
         let mut output = Cursor::new(Vec::new());
         let writer = DwgFileHeaderWriterAC18::new(DxfVersion::AC1018, 0, &mut output).unwrap();
         assert_eq!(writer.handle_section_offset(), 0);
-    }
-
-    #[test]
-    fn test_is_all_zeros() {
-        assert!(is_all_zeros(&[]));
-        assert!(is_all_zeros(&[0, 0, 0]));
-        assert!(!is_all_zeros(&[0, 1, 0]));
     }
 
     #[test]

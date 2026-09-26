@@ -1272,15 +1272,41 @@ fn write_ac18<W: Write + Seek>(
         preview_page,
     )?;
 
-    // ── Section: AppInfo ──
-    let app_info_data = app_info_writer::write_app_info(version);
-    fhw.add_section(
-        output,
-        section_names::APP_INFO,
-        &app_info_data,
-        false,
-        SMALL_PAGE,
-    )?;
+    // ── Section: AppInfo ── (§19 H7: verbatim from the source when the
+    // same-version roundtrip carried one; SKIPPED when the source had
+    // none — gold prints the section unconditionally (zeroed when
+    // absent), so materializing the boilerplate there would diverge.
+    // Programmatic documents and version conversions keep the
+    // historical boilerplate.)
+    if document.dwg_source_version == Some(version) {
+        if let Some(raw) = document.raw_app_info_data.as_deref() {
+            fhw.add_section(output, section_names::APP_INFO, raw, false, SMALL_PAGE)?;
+        }
+    } else {
+        let app_info_data = app_info_writer::write_app_info(version);
+        fhw.add_section(
+            output,
+            section_names::APP_INFO,
+            &app_info_data,
+            false,
+            SMALL_PAGE,
+        )?;
+    }
+
+    // ── Section: AppInfoHistory ── (§19 H7: never written before this
+    // row — same verbatim/skip rule; a source without the section keeps
+    // gold's zeroed print on both sides.)
+    if document.dwg_source_version == Some(version) {
+        if let Some(raw) = document.raw_app_info_history_data.as_deref() {
+            fhw.add_section(
+                output,
+                section_names::APP_INFO_HISTORY,
+                raw,
+                false,
+                SMALL_PAGE,
+            )?;
+        }
+    }
 
     // ── Section: FileDepList ──
     let file_dep_data = build_file_dep_list();
@@ -1441,8 +1467,26 @@ fn write_ac21_impl<W: Write + Seek>(
     fhw.add_section(output, section_names::PREVIEW, &preview_data)?;
 
     // AppInfo
-    let app_info_data = app_info_writer::write_app_info(version);
-    fhw.add_section(output, section_names::APP_INFO, &app_info_data)?;
+    // AppInfo (§19 H7: verbatim from the source on a same-version
+    // roundtrip; SKIPPED when the source had none — gold prints the
+    // section unconditionally, so the boilerplate would diverge there.
+    // Programmatic documents and version conversions keep the
+    // historical boilerplate.)
+    if document.dwg_source_version == Some(version) {
+        if let Some(raw) = document.raw_app_info_data.as_deref() {
+            fhw.add_section(output, section_names::APP_INFO, raw)?;
+        }
+    } else {
+        let app_info_data = app_info_writer::write_app_info(version);
+        fhw.add_section(output, section_names::APP_INFO, &app_info_data)?;
+    }
+    // AppInfoHistory (§19 H7: never written before this row — verbatim
+    // when the same-version source carried one, skipped otherwise.)
+    if document.dwg_source_version == Some(version) {
+        if let Some(raw) = document.raw_app_info_history_data.as_deref() {
+            fhw.add_section(output, section_names::APP_INFO_HISTORY, raw)?;
+        }
+    }
 
     // FileDepList
     let file_dep_data = build_file_dep_list();
