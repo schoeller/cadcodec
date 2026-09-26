@@ -1760,8 +1760,15 @@ impl<R: Read + Seek> DwgReader<R> {
                 (!acis.sab_data.is_empty())
                     .then_some((entity.common().handle, acis.sab_data.as_slice()))
             }));
+            // §19 H5a: gold's `AcDs` structure view — the section outline
+            // (the 13 header fields + the segment index + the per-type
+            // sub-blocks). A fetched-but-unreadable section still projects
+            // a zeroed header, as gold's JSON does.
+            let acds_summary =
+                crate::io::dwg::acds::parse_acds_section(&acds_buf).unwrap_or_default();
             document.raw_acds_data = Some(std::sync::Arc::new(acds_buf));
             document.raw_acds_fingerprint = fingerprint;
+            document.dwg_acds = Some(acds_summary);
             if attached > 0 {
                 self.notifications.notify(
                     NotificationType::Warning,
@@ -1771,6 +1778,15 @@ impl<R: Read + Seek> DwgReader<R> {
                     ),
                 );
             }
+        } else if crate::io::dwg::dwg_version::DwgVersion::from_dxf_version(dxf_version)
+            .map(|v| v.r2004_plus())
+            .unwrap_or(false)
+        {
+            // §19 H5a: gold's AcDs emission is UNCONDITIONAL on the
+            // R2004+ arm (out_json.c:2675) — a file without the section
+            // still prints the zeroed 13-field header (2004/Line pinned:
+            // all-zero values, no segidx/segments keys).
+            document.dwg_acds = Some(Default::default());
         }
         self.report_progress(970);
 
@@ -2904,7 +2920,10 @@ impl<R: Read + Seek> DwgReader<R> {
             let max_decomp_page_size = cursor.read_i32::<LittleEndian>()?;
             let _unknown = cursor.read_i32::<LittleEndian>()?;
             let compressed_code = cursor.read_i32::<LittleEndian>()?;
-            let _section_id = cursor.read_i32::<LittleEndian>()?;
+            // The section TYPE id (gold's DWG_SECTION_TYPE): the only key
+            // when the writer left the 64-byte name field empty (the R2004
+            // corpus files' AcDs sections).
+            let section_id = cursor.read_u32::<LittleEndian>()?;
             let encrypted = cursor.read_i32::<LittleEndian>()?;
 
             // Section name (64-byte field, null-terminated). Some writers leave
@@ -2914,7 +2933,19 @@ impl<R: Read + Seek> DwgReader<R> {
             // survives and the name fails to match (e.g. "AcDb:Handles\0t…").
             let mut name_buf = [0u8; 64];
             cursor.read_exact(&mut name_buf)?;
-            let name = section_name_from_field(&name_buf);
+            let mut name = section_name_from_field(&name_buf);
+            if name.is_empty() {
+                // Nameless descriptor: resolve by the section type id
+                // (gold's type-based lookups find these; the R2004 corpus
+                // files' AcDs sections carry no name).
+                if let Some(type_name) =
+                    crate::io::dwg::file_headers::section_definition::names::name_from_section_type(
+                        section_id,
+                    )
+                {
+                    name = type_name.to_string();
+                }
+            }
 
             // Per-page entries: pageNumber(4), compressedSize(4), offset(8)
             let mut pages = Vec::new();

@@ -31,6 +31,36 @@ pub mod names {
     pub const SECURITY: &str = "AcDb:Security";
     pub const VBA_PROJECT: &str = "AcDb:VBAProject";
     pub const SIGNATURE: &str = "AcDb:Signature";
+
+    /// The R2004+ data-section TYPE → name table (gold's `DWG_SECTION_TYPE`
+    /// order, include/dwg.h). Some writers (the R2004 corpus files' AcDs
+    /// sections) leave the map descriptor's 64-byte name field EMPTY and
+    /// the section is locatable only by its type id — gold's own lookups
+    /// (`read_2004_compressed_section`) are type-based. Returns `None`
+    /// for the container types (INFO/SYSTEM_MAP) and unknown ids — those
+    /// stay out of the name-keyed registry.
+    pub fn name_from_section_type(id: u32) -> Option<&'static str> {
+        Some(match id {
+            1 => HEADER,
+            2 => AUX_HEADER,
+            3 => CLASSES,
+            4 => HANDLES,
+            5 => TEMPLATE,
+            6 => OBJ_FREE_SPACE,
+            7 => ACDB_OBJECTS,
+            8 => REV_HISTORY,
+            9 => SUMMARY_INFO,
+            10 => PREVIEW,
+            11 => APP_INFO,
+            12 => APP_INFO_HISTORY,
+            13 => FILE_DEP_LIST,
+            14 => SECURITY,
+            15 => VBA_PROJECT,
+            16 => SIGNATURE,
+            17 => ACDS_PROTOTYPE,
+            _ => return None,
+        })
+    }
 }
 
 /// Start sentinels for sections (16 bytes each).

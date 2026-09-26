@@ -4741,10 +4741,61 @@ Signature) — the parse side is further along than the emission side.
   value-diffs + 0 missing** — the read row at ZERO gaps; the read
   key-gap −286 (187,246 → 186,960, exactly the pre-fix 82+204
   leaves). The write-target 442 re-encode leaves remain the H7
-  row. Every other key unchanged; the OBJECTS axis 0/0 held across
-  all gates. `AcDs` still compares by content DIGEST; the AcDs
-  segment-index internals stay byte-level (H6);
-  VBAProject/Signature land as excluded rows with reasons in H6.
+  row. Every other key unchanged; the OBJECTS axis 0/0 held across all
+  gates.
+
+  **The AcDs sub-row (H5a LANDED 2026-09-26 — the section-level view at
+  gold parity)**: silver now parses the decompressed
+  AcDb:AcDsPrototype_1b section into the gold JSON shape
+  (`json_section_acds` over acds.spec) — `DwgAcDsSummary` on the
+  document (`document.dwg_acds`), projected by struct_axis. The wire
+  grammar pinned byte-level against the corpus golds: a 56-byte header
+  whose `num_segidx` sits at offset 32 (the 9th RL — a first
+  implementation misplaced it last and the smokes caught the
+  schidx/datidx field swap), the index segment's OWN 48-byte header AT
+  `segidx_offset` with the entry table at +48 (the first
+  implementation read the table at `segidx_offset` itself and got the
+  `AC D5 's' 'e' 'g' 'i' 'd' 'x'` header magic as offsets), then one
+  48-byte segment header per non-zero slot + the per-type bodies.
+  **Three gold semantics are load-bearing and non-obvious:** (1) the
+  type bodies (datidx/schidx/schdat/search) read into gold's TOP-LEVEL
+  singletons (`_obj->schdat` etc. in acds.spec — NOT per-segment
+  storage): a later same-typed segment OVERWRITES an earlier one and
+  every segment of the type prints the LAST-read block (pinned by
+  Revolve_2018's two schdat segments both printing the second's
+  {size: 8, flags: 0} while the first's own wire carries {8, 1});
+  (2) the emission is UNCONDITIONAL on the R2004+ arm (out_json.c:2675)
+  — a file WITHOUT the section still prints the zeroed 13-field header
+  (2004/Line pinned: no AcDs section in the file at all, gold prints
+  all zeros; the reader emits the zeroed summary on a failed fetch for
+  R2004+ and stays `None` on the R2000 family, absent on both sides);
+  (3) REPEAT counts are suppressed in gold's JSON (`num_segidx`,
+  `datidx.num_entries`, …) while VECTOR fields print even empty
+  (`sortedidx: []`, the inner `ididx: []`) and empty REPEAT keys are
+  omitted entirely — a 256-file corpus union of gold's AcDs blocks
+  pins the 52-path key set, with example_2013 the only file
+  exercising the deep ididxs grammar (RLL handles + ididx vectors).
+  **The R2004 nameless-descriptor fix:** the corpus R2004 files' AcDs
+  sections carry an EMPTY 64-byte name field in the section map —
+  silver dropped nameless descriptors, so its fetch missed them; they
+  now resolve by the section TYPE id (gold's DWG_SECTION_TYPE order,
+  17 = AcDb:AcDsPrototype_1b — the stale "= 12" comment in gold's
+  header refers to AppInfoHistory's slot). **Post-fix verification (the
+  per-file truth sweep, stem-collision-free): 256 files with gold AcDs
+  → 46,730 gold leaves, ALL matched — 0 value-diffs, 0 missing, 0
+  silver-extra** (the H0 census's "58,471" was the
+  collision-collapsed aggregate; the true gold-leaf total is 46,730
+  over the 256 non-R2000 files, the 24 R2000-family files absent on
+  both sides). A first cut printed empty `segidx: []`/`segments: []`
+  keys on the 138 header-only files (gold omits empty REPEAT keys) —
+  skip-if-empty guards on the two arrays close it. **The full corpus
+  re-ran clean: AcDs 273/273 → 58,471 matched + 0 value-diffs + 0
+  missing in the aggregate census (the collision-inflated leaf total
+  — every per-stem row matched); the read key-gap fell 186,960 →
+  128,489, now EXACTLY the HEADER row alone; THUMBNAILIMAGE held
+  558+0+0; every other key unchanged.** OBJECTS 0/0 held across all
+  gates. VBAProject/Signature land as excluded rows with
+  reasons in H6.
 
   **The wire-color field-type fix (the H5b landing's body-axis
   corollary, 2026-09-25):** the BL-'11' fallback change made silver
@@ -4779,7 +4830,7 @@ Signature) — the parse side is further along than the emission side.
   `SECTION_INFO`/`SECTION_SYSTEM_MAP` (transitively verified by every
   section read succeeding + layer-4 byte-walks), the R2000 "unknown"
   section (locator nr 3/4; content never JSON-emitted), per-section
-  CRCs/sentinels/0x16 padding, the AcDs segidx internals,
+  CRCs/sentinels/0x16 padding,
   `created_by` (the oracle's own PACKAGE_STRING stamp — not file
   content), `Signature` (readable by gold but its JSON emitter is
   deliberately disabled, `out_json.c:2673` — reason "not emitted",

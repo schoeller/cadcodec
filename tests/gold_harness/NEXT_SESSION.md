@@ -118,11 +118,27 @@ rows: 2010/Leader (gold skips the section by its decompression-size
 guard) and 2000/PolyLine2D (absent on both sides)). **First gate
 of the 2026-09-26 session CLEARED: the corpus held 280 files
 read 0 / write 0; then the H5c completion packet landed on
-smokes + the hermetic suite + the corpus.** **Next: H5a AcDs
-(58,471 — the section-level view), H3's HEADER ledger (128,489 —
-the dominant row), interleaved with the three SH decoder walks
-(§18.6's queue: the post-corner BD walk, the loft container walk,
-the ExtrudeP polyline header) per maintainer priority.** **The authoritative enumeration is
+smokes + the hermetic suite + the corpus.** **H5a LANDED (2026-09-26)
+— the AcDs section-level view at gold parity** (silver parses the
+decompressed AcDb:AcDsPrototype_1b section into the gold
+json_section_acds shape: `DwgAcDsSummary` on the document; the wire
+grammar + gold's three non-obvious semantics pinned in §19.2's H5 row —
+the top-level type-body singletons (last same-typed segment wins), the
+unconditional zeroed-header emission on R2004+ files without the
+section, and the REPEAT-count suppression; plus the R2004
+nameless-descriptor fix: AcDs sections with an empty 64-byte name
+field resolve by the section TYPE id 17). **Next: H3's HEADER ledger
+(128,489 — the dominant row; scoped 2026-09-26: the gap is a TOTAL
+NAMING SPLIT — silver's header model prints its own snake_case names
+(angle_base, acad_group_dict_handle, …) while gold prints the spec
+names (ANGBASE, DICTIONARY_ACAD_GROUP[0..3], …), so the census
+matches ZERO keys today; silver models ~295 leaves of gold's ~499
+(R2013+) / 401 (R2000) — the projection is a rename map for the
+overlap + ~200 genuinely unmodeled fields (the R2004+ variables, the
+handle [0..3] code splits, CECOLOR.rgb — header.spec is the ledger
+authority), interleaved with the three SH decoder walks
+(§18.6's queue: the post-corner BD walk, the loft container walk, the
+ExtrudeP polyline header) per maintainer priority.** **The authoritative enumeration is
 CLOSED** (the libredwg tree re-analysis + the review passes, all in
 §19.1): 17 observed structure keys (16 per R2004+ file, 8 on R2000
 — including `R2007_Header`, its OWN 33-field AC1021 system section,

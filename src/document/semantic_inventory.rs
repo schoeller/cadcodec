@@ -209,6 +209,7 @@ impl<'a> SemanticInventoryV1<'a> {
             dwg_obj_free_space: _,
             dwg_app_info: _,
             dwg_app_info_history: _,
+            dwg_acds: _,
             preview,
             acis_sab_handles: _,
             raw_acds_data: _,

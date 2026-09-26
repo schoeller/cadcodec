@@ -196,6 +196,12 @@ def silver_structure_views(doc: Dict[str, Any]) -> Dict[str, Any]:
         views["AppInfo"] = doc["dwg_app_info"]
     if isinstance(doc.get("dwg_app_info_history"), dict):
         views["AppInfoHistory"] = doc["dwg_app_info_history"]
+    if isinstance(doc.get("dwg_acds"), dict):
+        # H5a: gold's AcDs shape (json_section_acds, acds.spec) — the
+        # data-store section outline: header fields + segidx[] +
+        # segments[] with the per-type sub-blocks, REPEAT counts
+        # suppressed; absent entirely on the R2000 family.
+        views["AcDs"] = doc["dwg_acds"]
     if isinstance(doc.get("header"), dict):
         views["HEADER"] = doc["header"]
     if isinstance(doc.get("preview"), dict):

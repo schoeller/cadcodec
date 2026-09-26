@@ -1043,12 +1043,15 @@ pub struct Preview {
     pub format: PreviewFormat,
     /// Raw image bytes exactly as stored in the file (a DIB for `Bmp`).
     pub data: Vec<u8>,
-    /// The whole sentinel-bracketed preview container as read (§19 H5c):
-    /// [16-byte sentinel][size bytes of header+data][2-byte CRC]. Gold's
-    /// `THUMBNAILIMAGE` prints `{size, chain}` where size = `raw.len() − 18`
-    /// and chain = hex of `raw[16 .. len−2]` — uniform across every version
-    /// (pinned by sample_2000/2018 + example_2004: the chain starts exactly
-    /// 16 bytes past the thumbnail address on all three layouts).
+    /// The whole preview container as read (§19 H5c): `[16-byte start
+    /// sentinel][chain bytes]` where the chain's tail is family-split —
+    /// pre-R2004 and AC1021 containers also carry a 16-byte END sentinel
+    /// (the chain excludes it: gold's bracketed/decode_R2007 rules), the
+    /// rest of the R2004 family keeps everything past the start sentinel
+    /// (the 2-byte CRC inside the extent, or an end sentinel where the
+    /// author wrote one). Gold's `THUMBNAILIMAGE` prints `{size, chain}`
+    /// with size == the chain byte count, uniform across every version
+    /// (pinned by sample_2000/2018 + 2018/Arc + Box_2007).
     pub raw: Vec<u8>,
 }
 
@@ -1443,6 +1446,241 @@ pub struct DwgFileHeaderSummary {
     pub r2004_header_address: i32,
 }
 
+/// The `AcDs` data-store section outline (§19 H5a) — gold's
+/// `json_section_acds` shape over the `AcDb:AcDsPrototype_1b` section:
+/// the 13 header fields, the segment-index table, and the per-type
+/// segment sub-blocks (datidx/schidx/schdat/search). REPEAT counts
+/// (`num_segidx`, `datidx.num_entries`, …) are suppressed in gold's
+/// JSON and all its consumers come from the arrays; vectors
+/// (`sortedidx`, the inner `ididx`) print even when empty. Segments keep
+/// one array slot per index entry — zero-offset slots render as gold's
+/// empty `{}` records (all-`None` here). `None` when the section is
+/// absent (the R2000 family) or its header unreadable.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsSummary {
+    pub file_signature: u32,
+    pub file_header_size: u32,
+    pub unknown_1: u32,
+    pub version: u32,
+    pub unknown_2: u32,
+    pub ds_version: u32,
+    pub segidx_offset: u32,
+    pub segidx_unknown: u32,
+    pub schidx_segidx: u32,
+    pub datidx_segidx: u32,
+    pub search_segidx: u32,
+    pub prvsav_segidx: u32,
+    pub file_size: i32,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Vec::is_empty")
+    )]
+    pub segidx: Vec<DwgAcDsSegIdxEntry>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Vec::is_empty")
+    )]
+    pub segments: Vec<DwgAcDsSegment>,
+}
+
+/// One segment-index table entry: gold adds the sequential `index` when
+/// printing (the wire carries offset+size only).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsSegIdxEntry {
+    pub index: u32,
+    pub offset: u64,
+    pub size: u32,
+}
+
+/// One data-store segment header (48 bytes on the wire). A zero-offset
+/// index slot prints as gold's empty `{}` — every field `None` then.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsSegment {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub index: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub signature: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub name: Option<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "type", skip_serializing_if = "Option::is_none")
+    )]
+    pub type_: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub segment_idx: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub is_blob01: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub segsize: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub unknown_2: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub ds_version: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub unknown_3: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub data_algn_offset: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub objdata_algn_offset: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub padding: Option<String>,
+    // type 1 (datidx): di_unknown + the entry table.
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub di_unknown: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "datidx.entries", skip_serializing_if = "Option::is_none")
+    )]
+    pub datidx_entries: Option<Vec<DwgAcDsDataIndexEntry>>,
+    // type 3 (schidx): the property tables + tag.
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub si_unknown_1: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "schidx.props", skip_serializing_if = "Option::is_none")
+    )]
+    pub schidx_props: Option<Vec<DwgAcDsSchemaIndexProp>>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub si_tag: Option<u64>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none")
+    )]
+    pub si_unknown_2: Option<u32>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "schidx.prop_entries", skip_serializing_if = "Option::is_none")
+    )]
+    pub schidx_prop_entries: Option<Vec<DwgAcDsSchemaIndexProp>>,
+    // type 4 (schdat): the single user-property header.
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "schdat.uprops", skip_serializing_if = "Option::is_none")
+    )]
+    pub schdat_uprops: Option<Vec<DwgAcDsUProp>>,
+    // type 5 (search): the search-index records.
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "search.search", skip_serializing_if = "Option::is_none")
+    )]
+    pub search_search: Option<Vec<DwgAcDsSearchData>>,
+}
+
+/// A datidx entry-table record: gold prints the sequential `index`;
+/// segidx/offset/schidx come from the wire.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsDataIndexEntry {
+    pub index: u32,
+    pub segidx: u32,
+    pub offset: u32,
+    pub schidx: u32,
+}
+
+/// A schidx property record (props and prop_entries share the wire
+/// shape: index+segidx+offset, all from the wire).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsSchemaIndexProp {
+    pub index: u32,
+    pub segidx: u32,
+    pub offset: u32,
+}
+
+/// A schdat user-property header record (size + flags).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsUProp {
+    pub size: u32,
+    pub flags: u32,
+}
+
+/// A search-segment index record. `sortedidx` prints even when empty
+/// (a vector, not a repeat).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsSearchData {
+    pub schema_namidx: u32,
+    pub sortedidx: Vec<i64>,
+    pub unknown: u32,
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "ididxs", skip_serializing_if = "Option::is_none")
+    )]
+    pub ididxs: Option<Vec<DwgAcDsSearchIdIdxs>>,
+}
+
+/// One ididxs slot: `{}` (all-`None`) when its inner count is zero, as
+/// gold prints.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsSearchIdIdxs {
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "ididx", skip_serializing_if = "Option::is_none")
+    )]
+    pub ididx: Option<Vec<DwgAcDsSearchIdIdx>>,
+}
+
+/// One populated ididx record: the owning handle + its index vector
+/// (the vector prints even when empty).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct DwgAcDsSearchIdIdx {
+    pub handle: u64,
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "ididx", skip_serializing_if = "Option::is_none")
+    )]
+    pub ididx: Option<Vec<u64>>,
+}
+
 /// A CAD document containing all drawing data
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -1651,6 +1889,11 @@ pub struct CadDocument {
     /// `AppInfoHistory` (R2004+): the raw section (never parsed by gold).
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub dwg_app_info_history: Option<DwgAppInfoHistorySummary>,
+    /// `AcDs` (R2004+): the data-store section outline — gold's
+    /// `AcDs` JSON shape (§19 H5a). `None` on the R2000 family and
+    /// DXF documents.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub dwg_acds: Option<DwgAcDsSummary>,
 
     /// Embedded preview/thumbnail image. Populated by the DWG reader from the
     /// file's preview section; the DWG writer embeds it when `Some` and emits an
@@ -1874,6 +2117,7 @@ impl CadDocument {
             dwg_obj_free_space: None,
             dwg_app_info: None,
             dwg_app_info_history: None,
+            dwg_acds: None,
             preview: None,
             acis_sab_handles: Vec::new(),
             raw_acds_data: None,
