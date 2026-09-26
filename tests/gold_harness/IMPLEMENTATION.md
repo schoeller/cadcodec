@@ -4666,13 +4666,37 @@ Signature) — the parse side is further along than the emission side.
   (e) every spec `FIELD_VALUE` transform (FLAGS |= lweight, TSTACK
   defaults, unit1_ratio = 412148564080.0, unknown_8 = 24) is
   `ENCODER`/`IF_ENCODE_FROM_EARLIER` gated — decode emits wire values
-  verbatim; (f) the null-ref 2-element `[0,0]` handle emitter branch
-  is unreachable (every handle read creates a ref — the corpus shows
-  only 4-tuples). **Verification: the six-version probe set (one file
+  verbatim;   (f) the null-ref 2-element `[0,0]` handle emitter branch
+  is unreachable in practice (every corpus header handle is an
+  absolute-code form — see the review below). **Verification: the six-version probe set (one file
   per class: 2000/Line, example_2004/2007/2010/2013, sample_2018)
   at 401/419/489/494/499/499 leaves — 0 diffs, 0 missing, 0 extra on
   every class; cargo test 1588/0; the sh_history smokes 0/0 with the
   structure read key-gap 0; the full corpus 280 @ 0/0.**
+  **The review pass (2026-09-26, same day):** (a) the handle-form
+  semantics re-derived from `dwg_decode_handleref` (decode.c:4712 —
+  "We receive a null obj when we are reading handles in the header
+  variables section"): with `obj == NULL` the absolute ref is the
+  RAW PAYLOAD `value` for every code — the 6/8/A/C base-relative
+  arithmetic never applies in the header (there is no base), and a
+  size-0 form resolves to 0. The first draft's `read_handle_raw`
+  encoded the object-relative semantics for those codes (code 6 →
+  absolute 1, code 8 → −1 wrapping, code C → base−offset) —
+  corpus-dead (a scan of every probe's raw mirror finds zero
+  header handles with code > 5) but wrong for exactness; fixed to
+  the header rule (`absolute = value` for all codes). The one
+  dropped case (size > 0 with value == 0 and code ≥ 6 → gold
+  frees the ref and the emitter prints the 2-element `[0,0]`
+  null form) stays corpus-dead and is documented, not modeled —
+  `DwgRawHandle` is a fixed 4-tuple; (b) the `index: 256`
+  emitter claim CONFIRMED empirically: INTERFERECOLOR prints
+  `{"index": 256, "rgb": "c3000001"}` on all four R2007+ probes
+  (the palette lookup of rgb&0xFFFFFF == 1 finds no match → 256
+  → non-zero → printed); (c) a suspected latent issue CLEARED:
+  the pre-R2004 CMC print is `FORMAT_RSd` (%d over the
+  int-promoted uint16) — values print 0..65535 positive, no
+  sign flip, so the projection's plain index is exact as-written
+  (2000 CECOLOR = 256 pinned).
 - **H4 — the metadata blocks (LANDED 2026-09-25 at ZERO read gaps
   corpus-wide; 15,626 leaves now MATCHED, the read key-gap −13,450
   [248,141 → 234,691] — the 2,176-leaf difference is SummaryInfo's

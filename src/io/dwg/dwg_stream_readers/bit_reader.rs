@@ -632,31 +632,23 @@ impl DwgBitReader {
     }
 
     /// Read a handle reference retaining the wire form exactly as gold's
-    /// JSON prints it: `(code, size, value, absolute)`. Mirrors the walk of
-    /// [`read_handle_reference`](Self::read_handle_reference) against a zero
-    /// reference (the header section read), with `value` the on-wire payload
-    /// and `absolute` the resolved handle.
+    /// JSON prints it: `(code, size, value, absolute)`. This implements
+    /// the HEADER (null-obj) resolution — `dwg_decode_handleref` with
+    /// `obj == NULL` (decode.c: "We receive a null obj when we are
+    /// reading handles in the header variables section"): the absolute
+    /// ref is the raw payload `value` for every code (no base-relative
+    /// math for the offset codes 6/8/A/C — there is no base in the
+    /// header), and a size-0 form resolves to 0. The one dropped case
+    /// (size > 0 with value == 0 and code >= 6 → gold prints the
+    /// 2-element null form `[0,0]`) is corpus-dead: every header handle
+    /// on the 280 files is an absolute-code form (code ≤ 5).
     pub fn read_handle_raw(&mut self) -> (u8, u8, u64, u64) {
         // |CODE (4 bits)|COUNTER (4 bits)|HANDLE or OFFSET|
         let form = self.read_byte();
         let code = form >> 4;
         let counter = form & 0x0F;
-        if code <= 0x5 {
-            let value = self.read_handle_bytes(counter as usize);
-            (code, counter, value, value)
-        } else if code == 0x6 {
-            (code, counter, 0, 1)
-        } else if code == 0x8 {
-            (code, counter, 0, u64::MAX)
-        } else if code == 0xA {
-            let offset = self.read_handle_bytes(counter as usize);
-            (code, counter, offset, offset)
-        } else if code == 0xC {
-            let offset = self.read_handle_bytes(counter as usize);
-            (code, counter, offset, 0u64.wrapping_sub(offset))
-        } else {
-            (code, counter, 0, 0)
-        }
+        let value = self.read_handle_bytes(counter as usize);
+        (code, counter, value, value)
     }
 
     /// Read a handle reference relative to a reference handle.
