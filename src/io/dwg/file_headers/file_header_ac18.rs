@@ -83,6 +83,12 @@ pub struct DwgFileHeaderWriterAC18 {
     page_map_address: u64,
     /// Gap amount (0 for new files).
     gap_amount: u32,
+    /// The source file's five FILEHEADER identity bytes (§19 H7f), in
+    /// file order: `maint_rel_version` (0x0B), `dwg_version` (0x11),
+    /// `maint_version` (0x12), `app_dwg_version` (0x16),
+    /// `app_maint_version` (0x17). Set for a same-version roundtrip of
+    /// a read document; `None` keeps the historical constants.
+    source_header_bytes: Option<[u8; 5]>,
 }
 
 impl DwgFileHeaderWriterAC18 {
@@ -116,11 +122,37 @@ impl DwgFileHeaderWriterAC18 {
             section_amount: 0,
             page_map_address: 0,
             gap_amount: 0,
+            source_header_bytes: None,
         })
     }
 
     pub fn set_code_page(&mut self, code_page: u16) {
         self.code_page = code_page;
+    }
+
+    /// Mirror the source file's FILEHEADER identity bytes (§19 H7f).
+    ///
+    /// For a same-version roundtrip the rewrite re-emits the author's
+    /// five bytes verbatim. `maint_version` (0x12) is the byte readers
+    /// gate the R2010+ section extra-RL on — it must equal the
+    /// maintenance value the header/classes writers were built with
+    /// (the caller passes the same source byte there), so the layout
+    /// stays self-consistent.
+    pub fn set_source_header_bytes(
+        &mut self,
+        maint_rel_version: u8,
+        dwg_version: u8,
+        maint_version: u8,
+        app_dwg_version: u8,
+        app_maint_version: u8,
+    ) {
+        self.source_header_bytes = Some([
+            maint_rel_version,
+            dwg_version,
+            maint_version,
+            app_dwg_version,
+            app_maint_version,
+        ]);
     }
 
     /// Get the file offset where the AcDbObjects section starts.
@@ -491,8 +523,11 @@ impl DwgFileHeaderWriterAC18 {
         // 0x06: 5 bytes of 0x00
         output.write_all(&[0u8; 5])?;
 
-        // 0x0B: Maintenance release version
-        output.write_all(&[self.maintenance_version])?;
+        // 0x0B: Maintenance release version — the source author's byte on
+        // a same-version roundtrip (§19 H7f), else the historical constant.
+        output.write_all(&[self
+            .source_header_bytes
+            .map_or(self.maintenance_version, |b| b[0])])?;
 
         // 0x0C: Byte (0x00, 0x01, or 0x03)
         output.write_all(&[3u8])?;
@@ -505,20 +540,28 @@ impl DwgFileHeaderWriterAC18 {
             .map_or(0u32, |s| (s.seeker as u32) + 0x20);
         output.write_u32::<LittleEndian>(preview_addr)?;
 
-        // 0x11: DWG version byte (0x21 for AC1021, 0x21 for AC1024+)
+        // 0x11: DWG version byte ("of app which stored it. eg. SaveAs").
         // The ODA spec shows different values per version, but many real-world
         // files (including our reference General.dwg) use 0x21 for AC1024.
-        // We preserve the original file's value via maintenance_version context.
-        output.write_all(&[33u8])?;
+        // §19 H7f: mirror the source author's byte on same-version
+        // roundtrips (the corpus authors wrote 0x21/0x1F/… per release).
+        output.write_all(&[self.source_header_bytes.map_or(33u8, |b| b[1])])?;
 
-        // 0x12: Maintenance release version (app)
-        output.write_all(&[self.maintenance_version])?;
+        // 0x12: Maintenance release version ("the actual dwg version") —
+        // the byte readers gate the R2010+ section extra-RL on; the
+        // source author's byte on a same-version roundtrip.
+        output.write_all(&[self
+            .source_header_bytes
+            .map_or(self.maintenance_version, |b| b[2])])?;
 
         // 0x13: Codepage (2 bytes)
         output.write_u16::<LittleEndian>(self.code_page)?;
 
-        // 0x15: 3 zero bytes
-        output.write_all(&[0u8; 3])?;
+        // 0x15: unknown_0 (0) + 0x16/0x17: the app version pair —
+        // the source author's bytes on a same-version roundtrip.
+        output.write_all(&[0u8])?;
+        output.write_all(&[self.source_header_bytes.map_or(0u8, |b| b[3])])?;
+        output.write_all(&[self.source_header_bytes.map_or(0u8, |b| b[4])])?;
 
         // 0x18: SecurityType (4 bytes)
         output.write_i32::<LittleEndian>(0)?;

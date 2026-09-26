@@ -1068,6 +1068,15 @@ fn write_ac15<W: Write + Seek>(
     fhw.set_code_page(crate::io::dxf::code_page::dwg_code_page_index(
         &document.header.code_page,
     ));
+    // §19 H7f: a same-version roundtrip re-emits the author's
+    // dwg_version/maint_version pair at 0x11/0x12 ("of app which stored
+    // it / the actual dwg version" — per-release bytes; the corpus R2000
+    // authors wrote 0x17..0x21 × 0..0x1D) instead of the fixed pair.
+    if document.dwg_source_version == Some(version) {
+        if let Some(fh) = document.dwg_file_header.as_ref() {
+            fhw.set_source_version_pair(fh.dwg_version, fh.maint_version);
+        }
+    }
 
     // ── Phase 1: Compute objects FIRST to get handle map ──
     let objects_started = web_time::Instant::now();
@@ -1177,10 +1186,37 @@ fn write_ac18<W: Write + Seek>(
     // which for R2013 (AC1027) omits that RL and makes the header string
     // stream unreadable in AutoCAD/TrueView. Use the canonical per-version
     // value so R2013 files are always well-formed.
-    let maint = aux_header_writer::dwg_maintenance_version(version) as u8;
+    //
+    // §19 H7f: a same-version roundtrip re-emits the AUTHOR's maint byte
+    // instead of the canonical — it is file identity (gold prints it as
+    // FILEHEADER.maint_version) and the layout gate is layout-stable for
+    // every corpus class (R2004 never reads the extra RL — its header
+    // vars go through dwg_decode_header_variables which reads no
+    // bitsize_hi; the R2010/R2013 authors' bytes are all > 3 like the
+    // canonical; R2018's gate has the `|| >= R2018` arm). The five
+    // FILEHEADER identity bytes (maint_rel_version 0x0B, dwg_version
+    // 0x11, maint_version 0x12, app pair 0x16/0x17) mirror with it.
+    let source_fh = if document.dwg_source_version == Some(version) {
+        document.dwg_file_header.as_ref()
+    } else {
+        None
+    };
+    let maint = source_fh.map_or(
+        aux_header_writer::dwg_maintenance_version(version) as u8,
+        |fh| fh.maint_version,
+    );
 
     // AC18 writer reserves 0x100 bytes at file start for metadata
     let mut fhw = DwgFileHeaderWriterAC18::new(version, maint, output)?;
+    if let Some(fh) = source_fh {
+        fhw.set_source_header_bytes(
+            fh.maint_rel_version,
+            fh.dwg_version,
+            fh.maint_version,
+            fh.app_dwg_version,
+            fh.app_maint_version,
+        );
+    }
     fhw.set_code_page(crate::io::dxf::code_page::dwg_code_page_index(
         &document.header.code_page,
     ));
@@ -1446,6 +1482,24 @@ fn write_ac21_impl<W: Write + Seek>(
     // AC21 writer reserves 0x480 bytes at file start (0x80 metadata + 0x400 file header)
     let mut fhw = DwgFileHeaderWriterAC21::new(version, output)?;
     fhw.skip_lz77 = skip_lz77;
+    // §19 H7f: a same-version roundtrip re-emits the author's FILEHEADER
+    // identity bytes (the R2007 metadata hardcodes 0x19/0x1B/0x19/30
+    // before this row; the corpus R2007 authors wrote e.g. 50/33/255/30
+    // per build — Box_2007: maint_rel 50, maint 255, app pair 33/255).
+    // R2007's section layout has no maint-gated arms (its reader path
+    // never reads the extra RL), so the mirror is layout-neutral.
+    if document.dwg_source_version == Some(version) {
+        if let Some(fh) = document.dwg_file_header.as_ref() {
+            fhw.set_source_header_bytes(
+                fh.maint_rel_version,
+                fh.dwg_version,
+                fh.maint_version,
+                fh.codepage,
+                fh.app_dwg_version,
+                fh.app_maint_version,
+            );
+        }
+    }
 
     // ── Phase 1: Compute objects FIRST to get handle map ──
     let objects_started = web_time::Instant::now();

@@ -59,6 +59,12 @@ pub struct DwgFileHeaderWriterAC15 {
     /// Ordered map of section name → (locator record, section data).
     /// Data is `None` until the section is added.
     records: IndexMap<String, (DwgSectionLocatorRecord, Option<Vec<u8>>)>,
+    /// The source file's FILEHEADER version pair (§19 H7f): the
+    /// `dwg_version` (0x11) and `maint_version` (0x12) bytes. "Of app
+    /// which stored it / the actual dwg version" — per-release values
+    /// that vary per author build (the corpus R2000 authors wrote
+    /// 0x23..0x21 × 0..0x1D); `None` keeps the historical fixed pair.
+    source_version_pair: Option<(u8, u8)>,
 }
 
 impl DwgFileHeaderWriterAC15 {
@@ -144,7 +150,13 @@ impl DwgFileHeaderWriterAC15 {
             maintenance_version: 15,
             code_page: 30,
             records,
+            source_version_pair: None,
         }
+    }
+
+    /// Mirror the source file's FILEHEADER version pair (§19 H7f).
+    pub fn set_source_version_pair(&mut self, dwg_version: u8, maint_version: u8) {
+        self.source_version_pair = Some((dwg_version, maint_version));
     }
 
     /// Preserve the source document's maintenance release version.
@@ -248,9 +260,16 @@ impl DwgFileHeaderWriterAC15 {
             .map_or(0i32, |(r, _)| r.seeker as i32);
         buf.write_i32::<LittleEndian>(preview_seeker)?;
 
-        // 0x11: application/version bytes. The AC15 reader and the known-good
-        // R2000 fixtures use this fixed pair for the whole R13-R2000 family.
-        buf.extend_from_slice(&[0x1B, 0x19]);
+        // 0x11: application/version bytes — the `dwg_version` ("of app
+        // which stored it. eg. SaveAs") + `maint_version` pair. The
+        // historical fixed 0x1B/0x19 stood for the whole R13-R2000
+        // family; §19 H7f re-emits the source author's per-build bytes
+        // on a same-version roundtrip (the corpus R2000 authors wrote
+        // anything in 0x17..0x21 × 0..0x1D here).
+        let (dwg_version, maint_version) = self
+            .source_version_pair
+            .unwrap_or((0x1B, 0x19));
+        buf.extend_from_slice(&[dwg_version, maint_version]);
 
         // 0x13: Compact DWG code-page index.
         buf.write_u16::<LittleEndian>(self.code_page)?;
