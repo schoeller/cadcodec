@@ -4935,10 +4935,67 @@ Signature) — the parse side is further along than the emission side.
   refreshes it; it goes in every future halt report. **This is the
   row that answers "the entire file structure is gold-vs-silver
   tested" with a table, not an assertion.**
-- **H7 — the writer's structure byte-fidelity**: once reads are 0,
-  byte-walk the rewritten files' header/system sections against the
-  originals (layer 4) and pin the re-emission (the current corpus only
-  proves the re-read matches; the byte oracle proves the encoding).
+- **H7 — the writer's structure byte-fidelity (the write-target axis,
+  21,822 at day one)**: **The HEADER sub-row (H7a) LANDED 2026-09-26 —
+  137,753+6,366+268 → 138,021 matched + 0 value-diffs + 0 missing**
+  (the write-target key-gap 21,822 → 15,186; OBJECTS 0/0 and the read
+  key-gap 0 held across every gate). The design — the Phase B write
+  rule applied to the header: `write_header_with_encoding_opt` splices
+  the H3 raw mirror (`DwgHeaderRaw`) into every slot the MODEL does not
+  carry (the unmodeled fields re-emit their wire values verbatim
+  instead of writer defaults; `raw = None` keeps the historical
+  default-constant behaviour for programmatic documents), and the
+  MODELED slots keep the model path — the `prepare_header` handle
+  syncs stay authoritative (load-bearing: they repair the R2007+
+  null-handle reads). **The write-target families the landing
+  pinned:** (a) the unmodeled slots were hardcoded defaults — the
+  unit ratios/names, unknown_8..unknown_23, the trailing
+  unknown_54-57 (65535s), TSTACK pair, PELLIPSE/UNITMODE, the R2007+
+  block (DIMFXL/DIMJOGANG at the π/4-rounded 0.7854, DIMTFILL(+CLR),
+  DIMARCSYM, DIMFXLON, the R2010+ MZF/MZS pair, _3DDWFPREC,
+  PSOLWIDTH/PSOLHEIGHT at 0.25, LIGHTGLYPHDISPLAY, TILEMODELIGHTSYNCH,
+  DWFFRAME/DGNFRAME, REALWORLDSCALE, CSHADOW), the raw-only handles
+  (PUCSNAME/PUCSBASE/UCSNAME/UCSBASE, the ortho-origin 3BDs,
+  DIMLDRBLK/DIMBLK/1/2, CPSNID, unknown_20, INTERFEREOBJVS/VPVS,
+  DRAGVS) and the raw-only CMCs — all splice `raw.field` with the
+  wire-bit-exact casts (`as u16 as i16` for the BS patterns, `as u32
+  as i32` for BL); (b) **the INTERFERECOLOR writer bug** — the slot
+  was written from `h.intersection_color` (a copy-paste: the
+  interference color emitted the intersection color); now the raw CMC
+  (a `write_cm_color_raw` that re-emits index/rgb/flag/names verbatim)
+  with `Color::None` as the programmatic default; (c) **the EXTMIN/
+  EXTMAX recompute** — `prepare_header` overwrote the model extents
+  with silver's own computed bounds (860276 → 8208421424 on the
+  examples — the recompute produces wildly different values than the
+  author's saved extents); the overwrite is now gated on
+  `dwg_header_raw.is_none()` (preservation for read documents, the
+  "Zoom Extents" behaviour kept for programmatic ones); (d) **the
+  timespan/julian f64 roundtrip truncated 1 ms per span**
+  (TDINDWG/TDUSRTIMER: 113000 → 112999 — `days + ms/86400000.0` ×
+  86400000 lands at .9999… and `as i32` floors); the converters now
+  round (`.round().clamp(0, 86_399_999)`), keeping the model path for
+  edits; (e) **the HANDSEED correction overrode the author's seed**
+  (2000/PolyLine2D: the file's own quirk HANDSEED 975 < max handle
+  978 — gold writes it back unchanged; silver's `max+1` correction
+  produced 979); the correction is gated on raw absence — entity
+  additions still grow the seed through the document API's own bump
+  (document.rs `next_handle`), so read+edit+write stays correct.
+  **Verification:** the six-version probes at 0 write-target HEADER
+  diffs; the sh_history smokes 0/0 with the per-fixture write-target
+  key-gap down (66→41, 82→60, 75→51, 99→71 — the remainder is the
+  other H7 rows); cargo test 1588/0; the corpus 280 @ 0/0. **The
+  remaining H7 rows (the 15,187):** CLASSES 3,246 (num_instances —
+  silver writes its sane-parse values where the original wire carries
+  the desynced bytes), ObjFreeSpace 2,453+30 (rebuilt content),
+  R2004_Header 1,771 (address/numsections shifts: silver writes 15→17
+  sections), AppInfo 1,651 + AppInfoHistory 342 (rewritten blobs —
+  the raw section bytes are retained in the H4 summaries),
+  FILEHEADER 1,205 (address shifts + maint_rel 0→4), SummaryInfo
+  1,533 (times zeroed), R2007_Header 978, THUMBNAILIMAGE 442
+  (re-encoded — `preview.raw` is retained), the whole-section write
+  drops FileDepList 1,055 + SecondHeader 386 (R2000, lives inside
+  ObjFreeSpace), AuxHeader 95 — the verbatim-re-emit family follows
+  the AcDs precedent (raw section bytes + a fingerprint gate).
 
 ### 19.3 Standing rules for the campaign
 

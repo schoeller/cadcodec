@@ -959,15 +959,28 @@ fn prepare_header(
     }
 
     // ── Correct HANDSEED ──
-    let max_handle = handle_map.iter().map(|&(ha, _)| ha).max().unwrap_or(0);
-    if h.handle_seed <= max_handle {
-        h.handle_seed = max_handle + 1;
+    // Only for programmatic documents: a read document preserves the
+    // author's seed even when the file's own max handle reaches past it
+    // (the 2000/PolyLine2D quirk: HANDSEED 975 < max 978 — gold writes
+    // it back unchanged; §19 H7). Entity additions still grow the seed
+    // through the document API's own bump.
+    if document.dwg_header_raw.is_none() {
+        let max_handle = handle_map.iter().map(|&(ha, _)| ha).max().unwrap_or(0);
+        if h.handle_seed <= max_handle {
+            h.handle_seed = max_handle + 1;
+        }
     }
 
     // ── Update model-space extents ──
-    if let Some(ref ext) = extents {
-        h.model_space_extents_min = ext.min;
-        h.model_space_extents_max = ext.max;
+    // Only for programmatic documents: a read document carries the
+    // author's saved extents in the raw mirror (§19 H7) — recomputing
+    // would replace them with silver's own bounds and break the
+    // write-target preservation row (EXTMIN/EXTMAX).
+    if document.dwg_header_raw.is_none() {
+        if let Some(ref ext) = extents {
+            h.model_space_extents_min = ext.min;
+            h.model_space_extents_max = ext.max;
+        }
     }
 
     h
@@ -1056,11 +1069,12 @@ fn write_ac15<W: Write + Seek>(
     let header_encoding =
         crate::io::dxf::code_page::encoding_from_code_page(&document.header.code_page)
             .unwrap_or(encoding_rs::WINDOWS_1252);
-    let header_data = header_writer::write_header_with_encoding(
+    let header_data = header_writer::write_header_with_encoding_opt(
         version,
         &corrected_header,
         maint,
         header_encoding,
+        document.dwg_header_raw.as_ref(),
     );
     fhw.add_section(section_names::HEADER, header_data);
 
@@ -1162,11 +1176,12 @@ fn write_ac18<W: Write + Seek>(
     let header_encoding =
         crate::io::dxf::code_page::encoding_from_code_page(&document.header.code_page)
             .unwrap_or(encoding_rs::WINDOWS_1252);
-    let header_data = header_writer::write_header_with_encoding(
+    let header_data = header_writer::write_header_with_encoding_opt(
         version,
         &corrected_header,
         maint,
         header_encoding,
+        document.dwg_header_raw.as_ref(),
     );
     fhw.add_section(output, section_names::HEADER, &header_data, true, PAGE_SIZE)?;
 
@@ -1426,11 +1441,12 @@ fn write_ac21_impl<W: Write + Seek>(
     fhw.add_section(output, section_names::AUX_HEADER, &aux_data)?;
 
     // Header (uses corrected HANDSEED)
-    let header_data = header_writer::write_header_with_encoding(
+    let header_data = header_writer::write_header_with_encoding_opt(
         version,
         &corrected_header,
         maint,
         header_encoding,
+        document.dwg_header_raw.as_ref(),
     );
     fhw.add_section(output, section_names::HEADER, &header_data)?;
 
