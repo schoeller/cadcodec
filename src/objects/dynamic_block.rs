@@ -1212,6 +1212,31 @@ pub struct SolidHistoryProfileCall {
     pub bit_len: i64,
     /// The circle body, for `kind == 18`.
     pub circle: Option<SolidHistoryProfileCircle>,
+    /// The polyline body, for `kind == 77` (the §18 ExtrudeP walk:
+    /// the CALL body decodes through the embedded-LWPOLYLINE grammar —
+    /// `read_embedded_lwpolyline` in the object readers — with the
+    /// raw-points vertex arms).
+    pub polyline: Option<SolidHistoryProfilePolyline>,
+}
+
+/// The embedded LWPOLYLINE profile body of an extrusion CALL
+/// (`kind == 77`; the §18 ExtrudeP rectangle witness: flag 512
+/// closed, four raw (x, y) vertices (0,0) (4,0) (4,3) (0,3)).
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(default))]
+pub struct SolidHistoryProfilePolyline {
+    /// The polyline flag word (512 closed, 16 bulges, 32 widths,
+    /// 0x400 vertex ids — the common LWPOLYLINE bit flags).
+    pub flag: i32,
+    /// The vertex count.
+    pub num_points: i64,
+    /// The raw (x, y) vertex pairs — the embedded body writes both
+    /// components as plain 64-bit LE doubles per vertex (the
+    /// raw-points arm of `read_embedded_lwpolyline`).
+    pub points: Vec<[f64; 2]>,
+    /// The bulge values (flag & 16).
+    pub bulges: Vec<f64>,
 }
 
 /// The embedded profile circle: `[center 3BD][radius BD][normal 3BD]`.
@@ -1262,9 +1287,47 @@ pub struct SolidHistoryLoft {
 pub struct SolidHistoryLoftTail {
     /// All-short BD head run ([1.0] in every specimen).
     pub option_doubles: Vec<f64>,
+    /// The per-section fields, walked and named from the raw frame
+    /// stream (the §18 loft container walk): every section that
+    /// contributes raw frames lands here with its
+    /// `[center.x][center.y][height][radius]` fields in frame order,
+    /// `None` for the elided canonical shorts. A fully elided section
+    /// (an origin section at (0, 0, 0, 1): Loft_, LoftH/R/3's bottom
+    /// circles) contributes no raw frames at all — it lives only in
+    /// the shorts of the leading region, which the walk keeps
+    /// documented-verbatim.
+    pub sections: Vec<SolidHistoryLoftSection>,
+    /// The trailing draft-angle pair (`[pi/2, pi/2]` in every corpus
+    /// specimen — the LoftD authored-settings row is DEAD: no reachable
+    /// authoring lever confirmed; the closed §18.6 reading names the
+    /// two final contiguous frames provisionally).
+    pub draft_angles: [Option<f64>; 2],
     /// Raw BD entries in stream order (Loft fixtures:
     /// [2.0, 2.0, 5.0, 0.3, pi/2, pi/2]).
     pub raw_doubles: Vec<f64>,
+}
+
+/// One cross-section of a loft tail's raw frame stream, named from the
+/// closed §18.6/§18.7 reading (the LoftC world differential: raws parse
+/// as per-section `[center.x][center.y][height][radius]`). The wire
+/// elides a canonical `0.0` center component or height — and a
+/// canonical `1.0` radius — as 2-bit short pairs between the raw
+/// frames, so an elided field is `None` here while its neighbors keep
+/// their '00'-marked 66-bit frames (LoftC's section 1:
+/// center (3, 4), the z=0.0 short elided, radius 1.5).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(default))]
+pub struct SolidHistoryLoftSection {
+    /// The section circle's (x, y); `None` when elided as the canonical
+    /// origin short.
+    pub center: [Option<f64>; 2],
+    /// The section's z (its height along the loft); `None` when elided
+    /// as the canonical z=0.0 short.
+    pub height: Option<f64>,
+    /// The section circle's radius; `None` when elided as the
+    /// canonical r=1.0 short.
+    pub radius: Option<f64>,
 }
 
 /// Parametric loft settings. Angles are radians; magnitudes are nonnegative.

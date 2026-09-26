@@ -72,8 +72,9 @@ pub use dynamic_block::{
     BlockXYParameter, DynamicBlockData, DynamicBlockObject, SolidHistory, SolidHistoryBoolean,
     SolidHistoryBox, SolidHistoryBrep, SolidHistoryChamfer, SolidHistoryCone, SolidHistoryCylinder,
     SolidHistoryFillet, SolidHistoryLoft, SolidHistoryLoftParameters, SolidHistoryNodeBase,
-    SolidHistoryLoftTail, SolidHistoryOperation, SolidHistoryProfileCall,
-    SolidHistoryProfileCircle, SolidHistoryPyramid, SolidHistoryRevolve,
+    SolidHistoryLoftSection, SolidHistoryLoftTail, SolidHistoryOperation, SolidHistoryProfileCall,
+    SolidHistoryProfileCircle, SolidHistoryProfilePolyline, SolidHistoryPyramid,
+    SolidHistoryRevolve,
     SolidHistoryRevolveTail, SolidHistorySphere, SolidHistorySweep, SolidHistorySweepTail,
     SolidHistoryTorus,
 };

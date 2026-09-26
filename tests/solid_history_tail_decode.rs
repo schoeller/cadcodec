@@ -17,8 +17,9 @@ use acadrust::io::dwg::sh_tail_decode::{
     loft_tail_view, revolve_tail_view, sweep_tail_view,
 };
 use acadrust::objects::{
-    SolidHistoryLoft, SolidHistoryLoftTail, SolidHistoryNodeBase, SolidHistoryOperation,
-    SolidHistoryRevolve, SolidHistoryRevolveTail, SolidHistorySweep, SolidHistorySweepTail,
+    SolidHistoryLoft, SolidHistoryLoftSection, SolidHistoryLoftTail, SolidHistoryNodeBase,
+    SolidHistoryOperation, SolidHistoryRevolve, SolidHistoryRevolveTail, SolidHistorySweep,
+    SolidHistorySweepTail,
 };
 use acadrust::types::DxfVersion;
 use acadrust::{CadDocument, DwgReader, DwgWriter};
@@ -61,6 +62,23 @@ const EXTRUDE_P_BITS: u32 = 888;
 
 const LOFT_HEX: &str = "442A6911204004000000000000000000400000000000000010000000000000014400CCCCCCCCCCCF4CFE928182D4454FB21F93F060B51153EC87E4FE9D60";
 const LOFT_BITS: u32 = 492;
+
+// The §18.7 loft differential fixtures (AC2018 twins; bit-identical
+// across 2007-2018). The §18 loft container walk's named-section
+// witnesses: Loft3 (the z-only mid sections), LoftR ((5, 2.5)),
+// LoftH ((7,) with the radius elided), LoftC (the world-offset
+// double section with the z-elided first).
+const LOFT3_HEX: &str = "442A691125428000000000000044069112542800000000000014406928182D4454FB21F93F060B51153EC87E4FE9D6";
+const LOFT3_BITS: u32 = 376;
+
+const LOFTC_HEX: &str = "7400000000000000840000000000000041020000000000003E0FE91120400400000000000000000840000000000000041000000000000001C400000000000003E0FE928182D4454FB21F93F060B51153EC87E4FE9D60";
+const LOFTC_BITS: u32 = 684;
+
+const LOFTH_HEX: &str = "442A6911254280000000000001C406928182D4454FB21F93F060B51153EC87E4FE9D60";
+const LOFTH_BITS: u32 = 276;
+
+const LOFTR_HEX: &str = "442A691126428000000000000144000000000000001102928182D4454FB21F93F060B51153EC87E4FE9D60";
+const LOFTR_BITS: u32 = 340;
 
 const REVOLVE_HEX: &str = "AA634884CDFDF3644902AA912541A26A666666666724FE90";
 const REVOLVE_BITS: u32 = 190;
@@ -214,6 +232,151 @@ fn loft_tail_decodes_the_pinned_semantics() {
             std::f64::consts::FRAC_PI_2,
         ]
     );
+}
+
+#[test]
+fn loft_fixtures_walk_the_named_sections() {
+    // The §18 loft container walk: the raw frame stream's contiguous
+    // groups attribute to the closed per-section reading
+    // [center.x][center.y][height][radius] — the canonical elisions
+    // (a 0.0 center component or height, a 1.0 radius) land as 2-bit
+    // shorts between the frames, `None` in the model — and the final
+    // 2-frame group names the trailing draft-angle pair. The leading
+    // region (an origin section's shorts plus per-record state) and
+    // the inter-section gaps stay documented-verbatim: the frames'
+    // named fields never claim their bits.
+    let section = |cx, cy, h, r| SolidHistoryLoftSection {
+        center: [cx, cy],
+        height: h,
+        radius: r,
+    };
+    let pair = [
+        Some(std::f64::consts::FRAC_PI_2),
+        Some(std::f64::consts::FRAC_PI_2),
+    ];
+
+    // Loft_ (the landed original): the bottom origin section contributes
+    // no frames; the top section carries all four fields raw.
+    let view = loft_tail_view(&unhex(LOFT_HEX), LOFT_BITS)
+        .expect("the loft tail must decode");
+    assert_eq!(
+        view.sections,
+        vec![section(Some(2.0), Some(2.0), Some(5.0), Some(0.3))]
+    );
+    assert_eq!(view.draft_angles, pair);
+
+    // LoftR: (0, 0, 5, 2.5) — the center elided in the leading region,
+    // [z][r] as raws.
+    let vr = loft_tail_view(&unhex(LOFTR_HEX), LOFTR_BITS)
+        .expect("the LoftR tail must decode");
+    assert_eq!(
+        vr.sections,
+        vec![section(None, None, Some(5.0), Some(2.5))]
+    );
+    assert_eq!(vr.draft_angles, pair);
+
+    // LoftH: (0, 0, 7, 1) — only the height frame survives elision.
+    let vh = loft_tail_view(&unhex(LOFTH_HEX), LOFTH_BITS)
+        .expect("the LoftH tail must decode");
+    assert_eq!(vh.sections, vec![section(None, None, Some(7.0), None)]);
+    assert_eq!(vh.draft_angles, pair);
+
+    // Loft3: the two mid sections at z 2.5 and 5 (both origin-centered,
+    // r = 1 elided) walk as [z] singles.
+    let v3 = loft_tail_view(&unhex(LOFT3_HEX), LOFT3_BITS)
+        .expect("the Loft3 tail must decode");
+    assert_eq!(
+        v3.sections,
+        vec![
+            section(None, None, Some(2.5), None),
+            section(None, None, Some(5.0), None),
+        ]
+    );
+    assert_eq!(v3.draft_angles, pair);
+
+    // LoftC — the decisive world differential: section 1
+    // (3, 4, z 0 elided, 1.5), section 2 (3, 4, 7, 1.5), all four
+    // fields raw in section 2.
+    let vc = loft_tail_view(&unhex(LOFTC_HEX), LOFTC_BITS)
+        .expect("the LoftC tail must decode");
+    assert_eq!(
+        vc.sections,
+        vec![
+            section(Some(3.0), Some(4.0), None, Some(1.5)),
+            section(Some(3.0), Some(4.0), Some(7.0), Some(1.5)),
+        ]
+    );
+    assert_eq!(vc.draft_angles, pair);
+}
+
+#[test]
+fn loft_named_section_edits_land_bit_locally() {
+    // The §18 container walk's write rule: a programmatic edit through
+    // the NAMED fields (not the positional raw run) splices only the
+    // edited frames — the radius frame of LOFT_HEX (value bits
+    // [270..334), bytes [33..41]) and the first draft frame
+    // (value bits [348..412), bytes [43..51]) — nothing else moves and
+    // the tail keeps its length.
+    let loft_tail = unhex(LOFT_HEX);
+    let mut document = CadDocument::with_version(DxfVersion::AC1032);
+    let entity = document
+        .add_entity(EntityType::Solid3D(Solid3D::new()))
+        .unwrap();
+    document
+        .create_solid_history(
+            entity,
+            SolidHistoryOperation::Loft(SolidHistoryLoft {
+                base: SolidHistoryNodeBase::new(1),
+                raw_tail: loft_tail.clone(),
+                raw_tail_bit_len: LOFT_BITS,
+                tail_decode: loft_tail_view(&loft_tail, LOFT_BITS),
+                ..SolidHistoryLoft::default()
+            }),
+        )
+        .unwrap();
+    let mut replacement = document.solid_history_operations(entity).unwrap()[0].clone();
+    let SolidHistoryOperation::Loft(loft) = &mut replacement else {
+        panic!("expected a loft node");
+    };
+    let section = loft
+        .tail_decode
+        .get_or_insert_with(SolidHistoryLoftTail::default);
+    section.sections[0].radius = Some(1.25);
+    section.draft_angles[0] = Some(0.75);
+    document.update_solid_history_step(entity, replacement).unwrap();
+
+    let bytes = DwgWriter::write_to_vec(&document).unwrap();
+    let roundtrip = DwgReader::from_stream(Cursor::new(bytes)).read().unwrap();
+    let SolidHistoryOperation::Loft(loft) =
+        roundtrip.solid_history_operations(entity).unwrap()[0].clone()
+    else {
+        panic!("expected a loft node");
+    };
+    assert_eq!(loft.raw_tail.len(), loft_tail.len());
+    assert_eq!(loft.raw_tail_bit_len, LOFT_BITS);
+    let differing: Vec<usize> = loft
+        .raw_tail
+        .iter()
+        .zip(loft_tail.iter())
+        .enumerate()
+        .filter(|(_, (a, b))| a != b)
+        .map(|(index, _)| index)
+        .collect();
+    assert!(!differing.is_empty(), "the edits must land somewhere");
+    for index in &differing {
+        let in_radius = (270 / 8 <= *index) && (*index <= 334 / 8);
+        let in_draft = (348 / 8 <= *index) && (*index <= 412 / 8);
+        assert!(
+            in_radius || in_draft,
+            "edits must stay inside the radius + first-draft frames, got {differing:?}"
+        );
+    }
+    let view = loft.tail_decode.as_ref().unwrap();
+    assert_eq!(view.sections[0].radius, Some(1.25));
+    assert_eq!(view.draft_angles[0], Some(0.75));
+    assert_eq!(view.sections[0].center, [Some(2.0), Some(2.0)]);
+    assert_eq!(view.sections[0].height, Some(5.0));
+    assert_eq!(view.draft_angles[1], Some(std::f64::consts::FRAC_PI_2));
 }
 
 #[test]
@@ -704,10 +867,10 @@ fn extrude_r_decodes_the_profile_circle_radius() {
 #[test]
 fn extrude_p_records_the_polyline_profile_call() {
     // The §18.7 ExtrudeP quad (closed LWPOLYLINE rectangle): the CALL
-    // is type 77 = OBJ_LWPOLYLINE with a 544-bit window. The packed
-    // vertex array inside the body awaits the header grammar (the
-    // rectangle's 4.0/3.0 doubles are visible as raws); the CALL
-    // presence + geometry are recorded, the body verbatim.
+    // is type 77 = OBJ_LWPOLYLINE with a 544-bit window. The §18 walk
+    // decodes the body through the embedded-LWPOLYLINE grammar: flag
+    // 512 (closed), four raw (x, y) vertices — the 4×3 rectangle —
+    // and the trailing reserved pair that closes the window.
     let view = sweep_tail_view(&unhex(EXTRUDE_P_HEX), EXTRUDE_P_BITS)
         .expect("the ExtrudeP tail must decode");
     let call = view.profile.as_ref().expect("the profile CALL decodes");
@@ -715,6 +878,114 @@ fn extrude_p_records_the_polyline_profile_call() {
     assert_eq!(call.bit_len, 544);
     assert!(call.circle.is_none());
     assert_eq!(view.scale_factor, Some(1.0));
+    let polyline = call
+        .polyline
+        .as_ref()
+        .expect("the kind-77 body decodes (the §18 walk)");
+    assert_eq!(polyline.flag, 512);
+    assert_eq!(polyline.num_points, 4);
+    assert_eq!(
+        polyline.points,
+        vec![
+            [0.0, 0.0],
+            [4.0, 0.0],
+            [4.0, 3.0],
+            [0.0, 3.0],
+        ]
+    );
+    assert!(polyline.bulges.is_empty());
+}
+
+#[test]
+fn extrude_p_polyline_edits_land_bit_locally() {
+    // The §18 walk's write rule: a vertex edit through the named
+    // points splice lands inside its own 128-bit vertex frames —
+    // here vertex[2] (bits [626..754) of the tail) — nothing else
+    // moves, the tail keeps its length, and the polyline body stays
+    // exactly bit_len windowed. The edit base is a re-read op (its
+    // modeled direction + tail_decode match the retained bits).
+    let tail = unhex(EXTRUDE_P_HEX);
+    let mut document = CadDocument::with_version(DxfVersion::AC1032);
+    let entity = document
+        .add_entity(EntityType::Solid3D(Solid3D::new()))
+        .unwrap();
+    document
+        .create_solid_history(entity, sweep_op(&tail, EXTRUDE_P_BITS))
+        .unwrap();
+    // Phase 1: write once and read back so the modeled direction
+    // matches the retained bits (a programmatic op carries the default
+    // direction vector; the modeled direction splice is the one
+    // legitimate non-verbatim re-encode for it). The polyline body
+    // itself survives phase 1 untouched.
+    let first = DwgWriter::write_to_vec(&document).unwrap();
+    let mut roundtrip = DwgReader::from_stream(Cursor::new(first)).read().unwrap();
+    let (phase1_tail, phase1_points) = {
+        let SolidHistoryOperation::Sweep(sweep) =
+            &roundtrip.solid_history_operations(entity).unwrap()[0]
+        else {
+            panic!("expected a sweep operation node");
+        };
+        let polyline = sweep
+            .tail_decode
+            .as_ref()
+            .and_then(|view| view.profile.as_ref())
+            .and_then(|call| call.polyline.as_ref())
+            .expect("the phase-1 op carries the decoded polyline");
+        (sweep.shsw_raw_tail.clone(), polyline.points.clone())
+    };
+    assert_eq!(phase1_points.len(), 4);
+    assert_eq!(phase1_points[2], [4.0, 3.0]);
+    // Phase 2: edit vertex[2] through the named points field of the
+    // re-read op (its modeled direction now matches its bits).
+    let mut replacement = roundtrip.solid_history_operations(entity).unwrap()[0].clone();
+    let SolidHistoryOperation::Sweep(sweep) = &mut replacement else {
+        panic!("expected a sweep operation node");
+    };
+    let polyline = sweep
+        .tail_decode
+        .as_mut()
+        .and_then(|view| view.profile.as_mut())
+        .and_then(|call| call.polyline.as_mut())
+        .expect("the re-read op carries the decoded polyline");
+    polyline.points[2] = [6.125, 3.0];
+    roundtrip.update_solid_history_step(entity, replacement).unwrap();
+
+    let edited = DwgWriter::write_to_vec(&roundtrip).unwrap();
+    let back = DwgReader::from_stream(Cursor::new(edited)).read().unwrap();
+    let SolidHistoryOperation::Sweep(sweep) =
+        back.solid_history_operations(entity).unwrap()[0].clone()
+    else {
+        panic!("expected a sweep operation node");
+    };
+    assert_eq!(sweep.shsw_raw_tail.len(), phase1_tail.len());
+    assert_eq!(sweep.shsw_raw_tail_bit_len, EXTRUDE_P_BITS);
+    let differing: Vec<usize> = sweep
+        .shsw_raw_tail
+        .iter()
+        .zip(phase1_tail.iter())
+        .enumerate()
+        .filter(|(_, (a, b))| a != b)
+        .map(|(index, _)| index)
+        .collect();
+    assert!(!differing.is_empty(), "the edit must land somewhere");
+    // vertex[2].x lives at bits [626..690) -> bytes [78..86); y at
+    // [690..754) -> bytes [86..94). Nothing outside vertex[2]'s
+    // frames moves between phase 1 and phase 2.
+    for index in &differing {
+        assert!(
+            (626 / 8..754 / 8).contains(index),
+            "edits must stay inside vertex[2]'s frames, got {differing:?}"
+        );
+    }
+    let view = sweep.tail_decode.as_ref().unwrap();
+    let polyline = view
+        .profile
+        .as_ref()
+        .and_then(|call| call.polyline.as_ref())
+        .expect("the polyline body re-decodes");
+    assert_eq!(polyline.points[2], [6.125, 3.0]);
+    assert_eq!(polyline.points[0], [0.0, 0.0]);
+    assert!(polyline.bulges.is_empty());
 }
 
 #[test]

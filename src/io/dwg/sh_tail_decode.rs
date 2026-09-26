@@ -27,8 +27,9 @@
 //! lands bit-locally while an untouched record stays byte-identical.
 
 use crate::objects::{
-    SolidHistoryLoftTail, SolidHistoryProfileCall, SolidHistoryProfileCircle,
-    SolidHistoryRevolveTail, SolidHistorySweepTail,
+    SolidHistoryLoftSection, SolidHistoryLoftTail, SolidHistoryProfileCall,
+    SolidHistoryProfileCircle, SolidHistoryProfilePolyline, SolidHistoryRevolveTail,
+    SolidHistorySweepTail,
 };
 
 /// A bit range within a tail, MSB-packed ([start, start+len)).
@@ -325,6 +326,7 @@ pub(crate) struct SweepTailInfo {
     pub post_corner_single_span: Option<Span>,
     pub segment_end_spans: Option<[Span; 2]>,
     pub profile_circle_spans: Option<ProfileCircleSpans>,
+    pub profile_polyline_spans: Option<ProfilePolylineSpans>,
 }
 
 /// Spans of the extrusion profile CALL's circle body.
@@ -361,6 +363,201 @@ fn scan_profile_call(bits: &TailBits, from: u32) -> Option<(i64, i64, u32)> {
         pos += 2;
     }
     None
+}
+
+/// The polyline CALL body's value-spans (the §18 ExtrudeP walk),
+/// parallel to `SolidHistoryProfilePolyline`'s raw fields.
+pub(crate) struct ProfilePolylineSpans {
+    pub flag_span: Span,
+    pub num_points_span: Span,
+    /// Per-vertex (x, y) value-spans, parallel to the points vector.
+    pub point_spans: Vec<[Span; 2]>,
+    pub bulge_spans: Vec<Span>,
+    /// The body's trailing reserved pair (the '11' BD-terminator of
+    /// the embedded window) — validated, never spliced.
+    pub terminator_span: Span,
+}
+
+/// One MSB-first wire byte at `pos`.
+fn read_bits_byte(bits: &TailBits, pos: u32) -> Option<u8> {
+    let mut byte = 0u8;
+    for k in 0..8u32 {
+        let bit = bits.get(pos + (7 - k))?;
+        byte |= bit << k;
+    }
+    Some(byte)
+}
+
+/// Read one BS at `pos` (all four bitcode forms).
+fn read_bs(bits: &TailBits, pos: u32) -> Option<(i32, u32)> {
+    match bits.code(pos)? {
+        0b00 => {
+            if pos.checked_add(18)? > bits.bit_len {
+                return None;
+            }
+            let mut value = 0u16;
+            for j in 0..2u32 {
+                let byte = read_bits_byte(bits, pos + 2 + j * 8)?;
+                value |= u16::from(byte) << (8 * j);
+            }
+            Some((value as i16 as i32, pos + 18))
+        }
+        0b01 => {
+            if pos.checked_add(10)? > bits.bit_len {
+                return None;
+            }
+            let byte = read_bits_byte(bits, pos + 2)?;
+            Some((i32::from(byte), pos + 10))
+        }
+        0b10 => Some((0, pos + 2)),
+        _ => Some((256, pos + 2)),
+    }
+}
+
+/// Parse the polyline CALL body kind 77 through the embedded-LWPOLYLINE
+/// grammar (the §18 ExtrudeP walk — the same field order as
+/// `read_embedded_lwpolyline` in the object readers, raw-points arms):
+/// `[BS flag][flag-gated BD fields][BL num_points][BL num_bulges
+/// if flag & 16][BL num_vertex_ids if flag & 0x400][BL num_widths if
+/// flag & 0x20][raw LE64 (x, y) pairs][BD bulges][BL vertex ids]
+/// [BD (start, end) width pairs]` plus the corpus-observed trailing
+/// reserved '11' pair that closes the consumed window. Requires the
+/// parse to consume exactly `bit_len - 2` bits (the two in-window
+/// flag bits follow, per the circle CALL convention).
+fn parse_sweep_profile_polyline(
+    bits: &TailBits,
+    body_start: u32,
+    call_len: i64,
+) -> Option<(SolidHistoryProfilePolyline, ProfilePolylineSpans)> {
+    let body_end = body_start.checked_add((call_len - 2) as u32)?;
+    let mut pos = body_start;
+    let mut view = SolidHistoryProfilePolyline::default();
+    let mut spans = ProfilePolylineSpans {
+        flag_span: Span { start: 0, len: 0 },
+        num_points_span: Span { start: 0, len: 0 },
+        point_spans: Vec::new(),
+        bulge_spans: Vec::new(),
+        terminator_span: Span { start: 0, len: 0 },
+    };
+    // [BS flag] — 512 closed on the corpus specimen.
+    let (flag, next) = read_bs(bits, pos)?;
+    view.flag = flag;
+    spans.flag_span = Span {
+        start: pos,
+        len: next - pos,
+    };
+    pos = next;
+    // The flag-gated optional doubles (the common LWPOLYLINE header).
+    if flag & 0x4 != 0 {
+        let entry = read_bd(bits, pos)?;
+        let _ = entry.value;
+        pos = entry.span.start + entry.span.len;
+    }
+    if flag & 0x8 != 0 {
+        let entry = read_bd(bits, pos)?;
+        let _ = entry.value;
+        pos = entry.span.start + entry.span.len;
+    }
+    if flag & 0x2 != 0 {
+        let entry = read_bd(bits, pos)?;
+        let _ = entry.value;
+        pos = entry.span.start + entry.span.len;
+    }
+    if flag & 0x1 != 0 {
+        for _ in 0..3 {
+            let entry = read_bd(bits, pos)?;
+            pos = entry.span.start + entry.span.len;
+        }
+    }
+    // [BL num_points]
+    let (num_points, next) = read_bl(bits, pos)?;
+    if !(0..=20000).contains(&num_points) {
+        return None;
+    }
+    view.num_points = num_points;
+    spans.num_points_span = Span {
+        start: pos,
+        len: next - pos,
+    };
+    pos = next;
+    let mut num_bulges = 0i64;
+    if flag & 0x10 != 0 {
+        let (value, next) = read_bl(bits, pos)?;
+        if !(0..=20000).contains(&value) {
+            return None;
+        }
+        num_bulges = value;
+        pos = next;
+    }
+    let mut num_vertex_ids = 0i64;
+    if flag & 0x400 != 0 {
+        let (value, next) = read_bl(bits, pos)?;
+        if !(0..=20000).contains(&value) {
+            return None;
+        }
+        num_vertex_ids = value;
+        pos = next;
+    }
+    let mut num_widths = 0i64;
+    if flag & 0x20 != 0 {
+        let (value, next) = read_bl(bits, pos)?;
+        if !(0..=20000).contains(&value) {
+            return None;
+        }
+        num_widths = value;
+        pos = next;
+    }
+    // The raw (x, y) vertex pairs — both components as plain LE64
+    // doubles (the raw-points arm; no BD codes on the wire).
+    for _ in 0..num_points {
+        if pos.checked_add(128)? > bits.bit_len {
+            return None;
+        }
+        let x = bits.le64(pos)?;
+        let y = bits.le64(pos + 64)?;
+        view.points.push([x, y]);
+        spans.point_spans.push([
+            Span {
+                start: pos,
+                len: 64,
+            },
+            Span {
+                start: pos + 64,
+                len: 64,
+            },
+        ]);
+        pos += 128;
+    }
+    for _ in 0..num_bulges {
+        let entry = read_bd(bits, pos)?;
+        view.bulges.push(entry.value);
+        spans.bulge_spans.push(entry.span);
+        pos = entry.span.start + entry.span.len;
+    }
+    for _ in 0..num_vertex_ids {
+        let (_, next) = read_bl(bits, pos)?;
+        if next > bits.bit_len {
+            return None;
+        }
+        pos = next;
+    }
+    for _ in 0..num_widths {
+        for _ in 0..2 {
+            let entry = read_bd(bits, pos)?;
+            pos = entry.span.start + entry.span.len;
+        }
+    }
+    // The corpus-observed trailing reserved pair (the '11' code, the
+    // reserved BD form — the embedded window's terminator on the
+    // ExtrudeP quad): validated, nameless.
+    if bits.code(pos) == Some(0b11) {
+        spans.terminator_span = Span { start: pos, len: 2 };
+        pos += 2;
+    }
+    if pos != body_end {
+        return None;
+    }
+    Some((view, spans))
 }
 
 /// Parse the circle CALL body `[center 3BD][radius BD][normal 3BD]`,
@@ -571,8 +768,10 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
     // The extrusion profile CALL (§18.7 ExtrudeR/P evidence): sweep
     // tails carry none — their profile is the packed corners above.
     let mut profile_circle_spans = None;
+    let mut profile_polyline_spans = None;
     if let Some((kind, call_len, body_start)) = profile_chain {
         let mut circle = None;
+        let mut polyline = None;
         if kind == PROFILE_CIRCLE {
             if let Some((parsed, spans)) = parse_sweep_profile_circle(&bits, body_start, call_len) {
                 circle = Some(parsed);
@@ -585,6 +784,7 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
                     kind,
                     bit_len: call_len,
                     circle: None,
+                    polyline: None,
                 });
                 return Some(SweepTailInfo {
                     direction,
@@ -598,13 +798,25 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
                     post_corner_single_span,
                     segment_end_spans,
                     profile_circle_spans: None,
+                    profile_polyline_spans: None,
                 });
+            }
+        } else if kind == PROFILE_LWPOLYLINE {
+            // The §18 ExtrudeP walk: the kind-77 body decodes through
+            // the embedded-LWPOLYLINE grammar; a body that does not
+            // close the window exactly keeps the CALL positional.
+            if let Some((parsed, spans)) =
+                parse_sweep_profile_polyline(&bits, body_start, call_len)
+            {
+                polyline = Some(parsed);
+                profile_polyline_spans = Some(spans);
             }
         }
         view.profile = Some(SolidHistoryProfileCall {
             kind,
             bit_len: call_len,
             circle,
+            polyline,
         });
     }
     Some(SweepTailInfo {
@@ -619,6 +831,7 @@ pub(crate) fn decode_sweep_tail(bytes: &[u8], bit_len: u32) -> Option<SweepTailI
         post_corner_single_span,
         segment_end_spans,
         profile_circle_spans,
+        profile_polyline_spans,
     })
 }
 
@@ -627,6 +840,150 @@ pub(crate) struct LoftTailInfo {
     pub view: SolidHistoryLoftTail,
     pub option_spans: Vec<Span>,
     pub raw_spans: Vec<Span>,
+    /// The per-section field value-spans, parallel to
+    /// `view.sections` (the §18 loft container walk). Raw frames
+    /// only — an elided canonical field has no frame and no span;
+    /// a future same-form splice target uses these spans.
+    pub section_spans: Vec<LoftSectionSpans>,
+    /// The draft-angle pair's value-spans (the final two frames).
+    pub draft_angle_spans: [Option<Span>; 2],
+}
+
+/// The per-section field spans of the loft walk (parallel to
+/// `SolidHistoryLoftSection`).
+pub(crate) struct LoftSectionSpans {
+    pub center: [Option<Span>; 2],
+    pub height: Option<Span>,
+    pub radius: Option<Span>,
+}
+
+/// The §18 loft container walk over the raw frame stream: the
+/// frames group into contiguous runs (a 2-bit gap between frames is
+/// plain adjacency; a 4-bit gap is an elided canonical short field
+/// between them; anything wider is a section boundary), the FINAL
+/// 2-frame run names the draft-angle pair, and every earlier run
+/// attributes its frames to the closed §18.6/§18.7 per-section
+/// reading `[center.x][center.y][height][radius]`:
+/// 4 frames → all four fields; 3 frames with the wide gap after the
+/// second → `[cx][cy][elided z][r]` (LoftC's section 1); 2 frames →
+/// `[z][r]` (the origin-section center elision: LoftR); 1 frame →
+/// `[z]` (radius 1.0 elided too: LoftH/Loft3). Any group shape
+/// outside the observed families leaves the whole tail positional
+/// (nothing named, the verbatim bits stay the write authority).
+fn walk_loft_sections(
+    raw_values: &[f64],
+    raw_spans: &[Span],
+) -> (
+    Vec<SolidHistoryLoftSection>,
+    Vec<LoftSectionSpans>,
+    [Option<f64>; 2],
+    [Option<Span>; 2],
+) {
+    let sections = Vec::new();
+    let section_spans = Vec::new();
+    let mut draft_angles = [None, None];
+    let mut draft_spans = [None, None];
+    if raw_spans.is_empty() {
+        return (sections, section_spans, draft_angles, draft_spans);
+    }
+    // Group the frame indices by gap width between consecutive frames
+    // (value-span arithmetic: a contiguous frame starts marker-first, so
+    // an adjacent next value sits at gap 2; an elided short widens it
+    // to 4; wider gaps are section boundaries).
+    let mut groups: Vec<Vec<usize>> = Vec::new();
+    let mut current: Vec<usize> = vec![0];
+    for i in 1..raw_spans.len() {
+        let gap =
+            raw_spans[i].start.saturating_sub(raw_spans[i - 1].start + raw_spans[i - 1].len);
+        if gap > 4 {
+            groups.push(std::mem::take(&mut current));
+            current = vec![i];
+        } else {
+            current.push(i);
+        }
+    }
+    groups.push(current);
+    // The terminal 2-frame group is the draft pair; an unexpected
+    // terminal shape (or no earlier group) keeps everything positional.
+    let last = groups.last().cloned().unwrap_or_default();
+    if last.len() != 2 || groups.len() < 2 {
+        return (sections, section_spans, draft_angles, draft_spans);
+    }
+    for (slot, frame) in last.iter().enumerate() {
+        draft_angles[slot] = Some(raw_values[*frame]);
+        draft_spans[slot] = Some(raw_spans[*frame]);
+    }
+    groups.pop();
+    // Attribute every section group; any unexpected shape aborts the
+    // whole naming (the conservative decode-fidelity rule).
+    let mut named: Vec<SolidHistoryLoftSection> = Vec::new();
+    let mut named_spans: Vec<LoftSectionSpans> = Vec::new();
+    for group in &groups {
+        let spans: Vec<&Span> = group.iter().map(|i| &raw_spans[*i]).collect();
+        match group.len() {
+            4 if spans.windows(2).all(|w| w[1].start == w[0].start + w[0].len + 2) => {
+                named.push(SolidHistoryLoftSection {
+                    center: [Some(raw_values[group[0]]), Some(raw_values[group[1]])],
+                    height: Some(raw_values[group[2]]),
+                    radius: Some(raw_values[group[3]]),
+                });
+                named_spans.push(LoftSectionSpans {
+                    center: [Some(*spans[0]), Some(*spans[1])],
+                    height: Some(*spans[2]),
+                    radius: Some(*spans[3]),
+                });
+            }
+            3 if spans[1].start == spans[0].start + spans[0].len + 2
+                && spans[2].start == spans[1].start + spans[1].len + 4 =>
+            {
+                // [cx][cy][elided z short][r] — the 4-bit gap carries
+                // the canonical z=0.0 elision between the frames
+                // (LoftC's section 1: (3, 4, z elided, 1.5)).
+                named.push(SolidHistoryLoftSection {
+                    center: [Some(raw_values[group[0]]), Some(raw_values[group[1]])],
+                    height: None,
+                    radius: Some(raw_values[group[2]]),
+                });
+                named_spans.push(LoftSectionSpans {
+                    center: [Some(*spans[0]), Some(*spans[1])],
+                    height: None,
+                    radius: Some(*spans[2]),
+                });
+            }
+            2 if spans[1].start == spans[0].start + spans[0].len + 2 => {
+                // [z][r] — the origin-section center elision (LoftR:
+                // (0, 0) elided as shorts in the leading region).
+                named.push(SolidHistoryLoftSection {
+                    center: [None, None],
+                    height: Some(raw_values[group[0]]),
+                    radius: Some(raw_values[group[1]]),
+                });
+                named_spans.push(LoftSectionSpans {
+                    center: [None, None],
+                    height: Some(*spans[0]),
+                    radius: Some(*spans[1]),
+                });
+            }
+            1 => {
+                // [z] alone — the r=1.0 elision after the height frame
+                // (LoftH: (0, 0, 7, 1 elided); Loft3's mid sections).
+                named.push(SolidHistoryLoftSection {
+                    center: [None, None],
+                    height: Some(raw_values[group[0]]),
+                    radius: None,
+                });
+                named_spans.push(LoftSectionSpans {
+                    center: [None, None],
+                    height: Some(*spans[0]),
+                    radius: None,
+                });
+            }
+            _ => {
+                return (Vec::new(), Vec::new(), [None, None], [None, None]);
+            }
+        }
+    }
+    (named, named_spans, draft_angles, draft_spans)
 }
 
 pub(crate) fn decode_loft_tail(bytes: &[u8], bit_len: u32) -> Option<LoftTailInfo> {
@@ -639,13 +996,19 @@ pub(crate) fn decode_loft_tail(bytes: &[u8], bit_len: u32) -> Option<LoftTailInf
         return None;
     }
     let (raw_values, raw_spans) = scan_raws(&bits, head_end, bit_len);
+    let (sections, section_spans, draft_angles, draft_angle_spans) =
+        walk_loft_sections(&raw_values, &raw_spans);
     Some(LoftTailInfo {
         view: SolidHistoryLoftTail {
             option_doubles: options,
+            sections,
+            draft_angles,
             raw_doubles: raw_values,
         },
         option_spans,
         raw_spans,
+        section_spans,
+        draft_angle_spans,
     })
 }
 
@@ -950,6 +1313,26 @@ pub(crate) fn render_sweep_tail(
                 let _ = bits.set_le64(spans[1].start, new[1]);
             }
         }
+        // The polyline profile fields of the §18 ExtrudeP walk: a
+        // vertex edit lands bit-locally in its own 64-bit frame-half
+        // (the raw point components; the flag/counts are structural).
+        if let (Some(spans), Some(new), Some(old)) = (
+            &info.profile_polyline_spans,
+            view.profile.as_ref().and_then(|call| call.polyline.as_ref()),
+            info.view.profile.as_ref().and_then(|call| call.polyline.as_ref()),
+        ) {
+            for (index, (new_point, old_point)) in
+                new.points.iter().zip(old.points.iter()).enumerate()
+            {
+                if let Some(span_pair) = spans.point_spans.get(index) {
+                    for axis in 0..2 {
+                        if new_point[axis] != old_point[axis] {
+                            let _ = bits.set_le64(span_pair[axis].start, new_point[axis]);
+                        }
+                    }
+                }
+            }
+        }
         // The profile circle fields (same-form per component; the CALL's
         // kind/bit-length are structural and never spliced).
         if let (Some(spans), Some(new), Some(old)) = (
@@ -991,6 +1374,47 @@ pub(crate) fn render_loft_tail(
     let mut bits = TailBits::new(bytes, bit_len);
     splice_short_run(&mut bits, &info.option_spans, &view.option_doubles, &info.view.option_doubles);
     splice_raw_run(&mut bits, &info.raw_spans, &view.raw_doubles, &info.view.raw_doubles);
+    // The §18 container walk's named fields: same-form LE64 splices for
+    // the per-section frames and the draft angles (a programmatic edit
+    // of a named field lands bit-locally in its own frame — identical
+    // bits to the positional raw run, never a length change).
+    for ((new, old), spans) in view
+        .sections
+        .iter()
+        .zip(info.view.sections.iter())
+        .zip(info.section_spans.iter())
+    {
+        for axis in 0..2 {
+            if let (Some(new), Some(old)) = (new.center[axis], old.center[axis]) {
+                if new != old {
+                    if let Some(span) = spans.center[axis] {
+                        let _ = bits.set_le64(span.start, new);
+                    }
+                }
+            }
+        }
+        if let (Some(new), Some(old), Some(span)) = (new.height, old.height, spans.height) {
+            if new != old {
+                let _ = bits.set_le64(span.start, new);
+            }
+        }
+        if let (Some(new), Some(old), Some(span)) = (new.radius, old.radius, spans.radius) {
+            if new != old {
+                let _ = bits.set_le64(span.start, new);
+            }
+        }
+    }
+    for slot in 0..2 {
+        if let (Some(new), Some(old), Some(span)) = (
+            view.draft_angles[slot],
+            info.view.draft_angles[slot],
+            info.draft_angle_spans[slot],
+        ) {
+            if new != old {
+                let _ = bits.set_le64(span.start, new);
+            }
+        }
+    }
     Some(bits.bytes)
 }
 
