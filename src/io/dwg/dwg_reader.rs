@@ -2672,6 +2672,13 @@ impl<R: Read + Seek> DwgReader<R> {
             // there), so their zeroed fallback belongs to the R2004+ arm
             // only; the R2000 arm below re-reads them when present.
             let buf = self.get_section_buffer(names::OBJ_FREE_SPACE, info).unwrap_or_default();
+            // §19 H7e ObjFreeSpace row: retain the raw section bytes for
+            // the verbatim same-version re-emission — the content is the
+            // author's (numhandles/TDUPDATE/max pattern words), never
+            // derivable from the model.
+            if !buf.is_empty() {
+                document.raw_obj_free_space_data = Some(std::sync::Arc::new(buf.clone()));
+            }
             document.dwg_obj_free_space = Some(parse_obj_free_space_section(&buf, r2010_plus));
             let buf = self.get_section_buffer(names::TEMPLATE, info).unwrap_or_default();
             document.dwg_template = Some(parse_template_section(&buf, utf16));
@@ -2680,6 +2687,10 @@ impl<R: Read + Seek> DwgReader<R> {
             // sections>=4, ObjFreeSpace sections>=3) — the locator
             // lookup IS the gate.
             if let Ok(buf) = self.get_section_buffer(names::OBJ_FREE_SPACE, info) {
+                if !buf.is_empty() {
+                    document.raw_obj_free_space_data =
+                        Some(std::sync::Arc::new(buf.clone()));
+                }
                 document.dwg_obj_free_space = Some(parse_obj_free_space_section(&buf, r2010_plus));
             }
             if let Ok(buf) = self.get_section_buffer(names::TEMPLATE, info) {

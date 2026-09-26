@@ -2738,6 +2738,20 @@ pub struct CadDocument {
     #[cfg_attr(feature = "serde", serde(skip))]
     pub(crate) raw_app_info_history_data: Option<Arc<Vec<u8>>>,
 
+    /// The raw `AcDb:ObjFreeSpace` section bytes (§19 H7e): re-emitted
+    /// verbatim on a same-version roundtrip. The content is authored
+    /// file state, not derived data — the author's numhandles (including
+    /// the R2007+ 0xFFFF0000 pattern words), TDUPDATE, the R2000
+    /// objects_address, and the max constants — and gold's R2000 reader
+    /// only accepts the section at the file position directly after the
+    /// handles map (decode.c: `section[OBJFREESPACE].address == pvz`), so
+    /// any rebuilt content is both value-divergent and, on R2000,
+    /// position-gated. A source that carried no section writes none:
+    /// gold prints nothing there (R2000, locator-gated) or the zeroed
+    /// struct on both sides (R2004+, emitted unconditionally).
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub(crate) raw_obj_free_space_data: Option<Arc<Vec<u8>>>,
+
     /// Non-entity objects whose source record points into the AcDs data store.
     /// Retained for same-version saves together with the original section.
     /// Serialized (as a plain handle list) like the other DWG round-trip
@@ -2946,6 +2960,7 @@ impl CadDocument {
             raw_classes_fingerprint: 0,
             raw_app_info_data: None,
             raw_app_info_history_data: None,
+            raw_obj_free_space_data: None,
             dwg_data_store_handles: HashSet::new(),
             dimstyle_morehandles: Vec::new(),
             section_view_style: None,

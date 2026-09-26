@@ -1116,8 +1116,21 @@ fn write_ac15<W: Write + Seek>(
     fhw.add_section(section_names::ACDB_OBJECTS, obj_data);
 
     // ── Section: ObjFreeSpace ──
-    let obj_free_space = build_obj_free_space(version, document, handle_map_u32.len());
-    fhw.add_section(section_names::OBJ_FREE_SPACE, obj_free_space);
+    // §19 H7e: gold reads the R2000 section only at the position
+    // directly after the handles map (the AC15 writer's record order
+    // pins the placement), so the content must be the author's own —
+    // verbatim on a same-version roundtrip, a NUL locator record
+    // (seeker 0 — the author's own absent form) when the source
+    // carried no section, and the historical rebuild only for
+    // programmatic documents and version conversions.
+    if document.dwg_source_version == Some(version) {
+        if let Some(raw) = document.raw_obj_free_space_data.clone() {
+            fhw.add_section(section_names::OBJ_FREE_SPACE, (*raw).clone());
+        }
+    } else {
+        let obj_free_space = build_obj_free_space(version, document, handle_map_u32.len());
+        fhw.add_section(section_names::OBJ_FREE_SPACE, obj_free_space);
+    }
 
     // ── Section: Template ──
     let template = build_template(&[], document.header.measurement)?;
@@ -1362,14 +1375,32 @@ fn write_ac18<W: Write + Seek>(
     }
 
     // ── Section: ObjFreeSpace ──
-    let obj_free_space = build_obj_free_space(version, document, handle_map_u32.len());
-    fhw.add_section(
-        output,
-        section_names::OBJ_FREE_SPACE,
-        &obj_free_space,
-        true,
-        PAGE_SIZE,
-    )?;
+    // §19 H7e: the content is authored file state (the author's
+    // numhandles pattern words, TDUPDATE, the max constants) — verbatim
+    // on a same-version roundtrip; a source without the section gets
+    // none materialized (gold prints the section unconditionally on
+    // R2004+, zeroed when absent — both sides match then); programmatic
+    // documents and version conversions keep the historical rebuild.
+    if document.dwg_source_version == Some(version) {
+        if let Some(raw) = document.raw_obj_free_space_data.clone() {
+            fhw.add_section(
+                output,
+                section_names::OBJ_FREE_SPACE,
+                &raw,
+                true,
+                PAGE_SIZE,
+            )?;
+        }
+    } else {
+        let obj_free_space = build_obj_free_space(version, document, handle_map_u32.len());
+        fhw.add_section(
+            output,
+            section_names::OBJ_FREE_SPACE,
+            &obj_free_space,
+            true,
+            PAGE_SIZE,
+        )?;
+    }
 
     // ── Section: Template ──
     let template = build_template(&[], document.header.measurement)?;
@@ -1508,8 +1539,18 @@ fn write_ac21_impl<W: Write + Seek>(
     }
 
     // ObjFreeSpace
-    let obj_free_space = build_obj_free_space(version, document, handle_map_u32.len());
-    fhw.add_section(output, section_names::OBJ_FREE_SPACE, &obj_free_space)?;
+    // §19 H7e: verbatim from the same-version source (the author's
+    // pattern words / TDUPDATE / max constants); SKIPPED when the
+    // source had none (gold's zeroed print then matches on both
+    // sides); programmatic documents and conversions keep the rebuild.
+    if document.dwg_source_version == Some(version) {
+        if let Some(raw) = document.raw_obj_free_space_data.clone() {
+            fhw.add_section(output, section_names::OBJ_FREE_SPACE, &raw)?;
+        }
+    } else {
+        let obj_free_space = build_obj_free_space(version, document, handle_map_u32.len());
+        fhw.add_section(output, section_names::OBJ_FREE_SPACE, &obj_free_space)?;
+    }
 
     // Template
     let template = build_template(&[], document.header.measurement)?;
