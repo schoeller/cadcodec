@@ -1527,6 +1527,12 @@ impl<R: Read + Seek> DwgReader<R> {
         // 2. Read Classes (AcDb:Classes)
         match self.get_section_buffer("AcDb:Classes", &info) {
             Ok(classes_buf) => {
+                // §19 H7 CLASSES row: retain the raw section bytes for the
+                // verbatim same-version re-emission — the desynced tables
+                // (the AutoCAD-2027.1 fixture set) round-trip gold's walk
+                // only byte-exactly, and the bytes also carry the author's
+                // counts for the raw-passthrough classes.
+                document.raw_classes_data = Some(std::sync::Arc::new(classes_buf.clone()));
                 match crate::io::dwg::dwg_stream_readers::classes_reader::read_classes_with_encoding(
                     &classes_buf,
                     dxf_version,
@@ -2004,6 +2010,13 @@ impl<R: Read + Seek> DwgReader<R> {
 
         // The §19 H4 metadata sections (both read flows).
         self.read_metadata_sections(&info, dxf_version, &mut document);
+
+        // §19 H7 CLASSES row: capture the read-time state hash (the
+        // ordered class identity + the document's per-class object
+        // census) guarding the verbatim re-emission — the write-time
+        // gate recomputes it and falls back to the sane encoding when
+        // the class table or any class's census changed.
+        document.raw_classes_fingerprint = super::classes_state_fingerprint(&document);
 
         // Transfer reader notifications to the document so callers can
         // inspect them via `document.notifications`.

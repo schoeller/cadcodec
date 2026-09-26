@@ -78,4 +78,78 @@ pub(crate) fn sab_fingerprint<'a>(
     fingerprint.sort_unstable_by_key(|entry| entry.0);
     fingerprint
 }
+
+/// §19 H7 CLASSES row: the state hash guarding the verbatim classes
+/// re-emission — the ordered class identity tuple plus the document's
+/// per-class object census (entities + objects resolved through the
+/// class table, mirroring the writer's required-classes walk). Computed
+/// identically at read time (the capture) and at write time (the gate):
+/// any class-table edit or object-set change that touches a class's
+/// instance census forces the sane re-encode.
+pub(crate) fn classes_state_fingerprint(document: &crate::document::CadDocument) -> u64 {
+    use std::hash::{Hash, Hasher};
+
+    let census = document_class_census(document);
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    for class in document.classes.iter() {
+        class.class_number.hash(&mut hasher);
+        class.dxf_name.hash(&mut hasher);
+        class.cpp_class_name.hash(&mut hasher);
+        class.application_name.hash(&mut hasher);
+        class.proxy_flags.0.hash(&mut hasher);
+        class.was_zombie.hash(&mut hasher);
+        class.is_an_entity.hash(&mut hasher);
+        class.item_class_id.hash(&mut hasher);
+        class.dwg_version.hash(&mut hasher);
+        class.maintenance_version.hash(&mut hasher);
+        class.unknown1.hash(&mut hasher);
+        class.unknown2.hash(&mut hasher);
+        census
+            .get(&class.class_number)
+            .copied()
+            .unwrap_or(0)
+            .hash(&mut hasher);
+    }
+    hasher.finish()
+}
+
+/// The document's per-class object census for the classes gate above:
+/// every entity/object that resolves through the class table counts
+/// under its class number. This is the document-state census (not the
+/// object writer's write-time census, which cannot see the
+/// raw-passthrough records) — self-consistency between the read-time
+/// capture and the write-time gate is what matters.
+fn document_class_census(
+    document: &crate::document::CadDocument,
+) -> std::collections::HashMap<i16, i32> {
+    let mut counts: std::collections::HashMap<i16, i32> = std::collections::HashMap::new();
+    let bump = |name: &str, counts: &mut std::collections::HashMap<i16, i32>| {
+        if let Some(class) = document.classes.get_by_name(name) {
+            *counts.entry(class.class_number).or_default() += 1;
+        }
+    };
+    for entity in document.entities() {
+        match entity {
+            crate::entities::EntityType::Surface(surface) => {
+                bump(surface.kind.dxf_name(), &mut counts)
+            }
+            crate::entities::EntityType::Extended(entity) => {
+                bump(entity.class_name(), &mut counts)
+            }
+            crate::entities::EntityType::Underlay(entity) => {
+                bump(entity.entity_name(), &mut counts)
+            }
+            _ => {}
+        }
+    }
+    for object in document.objects.values() {
+        if let crate::objects::ObjectType::ClassObject(class_object) = object {
+            let name = class_object.dxf_name();
+            if !name.is_empty() {
+                bump(name, &mut counts);
+            }
+        }
+    }
+    counts
+}
 pub use file_headers::{DwgFileHeaderWriterAC15, DwgFileHeaderWriterAC18};

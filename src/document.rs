@@ -2706,6 +2706,24 @@ pub struct CadDocument {
     #[cfg_attr(feature = "serde", serde(skip))]
     pub(crate) raw_acds_fingerprint: Vec<(u64, usize, u64)>,
 
+    /// The raw (decompressed) `AcDb:Classes` section bytes of the source
+    /// file (§19 H7 CLASSES row): re-emitted verbatim on a same-version
+    /// roundtrip when the class table and the per-class object census are
+    /// unchanged. The authored tables whose tail encoding desyncs gold's
+    /// walk (the AutoCAD-2027.1 fixture set) can only round-trip gold's
+    /// garbage byte-exactly — any re-encoding desyncs the walk
+    /// differently — and the verbatim bytes also carry the author's
+    /// `num_instances`/zombie flags for classes whose instances re-emit
+    /// through the raw-object passthrough (outside the write census).
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub(crate) raw_classes_data: Option<Arc<Vec<u8>>>,
+
+    /// The read-time state hash guarding the verbatim classes re-emission
+    /// above: the ordered class identity tuple plus the document's
+    /// per-class object census (`io::dwg::classes_state_fingerprint`).
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub(crate) raw_classes_fingerprint: u64,
+
     /// Non-entity objects whose source record points into the AcDs data store.
     /// Retained for same-version saves together with the original section.
     /// Serialized (as a plain handle list) like the other DWG round-trip
@@ -2910,6 +2928,8 @@ impl CadDocument {
             acis_sab_handles: Vec::new(),
             raw_acds_data: None,
             raw_acds_fingerprint: Vec::new(),
+            raw_classes_data: None,
+            raw_classes_fingerprint: 0,
             dwg_data_store_handles: HashSet::new(),
             dimstyle_morehandles: Vec::new(),
             section_view_style: None,

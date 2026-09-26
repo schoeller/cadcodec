@@ -5064,21 +5064,51 @@ Signature) — the parse side is further along than the emission side.
   probes 0/0 with UNCHANGED per-file write-target key-gaps
   (34/31/35); the smokes identical (79/70/68); the corpus 280 @ 0/0
   with the write-target key-gap 13,653 → 13,656 (gh209_1's +3
-  id-coincidence, documented above). **Still open (post-review,
-  ~13,656):** CLASSES 3,246 (num_instances —
-  silver writes its sane-parse values where the original wire carries
-  the desynced bytes), ObjFreeSpace 2,453+30 (rebuilt content),
-  R2004_Header 1,771 (address/numsections shifts: silver writes 15→17
-  sections), AppInfo 1,651 + AppInfoHistory 342 (rewritten blobs —
+  id-coincidence, documented above). **The CLASSES sub-row (H7c)
+  LANDED 2026-09-26 — 60,954 matched + 0 value-diffs + 0 missing
+  (the write-target key-gap 13,656 → 10,410)**: the row was TWO
+  families with one root. (a) The authored class tables whose tail
+  encoding desyncs gold's walk (the AutoCAD-2027.1 fixture set)
+  can only round-trip byte-exactly — any re-encoding desyncs the
+  walk DIFFERENTLY (LoftC_2007's record [10] went gold 2147673665
+  vs rt 587458113, with the version/maint/proxyflag cascade);
+  (b) the classes whose instances re-emit through the raw-object
+  passthrough are OUTSIDE the write census
+  (`class_counts_complete=false` → 0 counts where the author
+  wrote 1/3, and the zombie re-derivation marks live classes
+  zombie — the ATMOS-DC22S/Cone families). The fix follows the
+  AcDs precedent: the reader retains the raw (decompressed)
+  classes section bytes (`raw_classes_data`) plus a state hash
+  (`raw_classes_fingerprint` — the ordered class identity tuple
+  + the document's per-class object census, computed by the
+  shared `classes_state_fingerprint` at the read capture and
+  again at the write gate; the census mirrors the writer's
+  required-classes walk over entities + class objects, counting
+  the raw-passthrough records the write census cannot see); a
+  same-version roundtrip whose class table and census are
+  unchanged re-emits the author's bytes verbatim (all three
+  writer paths — ac15/ac18/ac21), any class-table or census
+  change or version conversion falls back to the sane encoding.
+  The gold-shadow record stays the READ projection authority
+  (H5b); the WRITE authority is the raw section bytes.
+  Verification: the three family probes at CLASSES 0
+  (LoftC_2007 110→0, ATMOS-DC22S 18→0, example_2004 8→0 — every
+  other row unchanged); the smokes 79→43 / 70→35 / 68→33 (their
+  CLASSES rows); cargo test 1588/0; the corpus 280 @ 0/0, read
+  key-gap 0, write-target key-gap 10,410 with CLASSES 0 across
+  all 280. **Still open (post-H7c, 10,410):** ObjFreeSpace 2,453+30 (rebuilt content),
+  R2004_Header 1,775 (address/numsections shifts: silver writes 15→17
+  sections; +4 of these are the review's gh209_1 id-coincidence),
+  AppInfo 1,651 + AppInfoHistory 342 (rewritten/never-written blobs —
   the raw section bytes are retained in the H4 summaries),
-  FILEHEADER 1,205 (address shifts + maint_rel 0→4), R2007_Header 978,
+  FILEHEADER 1,204 (address shifts + maint_rel 0→4), R2007_Header 978,
   THUMBNAILIMAGE 442 (re-encoded — `preview.raw` is retained; the row
   is ADDRESS-COUPLED: the container descriptors hold absolute file
   offsets, so a byte-identical chain needs the section at the
   original offset or gold-style address re-computation, which itself
   changes the chain), the whole-section write
   drops FileDepList 1,055 + SecondHeader 386 (R2000, lives inside
-  ObjFreeSpace), AuxHeader 95 — the verbatim-re-emit family follows
+  ObjFreeSpace), AuxHeader 94 — the verbatim-re-emit family follows
   the AcDs precedent (raw section bytes + a fingerprint gate).
 
 ### 19.3 Standing rules for the campaign

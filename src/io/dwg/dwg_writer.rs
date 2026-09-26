@@ -686,6 +686,34 @@ fn acds_data<'a>(
     std::borrow::Cow::Owned(build_acds_prototype(sab_entries))
 }
 
+/// §19 H7 CLASSES row: the section bytes — verbatim re-emission of the
+/// source file's class table when the same-version roundtrip left the
+/// class table and the per-class object census unchanged (the state
+/// hash matches `raw_classes_fingerprint`). The authored desync bytes
+/// reproduce gold's walk exactly — any re-encoding desyncs it
+/// differently — and the bytes carry the author's `num_instances`/
+/// zombie flags for classes whose instances re-emit through the
+/// raw-object passthrough (outside the write census). Falls back to
+/// the sane encoding on any change or version conversion.
+fn classes_section_data<'a>(
+    document: &'a CadDocument,
+    version: DxfVersion,
+    classes: &[crate::classes::DxfClass],
+    maint: u8,
+    encoding: &'static encoding_rs::Encoding,
+) -> std::borrow::Cow<'a, [u8]> {
+    if document.dwg_source_version == Some(version) {
+        if let Some(raw) = document.raw_classes_data.as_deref() {
+            if super::classes_state_fingerprint(document) == document.raw_classes_fingerprint {
+                return std::borrow::Cow::Borrowed(raw.as_slice());
+            }
+        }
+    }
+    std::borrow::Cow::Owned(classes_writer::write_classes_with_encoding(
+        version, classes, maint, encoding,
+    ))
+}
+
 /// Whether the version uses the AC21 (R2007) file format.
 ///
 /// AC1021 uses RS-encoded pages, LZ77 AC21 compression, and CRC-64
@@ -1081,8 +1109,8 @@ fn write_ac15<W: Write + Seek>(
     // ── Section: Classes ──
     let classes = reconciled_classes(document, &class_instance_counts, class_counts_complete);
     let classes_data =
-        classes_writer::write_classes_with_encoding(version, &classes, maint, header_encoding);
-    fhw.add_section(section_names::CLASSES, classes_data);
+        classes_section_data(document, version, &classes, maint, header_encoding);
+    fhw.add_section(section_names::CLASSES, classes_data.into_owned());
 
     // ── Section: AcDbObjects (pre-computed) ──
     fhw.add_section(section_names::ACDB_OBJECTS, obj_data);
@@ -1188,7 +1216,7 @@ fn write_ac18<W: Write + Seek>(
     // ── Section: Classes ──
     let classes = reconciled_classes(document, &class_instance_counts, class_counts_complete);
     let classes_data =
-        classes_writer::write_classes_with_encoding(version, &classes, maint, header_encoding);
+        classes_section_data(document, version, &classes, maint, header_encoding);
     fhw.add_section(
         output,
         section_names::CLASSES,
@@ -1457,7 +1485,7 @@ fn write_ac21_impl<W: Write + Seek>(
         crate::io::dxf::code_page::encoding_from_code_page(&document.header.code_page)
             .unwrap_or(encoding_rs::WINDOWS_1252);
     let classes_data =
-        classes_writer::write_classes_with_encoding(version, &classes, maint, header_encoding);
+        classes_section_data(document, version, &classes, maint, header_encoding);
     fhw.add_section(output, section_names::CLASSES, &classes_data)?;
 
     // AuxHeader (uses corrected HANDSEED)
