@@ -5264,29 +5264,136 @@ Signature) — the parse side is further along than the emission side.
   208e1651daf, 25,344 bytes — it moved at an earlier landing
   without a re-record; the README's recorded 0217fbac… was stale).
 
-  **Still open (post-H7f, 5,584) — the container-parity wall:** the
-  remaining owned rows reduce to ONE root: silver's container
-  page-space differs from the author's. R2004_Header 2,088 +
-  R2007_Header 966: gold's `numsections` (inner header @0x40) IS the
-  page-array slot count — example_2004's author runs 26 page-ids
-  (gaps to id 28) where silver's rewrite carries 42 pages for the
-  same section set (the verified example_2004 tables: 13
-  section-info descriptors both sides, but the author's per-page
-  split differs — classes single-paged at 31,776 bytes with custom
-  per-descriptor maxdecomp vs silver's conventional splits);
-  last_section_id/section_map_id/section_info_id/section_array_size
-  follow the page space, and the three address fields move with the
-  layout. Closing them requires reproducing the author's per-page
-  split shape (a container-shape mirror: the author's per-descriptor
-  maxdecomp_size + page-count per section with our own content — the
-  verbatim sections now round-trip byte-equal, but header/objects
-  re-encode to different sizes, so page-count parity is approximate,
-  not exact). THUMBNAILIMAGE 442 is the same wall's address-coupled
-  face (the preview chain holds absolute file offsets). FILEHEADER
-  553 as above. The whole-section write drops FileDepList 1,055 +
-  SecondHeader 386 + AuxHeader 94 stay the PARALLEL SESSION's rows
-  (their untracked probes `h7_probe1.sh`/`h7_rows.sh` in the repo
-  root are not ours to commit).
+  H7g — the container-shape mirror (2026-09-26): the write-target
+  axis 5,584 → 3,577 (−2,007: R2004_Header 2,088 → 963, FILEHEADER
+  553 → 104, THUMBNAILIMAGE 442 → 50, R2007_Header 966 → 925 via
+  the AC21 random_seed mirror, −41 = one per AC1021 file). The
+  landing closes one root across three rows: `numsections` (inner
+  header @0x40) IS the page-map entry count, the four id fields
+  (@0x28 `last_section_id`, @0x50 `section_map_id`, @0x5C
+  `section_info_id`, @0x60 `section_array_size`) follow the page
+  space, and the FILEHEADER addresses are page-data positions — so
+  a rewrite that reproduces the author's PAGE SPACE also reproduces
+  every count, id and (with the author's emission order) the
+  summary/preview prefix addresses and the preview chain's embedded
+  absolute image offsets. Three author conventions were measured
+  and mirrored: (a) the per-descriptor maxdecomp page splits —
+  the authors single-page the metadata sections at custom caps
+  (example_2004: AppInfo 0x300, AppInfoHistory 0x580, Preview
+  0x7C00, SummaryInfo 0x80) where the historical writer used the
+  0x80 SMALL_PAGE and 0x7400 conventions — the author's tail page
+  pads to the full maxdecomp frame (AppInfoHistory content 0x510 →
+  0x580 frame, on-disk 1,440; our tail pages already padded to the
+  cap, so adopting the author's maxdecomp reproduces the frames);
+  (b) the box-id gap — the authors allocate the section-info and
+  page-map box pages at data_count+3/+4 (ids 27/28 with 25/26
+  unused, numsections 26 = data+2 counting only the entries) where
+  the historical writer used +1/+2; (c) the physical order — the
+  corpus authors lay the SummaryInfo page first at 0x100 (data at
+  0x120 = `summaryinfo_address` 288) and the preview page right
+  after at 0x1a0 (data at 0x1C0 = `thumbnail_address` 448, the
+  preview container's image descriptors hold those same absolute
+  offsets — pinned by the preview.rs verifier comment), where the
+  historical writer emitted header-first. The mirror:
+  the reader retains `DwgAc18ContainerShape` (per-descriptor
+  [mapped + raw 64-byte name, content size, maxdecomp, compression
+  code, (page id, start-offset) list], the page map's entries in
+  physical order, the three identity ids) on the document
+  (`dwg_ac18_shape`, serde-skipped; AC18-family files only);
+  `write_ac18` builds every section buffer up front (the builders
+  are pure, so the conventional path stays byte-identical), runs
+  `ac18_mirror_plan` — the content-parity gate: same-origin,
+  numgaps 0 (gap map entries are not reproducible), coherent
+  retained ids, the four core sections present, per-section
+  parity (our re-encoded content covers the author's last page
+  offset within her max-decomp capacity, ascending offsets, code
+  ∈ {1,2}, preview single-paged, our skipped sections must be the
+  author's 0-page ones), the entry count == the author's
+  numsections, and a physical-order walk with contiguous section
+  pages and the boxes last — and emits through
+  `add_section_shaped` (OUR content chunked at the AUTHOR's
+  per-page offsets, every page carrying the author's page id, the
+  tail padded to her frame, the raw name bytes into the descriptor
+  table, `set_mirror_ids` driving 0x50/0x5C/0x60 and the two box
+  page ids) in the author's physical order; the 0-page descriptors
+  (the unnamed AcDs) emit descriptor-table entries only. Two hard
+  edges found in review: gold's descriptor parser bounds-checks
+  `dec.byte + 8 + 6*4 + 64 >= dec.size` BEFORE every entry
+  (decode.c read_R2004_section_info "out of range") — a mirrored
+  table that ends with a 0-page descriptor exactly consumes the
+  stream and fails it (the historical tables always ended with a
+  pages-bearing section whose own page records were the slack), so
+  the mirrored table stream carries +32 bytes of tail slack; and
+  the preview re-emits RETAINED-RAW when its actual landing address
+  equals the retained `thumbnail_address` (the prefix pages are
+  size-faithful: the verbatim summary content keeps the author's
+  on-disk page size), else the container is rebuilt around OUR
+  address (honest bytes; the row keeps its diff on that file). One
+  presence addition: `AcDb:XrefManifest` — the R2013+ authoring
+  tables carry it (Box_2013/Revolve_2018-class fixtures), it is
+  unmodeled and UNPRINTED by gold (no census row; the read axis
+  stays 0 with it absent), but its page is part of the author's
+  page space — retained raw (`raw_xref_manifest_data`, the
+  AppInfo/ObjFreeSpace doctrine) and emitted mirror-only. The
+  225 engaged files close the five count fields, both FILEHEADER
+  addresses and the THUMBNAILIMAGE size+chain, keeping exactly the
+  irreducible residue (last_section_address, secondheader_address,
+  section_map_address, crc32 — file-tail positions and the system
+  CRC move with OUR content sizes; 4 per engaged file = 900). The
+  SEVEN declined files fall back byte-identically (stash-verified
+  on 2004/Arc and 2013/Arc: the read-gap 2 and write 14/29 are the
+  halt-state values): the numgaps>0 authors (2013/Arc/Line/RAY —
+  gap map entries plus the author's negative tree-node-gap fields,
+  an ODA convention the fallback conventionally zeroes), the
+  objects-overflow files (2004/2010/2013 Constraints, 2018
+  Dynblocks: our re-encoded objects exceed the author's page space
+  — `len − last_offset > maxdecomp`, where forcing the fit would
+  trip gold's reassembly guard), and 2018/Leader (the author's
+  real FileDepList content vs our 8-byte boilerplate — the
+  PARALLEL session's row). gh109_1 engages with its thumb at a
+  nonauthor address (1 FILEHEADER leaf). The AC21 companion
+  landing: `random_seed` mirrored from the retained
+  `DwgR2007SystemHeader` (gated on the author's crc_seed == our 0)
+  — decode-inert (gold only prints it), and it IS the CRC random
+  encoder's seed (spec §5.2.1.1.1), so the hope was the derived
+  draws (`sections_map_crc_seed`, `pages_map_crc_seed`,
+  `crc_seed_encoded`) would land the author's values for free;
+  they do not — our CrcRandomEncoder's sequence diverges from the
+  author's engine at the same seed+crc_seed (measured on
+  example_2007: the first draw already differs), so the 3-per-file
+  derive family stays open pending the author's MT-variant pinned
+  bit-exactly (a §5.11 instrument). The generation identity is
+  UNTOUCHED (40ab5d356cf05a71333ff208e1651daf, 25,344 bytes —
+  re-verified twice after the landing: programmatic documents keep
+  the conventional path). Verification surfaces: the −v9 layer-4 map
+  comparison (example_2004: pages 1–5 byte-exact at the author's
+  addresses — summary 160@0x100, preview 31,776@0x1a0, the
+  verbatim AppInfo 800@0x7dc0, AppInfoHistory 1,440@0x80e0,
+  RevHistory 192@0x8680 — objects 13 pages both sides, the boxes
+  at 27/28), the AC18_MIRROR_DEBUG decline trace (the seven
+  fallbacks enumerate their exact reason per file), and the
+  stash-check proving the fallback byte-identity.
+
+  **Still open (post-H7g, 3,577) — the wall's remaining faces:** the
+  AC18 residue is exactly the irreducible address/CRC family
+  (963 = 4 × 225 engaged + the 7 fallback files at the historical 9)
+  plus the gh109_1 thumbnail leaf; FILEHEADER 104 (= AC1021 82 +
+  R2000 7 + fallback 14 + gh109_1 1) and THUMBNAILIMAGE 50 close on
+  the AC1021 side only through an AC21 container mirror (the
+  RS-chunk page space) or, for the R2000 seeker pair, through
+  flat-layout parity — both follow the AC18 analysis template.
+  R2007_Header 925: random_seed closed (−41); the remaining 22-per-
+  file are the layout/content-coupled families (offsets, sizes, the
+  six CRCs, corrections) plus the 3-per-file crc-seed derive family
+  (the author's MT-variant) and the page-space pair
+  (pages_amount/pages_maxid + the four map-id fields — the AC21
+  page-space mirror). The whole-section write drops FileDepList
+  1,055 + SecondHeader 386 + AuxHeader 94 stay the PARALLEL
+  SESSION's rows (their untracked probes `h7_probe1.sh`/
+  `h7_rows.sh` in the repo root are not ours to commit; note the
+  FileDepList CONTENT class — 2004/Arc (2) through gh109_1 (75) —
+  declines the container mirror on the same missing-content root:
+  closing the parallel row re-engages those mirrors for free).
 
 ### 19.3 Standing rules for the campaign
 
