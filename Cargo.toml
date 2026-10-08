@@ -106,3 +106,11 @@ path = "tests/gold_harness/src/bin/ac21_page_layout.rs"
 name = "genus_constructed"
 path = "tests/gold_harness/src/bin/genus_constructed.rs"
 
+[[bin]]
+name = "solid_probe"
+path = "tests/gold_harness/src/bin/solid_probe.rs"
+
+[[bin]]
+name = "solid_rt"
+path = "tests/gold_harness/src/bin/solid_rt.rs"
+
