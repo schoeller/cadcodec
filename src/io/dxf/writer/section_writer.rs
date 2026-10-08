@@ -1,4 +1,4 @@
-﻿//! DXF section writers
+//! DXF section writers
 //!
 //! This module contains writers for each section of a DXF file:
 //! HEADER, CLASSES, TABLES, BLOCKS, ENTITIES, and OBJECTS.
@@ -2554,8 +2554,8 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
     fn write_dynamic_action_dxf(&mut self, value: &crate::objects::BlockAction) -> Result<()> {
         self.write_dynamic_element_dxf(&value.element)?;
         self.writer.write_subclass("AcDbBlockAction")?;
-        self.writer.write_i32(70, value.action_ids.len() as i32)?;
-        for id in &value.action_ids {
+        self.writer.write_i32(70, value.parameter_ids.len() as i32)?;
+        for id in &value.parameter_ids {
             self.writer.write_i32(91, *id)?;
         }
         self.writer.write_i32(71, value.dependencies.len() as i32)?;
@@ -2686,8 +2686,8 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
         self.writer.write_byte(70, value.align_option)?;
         self.writer.write_byte(71, value.miter_option)?;
         self.writer.write_bool(290, value.has_align_start)?;
-        self.writer.write_bool(292, value.bank)?;
-        self.writer.write_bool(293, value.check_intersections)?;
+        self.writer.write_bool(292, value.align_start)?;
+        self.writer.write_bool(293, value.bank)?;
         self.writer.write_bool(294, value.flags_294_296[0])?;
         self.writer.write_bool(295, value.flags_294_296[1])?;
         self.writer.write_bool(296, value.flags_294_296[2])?;
@@ -3126,8 +3126,8 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
                 self.write_dynamic_action_dxf(&value.action)?;
                 self.writer.write_subclass("AcDbBlockMoveAction")?;
                 self.write_dynamic_connections_dxf(&value.connections, 92, 301)?;
-                self.writer.write_double(140, value.offsets.offset_x)?;
-                self.writer.write_double(141, value.offsets.offset_y)?;
+                self.writer.write_double(140, value.offsets.distance_multiplier)?;
+                self.writer.write_double(141, value.offsets.angle_offset)?;
                 self.writer.write_byte(280, 1)?;
             }
             DynamicBlockData::FlipAction(value) => {
@@ -3152,14 +3152,19 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
                 self.writer.write_subclass("AcDbBlockLookupAction")?;
                 self.writer.write_i32(92, value.row_count)?;
                 self.writer.write_i32(93, value.column_count)?;
+                self.writer.write_string(301, "")?;
                 for expression in &value.expressions {
                     self.writer.write_string(302, expression)?;
                 }
-                self.writer.write_string(301, "")?;
-                for row in &value.rows {
-                    self.write_dynamic_connections_dxf(&row.connections, 94, 303)?;
-                    self.writer.write_bool(282, row.flag_282)?;
-                    self.writer.write_bool(281, row.flag_281)?;
+                for column in &value.columns {
+                    self.writer.write_string(303, "")?;
+                    self.writer.write_i32(94, column.node_id)?;
+                    self.writer.write_i32(95, column.value_type)?;
+                    self.writer.write_i32(96, column.property_type)?;
+                    self.writer.write_bool(282, column.lookup_property)?;
+                    self.writer.write_string(305, &column.unmatched_name)?;
+                    self.writer.write_bool(281, column.writable)?;
+                    self.writer.write_string(304, &column.connection_name)?;
                 }
                 self.writer.write_bool(280, value.flag_280)?;
             }
@@ -3187,8 +3192,8 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
                         self.writer.write_i32(94, *index)?;
                     }
                 }
-                self.writer.write_double(140, value.offsets.offset_x)?;
-                self.writer.write_double(141, value.offsets.offset_y)?;
+                self.writer.write_double(140, value.offsets.distance_multiplier)?;
+                self.writer.write_double(141, value.offsets.angle_offset)?;
             }
             DynamicBlockData::PolarStretchAction(value) => {
                 self.write_dynamic_action_dxf(&value.action)?;
@@ -3303,7 +3308,7 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
     }
 
     fn write_point_cloud_ex_dxf(&mut self, data: &PointCloudExData) -> Result<()> {
-        self.writer.write_subclass("AcDbPointCloud")?;
+        self.writer.write_subclass("AcDbPointCloudEx")?;
         self.writer.write_i16(70, data.class_version)?;
         self.writer.write_point3d(10, data.extents_min)?;
         self.writer.write_point3d(11, data.extents_max)?;
@@ -3312,7 +3317,7 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
         self.writer.write_point3d(211, data.ucs_y_direction)?;
         self.writer.write_point3d(212, data.ucs_z_direction)?;
         self.writer.write_bool(290, data.locked)?;
-        self.writer.write_handle(330, data.definition_handle)?;
+        self.writer.write_handle(340, data.definition_handle)?;
         self.writer.write_handle(360, data.reactor_handle)?;
         self.writer.write_string(1, &data.name)?;
         self.writer.write_bool(291, data.show_intensity)?;
@@ -3346,6 +3351,15 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
             for point in &crop.points {
                 self.writer.write_point3d(13, *point)?;
             }
+        }
+        // The scans and the regions turned off.
+        self.writer.write_i32(93, data.hidden_scans.len() as i32)?;
+        for scan in &data.hidden_scans {
+            self.writer.write_string(1, scan)?;
+        }
+        self.writer.write_i32(93, data.hidden_regions.len() as i32)?;
+        for region in &data.hidden_regions {
+            self.writer.write_i32(93, *region)?;
         }
         Ok(())
     }
@@ -5657,11 +5671,14 @@ impl<'a, W: DxfStreamWriter> SectionWriter<'a, W> {
     ) -> Result<()> {
         self.writer.write_i32(90, ramps.len() as i32)?;
         for ramp in ramps {
+            self.writer.write_string(1, &ramp.id)?;
             self.writer.write_i16(70, ramp.class_version)?;
-            self.writer.write_i32(90, ramp.color_schemes.len() as i32)?;
-            for scheme in &ramp.color_schemes {
-                self.writer.write_string(1, scheme)?;
+            self.writer.write_i32(90, ramp.colors.len() as i32)?;
+            for color in &ramp.colors {
+                self.writer.write_i32(91, color.color)?;
+                self.writer.write_bool(290, color.visible)?;
             }
+            self.writer.write_string(1, &ramp.name)?;
         }
         Ok(())
     }
