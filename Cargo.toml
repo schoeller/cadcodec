@@ -122,3 +122,7 @@ path = "tests/gold_harness/src/bin/space_probe.rs"
 name = "class_probe"
 path = "tests/gold_harness/src/bin/class_probe.rs"
 
+[[bin]]
+name = "node_probe"
+path = "tests/gold_harness/src/bin/node_probe.rs"
+
