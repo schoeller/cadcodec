@@ -1016,21 +1016,15 @@ impl ArchEntityData {
     }
 
     /// The baselines of a Civil 3D corridor: the alignment and profile
-    /// records its body's tail references name (see
+    /// records its handle stream references (see
     /// [`CorridorBaseline`]; the feature-line groups
-    /// [`Self::corridor_baselines`] reads are separate). The scan runs
-    /// over the whole raw record — on the sample the references sit in
-    /// its last bits, past the class body's main stream. Verified on one
-    /// corridor; a record whose tail carries no such references reports
-    /// none.
+    /// [`Self::corridor_baselines`] reads are separate). A corridor whose
+    /// references name no alignment/profile pair reports none.
     pub fn corridor_tail_baselines(&self) -> Vec<CorridorBaseline> {
         if self.civil_kind() != Some(CivilKind::Corridor) {
             return Vec::new();
         }
-        self.raw_dwg_data
-            .as_deref()
-            .map(|data| corridor::tail_baselines(data, 0, data.len() * 8))
-            .unwrap_or_default()
+        corridor::tail_baselines(&self.typed_handles())
     }
 
     /// Feature lines of a Civil 3D corridor grouped by point code, in the

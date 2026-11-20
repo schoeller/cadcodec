@@ -18,14 +18,16 @@ use crate::types::Vector3;
 
 type Groups = Vec<Vec<Vec<(f64, Vector3)>>>;
 
-/// A corridor baseline's alignment and profile, from the tagged reference
-/// records at the tail of the corridor body.
+/// A corridor baseline's alignment and profile, from the corridor's
+/// handle-stream references.
 ///
-/// Layout verified on one sample (`DE_Busbucht_2023.dwg`, corridor
-/// `0x202BCAF`: records `(0x54, alignment), (0x54, profile), (0x44,
-/// alignment)` — one baseline on `0x202BBA5` with profile `0x202BBD8`,
-/// matching the application's own read of the same file); whether the tag
-/// bytes are stable across files is open.
+/// The stream lists a baseline's alignment and profile as adjacent hard
+/// pointers after the styles and surfaces, and the alignment again as a
+/// further reference near the end. Checked on `DE_Busbucht_2023.dwg`
+/// corridor `0x202BCAF` (alignment `0x202BBA5`, profile `0x202BBD8`,
+/// alignment again — matching the application's own read of the same
+/// file) and by the maintainer on 24 corridors of two other Civil 3D
+/// drawings (the pair sits at slots 22–33 depending on the head's lists).
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CorridorBaseline {
@@ -35,61 +37,30 @@ pub struct CorridorBaseline {
     pub profile: Option<u64>,
 }
 
-/// One tail reference record: `[8-bit tag][32-bit BE handle]`.
-fn tail_record(data: &[u8], at: usize, end: usize) -> Option<(u8, u64)> {
-    let mut bits = Bits::new(data, at, end);
-    let tag = bits.raw_short_byte()?;
-    let handle = u32::from_be_bytes([
-        bits.raw_short_byte()?,
-        bits.raw_short_byte()?,
-        bits.raw_short_byte()?,
-        bits.raw_short_byte()?,
-    ]);
-    Some((tag, u64::from(handle)))
-}
+/// A hard-pointer reference (`0x5` handle code).
+const HARD_POINTER: u8 = 5;
 
-/// The reference records at the tail of a corridor body: the last run of
-/// 40-bit records with tags `0x54` (a baseline's alignment, then its
-/// profile) or `0x44` (the alignment again) that reaches the end of the
-/// body. Tags outside the two seen, a zero handle, or a record that does
-/// not fit end the run.
-fn tail_refs(data: &[u8], start: usize, end: usize) -> Vec<(u8, u64)> {
-    for at in (start..=end.saturating_sub(40)).rev() {
-        let Some((tag, handle)) = tail_record(data, at, end) else { continue };
-        if handle == 0 || !matches!(tag, 0x44 | 0x54) {
+/// The baselines a corridor's handle-stream references name: every
+/// adjacent pair of hard pointers whose alignment another reference near
+/// the end repeats. The repeat tells the baseline pair apart from the
+/// style and surface groups before it; a corridor whose references name
+/// no such pair reports none.
+///
+/// The baseline count the body head states is not read here — the body
+/// walk rejects the one record checked so far that carries baselines
+/// (see `baselines`); tie the two together once it accepts it.
+pub(super) fn tail_baselines(refs: &[(u64, u8)]) -> Vec<CorridorBaseline> {
+    let mut out = Vec::new();
+    for i in 0..refs.len().saturating_sub(2) {
+        let (alignment, kind) = refs[i];
+        let (profile, profile_kind) = refs[i + 1];
+        if kind != HARD_POINTER || profile_kind != HARD_POINTER || alignment == 0 {
             continue;
         }
-        let mut refs = vec![(tag, handle)];
-        let mut next = at + 40;
-        while let Some((tag, handle)) = tail_record(data, next, end) {
-            if handle == 0 || !matches!(tag, 0x44 | 0x54) {
-                break;
-            }
-            refs.push((tag, handle));
-            next += 40;
+        if !refs[i + 2..].iter().any(|&(handle, _)| handle == alignment) {
+            continue;
         }
-        // The run is the body's tail only if fewer than 40 bits follow it.
-        if refs.len() >= 3 && end - next < 40 {
-            return refs;
-        }
-    }
-    Vec::new()
-}
-
-/// The baselines a corridor body's tail references name: one baseline per
-/// `0x54` alignment / `0x54` profile pair. A body whose tail carries no
-/// such records reports none.
-pub(super) fn tail_baselines(data: &[u8], start: usize, end: usize) -> Vec<CorridorBaseline> {
-    let refs = tail_refs(data, start, end);
-    let mut out = Vec::new();
-    let mut i = 0;
-    while i + 1 < refs.len() {
-        if refs[i].0 == 0x54 && refs[i + 1].0 == 0x54 {
-            out.push(CorridorBaseline { alignment: refs[i].1, profile: Some(refs[i + 1].1) });
-            i += 2;
-        } else {
-            i += 1;
-        }
+        out.push(CorridorBaseline { alignment, profile: (profile != 0).then_some(profile) });
     }
     out
 }
