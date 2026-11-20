@@ -41,23 +41,39 @@ pub struct CorridorBaseline {
 const HARD_POINTER: u8 = 5;
 
 /// The baselines a corridor's handle-stream references name: every
-/// adjacent pair of hard pointers whose alignment another reference near
-/// the end repeats. The repeat tells the baseline pair apart from the
-/// style and surface groups before it; a corridor whose references name
-/// no such pair reports none.
+/// adjacent pair of hard pointers whose alignment the record closes
+/// with — the last reference of a baseline corridor repeats its
+/// alignment (the assembly/alignment block that ends the stream;
+/// zero handles trail when the head's later lists are empty). The
+/// closing alignment tells the baseline pair apart from the style and
+/// surface groups before it, whose handles the later groups repeat. A
+/// corridor whose references name no such pair reports none.
+///
+/// Checked on `DE_Busbucht_2023.dwg` (one corridor with a baseline, two
+/// without) and on the maintainer's 24 corridors of two other Civil 3D
+/// drawings; a corridor of several baselines is not in any sample yet.
 ///
 /// The baseline count the body head states is not read here — the body
 /// walk rejects the one record checked so far that carries baselines
 /// (see `baselines`); tie the two together once it accepts it.
 pub(super) fn tail_baselines(refs: &[(u64, u8)]) -> Vec<CorridorBaseline> {
+    // Index and handle of the record's closing reference (the last one
+    // that is not one of the zero handles trailing empty head lists).
+    let closing = refs
+        .iter()
+        .enumerate()
+        .rev()
+        .find(|(_, &(handle, _))| handle != 0)
+        .map(|(i, &(handle, _))| (i, handle));
     let mut out = Vec::new();
-    for i in 0..refs.len().saturating_sub(2) {
+    for i in 0..refs.len().saturating_sub(1) {
         let (alignment, kind) = refs[i];
         let (profile, profile_kind) = refs[i + 1];
         if kind != HARD_POINTER || profile_kind != HARD_POINTER || alignment == 0 {
             continue;
         }
-        if !refs[i + 2..].iter().any(|&(handle, _)| handle == alignment) {
+        // The closing reference repeats the pair's alignment, after it.
+        if !closing.is_some_and(|(at, handle)| at > i + 1 && handle == alignment) {
             continue;
         }
         out.push(CorridorBaseline { alignment, profile: (profile != 0).then_some(profile) });
