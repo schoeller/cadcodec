@@ -681,6 +681,7 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                     "polyline3d" => {
                         let mut p = Polyline3D::new();
                         p.common.layer = item["layer"].as_str().unwrap_or("0").to_string();
+                        p.flags.closed = item["closed"].as_bool().unwrap_or(false);
                         p.vertices = item["vertices"].as_array().unwrap().iter().map(|v| Vertex3DPolyline { handle: Handle::NULL, layer: String::new(), position: v3(v), flags: 0 }).collect();
                         doc.add_entity(EntityType::Polyline3D(p)).map_err(|e| e.to_string())?;
                     }
