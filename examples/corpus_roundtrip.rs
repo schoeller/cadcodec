@@ -18,8 +18,8 @@
 //! and audit clean, and its census must show the manifest's written
 //! families with the same counts.
 
-use acadrust::classes::civil::{add_alignment_with_curves, add_parcel, add_profile, add_profile_view_with_range, add_sample_line, add_sample_line_group, add_section_view, add_sections, add_site, add_surface_profile, add_tin_surface, cpp_class_name, VertexCurve};
-use acadrust::entities::{Circle, EntityType, Line, MText, Polyline3D, Vertex3DPolyline};
+use acadrust::classes::civil::{add_alignment_with_curves, add_cogo_point, add_parcel, add_pipe, add_pipe_network, add_profile, add_profile_view_with_range, add_sample_line, add_sample_line_group, add_section_view, add_sections, add_site, add_structure, add_surface_profile, add_tin_surface, cpp_class_name, VertexCurve};
+use acadrust::entities::{Arc, Circle, EntityType, Line, LwPolyline, LwVertex, MText, Polyline3D, Vertex3DPolyline};
 use acadrust::io::dwg::{DwgReader, DwgWriter};
 use acadrust::tables::Layer;
 use acadrust::types::{Handle, Vector2, Vector3};
@@ -49,11 +49,49 @@ fn native_key(e: &EntityType) -> Option<&'static str> {
         EntityType::Line(_) => "AcDbLine",
         EntityType::Circle(_) => "AcDbCircle",
         EntityType::Arc(_) => "AcDbArc",
+        EntityType::Point(_) => "AcDbPoint",
+        EntityType::Ellipse(_) => "AcDbEllipse",
+        EntityType::Polyline(_) => "AcDb3dPolyline",
+        EntityType::Polyline2D(_) => "AcDb2dPolyline",
         EntityType::Polyline3D(_) => "AcDb3dPolyline",
+        EntityType::LwPolyline(_) => "AcDbPolyline",
         EntityType::MText(_) => "AcDbMText",
         EntityType::Text(_) => "AcDbText",
+        EntityType::Spline(_) => "AcDbSpline",
+        EntityType::Helix(_) => "AcDbHelix",
+        EntityType::Dimension(_) => "AcDbDimension",
+        EntityType::Hatch(_) => "AcDbHatch",
+        EntityType::Solid(_) => "AcDbSolid",
+        EntityType::Face3D(_) => "AcDbFace",
         EntityType::Insert(_) => "AcDbBlockReference",
-        _ => return None,
+        EntityType::Ray(_) => "AcDbRay",
+        EntityType::XLine(_) => "AcDbXline",
+        EntityType::Viewport(_) => "AcDbViewport",
+        EntityType::AttributeDefinition(_) => "AcDbAttributeDefinition",
+        EntityType::AttributeEntity(_) => "AcDbAttribute",
+        EntityType::Leader(_) => "AcDbLeader",
+        EntityType::MultiLeader(_) => "AcDbMLeader",
+        EntityType::MLine(_) => "AcDbMline",
+        EntityType::Mesh(_) => "AcDbSubDMesh",
+        EntityType::RasterImage(_) => "AcDbRasterImage",
+        EntityType::Solid3D(_) => "AcDb3dSolid",
+        EntityType::Region(_) => "AcDbRegion",
+        EntityType::Body(_) => "AcDbBody",
+        EntityType::Surface(_) => "AcDbSurface",
+        EntityType::Table(_) => "AcDbTable",
+        EntityType::Tolerance(_) => "AcDbFcf",
+        EntityType::PolyfaceMesh(_) => "AcDbPolyFaceMesh",
+        EntityType::Wipeout(_) => "AcDbWipeout",
+        EntityType::Shape(_) => "AcDbShape",
+        EntityType::Underlay(_) => "AcDbUnderlayReference",
+        EntityType::Ole2Frame(_) => "AcDbOle2Frame",
+        EntityType::PolygonMesh(_) => "AcDbPolygonMesh",
+        EntityType::Light(_) => "AcDbLight",
+        EntityType::SectionSymbol(_) => "AcDbSectionSymbol",
+        EntityType::ViewBorder(_) => "AcDbViewBorder",
+        EntityType::Seqend(_) | EntityType::Block(_) | EntityType::BlockEnd(_) => return None,
+        EntityType::Extended(_) => return None,
+        EntityType::Unknown(_) => "AcDbUnknown",
     })
 }
 
@@ -136,7 +174,9 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
     // ---- native families ----
     let ms = doc.header.model_space_block_handle;
     let mut plines = Vec::new();
+    let mut lwplines = Vec::new();
     let mut circles = Vec::new();
+    let mut arcs = Vec::new();
     let mut lines = Vec::new();
     let mut mtexts = Vec::new();
     let mut native_gaps: BTreeMap<String, usize> = BTreeMap::new();
@@ -150,7 +190,9 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         }
         match e {
             EntityType::Polyline3D(p) => plines.push(p),
+            EntityType::LwPolyline(p) => lwplines.push(p),
             EntityType::Circle(c) => circles.push(c),
+            EntityType::Arc(a) => arcs.push(a),
             EntityType::Line(l) => lines.push(l),
             EntityType::MText(m) => mtexts.push(m),
             EntityType::Extended(_) => {}
@@ -160,11 +202,23 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
             }
         }
     }
+    if !arcs.is_empty() {
+        families.push(serde_json::json!({ "family": "arc", "count": arcs.len(), "items": arcs.iter().map(|a| serde_json::json!({
+            "layer": a.common.layer, "center": j3(a.center), "radius": jf(a.radius),
+            "start_angle": jf(a.start_angle), "end_angle": jf(a.end_angle),
+        })).collect::<Vec<_>>() }));
+    }
     if !plines.is_empty() {
         families.push(serde_json::json!({ "family": "polyline3d", "count": plines.len(), "items": plines.iter().map(|p| serde_json::json!({
             "layer": p.common.layer,
             "closed": p.flags.closed,
             "vertices": p.vertices.iter().map(|v| j3(v.position)).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>() }));
+    }
+    if !lwplines.is_empty() {
+        families.push(serde_json::json!({ "family": "lwpolyline", "count": lwplines.len(), "items": lwplines.iter().map(|p| serde_json::json!({
+            "layer": p.common.layer, "closed": p.is_closed, "elevation": jf(p.elevation),
+            "vertices": p.vertices.iter().map(|v| serde_json::json!([jf(v.location.x), jf(v.location.y), jf(v.bulge)])).collect::<Vec<_>>(),
         })).collect::<Vec<_>>() }));
     }
     if !circles.is_empty() {
@@ -187,6 +241,51 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
     }
 
     // ---- civil families ----
+    // COGO points: number, position, raw description and name (the fields
+    // the writer + decoder round-trip; styles are defaults).
+    let cogo = acadrust::classes::civil::cogo_points(doc);
+    if !cogo.is_empty() {
+        families.push(serde_json::json!({ "family": "cogo_point", "count": cogo.len(), "items": cogo.iter().map(|p| serde_json::json!({
+            "number": p.number,
+            "position": j3(p.position),
+            "description": p.description,
+            "name": p.name,
+        })).collect::<Vec<_>>() }));
+    }
+
+    // Gravity pipe networks: the parts the writers reproduce. The network
+    // record itself is rebuilt implicitly by add_pipe_network (its name is
+    // not carried — a parameter gap); connectors and part lists are app-side.
+    let structures = all_of(doc, "AECC_STRUCTURE");
+    if !structures.is_empty() {
+        let items: Vec<Json> = structures
+            .iter()
+            .enumerate()
+            .map(|(i, h)| {
+                let a = arch_of(doc, *h).unwrap();
+                let pos = a.structure_position().map(j3).unwrap_or(Json::Null);
+                let rot = a.network_part_rotation().map(jf).unwrap_or(Json::Null);
+                serde_json::json!({ "key": format!("ST{i}"), "position": pos, "rotation": rot })
+            })
+            .collect();
+        families.push(serde_json::json!({ "family": "structure", "count": structures.len(), "items": items }));
+    }
+    let pipes = all_of(doc, "AECC_PIPE");
+    if !pipes.is_empty() {
+        let items: Vec<Json> = pipes
+            .iter()
+            .enumerate()
+            .map(|(i, h)| {
+                let a = arch_of(doc, *h).unwrap();
+                match a.pipe_ends() {
+                    Some((s, e)) => serde_json::json!({ "key": format!("PP{i}"), "start": j3(s), "end": j3(e) }),
+                    None => serde_json::json!({ "key": format!("PP{i}"), "start": null, "end": null }),
+                }
+            })
+            .collect();
+        families.push(serde_json::json!({ "family": "pipe", "count": pipes.len(), "items": items }));
+    }
+
     // TIN surfaces: points and triangle list (the points writer rebuilds the
     // TIN; the stored triangulation itself is a parameter gap).
     let surfaces = all_of(doc, "AECC_TIN_SURFACE");
@@ -501,10 +600,33 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
     let find = |fams: &[Json], name: &str| fams.iter().find(|f| f["family"] == name).cloned();
 
     // Native entities first.
-    for name in ["polyline3d", "circle", "line", "mtext"] {
+    for name in ["polyline3d", "lwpolyline", "circle", "arc", "line", "mtext"] {
         if let Some(f) = find(&fams, name) {
             for item in f["items"].as_array().unwrap_or(&vec![]) {
                 match name {
+                    "lwpolyline" => {
+                        let mut p = LwPolyline::new();
+                        p.common.layer = item["layer"].as_str().unwrap_or("0").to_string();
+                        p.is_closed = item["closed"].as_bool().unwrap_or(false);
+                        p.elevation = item["elevation"].as_f64().unwrap_or(0.0);
+                        p.vertices = item["vertices"].as_array().unwrap().iter().map(|v| LwVertex {
+                            location: Vector2::new(v[0].as_f64().unwrap_or(0.0), v[1].as_f64().unwrap_or(0.0)),
+                            bulge: v.get(2).and_then(|b| b.as_f64()).unwrap_or(0.0),
+                            start_width: 0.0,
+                            end_width: 0.0,
+                            vertex_id: 0,
+                        }).collect();
+                        doc.add_entity(EntityType::LwPolyline(p)).map_err(|e| e.to_string())?;
+                    }
+                    "arc" => {
+                        let mut a = Arc::new();
+                        a.common.layer = item["layer"].as_str().unwrap_or("0").to_string();
+                        a.center = v3(&item["center"]);
+                        a.radius = item["radius"].as_f64().unwrap_or(1.0);
+                        a.start_angle = item["start_angle"].as_f64().unwrap_or(0.0);
+                        a.end_angle = item["end_angle"].as_f64().unwrap_or(0.0);
+                        doc.add_entity(EntityType::Arc(a)).map_err(|e| e.to_string())?;
+                    }
                     "polyline3d" => {
                         let mut p = Polyline3D::new();
                         p.common.layer = item["layer"].as_str().unwrap_or("0").to_string();
@@ -534,6 +656,63 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                     _ => {}
                 }
             }
+        }
+    }
+
+    // COGO points (before parcels; the number is explicit so a failed name
+    // set below does not shift later points).
+    if let Some(f) = find(&fams, "cogo_point") {
+        for item in f["items"].as_array().unwrap_or(&vec![]) {
+            let number = item["number"].as_u64().map(|n| n as u32);
+            let position = v3(&item["position"]);
+            let description = item["description"].as_str().map(|s| s.to_string());
+            let name = item["name"].as_str().map(|s| s.to_string());
+            match add_cogo_point(&mut doc, number, position, description.as_deref(), None, None) {
+                Ok(h) => {
+                    if let Some(n) = &name {
+                        if let Err(e) = acadrust::classes::civil::set_cogo_point_name(&mut doc, h, Some(n)) {
+                            notes.push(format!("cogo_point {number:?} name {n:?}: {e}"));
+                        }
+                    }
+                }
+                Err(e) => notes.push(format!("cogo_point {number:?}: {e}")),
+            }
+        }
+    }
+
+    // Gravity pipe network: one network per file (the oracle's network name
+    // and parts list are not carried — logged gaps), parts in manifest order.
+    if find(&fams, "structure").is_some() || find(&fams, "pipe").is_some() {
+        match add_pipe_network(&mut doc, "NETWORK", None) {
+            Ok(network) => {
+                if let Some(f) = find(&fams, "structure") {
+                    for item in f["items"].as_array().unwrap_or(&vec![]) {
+                        let Some(position) = item.get("position").and_then(|v| v.is_array().then(|| v3(v))) else {
+                            notes.push(format!("structure {}: no position decoded", item["key"]));
+                            continue;
+                        };
+                        let rotation = item["rotation"].as_f64().unwrap_or(0.0);
+                        if let Err(e) = add_structure(&mut doc, network, position, rotation) {
+                            notes.push(format!("structure {}: {e}", item["key"]));
+                        }
+                    }
+                }
+                if let Some(f) = find(&fams, "pipe") {
+                    for item in f["items"].as_array().unwrap_or(&vec![]) {
+                        let (Some(start), Some(end)) = (
+                            item.get("start").and_then(|v| v.is_array().then(|| v3(v))),
+                            item.get("end").and_then(|v| v.is_array().then(|| v3(v))),
+                        ) else {
+                            notes.push(format!("pipe {}: no ends decoded", item["key"]));
+                            continue;
+                        };
+                        if let Err(e) = add_pipe(&mut doc, network, start, end) {
+                            notes.push(format!("pipe {}: {e}", item["key"]));
+                        }
+                    }
+                }
+            }
+            Err(e) => notes.push(format!("pipe_network: {e}")),
         }
     }
 
@@ -722,6 +901,55 @@ fn main() {
                     std::process::exit(1);
                 }
             }
+        }
+        Some("detect") => {
+            // Wave-1 classification probe: model-space census (all classes,
+            // app-style keys) + per-alignment element-kind histogram + the
+            // piece counts the manifest builder can/cannot reproduce. Read
+            // only; no manifest is produced.
+            let oracle = &args[2];
+            let doc = DwgReader::from_file(oracle).unwrap().read_with_stats().unwrap().document;
+            let c = census(&doc);
+            let mut arc_kinds: BTreeMap<String, usize> = BTreeMap::new();
+            let mut raw_elements: Vec<Json> = Vec::new();
+            for h in all_of(&doc, "AECC_ALIGNMENT") {
+                if let Some(a) = arch_of(&doc, h) {
+                    let els = a.alignment_elements().unwrap_or_default();
+                    raw_elements.push(serde_json::json!({ "handle": h.value(), "elements": els.len() }));
+                    for e in els {
+                        let k = match e.kind {
+                            acadrust::classes::civil::AlignmentElementKind::FixedArc { .. } => "FixedArc",
+                            acadrust::classes::civil::AlignmentElementKind::FreeArc { .. } => "FreeArc",
+                            acadrust::classes::civil::AlignmentElementKind::FixedLine { .. } => "FixedLine",
+                            acadrust::classes::civil::AlignmentElementKind::FreeLine => "FreeLine",
+                            acadrust::classes::civil::AlignmentElementKind::FloatingArc { .. }
+                            | acadrust::classes::civil::AlignmentElementKind::FloatingArcToPoint { .. }
+                            | acadrust::classes::civil::AlignmentElementKind::FloatingArcFromPoint { .. } => "FloatingArc*",
+                            acadrust::classes::civil::AlignmentElementKind::FloatingLine { .. }
+                            | acadrust::classes::civil::AlignmentElementKind::FloatingLineFrom { .. } => "FloatingLine*",
+                            acadrust::classes::civil::AlignmentElementKind::Circle { .. } => "Circle",
+                            acadrust::classes::civil::AlignmentElementKind::Other { .. } => continue,
+                            _ => "other",
+                        };
+                        *arc_kinds.entry(k.to_string()).or_default() += 1;
+                    }
+                    // Undecoded element types, per alignment (read gap
+                    // diagnosis).
+                    if let Some(els) = a.alignment_elements() {
+                        let mut others: BTreeMap<String, usize> = BTreeMap::new();
+                        for e in &els {
+                            if let acadrust::classes::civil::AlignmentElementKind::Other { element_type, constraint } = &e.kind {
+                                *others.entry(format!("{element_type}/{constraint:?}")).or_default() += 1;
+                            }
+                        }
+                        if !others.is_empty() {
+                            raw_elements.last_mut().unwrap().as_object_mut().unwrap().insert("undecoded".into(), serde_json::json!(others));
+                        }
+                    }
+                }
+            }
+            let out = serde_json::json!({ "source": oracle, "census": c, "alignment_element_kinds": arc_kinds, "alignments": raw_elements });
+            println!("{}", serde_json::to_string(&out).unwrap());
         }
         Some("verify") => {
             // Layer (a): decode the BUILT file with the codec and dump the
