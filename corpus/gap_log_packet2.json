@@ -1,0 +1,28 @@
+{
+ "format": "{id, file, family, class, missing, implementable, evidence}",
+ "wave": "D017 packet #2 (2026-11-24) — Points-4a, Survey-2a, Surface-2",
+ "base": "parity/corpus-roundtrip@6abe2165",
+ "suite": "cargo test 3281 passed / 0 failed on 6abe2165",
+ "classes": {"READ gap": "oracle decodes less than the application shows", "WRITER gap": "manifest carries it but the writer refuses/omits", "CODEC BUG": "decoded/written values disagree with the oracle", "manifest err": "the manifest itself is wrong", "KNOWN-TOLERATED": "documented deviation, compare_verify tolerates"},
+ "sizing": {
+  "W1-5 (cogo 0-decode in survey-created files)": {
+   "Points-4a.dwg": "2405 AECC_COGO_POINT in oracle (codec census AND app census agree), 0 decoded -> manifest families=[]; W1-5 hole REPRODUCES outside Survey-3 at 2405 (4.5x the Survey-3 denominator of 538). App reads the same points fine (sample: E=19857.2577 N=20260.4556 Z=100.3058) so the entities are healthy; the tree-node KEY_POINTS read chain is the blocker.",
+   "Survey-3.dwg (prior)": 538
+  },
+  "W1-7 (no survey-figure/network decoder)": {
+   "Survey-2a.dwg": "0 figures, 0 networks — the drawing's model space is EMPTY app-side (custom census total_entities=0; managed walk rxCounts empty, SurveyFigure cast count=0). W1-7 is NOT exercised by this file; no records exist to decode. Codec census {} == app census 0.",
+   "Survey-3.dwg (prior)": "AECC_SVFIGURE 85 / AECC_SVNETWORK 1"
+  },
+  "W1-2 (surface with no decodable triangulation)": {
+   "Surface-2.dwg": "1 surface total (AeccDbSurfaceTin=1), named 'EG'; triangulation decode FAILS (tin::find None -> manifest tin_surface count=1 items=[]); APP-SIDE the same surface reports 0 vertices / 0 triangles (TinSurface.Vertices.Count=0, Triangles.Count=0) — the record appears to carry no stored triangulation at all, so the codec's None mirrors reality rather than a parse failure. Record-form hint: rx=AeccDbSurfaceTin, casts to TinSurface cleanly.",
+   "Pipe Networks-3B.dwg (prior)": "1 of 3 surfaces (likely corridor-created) undecodable"
+  }
+ },
+ "gaps": [
+  {"id": "W2-1", "file": "Points-4a.dwg", "family": "AECC_COGO_POINT (2405)", "class": "READ gap", "missing": "cogo_points() returns 0 of 2405 points (same tree-node KEY_POINTS read-chain hole as W1-5 in Survey-3, now confirmed on a second, COGO-heavy file); analyze manifest has 0 families so the built file is empty (20 884-byte shell, model space 0 entities) while the oracle carries 2405 decodable points", "implementable": "yes - same fix path as W1-5 (read chain, not record grammar); point coordinates are intact app-side, e.g. E=19857.2577 N=20260.4556 Z=100.3058", "evidence": "oracle codec_census {AECC_COGO_POINT:2405} == app census AeccDbCogoPoint=2405; manifest families=[]; built census 0 entities; audit clean; closes the W1-5 denominator question: 2405/2405 lost"},
+  {"id": "W2-2", "file": "Surface-2.dwg", "family": "AeccDbSurfaceTin (1 of 1, 'EG')", "class": "READ gap", "missing": "the file's only surface has no decodable triangulation (tin::find None) so analyze carries tin_surface count=1 items=[] and build writes NO surface entity; L1 compare flags tin_surface MISSING in built (manifest count 1 vs built 0); app-side corroboration: the same surface reads 0 vertices / 0 triangles in Civil 3D, so the oracle record itself stores no triangles - both sides agree there is nothing to decode, and the divergence is the writer not emitting an (empty) surface shell for the census count", "implementable": "uncertain for the READ side (nothing to decode - matches app); the WRITER side (emit an empty AeccDbSurfaceTin shell when a manifest carries count with 0 items) would close the census drift", "evidence": "manifest families=[lwpolyline 85 (all BIT-EXACT), tin_surface count=1 items=[]]; built census {AcDbPolyline:85} vs oracle {AcDbPolyline:85, AeccDbSurfaceTin:1}; app read of oracle: tin name=EG vertices=0 triangles=0 rx=AeccDbSurfaceTin"}
+ ],
+ "non-gap evidence": [
+  {"file": "Survey-2a.dwg", "note": "trivially exact roundtrip: model space empty on BOTH sides (codec census {} == app census 0 entities, 0 figures/networks). L1 empty-manifest build -> built file opens clean, audit clean (0 entities), closes discard. W1-7 unexercised here; sizing contribution 0."}
+ ]
+}
