@@ -1,0 +1,1867 @@
+{
+  "codec_census": {
+    "AECC_PARCEL_SEGMENT": 55,
+    "AeccDbFace": 55
+  },
+  "doc_census": {
+    "AECC_PARCEL_SEGMENT": 55,
+    "AcDbArc": 7,
+    "AcDbBlockReference": 2,
+    "AcDbCircle": 25,
+    "AcDbHatch": 20,
+    "AcDbLine": 237,
+    "AcDbPolyline": 19,
+    "AcDbText": 16,
+    "AcDbWipeout": 1,
+    "AeccDbFace": 55
+  },
+  "families": [
+    {
+      "count": 55,
+      "family": "parcel",
+      "items": [
+        {
+          "label": null,
+          "name": "Site",
+          "site": "",
+          "vertices": [
+            [
+              298789.80753764417,
+              54197.91836297
+            ],
+            [
+              299563.7808721531,
+              54197.91836297
+            ],
+            [
+              299563.7808721531,
+              55045.65033291606
+            ],
+            [
+              298789.80753764417,
+              55045.65033291606
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Open Space : 7",
+          "site": "",
+          "vertices": [
+            [
+              298821.8895814684,
+              54782.225222963374
+            ],
+            [
+              298914.32083775196,
+              54782.225222963374
+            ],
+            [
+              298914.32083775196,
+              54873.922134336084
+            ],
+            [
+              298821.8895814684,
+              54873.922134336084
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Property : 1",
+          "site": "",
+          "vertices": [
+            [
+              298929.2864570529,
+              54197.91836297
+            ],
+            [
+              299563.7808721531,
+              54197.91836297
+            ],
+            [
+              299563.7808721531,
+              55045.65033291606
+            ],
+            [
+              298929.2864570529,
+              55045.65033291606
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Road : 9",
+          "site": "",
+          "vertices": [
+            [
+              299195.6079412383,
+              54575.07344146495
+            ],
+            [
+              299224.2458074514,
+              54575.07344146495
+            ],
+            [
+              299224.2458074514,
+              54598.847769782966
+            ],
+            [
+              299195.6079412383,
+              54598.847769782966
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Property : 42",
+          "site": "",
+          "vertices": [
+            [
+              299001.5029840581,
+              54352.674978400115
+            ],
+            [
+              299129.56421089126,
+              54352.674978400115
+            ],
+            [
+              299129.56421089126,
+              54447.822532285005
+            ],
+            [
+              299001.5029840581,
+              54447.822532285005
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Road : 3",
+          "site": "",
+          "vertices": [
+            [
+              298817.48849526234,
+              54437.92469353716
+            ],
+            [
+              299033.0605021702,
+              54437.92469353716
+            ],
+            [
+              299033.0605021702,
+              54871.13145058369
+            ],
+            [
+              298817.48849526234,
+              54871.13145058369
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299027.8518460491,
+              54434.03160442311
+            ],
+            [
+              299231.8143599954,
+              54434.03160442311
+            ],
+            [
+              299231.8143599954,
+              54607.39980813774
+            ],
+            [
+              299027.8518460491,
+              54607.39980813774
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Road : 4",
+          "site": "",
+          "vertices": [
+            [
+              298916.3324227091,
+              54330.94180985201
+            ],
+            [
+              299030.3708990967,
+              54330.94180985201
+            ],
+            [
+              299030.3708990967,
+              54446.40098152822
+            ],
+            [
+              298916.3324227091,
+              54446.40098152822
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Road : 6",
+          "site": "",
+          "vertices": [
+            [
+              298813.08740905626,
+              54334.59120632557
+            ],
+            [
+              299020.2015849214,
+              54334.59120632557
+            ],
+            [
+              299020.2015849214,
+              54866.89756638277
+            ],
+            [
+              298813.08740905626,
+              54866.89756638277
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 2",
+          "site": "",
+          "vertices": [
+            [
+              298789.80753764417,
+              54789.227819172665
+            ],
+            [
+              298844.0422841958,
+              54789.227819172665
+            ],
+            [
+              298844.0422841958,
+              54862.663682181854
+            ],
+            [
+              298789.80753764417,
+              54862.663682181854
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 24",
+          "site": "",
+          "vertices": [
+            [
+              298939.68955077045,
+              54324.12125873985
+            ],
+            [
+              299001.5029840581,
+              54324.12125873985
+            ],
+            [
+              299001.5029840581,
+              54386.17506197514
+            ],
+            [
+              298939.68955077045,
+              54386.17506197514
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 8",
+          "site": "",
+          "vertices": [
+            [
+              298917.9711102806,
+              54285.98035428766
+            ],
+            [
+              298973.8655480547,
+              54285.98035428766
+            ],
+            [
+              298973.8655480547,
+              54352.25096111093
+            ],
+            [
+              298917.9711102806,
+              54352.25096111093
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              298885.1450854675,
+              54750.29208254956
+            ],
+            [
+              298937.93876004964,
+              54750.29208254956
+            ],
+            [
+              298937.93876004964,
+              54793.51537324302
+            ],
+            [
+              298885.1450854675,
+              54793.51537324302
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 11",
+          "site": "",
+          "vertices": [
+            [
+              298896.11151963286,
+              54724.47421974735
+            ],
+            [
+              298946.75696860347,
+              54724.47421974735
+            ],
+            [
+              298946.75696860347,
+              54772.30423838692
+            ],
+            [
+              298896.11151963286,
+              54772.30423838692
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 12",
+          "site": "",
+          "vertices": [
+            [
+              298928.5539480774,
+              54711.77330240421
+            ],
+            [
+              298970.62146187294,
+              54711.77330240421
+            ],
+            [
+              298970.62146187294,
+              54764.38465052191
+            ],
+            [
+              298928.5539480774,
+              54764.38465052191
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 13",
+          "site": "",
+          "vertices": [
+            [
+              298956.4009244456,
+              54694.05320365168
+            ],
+            [
+              299005.00299868174,
+              54694.05320365168
+            ],
+            [
+              299005.00299868174,
+              54742.95207154099
+            ],
+            [
+              298956.4009244456,
+              54742.95207154099
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 14",
+          "site": "",
+          "vertices": [
+            [
+              298991.3825659035,
+              54663.8499764977
+            ],
+            [
+              299045.5973253702,
+              54663.8499764977
+            ],
+            [
+              299045.5973253702,
+              54712.074189709965
+            ],
+            [
+              298991.3825659035,
+              54712.074189709965
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 15",
+          "site": "",
+          "vertices": [
+            [
+              298983.8789783938,
+              54444.02491695514
+            ],
+            [
+              299040.21342999954,
+              54444.02491695514
+            ],
+            [
+              299040.21342999954,
+              54484.81058953889
+            ],
+            [
+              298983.8789783938,
+              54484.81058953889
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 21",
+          "site": "",
+          "vertices": [
+            [
+              298995.66469545476,
+              54469.08145120926
+            ],
+            [
+              299050.3612611592,
+              54469.08145120926
+            ],
+            [
+              299050.3612611592,
+              54513.55170865683
+            ],
+            [
+              298995.66469545476,
+              54513.55170865683
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 16",
+          "site": "",
+          "vertices": [
+            [
+              299013.8310379293,
+              54633.44562964002
+            ],
+            [
+              299065.2456925572,
+              54633.44562964002
+            ],
+            [
+              299065.2456925572,
+              54675.616633159574
+            ],
+            [
+              299013.8310379293,
+              54675.616633159574
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 22",
+          "site": "",
+          "vertices": [
+            [
+              299017.6781079001,
+              54602.96683620894
+            ],
+            [
+              299065.1914518452,
+              54602.96683620894
+            ],
+            [
+              299065.1914518452,
+              54633.86601178022
+            ],
+            [
+              299017.6781079001,
+              54633.86601178022
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299017.4068936156,
+              54572.488042777404
+            ],
+            [
+              299064.92023756076,
+              54572.488042777404
+            ],
+            [
+              299064.92023756076,
+              54603.38721834868
+            ],
+            [
+              299017.4068936156,
+              54603.38721834868
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 19",
+          "site": "",
+          "vertices": [
+            [
+              299014.9818146392,
+              54533.41375790164
+            ],
+            [
+              299064.6490232758,
+              54533.41375790164
+            ],
+            [
+              299064.6490232758,
+              54572.90842491714
+            ],
+            [
+              299014.9818146392,
+              54572.90842491714
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299005.8125266554,
+              54497.82257034164
+            ],
+            [
+              299059.17693504924,
+              54497.82257034164
+            ],
+            [
+              299059.17693504924,
+              54542.58965744823
+            ],
+            [
+              299005.8125266554,
+              54542.58965744823
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 23",
+          "site": "",
+          "vertices": [
+            [
+              298960.4594465182,
+              54368.33177375514
+            ],
+            [
+              299027.8518460491,
+              54368.33177375514
+            ],
+            [
+              299027.8518460491,
+              54438.39676422008
+            ],
+            [
+              298960.4594465182,
+              54438.39676422008
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 25",
+          "site": "",
+          "vertices": [
+            [
+              298802.6511568059,
+              54771.428862694185
+            ],
+            [
+              298867.24757196335,
+              54771.428862694185
+            ],
+            [
+              298867.24757196335,
+              54834.12800670788
+            ],
+            [
+              298802.6511568059,
+              54834.12800670788
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 26",
+          "site": "",
+          "vertices": [
+            [
+              298807.1300193039,
+              54741.62711182656
+            ],
+            [
+              298878.25467121135,
+              54741.62711182656
+            ],
+            [
+              298878.25467121135,
+              54794.69257145235
+            ],
+            [
+              298807.1300193039,
+              54794.69257145235
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 27",
+          "site": "",
+          "vertices": [
+            [
+              298814.62921986124,
+              54694.11016588239
+            ],
+            [
+              298890.9353496898,
+              54694.11016588239
+            ],
+            [
+              298890.9353496898,
+              54766.24827327393
+            ],
+            [
+              298814.62921986124,
+              54766.24827327393
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 28",
+          "site": "",
+          "vertices": [
+            [
+              298826.5862055118,
+              54604.07207317883
+            ],
+            [
+              298913.2854171735,
+              54604.07207317883
+            ],
+            [
+              298913.2854171735,
+              54738.629864342976
+            ],
+            [
+              298826.5862055118,
+              54738.629864342976
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 29",
+          "site": "",
+          "vertices": [
+            [
+              298849.24305268703,
+              54539.866401846986
+            ],
+            [
+              298940.9152945797,
+              54539.866401846986
+            ],
+            [
+              298940.9152945797,
+              54718.29224613262
+            ],
+            [
+              298849.24305268703,
+              54718.29224613262
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 30",
+          "site": "",
+          "vertices": [
+            [
+              298865.39952645777,
+              54492.53129994683
+            ],
+            [
+              298968.647034972,
+              54492.53129994683
+            ],
+            [
+              298968.647034972,
+              54705.436002324335
+            ],
+            [
+              298865.39952645777,
+              54705.436002324335
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              298877.3107535569,
+              54454.82876796229
+            ],
+            [
+              298982.2969974694,
+              54454.82876796229
+            ],
+            [
+              298982.2969974694,
+              54516.739674102515
+            ],
+            [
+              298877.3107535569,
+              54516.739674102515
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 32",
+          "site": "",
+          "vertices": [
+            [
+              298942.62936929427,
+              54635.18162976997
+            ],
+            [
+              299013.2764439149,
+              54635.18162976997
+            ],
+            [
+              299013.2764439149,
+              54695.22788168358
+            ],
+            [
+              298942.62936929427,
+              54695.22788168358
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 33",
+          "site": "",
+          "vertices": [
+            [
+              298928.7831834154,
+              54604.702836419456
+            ],
+            [
+              299005.76854647,
+              54604.702836419456
+            ],
+            [
+              299005.76854647,
+              54635.74347113073
+            ],
+            [
+              298928.7831834154,
+              54635.74347113073
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 34",
+          "site": "",
+          "vertices": [
+            [
+              298914.9369975361,
+              54574.224043068476
+            ],
+            [
+              299005.497332186,
+              54574.224043068476
+            ],
+            [
+              299005.497332186,
+              54605.38547410397
+            ],
+            [
+              298914.9369975361,
+              54605.38547410397
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 35",
+          "site": "",
+          "vertices": [
+            [
+              298909.98234311584,
+              54541.10215413608
+            ],
+            [
+              299005.8307974657,
+              54541.10215413608
+            ],
+            [
+              299005.8307974657,
+              54575.027477077674
+            ],
+            [
+              298909.98234311584,
+              54575.027477077674
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 36",
+          "site": "",
+          "vertices": [
+            [
+              298901.05016820505,
+              54512.3110062452
+            ],
+            [
+              299002.2678512353,
+              54512.3110062452
+            ],
+            [
+              299002.2678512353,
+              54564.16431335313
+            ],
+            [
+              298901.05016820505,
+              54564.16431335313
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              298896.00347833056,
+              54341.69798754891
+            ],
+            [
+              298955.18895580055,
+              54341.69798754891
+            ],
+            [
+              298955.18895580055,
+              54418.246591531206
+            ],
+            [
+              298896.00347833056,
+              54418.246591531206
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 37",
+          "site": "",
+          "vertices": [
+            [
+              298888.3521160055,
+              54483.56988710398
+            ],
+            [
+              298992.4448286784,
+              54483.56988710398
+            ],
+            [
+              298992.4448286784,
+              54544.580368593335
+            ],
+            [
+              298888.3521160055,
+              54544.580368593335
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              298887.4025020106,
+              54397.3523206484
+            ],
+            [
+              298962.001335138,
+              54397.3523206484
+            ],
+            [
+              298962.001335138,
+              54452.42678868165
+            ],
+            [
+              298887.4025020106,
+              54452.42678868165
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "Single-Family : 41",
+          "site": "",
+          "vertices": [
+            [
+              298878.47544855066,
+              54426.087648790795
+            ],
+            [
+              298972.14916626085,
+              54426.087648790795
+            ],
+            [
+              298972.14916626085,
+              54487.902813247405
+            ],
+            [
+              298878.47544855066,
+              54487.902813247405
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299033.0400507301,
+              54447.46934884686
+            ],
+            [
+              299096.36956845224,
+              54447.46934884686
+            ],
+            [
+              299096.36956845224,
+              54548.6047263355
+            ],
+            [
+              299033.0400507301,
+              54548.6047263355
+            ]
+          ]
+        },
+        {
+          "label": [
+            299128.21778612584,
+            54396.72908052271
+          ],
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299054.2330572484,
+              54359.14887376549
+            ],
+            [
+              299187.5930993557,
+              54359.14887376549
+            ],
+            [
+              299187.5930993557,
+              54470.539266305976
+            ],
+            [
+              299054.2330572484,
+              54470.539266305976
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299073.7327162777,
+              54381.59871617053
+            ],
+            [
+              299200.22423028294,
+              54381.59871617053
+            ],
+            [
+              299200.22423028294,
+              54494.18129433971
+            ],
+            [
+              299073.7327162777,
+              54494.18129433971
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299146.743294321,
+              54432.056164994836
+            ],
+            [
+              299229.60934816254,
+              54432.056164994836
+            ],
+            [
+              299229.60934816254,
+              54555.15801233472
+            ],
+            [
+              299146.743294321,
+              54555.15801233472
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299172.60319761466,
+              54458.220190089196
+            ],
+            [
+              299253.084900097,
+              54458.220190089196
+            ],
+            [
+              299253.084900097,
+              54570.36542576924
+            ],
+            [
+              299172.60319761466,
+              54570.36542576924
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299198.4631009083,
+              54477.48214546265
+            ],
+            [
+              299292.19049894763,
+              54477.48214546265
+            ],
+            [
+              299292.19049894763,
+              54575.191529385746
+            ],
+            [
+              299198.4631009083,
+              54575.191529385746
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299222.74921656493,
+              54517.86187544186
+            ],
+            [
+              299320.4263162422,
+              54517.86187544186
+            ],
+            [
+              299320.4263162422,
+              54683.46211751038
+            ],
+            [
+              299222.74921656493,
+              54683.46211751038
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299117.8592796987,
+              54568.48310979409
+            ],
+            [
+              299196.73995340243,
+              54568.48310979409
+            ],
+            [
+              299196.73995340243,
+              54686.45348974597
+            ],
+            [
+              299117.8592796987,
+              54686.45348974597
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299101.04445619555,
+              54553.27569637261
+            ],
+            [
+              299171.2108324482,
+              54553.27569637261
+            ],
+            [
+              299171.2108324482,
+              54659.20636135992
+            ],
+            [
+              299101.04445619555,
+              54659.20636135992
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299078.97890644753,
+              54538.068282951135
+            ],
+            [
+              299145.35092917643,
+              54538.068282951135
+            ],
+            [
+              299145.35092917643,
+              54628.61797016021
+            ],
+            [
+              299078.97890644753,
+              54628.61797016021
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299061.84960685205,
+              54519.20422505867
+            ],
+            [
+              299119.49102590466,
+              54519.20422505867
+            ],
+            [
+              299119.49102590466,
+              54606.958334235474
+            ],
+            [
+              299061.84960685205,
+              54606.958334235474
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299148.8232933474,
+              54595.87411892181
+            ],
+            [
+              299280.6743168095,
+              54595.87411892181
+            ],
+            [
+              299280.6743168095,
+              54709.63412487833
+            ],
+            [
+              299148.8232933474,
+              54709.63412487833
+            ]
+          ]
+        },
+        {
+          "label": [
+            299123.34368055116,
+            54491.68686416937
+          ],
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299092.2003774848,
+              54417.56331855664
+            ],
+            [
+              299190.28558226535,
+              54417.56331855664
+            ],
+            [
+              299190.28558226535,
+              54525.40288773754
+            ],
+            [
+              299092.2003774848,
+              54525.40288773754
+            ]
+          ]
+        },
+        {
+          "label": null,
+          "name": "",
+          "site": "",
+          "vertices": [
+            [
+              299120.9085888717,
+              54409.79987355182
+            ],
+            [
+              299210.1926910579,
+              54409.79987355182
+            ],
+            [
+              299210.1926910579,
+              54539.95059890067
+            ],
+            [
+              299120.9085888717,
+              54539.95059890067
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "gaps": [],
+  "mcp_census": null,
+  "object_census": {
+    "AECC_ALIGNMENT_DESIGN_CHECK_SET": 2,
+    "AECC_ALIGNMENT_LABEL_SET": 5,
+    "AECC_ALIGNMENT_PARCEL_NODE": 1,
+    "AECC_ALIGNMENT_STYLE": 5,
+    "AECC_APPURTENANCE_STYLE": 2,
+    "AECC_ASSEMBLY_STYLE": 2,
+    "AECC_BRIDGE_PROJECTION_LABEL_SET": 2,
+    "AECC_BRIDGE_PROJECTION_STYLE": 2,
+    "AECC_BUILDING_SITE_STYLE": 2,
+    "AECC_CANT_DIAGRAM_VIEW_STYLE": 2,
+    "AECC_CATCHMENT_STYLE": 2,
+    "AECC_CLASS_FOLDER_NODE": 12,
+    "AECC_CLASS_NODE": 218,
+    "AECC_CONTOURVIEW": 1,
+    "AECC_CORRIDOR_STYLE": 2,
+    "AECC_DISP_REP_ALIGNMENT": 1,
+    "AECC_DISP_REP_ALIGNMENT_CANT_INFO_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_CANT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_CSV": 1,
+    "AECC_DISP_REP_ALIGNMENT_CURVE_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_DESIGNSPEED_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_GEOMPT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_INDEXED_PI_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_PI_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_PI_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_SPIRAL_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_STAEQU_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_STATION_OFFSET_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_SUPERELEVATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_TABLE": 1,
+    "AECC_DISP_REP_ALIGNMENT_TANGENT_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_VERTICAL_GEOMPT_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE": 1,
+    "AECC_DISP_REP_APPURTENANCE_CSV": 1,
+    "AECC_DISP_REP_APPURTENANCE_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_ASSEMBLY": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_CSV": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_DECK": 1,
+    "AECC_DISP_REP_BRIDGE_DECK_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_DECK_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_FEATURE": 1,
+    "AECC_DISP_REP_BRIDGE_FEATURE_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER_GROUP_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GRIDER_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_PIER": 1,
+    "AECC_DISP_REP_BRIDGE_PIER_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_PIER_LABELING": 1,
+    "AECC_DISP_REP_BUILDINGSITE": 1,
+    "AECC_DISP_REP_BUILDINGUTIL_CONNECTOR": 1,
+    "AECC_DISP_REP_CANT_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_CANT_DIAGRAM_VIEW": 1,
+    "AECC_DISP_REP_CATCHMENT_AREA": 1,
+    "AECC_DISP_REP_CATCHMENT_AREA_LABEL": 1,
+    "AECC_DISP_REP_COGO_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_CORRIDOR": 1,
+    "AECC_DISP_REP_CROSSING_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_CROSSING_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_CSVSTATIONSLIDER": 1,
+    "AECC_DISP_REP_CURVE_TABLE": 1,
+    "AECC_DISP_REP_DISTANCE_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_FACE": 1,
+    "AECC_DISP_REP_FEATURE": 1,
+    "AECC_DISP_REP_FEATURE_LABEL": 1,
+    "AECC_DISP_REP_FEATURE_LINE": 1,
+    "AECC_DISP_REP_FEATURE_LINE_CSV": 1,
+    "AECC_DISP_REP_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_FITTING": 1,
+    "AECC_DISP_REP_FITTING_CSV": 1,
+    "AECC_DISP_REP_FITTING_LABELING": 1,
+    "AECC_DISP_REP_FITTING_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_FITTING_SECTION_LABELING": 1,
+    "AECC_DISP_REP_FLOW_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_GENERAL_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_GRADING": 1,
+    "AECC_DISP_REP_GRAPH": 1,
+    "AECC_DISP_REP_GRAPHPROFILE_NETWORKPART": 1,
+    "AECC_DISP_REP_GRAPHPROFILE_PRESSUREPART": 1,
+    "AECC_DISP_REP_GRID_SURFACE": 1,
+    "AECC_DISP_REP_GRID_SURFACE_CSV": 1,
+    "AECC_DISP_REP_HORGEOMETRY_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_HYDRO_REGION": 1,
+    "AECC_DISP_REP_INTERFERENCE_CHECK": 1,
+    "AECC_DISP_REP_INTERFERENCE_PART": 1,
+    "AECC_DISP_REP_INTERFERENCE_PART_SECTION": 1,
+    "AECC_DISP_REP_INTERSECTION": 1,
+    "AECC_DISP_REP_INTERSECTION_LOCATION_LABELING": 1,
+    "AECC_DISP_REP_LABELING": 1,
+    "AECC_DISP_REP_LEGEND_TABLE": 1,
+    "AECC_DISP_REP_LINE_BETWEEN_POINTS_LABEL": 1,
+    "AECC_DISP_REP_LINE_TABLE": 1,
+    "AECC_DISP_REP_LOTLINE_CSV": 1,
+    "AECC_DISP_REP_MASSHAULLINE": 1,
+    "AECC_DISP_REP_MASS_HAUL_VIEW": 1,
+    "AECC_DISP_REP_MATCHLINE_LABELING": 1,
+    "AECC_DISP_REP_MATCH_LINE": 1,
+    "AECC_DISP_REP_MATERIAL_SECTION": 1,
+    "AECC_DISP_REP_NETWORK": 1,
+    "AECC_DISP_REP_NOTE_LABEL": 1,
+    "AECC_DISP_REP_OFFSET_ELEV_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_BOUNDARY": 1,
+    "AECC_DISP_REP_PARCEL_FACE_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT_TABLE": 1,
+    "AECC_DISP_REP_PARCEL_TABLE": 1,
+    "AECC_DISP_REP_PIPE": 1,
+    "AECC_DISP_REP_PIPENETWORK_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PIPE_CSV": 1,
+    "AECC_DISP_REP_PIPE_LABELING": 1,
+    "AECC_DISP_REP_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_PIPE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_PIPE_TABLE": 1,
+    "AECC_DISP_REP_POINT_ENT": 1,
+    "AECC_DISP_REP_POINT_GROUP": 1,
+    "AECC_DISP_REP_POINT_TABLE": 1,
+    "AECC_DISP_REP_PRESSURENETWORK_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PRESSUREPIPENETWORK": 1,
+    "AECC_DISP_REP_PRESSURE_PART_TABLE": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_CSV": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_LABELING": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_PROFILE": 1,
+    "AECC_DISP_REP_PROFILEDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PROFILE_CROSSING": 1,
+    "AECC_DISP_REP_PROFILE_CROSSING_LABEL": 1,
+    "AECC_DISP_REP_PROFILE_PROJECTION": 1,
+    "AECC_DISP_REP_PROFILE_PROJECTION_LABEL": 1,
+    "AECC_DISP_REP_PROFILE_VIEW": 1,
+    "AECC_DISP_REP_PROFILE_VIEW_DEPTH_LABEL": 1,
+    "AECC_DISP_REP_QUANTITY_TAKEOFF_AGGREGATE_EARTHWORK_TABLE": 1,
+    "AECC_DISP_REP_REHAB_NOTE_LABEL": 1,
+    "AECC_DISP_REP_REHAB_WARNING_MARKER": 1,
+    "AECC_DISP_REP_RIGHT_OF_WAY": 1,
+    "AECC_DISP_REP_SAMPLELINE_LABELING": 1,
+    "AECC_DISP_REP_SAMPLE_LINE": 1,
+    "AECC_DISP_REP_SAMPLE_LINE_GROUP": 1,
+    "AECC_DISP_REP_SECTION": 1,
+    "AECC_DISP_REP_SECTIONALDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTIONDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTIONSEGMENT_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_CORRIDOR": 1,
+    "AECC_DISP_REP_SECTION_CORRIDOR_POINT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_CROSSING_LABEL": 1,
+    "AECC_DISP_REP_SECTION_GRADEBREAK_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_MINOR_OFFSET_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_OFFSET_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_PIPENETWORK": 1,
+    "AECC_DISP_REP_SECTION_PRESSUREPIPENETWORK": 1,
+    "AECC_DISP_REP_SECTION_PROJECTION": 1,
+    "AECC_DISP_REP_SECTION_PROJECTION_LABEL": 1,
+    "AECC_DISP_REP_SECTION_SEGMENT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_VIEW": 1,
+    "AECC_DISP_REP_SECTION_VIEW_DEPTH_LABEL": 1,
+    "AECC_DISP_REP_SECTION_VIEW_QUANTITY_TAKEOFF_TABLE": 1,
+    "AECC_DISP_REP_SHEET": 1,
+    "AECC_DISP_REP_SPANNING_PIPE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_SPEED_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_STATION_ELEV_LABEL": 1,
+    "AECC_DISP_REP_STRUCTURE": 1,
+    "AECC_DISP_REP_STRUCTURE_CSV": 1,
+    "AECC_DISP_REP_STRUCTURE_LABELING": 1,
+    "AECC_DISP_REP_STRUCTURE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_STRUCTURE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_SUBASSEMBLY": 1,
+    "AECC_DISP_REP_SUPERELEVATION_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SUPERELEVATION_DIAGRAM_VIEW": 1,
+    "AECC_DISP_REP_SURFACE_CONTOUR_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SURFACE_ELEVATION_LABEL": 1,
+    "AECC_DISP_REP_SURFACE_SLOPE_LABEL": 1,
+    "AECC_DISP_REP_SURVEY_FIGURE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SVFIGURE": 1,
+    "AECC_DISP_REP_SVFIGURE_CSV": 1,
+    "AECC_DISP_REP_SVFIGURE_PROFILE": 1,
+    "AECC_DISP_REP_SVFIGURE_SECTION": 1,
+    "AECC_DISP_REP_SVFIGURE_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_SVNETWORK": 1,
+    "AECC_DISP_REP_TANGENT_INTERSECTION_TABLE": 1,
+    "AECC_DISP_REP_TIN_SURFACE": 1,
+    "AECC_DISP_REP_TIN_SURFACE_CSV": 1,
+    "AECC_DISP_REP_VALIGNMENT_CRESTCURVE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_CSV": 1,
+    "AECC_DISP_REP_VALIGNMENT_HAGEOMPT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_LINE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_PVI_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_SAGCURVE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VERTICALGEOMETRY_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VIEWFRAME_LABELING": 1,
+    "AECC_DISP_REP_VIEW_FRAME": 1,
+    "AECC_FEATURELINE_STYLE": 25,
+    "AECC_FEATURE_STYLE": 2,
+    "AECC_FITTING_STYLE": 2,
+    "AECC_FORMAT_MANAGER_OBJECT": 18,
+    "AECC_GRADEVIEW": 1,
+    "AECC_GRADING_CRITERIA": 5,
+    "AECC_GRADING_CRITERIA_SET": 2,
+    "AECC_GRADING_GROUP": 1,
+    "AECC_GRADING_STYLE": 4,
+    "AECC_IMPORT_STORM_SEWER_DEFAULTS": 2,
+    "AECC_INTERFERENCE_STYLE": 2,
+    "AECC_INTERSECTION_STYLE": 2,
+    "AECC_LABEL_BLOCK_STYLE": 31,
+    "AECC_LABEL_COLLECTOR_STYLE": 536,
+    "AECC_LABEL_NODE": 1,
+    "AECC_LABEL_RADIAL_LINE_STYLE": 43,
+    "AECC_LABEL_TEXT_ITERATOR_CURVE_OR_SPIRAL_STYLE": 4,
+    "AECC_LABEL_TEXT_ITERATOR_STYLE": 5,
+    "AECC_LABEL_TEXT_STYLE": 411,
+    "AECC_LABEL_TICK_STYLE": 7,
+    "AECC_LABEL_VECTOR_ARROW_STYLE": 15,
+    "AECC_LEGEND_TABLE_STYLE": 14,
+    "AECC_MASS_HAUL_LINE_STYLE": 2,
+    "AECC_MASS_HAUL_VIEW_STYLE": 2,
+    "AECC_MATCHLINE_STYLE": 2,
+    "AECC_MATERIAL_STYLE": 2,
+    "AECC_NAME_TEMPLATES_NODE": 23,
+    "AECC_NAME_TEMPLATES_ROOT": 1,
+    "AECC_NETWORK_PART_CATALOG_DEF_NODE": 1,
+    "AECC_NETWORK_PART_FAMILY_ITEM": 37,
+    "AECC_NETWORK_PART_LIST": 3,
+    "AECC_NETWORK_RULE": 13,
+    "AECC_PARCEL_NODE": 1,
+    "AECC_PARCEL_STYLE": 7,
+    "AECC_PART_PROPERTY_MAPPINGS": 1,
+    "AECC_PART_SIZE_FILTER": 79,
+    "AECC_PIPE_RULES": 2,
+    "AECC_PIPE_STYLE": 8,
+    "AECC_POINTCLOUD_STYLE": 2,
+    "AECC_POINTVIEW": 1,
+    "AECC_POINT_DESCRIPTION_KEY2": 3,
+    "AECC_POINT_DESCRIPTION_KEY_SET": 1,
+    "AECC_POINT_DESCRIPTION_KEY_SET_NODE": 1,
+    "AECC_POINT_STYLE": 25,
+    "AECC_PRESSURE_PART_LIST": 2,
+    "AECC_PRESSURE_PIPE_STYLE": 2,
+    "AECC_PROFILESECTIONENTITY_STYLE": 2,
+    "AECC_PROFILE_DESIGN_CHECK_SET": 2,
+    "AECC_PROFILE_LABEL_SET": 3,
+    "AECC_PROFILE_STYLE": 7,
+    "AECC_PROFILE_VIEW_BAND_STYLE_SET": 9,
+    "AECC_PROFILE_VIEW_CANT_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_DATA_BAND_STYLE": 8,
+    "AECC_PROFILE_VIEW_HORIZONTAL_GEOMETRY_BAND_STYLE": 3,
+    "AECC_PROFILE_VIEW_PIPE_NETWORK_BAND_STYLE": 5,
+    "AECC_PROFILE_VIEW_PRESSURE_NETWORK_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_SECTIONAL_DATA_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_STYLE": 7,
+    "AECC_PROFILE_VIEW_SUPERELEVATION_DIAGRAM_BAND_STYLE": 5,
+    "AECC_PROFILE_VIEW_VERTICAL_GEOMETRY_BAND_STYLE": 2,
+    "AECC_QUANTITY_TAKEOFF_CRITERIA": 4,
+    "AECC_REFERENCED_ITEM_HOST": 7,
+    "AECC_REFERENCED_STYLE_CACHE": 1,
+    "AECC_REFERENCED_STYLE_INFO_HOST": 1,
+    "AECC_REFERENCED_STYLE_INFO_INDEX": 1,
+    "AECC_REFERENCED_TEMPLATE_HOST": 1,
+    "AECC_REFERENCED_TEMPLATE_RECORD_LIST": 1,
+    "AECC_ROADWAYLINK_STYLE": 21,
+    "AECC_ROADWAYMARKER_STYLE": 44,
+    "AECC_ROADWAYSHAPE_STYLE": 26,
+    "AECC_ROADWAY_STYLE_SET": 6,
+    "AECC_ROOT_SETTINGS_NODE": 1,
+    "AECC_SAMPLE_LINE_GROUP_STYLE": 4,
+    "AECC_SAMPLE_LINE_STYLE": 2,
+    "AECC_SECTION_LABEL_SET": 5,
+    "AECC_SECTION_STYLE": 3,
+    "AECC_SECTION_VIEW_BAND_STYLE_SET": 4,
+    "AECC_SECTION_VIEW_DATA_BAND_STYLE": 5,
+    "AECC_SECTION_VIEW_ROAD_SURFACE_BAND_STYLE": 2,
+    "AECC_SECTION_VIEW_STYLE": 2,
+    "AECC_SETTINGS_NODE": 1442,
+    "AECC_SHEET_STYLE": 8,
+    "AECC_SLOPE_PATTERN_STYLE": 4,
+    "AECC_STATION_FORMAT_STYLE": 1,
+    "AECC_STRUCTURE_RULES": 2,
+    "AECC_STUCTURE_STYLE": 8,
+    "AECC_SUPERELEVATION_DIAGRAM_VIEW_STYLE": 2,
+    "AECC_SURFACE_STYLE": 12,
+    "AECC_SVFIGURE_STYLE": 7,
+    "AECC_SVNETWORK_STYLE": 2,
+    "AECC_TABLE_STYLE": 39,
+    "AECC_TAG_MANAGER": 1,
+    "AECC_TREE_NODE": 5,
+    "AECC_USER_DEFINED_ATTRIBUTE": 2,
+    "AECC_USER_DEFINED_ATTRIBUTE_CLASSIFICATION": 217,
+    "AECC_VALIGNMENT_STYLE_EXTENSION": 7,
+    "AECC_VIEW_FRAME_STYLE": 2,
+    "AECS_DISP_PROPS_MEMBER": 2,
+    "AECS_DISP_PROPS_MEMBER_LOGICAL": 1,
+    "AECS_DISP_PROPS_MEMBER_PLAN": 2,
+    "AECS_DISP_PROPS_MEMBER_PLAN_SKETCH": 1,
+    "AECS_DISP_PROPS_MEMBER_PROJECTED": 2,
+    "AECS_DISP_REP_MEMBER_ELEVATION_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_ELEVATION_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_LOGICAL": 1,
+    "AECS_DISP_REP_MEMBER_MODEL_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_MODEL_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_SKETCH": 1,
+    "AEC_AECDBDISPREPBDGELEVLINEPLAN100": 1,
+    "AEC_AECDBDISPREPBDGELEVLINEPLAN50": 1,
+    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN100": 1,
+    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN50": 1,
+    "AEC_AECDBDISPREPCEILINGGRIDPLAN100": 1,
+    "AEC_AECDBDISPREPCEILINGGRIDPLAN50": 1,
+    "AEC_AECDBDISPREPCOLUMNGRIDPLAN100": 1,
+    "AEC_AECDBDISPREPCOLUMNGRIDPLAN50": 1,
+    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN100": 1,
+    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN50": 1,
+    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN100": 1,
+    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN50": 1,
+    "AEC_AECDBDISPREPMVBLOCKREFPLAN100": 1,
+    "AEC_AECDBDISPREPMVBLOCKREFPLAN50": 1,
+    "AEC_AECDBDISPREPROOFPLAN100": 1,
+    "AEC_AECDBDISPREPROOFPLAN50": 1,
+    "AEC_AECDBDISPREPROOFSLABPLAN100": 1,
+    "AEC_AECDBDISPREPROOFSLABPLAN50": 1,
+    "AEC_AECDBDISPREPSLABPLAN100": 1,
+    "AEC_AECDBDISPREPSLABPLAN50": 1,
+    "AEC_AECDBDISPREPSPACEPLAN100": 1,
+    "AEC_AECDBDISPREPSPACEPLAN50": 1,
+    "AEC_AECDBDISPREPWALLPLAN100": 1,
+    "AEC_AECDBDISPREPWALLPLAN50": 1,
+    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN100": 1,
+    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN50": 1,
+    "AEC_AECDBDISPREPZONE100": 1,
+    "AEC_AECDBDISPREPZONE50": 1,
+    "AEC_CVSECTIONVIEW": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN100": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLANREFLECTED": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGSILLPLAN": 1,
+    "AEC_DISPROPSMASSELEMPLANCOMMON": 2,
+    "AEC_DISPROPSMASSGROUPPLANCOMMON": 2,
+    "AEC_DISPROPSOPENINGPLANCOMMON": 1,
+    "AEC_DISPROPSOPENINGPLANCOMMONHATCHED": 2,
+    "AEC_DISPROPSOPENINGSILLPLAN": 1,
+    "AEC_DISP_PROPS_2D_SECTION": 1,
+    "AEC_DISP_PROPS_CLIP_VOLUME": 12,
+    "AEC_DISP_PROPS_CLIP_VOLUME_RESULT": 2,
+    "AEC_DISP_PROPS_DIM": 3,
+    "AEC_DISP_PROPS_DISPLAYTHEME": 1,
+    "AEC_DISP_PROPS_DOOR": 4,
+    "AEC_DISP_PROPS_DOOR_NOMINAL": 1,
+    "AEC_DISP_PROPS_DOOR_PLAN_100": 1,
+    "AEC_DISP_PROPS_DOOR_PLAN_50": 1,
+    "AEC_DISP_PROPS_DOOR_THRESHOLD_PLAN": 1,
+    "AEC_DISP_PROPS_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
+    "AEC_DISP_PROPS_EDITINPLACEPROFILE_MODEL": 1,
+    "AEC_DISP_PROPS_ENT": 7,
+    "AEC_DISP_PROPS_ENT_REF": 1,
+    "AEC_DISP_PROPS_GRID_ASSEMBLY_MODEL": 3,
+    "AEC_DISP_PROPS_GRID_ASSEMBLY_PLAN": 9,
+    "AEC_DISP_PROPS_LAYOUT_CURVE": 1,
+    "AEC_DISP_PROPS_LAYOUT_GRID2D": 11,
+    "AEC_DISP_PROPS_LAYOUT_GRID3D": 1,
+    "AEC_DISP_PROPS_MASKBLOCK": 2,
+    "AEC_DISP_PROPS_MASS_ELEM_MODEL": 3,
+    "AEC_DISP_PROPS_MASS_GROUP": 3,
+    "AEC_DISP_PROPS_MATERIAL": 1,
+    "AEC_DISP_PROPS_OPENING": 2,
+    "AEC_DISP_PROPS_POLYGON_MODEL": 1,
+    "AEC_DISP_PROPS_POLYGON_TRUECOLOUR": 1,
+    "AEC_DISP_PROPS_RAILING_MODEL": 1,
+    "AEC_DISP_PROPS_RAILING_PLAN": 1,
+    "AEC_DISP_PROPS_ROOF": 5,
+    "AEC_DISP_PROPS_ROOFSLAB": 1,
+    "AEC_DISP_PROPS_ROOFSLAB_PLAN": 3,
+    "AEC_DISP_PROPS_SCHEDULE_TABLE": 1,
+    "AEC_DISP_PROPS_SLAB": 1,
+    "AEC_DISP_PROPS_SLAB_PLAN": 3,
+    "AEC_DISP_PROPS_SLICE": 1,
+    "AEC_DISP_PROPS_SPACE_DECOMPOSED": 1,
+    "AEC_DISP_PROPS_SPACE_MODEL": 1,
+    "AEC_DISP_PROPS_SPACE_PLAN": 4,
+    "AEC_DISP_PROPS_STAIR_MODEL": 1,
+    "AEC_DISP_PROPS_STAIR_PLAN": 2,
+    "AEC_DISP_PROPS_STAIR_PLAN_OVERLAPPING": 1,
+    "AEC_DISP_PROPS_WALL_GRAPH": 1,
+    "AEC_DISP_PROPS_WALL_MODEL": 1,
+    "AEC_DISP_PROPS_WALL_PLAN": 4,
+    "AEC_DISP_PROPS_WALL_SCHEM": 1,
+    "AEC_DISP_PROPS_WINDOW": 4,
+    "AEC_DISP_PROPS_WINDOW_ASSEMBLY_SILL_PLAN": 1,
+    "AEC_DISP_PROPS_WINDOW_NOMINAL": 1,
+    "AEC_DISP_PROPS_WINDOW_PLAN_100": 1,
+    "AEC_DISP_PROPS_WINDOW_PLAN_50": 1,
+    "AEC_DISP_PROPS_WINDOW_SILL_PLAN": 1,
+    "AEC_DISP_PROPS_ZONE": 3,
+    "AEC_DISP_REP_2D_SECTION": 1,
+    "AEC_DISP_REP_ANCHOR": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_MODEL": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_RCP": 1,
+    "AEC_DISP_REP_ANCHOR_ENT_TO_NODE": 1,
+    "AEC_DISP_REP_ANCHOR_EXT_TAG_TO_ENT": 1,
+    "AEC_DISP_REP_ANCHOR_TAG_TO_ENT": 1,
+    "AEC_DISP_REP_BDG_ELEVLINE_MODEL": 1,
+    "AEC_DISP_REP_BDG_ELEVLINE_RCP": 1,
+    "AEC_DISP_REP_BDG_SECTIONLINE_MODEL": 1,
+    "AEC_DISP_REP_BDG_SECTIONLINE_PLAN": 2,
+    "AEC_DISP_REP_BDG_SECTIONLINE_RCP": 1,
+    "AEC_DISP_REP_BDG_SECTION_MODEL": 1,
+    "AEC_DISP_REP_BDG_SECTION_SUBDIV": 1,
+    "AEC_DISP_REP_CEILING_GRID": 1,
+    "AEC_DISP_REP_CEILING_GRID_MODEL": 1,
+    "AEC_DISP_REP_CEILING_GRID_RCP": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_MODEL": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_PLAN": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_RESULT": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_RESULT_SUBDIV": 1,
+    "AEC_DISP_REP_COLUMN_GRID": 1,
+    "AEC_DISP_REP_COLUMN_GRID_MODEL": 1,
+    "AEC_DISP_REP_COLUMN_GRID_RCP": 1,
+    "AEC_DISP_REP_COL_BLOCK": 1,
+    "AEC_DISP_REP_COL_CIRCARC2D": 1,
+    "AEC_DISP_REP_COL_CONCOINCIDENT": 1,
+    "AEC_DISP_REP_COL_CONCONCENTRIC": 1,
+    "AEC_DISP_REP_COL_CONEQUALDISTANCE": 1,
+    "AEC_DISP_REP_COL_CONMIDPOINT": 1,
+    "AEC_DISP_REP_COL_CONNECTOR": 1,
+    "AEC_DISP_REP_COL_CONNORMAL": 1,
+    "AEC_DISP_REP_COL_CONPARALLEL": 1,
+    "AEC_DISP_REP_COL_CONPERPENDICULAR": 1,
+    "AEC_DISP_REP_COL_CONSYMMETRIC": 1,
+    "AEC_DISP_REP_COL_CONTANGENT": 1,
+    "AEC_DISP_REP_COL_DIMANGLE": 1,
+    "AEC_DISP_REP_COL_DIMDIAMETER": 1,
+    "AEC_DISP_REP_COL_DIMDISTANCE": 1,
+    "AEC_DISP_REP_COL_DIMLENGTH": 1,
+    "AEC_DISP_REP_COL_DIMMAJORRADIUS": 1,
+    "AEC_DISP_REP_COL_DIMMINORRADIUS": 1,
+    "AEC_DISP_REP_COL_ELLIPARC2D": 1,
+    "AEC_DISP_REP_COL_LAYOUTDATA": 1,
+    "AEC_DISP_REP_COL_LINE2D": 1,
+    "AEC_DISP_REP_COL_MODIFIER_ADD": 1,
+    "AEC_DISP_REP_COL_MODIFIER_CUTPLANE": 1,
+    "AEC_DISP_REP_COL_MODIFIER_EXTRUSION": 1,
+    "AEC_DISP_REP_COL_MODIFIER_GROUP": 1,
+    "AEC_DISP_REP_COL_MODIFIER_PATH": 1,
+    "AEC_DISP_REP_COL_MODIFIER_SUBTRACT": 1,
+    "AEC_DISP_REP_COL_MODIFIER_TRANSITION": 1,
+    "AEC_DISP_REP_COL_POINT2D": 1,
+    "AEC_DISP_REP_COL_PROFILE": 1,
+    "AEC_DISP_REP_COL_WORKPLANE": 1,
+    "AEC_DISP_REP_COL_WORKPLANE_REF": 1,
+    "AEC_DISP_REP_CONFIG": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_MODEL": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_PLAN": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_UNIT_MODEL": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_UNIT_PLAN": 1,
+    "AEC_DISP_REP_DCM_DIMRADIUS": 1,
+    "AEC_DISP_REP_DISPLAYTHEME": 1,
+    "AEC_DISP_REP_DOOR_ELEV": 1,
+    "AEC_DISP_REP_DOOR_MODEL": 1,
+    "AEC_DISP_REP_DOOR_NOMINAL": 1,
+    "AEC_DISP_REP_DOOR_PLAN": 1,
+    "AEC_DISP_REP_DOOR_PLAN_50": 1,
+    "AEC_DISP_REP_DOOR_PLAN_HEKTO": 1,
+    "AEC_DISP_REP_DOOR_RCP": 1,
+    "AEC_DISP_REP_DOOR_THRESHOLD_PLAN": 1,
+    "AEC_DISP_REP_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
+    "AEC_DISP_REP_EDITINPLACEPROFILE": 1,
+    "AEC_DISP_REP_ENT_REF": 1,
+    "AEC_DISP_REP_LAYOUT_CURVE": 1,
+    "AEC_DISP_REP_LAYOUT_GRID2D": 1,
+    "AEC_DISP_REP_LAYOUT_GRID3D": 1,
+    "AEC_DISP_REP_MASKBLOCK_REF": 1,
+    "AEC_DISP_REP_MASKBLOCK_REF_RCP": 1,
+    "AEC_DISP_REP_MASS_ELEM_MODEL": 1,
+    "AEC_DISP_REP_MASS_ELEM_RCP": 1,
+    "AEC_DISP_REP_MASS_ELEM_SCHEM": 1,
+    "AEC_DISP_REP_MASS_GROUP_MODEL": 1,
+    "AEC_DISP_REP_MASS_GROUP_PLAN": 1,
+    "AEC_DISP_REP_MASS_GROUP_RCP": 1,
+    "AEC_DISP_REP_MATERIAL": 1,
+    "AEC_DISP_REP_MVBLOCK_REF": 1,
+    "AEC_DISP_REP_MVBLOCK_REF_MODEL": 1,
+    "AEC_DISP_REP_MVBLOCK_REF_RCP": 1,
+    "AEC_DISP_REP_OPENING": 1,
+    "AEC_DISP_REP_OPENING_MODEL": 1,
+    "AEC_DISP_REP_POLYGON_MODEL": 1,
+    "AEC_DISP_REP_POLYGON_TRUECOLOUR": 1,
+    "AEC_DISP_REP_RAILING_MODEL": 1,
+    "AEC_DISP_REP_RAILING_PLAN": 1,
+    "AEC_DISP_REP_RAILING_PLAN_100": 1,
+    "AEC_DISP_REP_RAILING_PLAN_50": 1,
+    "AEC_DISP_REP_ROOFSLAB_MODEL": 1,
+    "AEC_DISP_REP_ROOFSLAB_PLAN": 1,
+    "AEC_DISP_REP_ROOF_MODEL": 1,
+    "AEC_DISP_REP_ROOF_PLAN": 1,
+    "AEC_DISP_REP_ROOF_RCP": 1,
+    "AEC_DISP_REP_SCHEDULE_TABLE": 1,
+    "AEC_DISP_REP_SET": 9,
+    "AEC_DISP_REP_SLAB_MODEL": 1,
+    "AEC_DISP_REP_SLAB_PLAN": 1,
+    "AEC_DISP_REP_SLICE": 1,
+    "AEC_DISP_REP_SPACE_DECOMPOSED": 1,
+    "AEC_DISP_REP_SPACE_MODEL": 1,
+    "AEC_DISP_REP_SPACE_PLAN": 1,
+    "AEC_DISP_REP_SPACE_RCP": 1,
+    "AEC_DISP_REP_SPACE_VOLUME": 1,
+    "AEC_DISP_REP_STAIR_MODEL": 1,
+    "AEC_DISP_REP_STAIR_PLAN": 1,
+    "AEC_DISP_REP_STAIR_PLAN_100": 1,
+    "AEC_DISP_REP_STAIR_PLAN_50": 1,
+    "AEC_DISP_REP_STAIR_PLAN_OVERLAPPING": 1,
+    "AEC_DISP_REP_STAIR_RCP": 1,
+    "AEC_DISP_REP_WALL_GRAPH": 1,
+    "AEC_DISP_REP_WALL_MODEL": 1,
+    "AEC_DISP_REP_WALL_PLAN": 1,
+    "AEC_DISP_REP_WALL_RCP": 1,
+    "AEC_DISP_REP_WALL_SCHEM": 1,
+    "AEC_DISP_REP_WINDOWASSEMBLY_SILL_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_ASSEMBLY_MODEL": 1,
+    "AEC_DISP_REP_WINDOW_ASSEMBLY_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_ELEV": 1,
+    "AEC_DISP_REP_WINDOW_MODEL": 1,
+    "AEC_DISP_REP_WINDOW_NOMINAL": 1,
+    "AEC_DISP_REP_WINDOW_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_PLAN_100": 1,
+    "AEC_DISP_REP_WINDOW_PLAN_50": 1,
+    "AEC_DISP_REP_WINDOW_RCP": 1,
+    "AEC_DISP_REP_WINDOW_SILL_PLAN": 1,
+    "AEC_DISP_REP_ZONE": 1,
+    "AEC_DISP_ROPS_RAILING_PLAN_100": 1,
+    "AEC_DISP_ROPS_RAILING_PLAN_50": 1,
+    "AEC_DISP_ROPS_STAIR_PLAN_100": 1,
+    "AEC_DISP_ROPS_STAIR_PLAN_50": 1,
+    "AEC_VARS_DWG_SETUP": 1
+  },
+  "source": "/mnt/c/Program Files/Autodesk/AutoCAD 2027/C3D/Help/Civil Tutorials/Drawings/Labels-Parcels.dwg"
+}
