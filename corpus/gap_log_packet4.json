@@ -1,0 +1,64 @@
+{
+  "format": "{id, file, family, class, missing, implementable, evidence}",
+  "wave": "D017 packet #4 (2026-11-24) — Parcel-2C, Surface-1A, Points-2",
+  "base": "parity/corpus-roundtrip@fdd58068",
+  "suite": "cargo test 3281 passed / 0 failed on fdd58068 (start of packet; harness unchanged, no end re-run needed)",
+  "classes": {
+    "READ gap": "oracle decodes less than the application shows",
+    "WRITER gap": "manifest carries it but the writer refuses/omits",
+    "CODEC BUG": "decoded/written values disagree with the oracle",
+    "RECORD-CORRECTION": "eligibility/dispatch record corrected by census-first evidence",
+    "KNOWN-TOLERATED": "documented deviation, compare_verify tolerates (#11 tin retriangulation/corner padding, #12 parcel Face/LotLine counts)"
+  },
+  "census gates (codec analyze == app class census)": {
+    "Parcel-2C.dwg": "{AECC_PARCEL_SEGMENT:30, AeccDbFace:12} == app {AeccDbFace:12, AeccDbLotLine:30} (42 entities) — EXACT (units Feet)",
+    "Surface-1A.dwg": "{AcDb3dPolyline:3, AcDbCircle:7, AcDbPolyline:1, AeccDbSurfaceTin:1} == app {AcDb3dPolyline:3, AcDbCircle:7, AcDbPolyline:1, AeccDbSurfaceTin:1} (12 entities) — EXACT (units Feet)",
+    "Points-2.dwg": "{AECC_COGO_POINT:2405} == app {AeccDbCogoPoint:2405} (2405 entities) — EXACT (units Feet)"
+  },
+  "sizing": {
+    "W1-6 (WITH-LIMITS parcel refusals) — series third data point": {
+      "Parcel-2C.dwg": "oracle: 12 AeccDbFace (1 site 'Subdivision A' + 11 parcels; app Parcel cast = 11, named 'ROAD (LOCAL): 100', 'SINGLE-FAMILY: 101..104', 'SINGLE-FAMILY: 109', ...) + 30 AeccDbLotLine segments. Manifest carried 12 add_parcel attempts; 11 refused with 'the line crosses or touches a member it may not meet'; 1 real parcel built + 1 auto SITE shell (built census {AECC_PARCEL_SEGMENT:1, AeccDbFace:2}; app reads 1 parcel 'Standard : 1'). SERIES: Survey-3 163 oracle / 35 built (pre-stack); Labels-Parcels 54/17/38 refused; Parcel-2C 11/1/11 refused."
+    },
+    "W1-5 (cogo 0-decode)": {
+      "Points-2.dwg": "2405 AECC_COGO_POINT records codec census, 0 decoded (families=[], built 20884-byte shell) — IDENTICAL denominator to Points-4a (2405/0, 4.5x Survey-3's 538). First app-read point E=19857.2577 N=20260.4556 Z=100.3058 matches the Points-4a packet-2 read verbatim — Points-2 and Points-4a appear to hold the same point set (storage-variant hypothesis below)."
+    }
+  },
+  "gaps": [
+    {
+      "id": "W4-1",
+      "file": "Parcel-2C.dwg",
+      "family": "AeccDbFace/AeccDbLotLine (12+30)",
+      "class": "WRITER gap (W1-6 WITH-LIMITS)",
+      "missing": "11 of 12 add_parcel attempts refused ('the line crosses or touches a member it may not meet') — same root cause as W3-1: independent closed lot lines over one fresh site cross the previously placed members, while the oracle site holds all 11 parcels as one split topology. Denominators: 11 oracle parcels (12 faces), 1 built (9%), 11 refused.",
+      "implementable": "same as W3-1 — batch through add_lot_line (splitting writer) or per-parcel sites; both change counts vs the oracle's single-site topology",
+      "evidence": "build_parcel_2c.out: 11 refusal NOTEs; built census {AECC_PARCEL_SEGMENT:1, AeccDbFace:2} == app census {AeccDbLotLine:1, AeccDbFace:2}; app: parcels=1, 'parcel #1 name=Standard : 1'; audit clean (3 entities, 0 null/erased); open with NO dialog; closed discardChanges:true"
+    },
+    {
+      "id": "W4-2",
+      "file": "Surface-1A.dwg",
+      "family": "AcDb3dPolyline closed flag",
+      "class": "CODEC BUG (writer)",
+      "missing": "the writer drops the Closed flag on AcDb3dPolyline: oracle pline[2] (layer _EG-BNDY, 192 vertices, the EG surface boundary) has closed=True (confirmed app-side pl.Closed==True on the oracle), the built file has closed=False (confirmed app-side pl.Closed==False on the built copy). All 192 vertices and the layer are BIT-EXACT — the closed flag is the only RAW diff in the file (compare_verify: '3 items, 1 RAW diffs, 0 derived diffs').",
+      "implementable": "yes — write the closed flag into the AcDb3dPolyline writer path (manifest already carries closed:true); plines[0..1] (closed=false) round-trip fine",
+      "evidence": "surface_1a.analysis.json pline3d[2].closed=true vs surface_1a.built.analysis.json pline3d[2].closed=false; oracle probe 'pln 2 layer=_EG-BNDY closed=True'; built probe 'pln 2 layer=_EG-BNDY closed=False'"
+    },
+    {
+      "id": "W4-3",
+      "file": "Surface-1A.dwg",
+      "family": "AeccDbSurfaceTin ('EG') — triangulation",
+      "class": "READ gap + WRITER gap (W1-2/W2-2 family)",
+      "missing": "READ: the manifest carries tin_surface count=1 items=[] — the oracle's stored triangulation is undecodable (manifest gap 'tin_surface.triangulation' — the points writer retriangulates; parameter: the stored triangle list). App-side the oracle surface reports vertices=0 triangles=0 ('tin name=EG vertices=0 triangles=0') — like Surface-2, the record carries NO triangulation at all, so the #11 tolerated deviation (+4 corners / retriangulation, seen on Part Builder-1a's 13666-point tin) does NOT arise here. WRITER: with items=[] the writer emits NO surface shell at all — built census has no AeccDbSurfaceTin (0 vs oracle 1), the same census drift as Surface-2/W2-2.",
+      "implementable": "writer: emit an empty TinSurface shell when a manifest tin has count>=1 but no decodable triangulation (removes the census drift); triangulation itself stays a READ gap (W1-2)",
+      "evidence": "surface_1a.analysis.json gaps[{family: 'tin_surface.triangulation', count: 1}]; app census oracle AeccDbSurfaceTin=1 vs built census 0; audit clean (11 entities, 5 layers); the 3 plines + 7 circles + 1 lwpoly round-trip (circles/lwpoly BIT-EXACT, plines bit-exact except W4-2)"
+    },
+    {
+      "id": "W4-4",
+      "file": "Points-2.dwg",
+      "family": "AECC_COGO_POINT storage variant — eligibility record correction",
+      "class": "RECORD-CORRECTION (census-first)",
+      "missing": "the dispatch expected Points-2 to be the NO-AECC-RECORDS points variant (points only in the points database, unlike Points-4a's 2405 AECC_COGO_POINT). CENSUS FIRST disproves this: codec census {AECC_COGO_POINT: 2405}; app model space = 2405 AeccDbCogoPoint entities (cogoCast=2405, first read 'cogo #1 E=19857.2577 N=20260.4556 Z=100.3058') and document CogoPoints.Count=2405 — the collection is a live view of the 2405 model-space records, not a separate DB-only store. Points-2 is NOT a storage variant of Points-4a; the eligibility.json entry (AECC_COGO_POINT: 2405) was correct and stands uncorrected. The points-DB-only roundtrip path (write points via the writer, reopen, count — dispatch's NEW coverage branch) does NOT arise: there are no DB-only points. The W1-5/W2-1 denominators are the same as Points-4a: 2405 total / 0 decoded; built shell opens clean, audit clean (0 entities), CogoPoints.Count=0 on the built copy.",
+      "implementable": "n/a — record correction only; the codec-side fix remains W1-5/W2-1 (cogo point read-chain, tree-node KEY_POINTS)",
+      "evidence": "packet4_l23.out + packet4_l23_v2.out (ORACLE-POINTS msTotal=2405 cogoCast=2405, pointsDB(CogoPoints)=2405; BUILT points_2: audit 0 entities, cogo=0, pointsDB(CogoPoints)=0)"
+    }
+  ]
+}
