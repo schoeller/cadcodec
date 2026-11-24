@@ -134,6 +134,38 @@ fn census(doc: &acadrust::CadDocument) -> BTreeMap<String, usize> {
     c
 }
 
+/// Doc-wide class histogram of the non-graphical Civil objects (part
+/// definitions, parts lists, styles, survey records): what the model-space
+/// census does not show. Recorded in the manifest; build writes none of it.
+fn object_census(doc: &acadrust::CadDocument) -> BTreeMap<String, usize> {
+    let mut c: BTreeMap<String, usize> = BTreeMap::new();
+    for o in doc.objects.values() {
+        if let acadrust::objects::ObjectType::Arch(a) = o {
+            *c.entry(a.dxf_name.clone()).or_default() += 1;
+        }
+    }
+    c
+}
+
+/// Doc-wide entity histogram (every owner, model space or not).
+fn doc_census(doc: &acadrust::CadDocument) -> BTreeMap<String, usize> {
+    let mut c: BTreeMap<String, usize> = BTreeMap::new();
+    for e in doc.entities() {
+        let key = match e {
+            EntityType::Extended(x) => match &x.data {
+                acadrust::entities::ExtendedEntityData::Arch(a) => cpp_class_name(&a.dxf_name)
+                    .or_else(|| rx_fallback(&a.dxf_name))
+                    .unwrap_or(&a.dxf_name)
+                    .to_string(),
+                _ => continue,
+            },
+            other => native_key(other).unwrap_or("AcDbUnknown").to_string(),
+        };
+        *c.entry(key).or_default() += 1;
+    }
+    c
+}
+
 fn arch_of(doc: &acadrust::CadDocument, handle: Handle) -> Option<acadrust::classes::arch::ArchEntityData> {
     match doc.get_entity(handle) {
         Some(EntityType::Extended(x)) => match &x.data {
@@ -325,7 +357,7 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
             if outline.len() > 1 && outline.first() == outline.last() {
                 outline.pop();
             }
-            serde_json::json!({ "name": name, "site": "", "vertices": outline.iter().map(|p| j2(Vector2::new(p.x, p.y))).collect::<Vec<_>>() })
+            serde_json::json!({ "name": name, "site": "", "label": a.parcel_label().map(|p| j2(p)).unwrap_or(Json::Null), "vertices": outline.iter().map(|p| j2(Vector2::new(p.x, p.y))).collect::<Vec<_>>() })
         }).collect();
         families.push(serde_json::json!({ "family": "parcel", "count": parcels.len(), "items": items }));
     }
@@ -557,11 +589,30 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         }
     }
 
+    // Network part definitions (doc objects): record what the file holds
+    // — the packet-1 pipe/structure wiring names a part definition per
+    // pipe/structure, but a drawing's own part-def records have no
+    // manifest family and no writer here.
+    let part_defs: Vec<&acadrust::classes::arch::ArchObject> = doc
+        .objects
+        .values()
+        .filter_map(|o| match o {
+            acadrust::objects::ObjectType::Arch(a) if a.dxf_name == "AECC_NETWORK_PART_DEF" => Some(a),
+            _ => None,
+        })
+        .collect();
+    if !part_defs.is_empty() {
+        let with_strings = part_defs.iter().filter(|a| !a.decode().strings.is_empty()).count();
+        gaps.push(serde_json::json!({ "family": "AECC_NETWORK_PART_DEF", "count": part_defs.len(), "missing": format!("writer: no manifest family for a drawing's own part-definition records ({with_strings} of {} decode inline strings; the number-field reader targets the entity record form); the pipe/structure writers rebuild an implicit default catalog", part_defs.len()), "implementable": "uncertain — the object records keep their bodies; a parts-catalog writer is create/network.rs dictionary work" }));
+    }
+
     let c = census(doc);
     serde_json::json!({
         "source": source,
         "codec_census": c,
         "mcp_census": mcp_census,
+        "doc_census": doc_census(doc),
+        "object_census": object_census(doc),
         "families": families,
         "gaps": gaps,
     })

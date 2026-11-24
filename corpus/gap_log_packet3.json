@@ -1,0 +1,83 @@
+{
+    "format": "{id, file, family, class, missing, implementable, evidence}",
+    "wave": "D017 packet #3 (2026-11-24) \u2014 Part Builder-1a, Labels-Parcels, Survey-1",
+    "base": "parity/corpus-roundtrip@7f34345b",
+    "suite": "cargo test 3281 passed / 0 failed on 7f34345b (start and end of packet)",
+    "classes": {
+        "READ gap": "oracle decodes less than the application shows",
+        "WRITER gap": "manifest carries it but the writer refuses/omits",
+        "CODEC BUG": "decoded/written values disagree with the oracle",
+        "KNOWN-TOLERATED": "documented deviation, compare_verify tolerates (#11 tin retriangulation/corner padding, #12 parcel Face/LotLine counts)"
+    },
+    "census gates (codec analyze == app class census)": {
+        "Part Builder-1a.dwg": "{AcDb3dPolyline:94, AeccDbFace:1, AeccDbSurfaceTin:1} == app 96 entities, same 3 classes \u2014 EXACT",
+        "Labels-Parcels.dwg": "{AECC_PARCEL_SEGMENT:55, AeccDbFace:55} == app {AeccDbFace:55, AeccDbLotLine:55} (110 entities; same counts, RX-name spelling differs) \u2014 EXACT",
+        "Survey-1.dwg": "{} == app total_entities=0 \u2014 EXACT"
+    },
+    "sizing": {
+        "W1-7 (no survey-figure/network decoder)": {
+            "Survey-1.dwg": "AECC_SVFIGURE=0 / AECC_SVNETWORK=0 \u2014 probed FIRST app-side: model space total_entities=0, svfigureRx=0, svnetworkRx=0, SurveyFigure cast=0; codec census {} agrees (doc-wide entity census also carries no survey records; only AECC_SVFIGURE_STYLE=2 / AECC_SVNETWORK_STYLE=2 style objects exist). Survey-1 is NOT a second W1-7 oracle file; the figures live only in Survey-3 (85/1). Roundtrip is an empty shell, trivially exact both sides, audit clean."
+        },
+        "W1-6 (WITH-LIMITS parcel refusals)": {
+            "Labels-Parcels.dwg": "oracle: 55 AeccDbFace (1 site + 54 parcels; app Parcel cast = 54) + 55 AeccDbLotLine segments. Manifest carried 55 add_parcel attempts (site record included); 17 built, 38 refused with 'the line crosses or touches a member it may not meet' \u2014 each oracle outline is drawn independently over the shared site, so adjacent-parcel lot lines cross. Denominators: 54 oracle parcels, 17 built (31%), 38 refused."
+        },
+        "W1-5 (cogo 0-decode)": "not exercised: no AECC_COGO_POINT decodes in any of the three files (Survey-1 doc-wide census has none either)",
+        "part definitions (#552)": {
+            "Part Builder-1a.dwg": "ZERO AECC_NETWORK_PART_DEF records codec-side (object census: AECC_NETWORK_PART_LIST=3, AECC_NETWORK_PART_FAMILY_ITEM=37, AECC_NETWORK_RULE=13, AECC_NETWORK_PART_CATALOG_DEF_NODE=1, part defs=0) and no AECC_PIPE / AECC_STRUCTURE entities \u2014 the #552 part-definition decoders (23/23 defined, inverts 11/11 on Pipe Networks-3B) are UNEXERCISED by this file: nothing references a part definition. The drawing carries only the parts catalog wiring (lists, family items, rules)."
+        }
+    },
+    "gaps": [
+        {
+            "id": "W3-1",
+            "file": "Labels-Parcels.dwg",
+            "family": "AeccDbFace/AeccDbLotLine (55+55)",
+            "class": "WRITER gap (W1-6 WITH-LIMITS)",
+            "missing": "38 of 55 add_parcel attempts refused ('the line crosses or touches a member it may not meet'); the writer builds each manifest outline as an independent closed lot line over one fresh site, so neighboring parcels' outlines cross the lot lines placed before them; the oracle site holds all 54 parcels as one split topology",
+            "implementable": "yes in principle \u2014 batch the manifest through add_lot_line (the splitting writer) so shared edges become one lot-line set, or per-parcel sites; both change counts vs the oracle's single-site topology",
+            "evidence": "build notes: 38 refusals (Property:1, Road:3/4/6, Single-Family:2..37, 8 unnamed); built census {AECC_PARCEL_SEGMENT:17, AeccDbFace:18} == app census {AeccDbLotLine:17, AeccDbFace:18}; app reads 17 parcels named 'Standard : 1..17'; audit clean"
+        },
+        {
+            "id": "W3-2",
+            "file": "Labels-Parcels.dwg",
+            "family": "parcel area-label anchors",
+            "class": "READ gap + parameter gap (label placement)",
+            "missing": "READ: parcel_label() decodes only 2 of 54 oracle parcel anchors (manifest items 42, 53) \u2014 record-form variance in the label-location grammar; the other 52 anchors are unknown codec-side. PARAMETER: the manifest carries no writer-controllable anchor, so placement is not round-tripped; writer-written parcels do carry decodable anchors (17/17 built parcels; default [2.5, 0.2]-style relative locations)",
+            "implementable": "READ: yes \u2014 extend parcel_label() to the record forms of the 52; PARAMETER: add an anchor to add_parcel and the manifest schema",
+            "evidence": "labels_parcels.analysis.json: 2/55 items with non-null label; built analysis: 17/18 (the site record carries none); app-side parcels render labels (name/number reads fine)"
+        },
+        {
+            "id": "W3-3",
+            "file": "Labels-Parcels.dwg / Part Builder-1a.dwg",
+            "family": "parcel outline re-decode of BUILT files",
+            "class": "verification-scope (READ on writer-produced records)",
+            "missing": "analyze of a BUILT parcel decodes 0 outline vertices (a.profiles empty): the writer's parcel/lot-line records carry no proxy-graphics profile, so L1 item-level geometry equality for parcels cannot be checked codec-side; L3 relies on app-side existence (17 parcels, audit clean) and the site-boundary vertices are unverified vertex-for-vertex",
+            "implementable": "uncertain \u2014 either the writer should embed the outline profile the reader expects, or L3 needs an app-side parcel-outline read-back (site topology walk)",
+            "evidence": "built analyses: all built parcel items have vertices=[]; oracle items decode 4-vertex outlines; app-side the built parcels exist with numbers/names"
+        },
+        {
+            "id": "W3-4",
+            "file": "Part Builder-1a.dwg",
+            "family": "AECC_NETWORK_PART_DEF (0) / parts catalog wiring",
+            "class": "READ gap (provenance, no records to decode)",
+            "missing": "the drawing holds its parts catalog wiring (3 lists, 37 family items, 13 rules, 1 catalog def node) but ZERO part-definition records and no pipes/structures \u2014 the harness's pipe/structure wiring has nothing to pair with; nothing to extend the manifest with beyond the new object_census record",
+            "implementable": "no action \u2014 #552 decoders stay Pipe-Networks-3B-scoped; object_census now records the catalog wiring per file",
+            "evidence": "object census in part_builder_1a.analysis.json; app census 96 entities has no network classes"
+        }
+    ],
+    "known-tolerated (documented deviations, L1)": [
+        {
+            "file": "Part Builder-1a.dwg",
+            "items": "polyline3d 94/94 BIT-EXACT; tin_surface points 13666->13670 (writer's +4 bounding corners, #11) and triangles retriangulated 27203->27258; parcel count 1->2 (writer writes parcel + lot line, #12); built census {AcDb3dPolyline:94, AECC_PARCEL_SEGMENT:1, AeccDbFace:2, AeccDbSurfaceTin:1} == app census exactly"
+        }
+    ],
+    "non-gap evidence": [
+        {
+            "file": "Part Builder-1a.dwg",
+            "note": "L3: all 94 built 3d polylines read back in Civil 3D with layer + vertex count + first/last vertex BIT-EXACT (94/94); tin reads vertices=13666 triangles=27258 app-side (oracle 13666 points; the 4 padded corners are not distinct app vertices); 1 parcel 'Standard : 1'; audit clean, no dialog"
+        },
+        {
+            "file": "Survey-1.dwg",
+            "note": "empty-shell roundtrip: codec census {} == app census 0 on oracle AND built; open/audit clean both; W1-7 sizing contribution 0 (see sizing)"
+        }
+    ]
+}
