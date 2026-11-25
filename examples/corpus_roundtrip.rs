@@ -197,6 +197,202 @@ fn gap(family: &str, count: usize, missing: &str, implementable: &str) -> Json {
     serde_json::json!({ "family": family, "count": count, "missing": missing, "implementable": implementable })
 }
 
+/// A network part's name (the text the application shows in the part
+/// list): the writer names parts `Structure - (n)` / `Pipe - (n)` and the
+/// application may suffix a duplicate with ` (1)` (Pipe Networks-3B's
+/// eleventh pipe is `Pipe - (10) (1)`).
+fn part_name(strings: &[String], prefix: &str) -> Json {
+    strings
+        .iter()
+        .find(|s| s.starts_with(prefix) && s[prefix.len().min(s.len())..].starts_with(" - ("))
+        .map(|s| Json::from(s.as_str()))
+        .unwrap_or(Json::Null)
+}
+
+/// The connector topology of the network's parts: connector handle →
+/// (paired connector, owning part) from each `AECC_NETWORK_PART_CONNECTOR`
+/// record's references (soft 0, hard owner 0, pair, part).
+fn connector_map(doc: &acadrust::CadDocument) -> BTreeMap<u64, (u64, u64)> {
+    all_of(doc, "AECC_NETWORK_PART_CONNECTOR")
+        .iter()
+        .filter_map(|h| {
+            let a = arch_of(doc, *h)?;
+            let refs = a.typed_handles();
+            Some((h.value(), (refs.get(2)?.0, refs.get(3)?.0)))
+        })
+        .collect()
+}
+
+/// A pipe's own connectors (the ones whose owning part it is), in the
+/// order its record lists them: start then end (the order
+/// `connect_pipe` writes).
+fn pipe_connectors(pipe: Handle, a: &acadrust::classes::arch::ArchEntityData, connectors: &BTreeMap<u64, (u64, u64)>) -> Vec<u64> {
+    a.typed_handles()
+        .iter()
+        .filter(|(v, _)| connectors.get(v).map(|(_, part)| *part) == Some(pipe.value()))
+        .map(|(v, _)| *v)
+        .collect()
+}
+
+/// The spiral groups of an alignment, in element (station) order: a
+/// consecutive `SpiralIn / arc / SpiralOut` run (the application's
+/// spiraled form) or the writers' single `FreeSpiralCurveSpiral`, as
+/// `{"kind": "scs", "spiral_in", "radius", "spiral_out"}`; a lone arc as
+/// `{"kind": "arc"}`.
+fn alignment_curve_groups(els: &[acadrust::classes::civil::AlignmentElement]) -> Vec<Json> {
+    use acadrust::classes::civil::AlignmentElementKind as K;
+    let mut groups: Vec<Json> = Vec::new();
+    let mut spir_in: Option<(f64, f64)> = None; // (length, radius)
+    let mut spir_out: Option<f64> = None;
+    let flush = |groups: &mut Vec<Json>, spir_in: &mut Option<(f64, f64)>, spir_out: &mut Option<f64>| {
+        if let Some((len, radius)) = *spir_in {
+            groups.push(serde_json::json!({ "kind": "scs", "spiral_in": jf(len), "radius": jf(radius), "spiral_out": jf(spir_out.unwrap_or(0.0)) }));
+        }
+        *spir_in = None;
+        *spir_out = None;
+    };
+    for e in els {
+        match &e.kind {
+            K::SpiralIn { length, radius, .. } => {
+                spir_in = Some((*length, *radius));
+            }
+            K::SpiralOut { length, .. } => {
+                spir_out = Some(*length);
+            }
+            K::FreeSpiralCurveSpiral { spiral_in, radius, spiral_out } => {
+                flush(&mut groups, &mut spir_in, &mut spir_out);
+                groups.push(serde_json::json!({ "kind": "scs", "spiral_in": jf(*spiral_in), "radius": jf(*radius), "spiral_out": jf(*spiral_out) }));
+            }
+            K::FixedArc { .. } | K::FreeArc { .. } => {
+                // An arc inside a spiral run belongs to its SCS group; a
+                // lone arc is its own group.
+                if spir_in.is_none() {
+                    groups.push(serde_json::json!({ "kind": "arc" }));
+                }
+            }
+            // Lines (and any element kind the groups cannot adjoin) end a
+            // run.
+            _ => flush(&mut groups, &mut spir_in, &mut spir_out),
+        }
+    }
+    flush(&mut groups, &mut spir_in, &mut spir_out);
+    groups
+}
+
+/// The alignment's elements in chain (station) order, following the
+/// elements' next links from the run's start.
+fn chain_order(els: &[acadrust::classes::civil::AlignmentElement]) -> Option<Vec<acadrust::classes::civil::AlignmentElement>> {
+    let by_id = |id: i16| els.iter().find(|e| e.id == id);
+    let mut chain: Vec<acadrust::classes::civil::AlignmentElement> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let mut cur = els.iter().find(|e| e.previous == 0 || by_id(e.previous).is_none())?.clone();
+    loop {
+        if !seen.insert(cur.id) {
+            break;
+        }
+        let next_id = cur.next;
+        chain.push(cur);
+        if next_id == 0 {
+            break;
+        }
+        cur = by_id(next_id)?.clone();
+    }
+    (!chain.is_empty()).then_some(chain)
+}
+
+/// The element walk for a fully-spiraled alignment: its PIs are the
+/// tangent intersections of the stored fixed lines (the free-curve
+/// writers' own input), not chord fits of the stroked solve — the chord
+/// walk puts a spiraled vertex's PI inside the true one by half the
+/// spiral deflection, which the SCS solve then reproduces as a short arc.
+/// Returns `(vertices, curve_radii, curves)` when every curve group in
+/// the chain is an SCS and the walk covers the run; `None` otherwise (the
+/// caller keeps its stroked-polyline walk).
+fn element_scs_walk(els: &[acadrust::classes::civil::AlignmentElement]) -> Option<(Vec<Vector2>, Vec<f64>, Vec<Json>)> {
+    use acadrust::classes::civil::AlignmentElementKind as K;
+    let chain = chain_order(els)?;
+    let line_of = |e: &acadrust::classes::civil::AlignmentElement| match &e.kind {
+        K::FixedLine { start, end } => Some((*start, *end)),
+        _ => None,
+    };
+    let intersect = |l1: (Vector2, Vector2), l2: (Vector2, Vector2)| -> Option<Vector2> {
+        let (p1, p2) = l1;
+        let (p3, p4) = l2;
+        let d1 = p2 - p1;
+        let d2 = p4 - p3;
+        let den = d1.x * d2.y - d1.y * d2.x;
+        if den.abs() < 1e-12 {
+            return None;
+        }
+        let t = ((p3.x - p1.x) * d2.y - (p3.y - p1.y) * d2.x) / den;
+        Some(p1 + d1 * t)
+    };
+    let is_group_member = |e: &acadrust::classes::civil::AlignmentElement| {
+        matches!(e.kind, K::SpiralIn { .. } | K::SpiralOut { .. } | K::FixedArc { .. } | K::FreeSpiralCurveSpiral { .. })
+    };
+    let mut vertices: Vec<Vector2> = Vec::new();
+    let mut radii: Vec<f64> = Vec::new();
+    let mut curves: Vec<Json> = Vec::new();
+    // The run starts on a stored line point.
+    let first = line_of(chain.first()?)?;
+    vertices.push(first.0);
+    let mut prev_line: Option<(Vector2, Vector2)> = Some(first);
+    let mut group: Option<(f64, f64, f64)> = None; // (spiral_in, radius, spiral_out)
+    for (idx, e) in chain.iter().enumerate() {
+        match &e.kind {
+            K::SpiralIn { length, radius, .. } => {
+                if group.replace((*length, *radius, 0.0)).is_some() {
+                    return None;
+                }
+            }
+            K::SpiralOut { length, .. } => {
+                let Some(g) = group.as_mut() else { return None };
+                g.2 = *length;
+            }
+            K::FixedArc { .. } => {
+                // An arc only adjoins spirals here; a lone fixed arc is
+                // not this walk's shape.
+                if group.is_none() {
+                    return None;
+                }
+            }
+            K::FreeSpiralCurveSpiral { spiral_in, radius, spiral_out } => {
+                if group.replace((*spiral_in, *radius, *spiral_out)).is_some() {
+                    return None;
+                }
+            }
+            K::FixedLine { .. } => {
+                // A pending group's PI: the tangent intersection of the
+                // line before and the line after the group (this line
+                // when it follows it).
+                if let Some((sin, r, sout)) = group.take() {
+                    let next_line = chain[idx..].iter().find(|e| matches!(e.kind, K::FixedLine { .. })).and_then(|e| line_of(e));
+                    let (l1, l2) = (prev_line?, next_line?);
+                    let pi = intersect(l1, l2)?;
+                    vertices.push(pi);
+                    radii.push(r);
+                    curves.push(serde_json::json!({ "kind": "scs", "spiral_in": jf(sin), "radius": jf(r), "spiral_out": jf(sout) }));
+                }
+                let (start, end) = line_of(e)?;
+                let next_is_group = chain.get(idx + 1).map(|n| is_group_member(n)).unwrap_or(false);
+                if !next_is_group {
+                    // A line end is a vertex unless it repeats the last
+                    // one (the group's PI the line starts at).
+                    let repeat = vertices.last().is_some_and(|v| (v.x - end.x).abs() < 1e-12 && (v.y - end.y).abs() < 1e-12);
+                    if !repeat {
+                        vertices.push(end);
+                        radii.push(0.0);
+                        curves.push(Json::Null);
+                    }
+                }
+                prev_line = Some((start, end));
+            }
+            _ => return None,
+        }
+    }
+    (group.is_none() && vertices.len() >= 2).then_some((vertices, radii, curves))
+}
+
 // ---------------- analyze ----------------
 
 fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) -> Json {
@@ -286,8 +482,10 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
     }
 
     // Gravity pipe networks: the parts the writers reproduce. The network
-    // record itself is rebuilt implicitly by add_pipe_network (its name is
-    // not carried — a parameter gap); connectors and part lists are app-side.
+    // record itself is rebuilt by add_pipe_network under the decoded name
+    // (W1-3); the parts carry their names, and the pipes their connector
+    // topology (which structure each end meets, via the connector
+    // records' pair references). The parts lists are app-side.
     let structures = all_of(doc, "AECC_STRUCTURE");
     if !structures.is_empty() {
         let items: Vec<Json> = structures
@@ -297,25 +495,51 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
                 let a = arch_of(doc, *h).unwrap();
                 let pos = a.structure_position().map(j3).unwrap_or(Json::Null);
                 let rot = a.network_part_rotation().map(jf).unwrap_or(Json::Null);
-                serde_json::json!({ "key": format!("ST{i}"), "position": pos, "rotation": rot })
+                serde_json::json!({ "key": format!("ST{i}"), "name": part_name(&a.decode().strings, "Structure"), "position": pos, "rotation": rot })
             })
             .collect();
         families.push(serde_json::json!({ "family": "structure", "count": structures.len(), "items": items }));
     }
     let pipes = all_of(doc, "AECC_PIPE");
     if !pipes.is_empty() {
+        let connectors = connector_map(doc);
+        let structure_keys: BTreeMap<u64, String> = structures.iter().enumerate().map(|(i, h)| (h.value(), format!("ST{i}"))).collect();
         let items: Vec<Json> = pipes
             .iter()
             .enumerate()
             .map(|(i, h)| {
                 let a = arch_of(doc, *h).unwrap();
+                // The structure each end meets: the pipe's own connector
+                // (start then end), through its pair to the connector's
+                // owning part. An open end pairs with none.
+                let peer = |c: u64| -> Json {
+                    let (pair, _part) = connectors.get(&c).copied().unwrap_or((0, 0));
+                    if pair == 0 {
+                        return Json::Null;
+                    }
+                    connectors.get(&pair).map(|(_, part)| structure_keys.get(part).cloned().unwrap_or_default()).map(Json::from).unwrap_or(Json::Null)
+                };
+                let own = pipe_connectors(*h, &a, &connectors);
+                let (start, end) = (own.first().map(|c| peer(*c)).unwrap_or(Json::Null), own.get(1).map(|c| peer(*c)).unwrap_or(Json::Null));
                 match a.pipe_ends() {
-                    Some((s, e)) => serde_json::json!({ "key": format!("PP{i}"), "start": j3(s), "end": j3(e) }),
-                    None => serde_json::json!({ "key": format!("PP{i}"), "start": null, "end": null }),
+                    Some((s, e)) => serde_json::json!({ "key": format!("PP{i}"), "name": part_name(&a.decode().strings, "Pipe"), "start": j3(s), "end": j3(e), "connects": [start, end] }),
+                    None => serde_json::json!({ "key": format!("PP{i}"), "name": part_name(&a.decode().strings, "Pipe"), "start": null, "end": null, "connects": [start, end] }),
                 }
             })
             .collect();
         families.push(serde_json::json!({ "family": "pipe", "count": pipes.len(), "items": items }));
+    }
+    let networks = all_of(doc, "AECC_NETWORK");
+    if !networks.is_empty() {
+        let items: Vec<Json> = networks
+            .iter()
+            .enumerate()
+            .map(|(i, h)| {
+                let a = arch_of(doc, *h).unwrap();
+                serde_json::json!({ "key": format!("NET{i}"), "name": a.decode().strings.get(2).cloned().unwrap_or_default() })
+            })
+            .collect();
+        families.push(serde_json::json!({ "family": "pipe_network", "count": networks.len(), "items": items }));
     }
 
     // TIN surfaces: points and triangle list (the points writer rebuilds the
@@ -523,7 +747,35 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
                     curve_radii[*vi - 1] = *r;
                 }
             }
-            items.push(serde_json::json!({ "key": key, "name": name, "layer": "C-ROAD", "vertices": vertices.iter().map(|v| j2(*v)).collect::<Vec<_>>(), "curve_radii": curve_radii.iter().map(|r| jf(*r)).collect::<Vec<_>>() }));
+            // ROAD1 (this round): the record's spiral groups. The PI walk
+            // above reduces every curve to a tangent free arc — the
+            // representation that loses the 50 m clothoids (the recorded
+            // -1.18 m residual). When every group is an SCS and the
+            // element walk covers the run, the item carries the tangent
+            // PIs and the group parameters so build writes the SCS form
+            // (#598's rt_align pins the exact roundtrip); otherwise it
+            // keeps the stroked walk with null curves.
+            let groups = a.alignment_elements().map(|els| alignment_curve_groups(&els)).unwrap_or_default();
+            let all_scs = !groups.is_empty() && groups.iter().all(|g| g["kind"] == "scs");
+            let walked = all_scs.then(|| a.alignment_elements().and_then(|els| element_scs_walk(&els))).flatten();
+            let (vertices, curve_radii, curves) = match walked {
+                Some((v, r, c)) => (v, r, c),
+                None => {
+                    let mut curves = vec![Json::Null; curve_radii.len()];
+                    let n_curved = curve_radii.iter().filter(|r| **r != 0.0).count();
+                    if n_curved == groups.len() && n_curved > 0 {
+                        let mut gi = 0;
+                        for (i, r) in curve_radii.iter().enumerate() {
+                            if *r != 0.0 {
+                                curves[i] = groups[gi].clone();
+                                gi += 1;
+                            }
+                        }
+                    }
+                    (vertices, curve_radii, curves)
+                }
+            };
+            items.push(serde_json::json!({ "key": key, "name": name, "layer": "C-ROAD", "vertices": vertices.iter().map(|v| j2(*v)).collect::<Vec<_>>(), "curve_radii": curve_radii.iter().map(|r| jf(*r)).collect::<Vec<_>>(), "curves": curves }));
         }
         families.push(serde_json::json!({ "family": "alignment", "count": alignments.len(), "items": items }));
     }
@@ -826,11 +1078,19 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
         }
     }
 
-    // Gravity pipe network: one network per file (the oracle's network name
-    // and parts list are not carried — logged gaps), parts in manifest order.
+    // Gravity pipe network: one network per file under its decoded name
+    // (W1-3), parts in manifest order with their names, pipes connected to
+    // the structures their manifest entry names.
     if find(&fams, "structure").is_some() || find(&fams, "pipe").is_some() {
-        match add_pipe_network(&mut doc, "NETWORK", None) {
+        let net_name = find(&fams, "pipe_network")
+            .and_then(|f| f["items"].as_array().cloned())
+            .and_then(|a| a.first().cloned())
+            .and_then(|i| i["name"].as_str().map(str::to_string))
+            .filter(|n| !n.is_empty())
+            .unwrap_or_else(|| "NETWORK".to_string());
+        match add_pipe_network(&mut doc, &net_name, None) {
             Ok(network) => {
+                let mut structure_map: std::collections::HashMap<String, Handle> = Default::default();
                 if let Some(f) = find(&fams, "structure") {
                     for item in f["items"].as_array().unwrap_or(&vec![]) {
                         let Some(position) = item.get("position").and_then(|v| v.is_array().then(|| v3(v))) else {
@@ -838,8 +1098,16 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                             continue;
                         };
                         let rotation = item["rotation"].as_f64().unwrap_or(0.0);
-                        if let Err(e) = add_structure(&mut doc, network, position, rotation) {
-                            notes.push(format!("structure {}: {e}", item["key"]));
+                        match add_structure(&mut doc, network, position, rotation) {
+                            Ok(h) => {
+                                if let Some(name) = item["name"].as_str() {
+                                    if let Err(e) = acadrust::classes::civil::set_network_part_name(&mut doc, h, name) {
+                                        notes.push(format!("structure {}: name {name:?}: {e}", item["key"]));
+                                    }
+                                }
+                                structure_map.insert(item["key"].as_str().unwrap_or_default().to_string(), h);
+                            }
+                            Err(e) => notes.push(format!("structure {}: {e}", item["key"])),
                         }
                     }
                 }
@@ -852,8 +1120,28 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                             notes.push(format!("pipe {}: no ends decoded", item["key"]));
                             continue;
                         };
-                        if let Err(e) = add_pipe(&mut doc, network, start, end) {
-                            notes.push(format!("pipe {}: {e}", item["key"]));
+                        match add_pipe(&mut doc, network, start, end) {
+                            Ok(h) => {
+                                if let Some(name) = item["name"].as_str() {
+                                    if let Err(e) = acadrust::classes::civil::set_network_part_name(&mut doc, h, name) {
+                                        notes.push(format!("pipe {}: name {name:?}: {e}", item["key"]));
+                                    }
+                                }
+                                // The ends' structures, when the manifest
+                                // names both (the oracle's pipes meet a
+                                // structure at each end).
+                                let st = |k: &Json| k.as_str().and_then(|s| structure_map.get(s).copied());
+                                let connects = item["connects"].as_array().cloned().unwrap_or_default();
+                                if !connects.is_empty() {
+                                    let (s, e) = (connects.first().and_then(st), connects.get(1).and_then(st));
+                                    if s.is_none() && e.is_none() {
+                                        notes.push(format!("pipe {}: connectors {} not built", item["key"], item["connects"]));
+                                    } else if let Err(e) = acadrust::classes::civil::connect_pipe(&mut doc, h, s, e) {
+                                        notes.push(format!("pipe {}: connect: {e}", item["key"]));
+                                    }
+                                }
+                            }
+                            Err(e) => notes.push(format!("pipe {}: {e}", item["key"])),
                         }
                     }
                 }
@@ -940,7 +1228,21 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
         for item in f["items"].as_array().unwrap_or(&vec![]) {
             let vertices: Vec<Vector2> = item["vertices"].as_array().map(|a| a.iter().map(|v| v2(v)).collect()).unwrap_or_default();
             let radii: Vec<f64> = item["curve_radii"].as_array().map(|a| a.iter().filter_map(|v| v.as_f64()).collect()).unwrap_or_default();
-            let curves: Vec<VertexCurve> = (0..vertices.len().saturating_sub(2)).map(|i| if radii.get(i).copied().unwrap_or(0.0) > 0.0 { VertexCurve::Arc(radii[i]) } else { VertexCurve::None }).collect();
+            let curves_spec = item["curves"].as_array().cloned();
+            let curves: Vec<VertexCurve> = (0..vertices.len().saturating_sub(2)).map(|i| {
+                // An SCS group at this vertex (ROAD1): the free
+                // spiral-curve-spiral the upstream writer round-trips
+                // exactly, instead of the tangent free arc that lost the
+                // clothoids.
+                if let Some(true) = curves_spec.as_ref().and_then(|c| c.get(i)).map(|c| c["kind"] == "scs") {
+                    let c = &curves_spec.as_ref().unwrap()[i];
+                    let (sin, r, sout) = (c["spiral_in"].as_f64().unwrap_or(0.0), c["radius"].as_f64().unwrap_or(0.0), c["spiral_out"].as_f64().unwrap_or(0.0));
+                    if sin > 0.0 && r > 0.0 && sout > 0.0 {
+                        return VertexCurve::SpiralCurveSpiral { spiral_in: sin, radius: r, spiral_out: sout };
+                    }
+                }
+                if radii.get(i).copied().unwrap_or(0.0) > 0.0 { VertexCurve::Arc(radii[i]) } else { VertexCurve::None }
+            }).collect();
             let key = item["key"].as_str().unwrap_or("AL").to_string();
             let name = item["name"].as_str().unwrap_or(&key).to_string();
             match add_alignment_with_curves(&mut doc, &name, &vertices, &curves, None) {
@@ -1155,8 +1457,63 @@ fn main() {
             std::fs::write(out_path, serde_json::to_string_pretty(&analysis).unwrap()).unwrap();
             println!("built analysis -> {out_path}");
         }
+        Some("probe3b") => {
+            // W1-3 / ROAD1 probe: alignment elements (full kinds), the
+            // network's name, the parts' names and the connector topology.
+            let oracle = &args[2];
+            let doc = DwgReader::from_file(oracle).unwrap().read_with_stats().unwrap().document;
+            let mut out = serde_json::json!({});
+            // Alignments: full element kind dump.
+            let mut aligns = Vec::new();
+            for h in all_of(&doc, "AECC_ALIGNMENT") {
+                let Some(a) = arch_of(&doc, h) else { continue };
+                let els = a.alignment_elements().unwrap_or_default();
+                let kinds: Vec<String> = els
+                    .iter()
+                    .map(|e| match &e.kind {
+                        acadrust::classes::civil::AlignmentElementKind::FixedLine { .. } => "FixedLine".into(),
+                        acadrust::classes::civil::AlignmentElementKind::FixedArc { .. } => "FixedArc".into(),
+                        acadrust::classes::civil::AlignmentElementKind::FreeArc { radius } => format!("FreeArc({radius})"),
+                        acadrust::classes::civil::AlignmentElementKind::SpiralIn { length, radius, shape, .. } => format!("SpiralIn(len={length},r={radius},{shape:?})"),
+                        acadrust::classes::civil::AlignmentElementKind::SpiralOut { radius, length, shape, .. } => format!("SpiralOut(len={length},r={radius},{shape:?})"),
+                        acadrust::classes::civil::AlignmentElementKind::FreeSpiralCurveSpiral { spiral_in, radius, spiral_out } => format!("FreeSCS(in={spiral_in},r={radius},out={spiral_out})"),
+                        other => format!("{other:?}"),
+                    })
+                    .collect();
+                let pieces = a.alignment_pieces_with_curvature();
+                let curvs: Vec<(String, f64, usize)> = pieces
+                    .iter()
+                    .map(|(k, c, pts)| (format!("{k:?}"), *c, pts.len()))
+                    .collect();
+                let length: f64 = pieces.iter().map(|(_k, _c, pts)| pts.windows(2).map(|w| w[0].distance(&w[1])).sum::<f64>()).sum();
+                let links: Vec<String> = a.alignment_elements().unwrap_or_default().iter().map(|e| format!("{}:prev{}:next{}", e.id, e.previous, e.next)).collect();
+                aligns.push(serde_json::json!({ "handle": h.value(), "name": a.alignment_name(), "elements": kinds, "links": links, "pieces": curvs, "stroked_length": length }));
+            }
+            out["alignments"] = serde_json::json!(aligns);
+            // Network name.
+            let networks: Vec<Json> = all_of(&doc, "AECC_NETWORK")
+                .iter()
+                .filter_map(|h| arch_of(&doc, *h).map(|a| serde_json::json!({ "handle": h.value(), "strings": a.decode().strings, "refs": a.typed_handles().iter().map(|(v, k)| format!("{v}/{k}")).collect::<Vec<_>>() })))
+                .collect();
+            out["networks"] = serde_json::json!(networks);
+            // Part names.
+            let parts = |dxf: &str| -> Vec<Json> {
+                all_of(&doc, dxf)
+                    .iter()
+                    .enumerate()
+                    .map(|(i, h)| {
+                        let a = arch_of(&doc, *h).unwrap();
+                        serde_json::json!({ "i": i, "handle": h.value(), "strings": a.decode().strings, "refs": a.typed_handles().iter().map(|(v, k)| format!("{v}/{k}")).collect::<Vec<_>>() })
+                    })
+                    .collect()
+            };
+            out["structures"] = serde_json::json!(parts("AECC_STRUCTURE"));
+            out["pipes"] = serde_json::json!(parts("AECC_PIPE"));
+            out["connectors"] = serde_json::json!(parts("AECC_NETWORK_PART_CONNECTOR"));
+            println!("{}", serde_json::to_string_pretty(&out).unwrap());
+        }
         _ => {
-            eprintln!("usage: corpus_roundtrip analyze <oracle.dwg> <manifest.json> [mcp_census.json] | build <manifest.json> <out.dwg> | verify <built.dwg> <analysis.json>");
+            eprintln!("usage: corpus_roundtrip analyze <oracle.dwg> <manifest.json> [mcp_census.json] | build <manifest.json> <out.dwg> | verify <built.dwg> <analysis.json> | probe3b <oracle.dwg>");
             std::process::exit(2);
         }
     }

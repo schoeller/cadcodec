@@ -62,6 +62,7 @@
       "items": [
         {
           "key": "ST0",
+          "name": "Structure - (1)",
           "position": [
             4570.421249968968,
             4022.3992881298386,
@@ -71,6 +72,7 @@
         },
         {
           "key": "ST1",
+          "name": "Structure - (2)",
           "position": [
             4668.765538337933,
             4042.3645470901806,
@@ -80,6 +82,7 @@
         },
         {
           "key": "ST2",
+          "name": "Structure - (3)",
           "position": [
             4815.818115651355,
             4071.954063907463,
@@ -89,6 +92,7 @@
         },
         {
           "key": "ST3",
+          "name": "Structure - (4)",
           "position": [
             4962.870692964776,
             4101.543580724746,
@@ -98,6 +102,7 @@
         },
         {
           "key": "ST4",
+          "name": "Structure - (5)",
           "position": [
             5102.387128771924,
             4139.52119520819,
@@ -107,6 +112,7 @@
         },
         {
           "key": "ST5",
+          "name": "Structure - (6)",
           "position": [
             5139.385478072682,
             4167.07236365764,
@@ -116,6 +122,7 @@
         },
         {
           "key": "ST6",
+          "name": "Structure - (7)",
           "position": [
             4831.53952416904,
             4044.516182899264,
@@ -125,6 +132,7 @@
         },
         {
           "key": "ST7",
+          "name": "Structure - (8)",
           "position": [
             4978.592101482462,
             4074.1056997165465,
@@ -134,6 +142,7 @@
         },
         {
           "key": "ST8",
+          "name": "Structure - (9)",
           "position": [
             5126.3841124033925,
             4118.940583891431,
@@ -143,6 +152,7 @@
         },
         {
           "key": "ST9",
+          "name": "Structure - (10)",
           "position": [
             5167.728178320399,
             4153.068502466938,
@@ -152,6 +162,7 @@
         },
         {
           "key": "ST10",
+          "name": "Structure - (11)",
           "position": [
             4750.796980786534,
             4424.825461836763,
@@ -161,6 +172,7 @@
         },
         {
           "key": "ST11",
+          "name": "Structure - (12)",
           "position": [
             4712.097990975151,
             4244.396462891583,
@@ -175,12 +187,17 @@
       "family": "pipe",
       "items": [
         {
+          "connects": [
+            "ST0",
+            "ST1"
+          ],
           "end": [
             4668.765538337933,
             4042.3645470901806,
             643.8116513831129
           ],
           "key": "PP0",
+          "name": "Pipe - (1)",
           "start": [
             4570.421249968968,
             4022.3992881298386,
@@ -188,12 +205,17 @@
           ]
         },
         {
+          "connects": [
+            "ST1",
+            "ST2"
+          ],
           "end": [
             4815.818115651355,
             4071.954063907463,
             643.7116513831129
           ],
           "key": "PP1",
+          "name": "Pipe - (2)",
           "start": [
             4668.765538337933,
             4042.3645470901806,
@@ -201,12 +223,17 @@
           ]
         },
         {
+          "connects": [
+            "ST2",
+            "ST3"
+          ],
           "end": [
             4962.870692964776,
             4101.543580724746,
             647.7980318502398
           ],
           "key": "PP2",
+          "name": "Pipe - (3)",
           "start": [
             4815.818115651355,
             4071.954063907463,
@@ -214,12 +241,17 @@
           ]
         },
         {
+          "connects": [
+            "ST3",
+            "ST4"
+          ],
           "end": [
             5102.387128771924,
             4139.52119520819,
             647.9820961284314
           ],
           "key": "PP3",
+          "name": "Pipe - (4)",
           "start": [
             4962.870692964776,
             4101.543580724746,
@@ -227,12 +259,17 @@
           ]
         },
         {
+          "connects": [
+            "ST4",
+            "ST5"
+          ],
           "end": [
             5139.385478072682,
             4167.07236365764,
             647.6659605901601
           ],
           "key": "PP4",
+          "name": "Pipe - (5)",
           "start": [
             5102.387128771924,
             4139.52119520819,
@@ -240,12 +277,17 @@
           ]
         },
         {
+          "connects": [
+            "ST6",
+            "ST2"
+          ],
           "end": [
             4815.818115651355,
             4071.954063907463,
             648.4399905611149
           ],
           "key": "PP5",
+          "name": "Pipe - (6)",
           "start": [
             4831.53952416904,
             4044.516182899264,
@@ -253,12 +295,17 @@
           ]
         },
         {
+          "connects": [
+            "ST7",
+            "ST3"
+          ],
           "end": [
             4962.870692964776,
             4101.543580724746,
             654.6831320899083
           ],
           "key": "PP6",
+          "name": "Pipe - (7)",
           "start": [
             4978.592101482462,
             4074.1056997165465,
@@ -266,12 +313,17 @@
           ]
         },
         {
+          "connects": [
+            "ST8",
+            "ST4"
+          ],
           "end": [
             5102.387128771924,
             4139.52119520819,
             663.6821207027916
           ],
           "key": "PP7",
+          "name": "Pipe - (8)",
           "start": [
             5126.3841124033925,
             4118.940583891431,
@@ -279,12 +331,17 @@
           ]
         },
         {
+          "connects": [
+            "ST9",
+            "ST5"
+          ],
           "end": [
             5139.385478072682,
             4167.07236365764,
             665.9867403828013
           ],
           "key": "PP8",
+          "name": "Pipe - (9)",
           "start": [
             5167.728178320399,
             4153.068502466938,
@@ -292,12 +349,17 @@
           ]
         },
         {
+          "connects": [
+            "ST10",
+            "ST11"
+          ],
           "end": [
             4712.097990975151,
             4244.396462891583,
             590.402480616892
           ],
           "key": "PP9",
+          "name": "Pipe - (10)",
           "start": [
             4750.796980786534,
             4424.825461836763,
@@ -305,17 +367,32 @@
           ]
         },
         {
+          "connects": [
+            "ST11",
+            "ST1"
+          ],
           "end": [
             4668.765538337933,
             4042.3645470901806,
             604.7441365657818
           ],
           "key": "PP10",
+          "name": "Pipe - (10) (1)",
           "start": [
             4712.097990975151,
             4244.396462891583,
             602.6778694859022
           ]
+        }
+      ]
+    },
+    {
+      "count": 1,
+      "family": "pipe_network",
+      "items": [
+        {
+          "key": "NET0",
+          "name": "Network - (1)"
         }
       ]
     },
@@ -48507,12 +48584,24 @@
       "items": [
         {
           "curve_radii": [
-            0.0,
-            200.00000062854346,
-            0.0,
-            0.0,
-            200.00000000251407,
+            200.0,
+            200.0,
             0.0
+          ],
+          "curves": [
+            {
+              "kind": "scs",
+              "radius": 200.0,
+              "spiral_in": 50.0,
+              "spiral_out": 50.0
+            },
+            {
+              "kind": "scs",
+              "radius": 200.0,
+              "spiral_in": 50.0,
+              "spiral_out": 50.0
+            },
+            null
           ],
           "key": "ROAD1",
           "layer": "C-ROAD",
@@ -48523,28 +48612,12 @@
               3595.31
             ],
             [
-              4466.31450725,
-              3952.80401514
+              4523.529999994164,
+              3997.8399999934295
             ],
             [
-              4524.82559106586,
-              3995.035074408725
-            ],
-            [
-              4594.913067032054,
-              4012.203505254529
-            ],
-            [
-              5026.3155808,
-              4099.00913739
-            ],
-            [
-              5177.069591269148,
-              4135.937415406995
-            ],
-            [
-              5212.872369254291,
-              4286.962679769625
+              5182.593168868863,
+              4130.454885603391
             ],
             [
               5287.68,
@@ -48555,6 +48628,9 @@
         {
           "curve_radii": [
             0.0
+          ],
+          "curves": [
+            null
           ],
           "key": "XC_STORM",
           "layer": "C-ROAD",
@@ -48622,31 +48698,31 @@
     {
       "count": 3,
       "family": "tin_surface.triangulation",
-      "implementable": "uncertain — check whether TinOperation has a faces op",
+      "implementable": "uncertain \u2014 check whether TinOperation has a faces op",
       "missing": "parameter: the stored triangle list (the points writer retriangulates)"
     },
     {
       "count": 1,
       "family": "AeccDbAssembly",
-      "implementable": "uncertain — PKT package content must ship from the catalog",
+      "implementable": "uncertain \u2014 PKT package content must ship from the catalog",
       "missing": "writer: chained (pilot scope)"
     },
     {
       "count": 1,
       "family": "AeccDbCorridor",
-      "implementable": "yes — writers exist, wiring is mechanical",
+      "implementable": "yes \u2014 writers exist, wiring is mechanical",
       "missing": "writer: chained (pilot scope)"
     },
     {
       "count": 8,
       "family": "AeccDbSubassembly",
-      "implementable": "uncertain — PKT package content must ship from the catalog",
+      "implementable": "uncertain \u2014 PKT package content must ship from the catalog",
       "missing": "writer"
     },
     {
       "count": 10,
       "family": "AECC_NETWORK_PART_DEF",
-      "implementable": "uncertain — the object records keep their bodies; a parts-catalog writer is create/network.rs dictionary work",
+      "implementable": "uncertain \u2014 the object records keep their bodies; a parts-catalog writer is create/network.rs dictionary work",
       "missing": "writer: no manifest family for a drawing's own part-definition records (10 of 10 decode inline strings; the number-field reader targets the entity record form); the pipe/structure writers rebuild an implicit default catalog"
     }
   ],
