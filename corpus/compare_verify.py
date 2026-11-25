@@ -7,7 +7,7 @@ import json, sys
 
 FAM2RX = {
     "polyline3d": "AcDb3dPolyline", "lwpolyline": "AcDbPolyline", "circle": "AcDbCircle", "arc": "AcDbArc", "line": "AcDbLine",
-    "mtext": "AcDbMText", "tin_surface": "AeccDbSurfaceTin", "parcel": "AeccDbFace",
+    "mtext": "AcDbMText", "tin_surface": "AeccDbSurfaceTin", "parcel": "AeccDbFace", "site": "AeccDbFace",
     "cogo_point": "AECC_COGO_POINT", "pipe": "AECC_PIPE", "structure": "AECC_STRUCTURE",
     "alignment": "AeccDbAlignment", "profile": "AeccDbVAlignment",
     "profile_view": "AeccDbGraphProfile", "sample_line_group": "AeccDbSampleLineGroup",

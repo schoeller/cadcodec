@@ -1,0 +1,45 @@
+{
+ "format": "{id, file, family, class, missing, implementable, evidence}",
+ "wave": "FIGSITE (2026-11-25) \u2014 W1-6 re-characterization under ruling D018-2 (parcel outlines cannot cross survey figures; a crossing outline is resolved by the site topology, so a decoder that reconstructs one is mis-assembling post-interaction records)",
+ "base": "parity/corpus-roundtrip@f6c4d291",
+ "classes": {
+  "READ gap": "oracle decodes less than the application shows",
+  "WRITER gap": "manifest carries it but the writer refuses/omits",
+  "RE-CHARACTERIZED": "a recorded gap whose class changes under new evidence",
+  "CLOSED": "the gap no longer reproduces"
+ },
+ "census gates (codec analyze == app class census)": {
+  "Survey-3.dwg": "{AECC_PARCEL:163 records} == app {AeccDbFace:163}; record census UNCHANGED by the fix (census gate holds) \u2014 the family split moves the 163 records from the parcel family to the site family",
+  "Parcel-2C.dwg": "{AeccDbFace:12} == app {AeccDbFace:12}; family split 12 parcel items -> 1 site + 11 parcels, matching the application's Parcel count 11 (captured 2026-11-24, cap.p4.oracle.parcel2.parcel_2c.txt)",
+  "Labels-Parcels.dwg": "{AeccDbFace:55} == app {AeccDbFace:55}; family split 55 -> 1 site + 54 parcels, matching the application's Parcel count 54 (captured 2026-11-24, cap.labelfix.oracle.parcel.anchors2.txt)"
+ },
+ "gaps": [
+  {
+   "id": "W1-6",
+   "file": "Survey-3.dwg",
+   "family": "AECC_PARCEL (163 records)",
+   "class": "RE-CHARACTERIZED (was: WRITER gap, add_parcel refuses 128/163)",
+   "missing": "nothing anymore \u2014 the old premise is void under D018-2. The 163 AECC_PARCEL records of Survey-3 are 163 SITE records and no parcels: the application casts every one to Autodesk.Civil.DatabaseServices.Site (names 'Survey Site' + 162 GUID names, in record order, matching the record names exactly), each with GetParcelIds()==0; there is not a single Parcel object in the drawing. The discriminator was already in main: parcel_site() is None for a site record, Some(site) for a parcel record (Survey-3: 0/163 carry a site reference; Parcel-2C: 11/12 do). The 'parcel outlines' the old analyze reconstructed from the site records' proxy graphics are artifacts \u2014 78 identical 5x0.4 origin boxes plus 85 figure-corner rectangles. Of those, 61 properly CROSS survey figures (segment-vs-segment against all 85 figure BaseCurves, captured live), which no true parcel outline may (D018-2). The old writer refusals ('the line crosses or touches a member it may not meet', 129 of 163) were the application-faithful answer to injecting 163 overlapping junk rectangles into one site \u2014 not a capability ask",
+   "implementable": "done \u2014 analyze splits AECC_PARCEL by the site reference: parcel family (site ref present, outline from the proxy graphic, site name resolved) + site family (name + desc, no outline); build writes the site family through add_site and joins each parcel to its named site",
+   "evidence": "L1 on the fixed tree: survey_3 built -> re-analyzed site 163 items BIT-EXACT, cogo_point 538 BIT-EXACT, built census {AECC_COGO_POINT:538, AeccDbFace:163} == oracle census 163 (was 35 faces). App cross-check: 163 Site entities, 0 Parcels, 0 parcels per site (cap.figsite.types.txt, cap.figsite.site_names.txt); figures 85 with full BaseCurve geometry (cap.figsite.figures.txt)"
+  },
+  {
+   "id": "W1-11",
+   "file": "pipe_networks_3b.dwg (+ grading_3a, part_builder_1a, grading_1, sections_project)",
+   "family": "AeccDbFace/AeccDbLotLine counts (parcel side effect)",
+   "class": "CLOSED",
+   "missing": "the old parcel family carried the file's single SITE record as a bogus parcel item, so build wrote 2 AeccDbFace + 1 AeccDbLotLine where the oracle holds 1 site face. With the site/parcel split the manifest no longer invents that parcel: pipe_networks_3b builds to exactly {AECC_NETWORK:1, AECC_PIPE:11, AECC_STRUCTURE:12, AeccDbFace:1, AeccDbSurfaceTin:3} \u2014 the site family item bit-exact, no spurious lot line",
+   "implementable": "closed by the W1-6 fix",
+   "evidence": "L1 compare on the fixed tree (figsite_l1): site 1 items BIT-EXACT; built census AeccDbFace=1 == oracle census AeccDbFace=1"
+  },
+  {
+   "id": "FIGSITE-OPEN-1",
+   "file": "Labels-Parcels.dwg / Parcel-2C.dwg (unchanged class, recorded for honesty)",
+   "family": "parcel outlines of adjacent lots",
+   "class": "WRITER gap (dynamic-interaction semantics, out of FIGSITE scope)",
+   "missing": "adjacent lot outlines share edges; add_parcel refuses 'the line crosses or touches a member it may not meet' instead of creating the shared lot line (parcel_2c: 10/11 refuse, unchanged from before the fix; labels_parcels: 43/54 refuse). Under D018-2 the stored outlines are post-interaction pieces and the writer needs the site-topology split semantics (#619/#625 machinery) to place them \u2014 a writer capability, deliberately not attempted here",
+   "implementable": "uncertain \u2014 needs the site-topology split semantics; no writer work was done in this round (boundary: no writer capability ask)",
+   "evidence": "build NOTEs identical in class before and after the fix; parcel_2c built census {AECC_PARCEL_SEGMENT:1, AeccDbFace:2} == app census {AeccDbLotLine:1, AeccDbFace:2} both before (gap_log_packet4) and after"
+  }
+ ]
+}

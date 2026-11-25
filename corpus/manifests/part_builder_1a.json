@@ -47101,6 +47101,7 @@
     },
     {
       "count": 1,
+      "empty": [],
       "family": "tin_surface",
       "items": [
         {
@@ -251459,30 +251460,11 @@
     },
     {
       "count": 1,
-      "family": "parcel",
+      "family": "site",
       "items": [
         {
-          "label": null,
-          "name": "Site 1",
-          "site": "",
-          "vertices": [
-            [
-              0.0,
-              0.0
-            ],
-            [
-              5.0,
-              0.0
-            ],
-            [
-              5.0,
-              0.4
-            ],
-            [
-              0.0,
-              0.4
-            ]
-          ]
+          "desc": "",
+          "name": "Site 1"
         }
       ]
     }

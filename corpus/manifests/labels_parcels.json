@@ -17,36 +17,23 @@
   },
   "families": [
     {
-      "count": 55,
+      "count": 1,
+      "family": "site",
+      "items": [
+        {
+          "desc": "",
+          "name": "Site"
+        }
+      ]
+    },
+    {
+      "count": 54,
       "family": "parcel",
       "items": [
         {
           "label": null,
-          "name": "Site",
-          "site": "",
-          "vertices": [
-            [
-              298789.80753764417,
-              54197.91836297
-            ],
-            [
-              299563.7808721531,
-              54197.91836297
-            ],
-            [
-              299563.7808721531,
-              55045.65033291606
-            ],
-            [
-              298789.80753764417,
-              55045.65033291606
-            ]
-          ]
-        },
-        {
-          "label": null,
           "name": "Open Space : 7",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298821.8895814684,
@@ -69,7 +56,7 @@
         {
           "label": null,
           "name": "Property : 1",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298929.2864570529,
@@ -92,7 +79,7 @@
         {
           "label": null,
           "name": "Road : 9",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299195.6079412383,
@@ -115,7 +102,7 @@
         {
           "label": null,
           "name": "Property : 42",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299001.5029840581,
@@ -138,7 +125,7 @@
         {
           "label": null,
           "name": "Road : 3",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298817.48849526234,
@@ -161,7 +148,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299027.8518460491,
@@ -184,7 +171,7 @@
         {
           "label": null,
           "name": "Road : 4",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298916.3324227091,
@@ -207,7 +194,7 @@
         {
           "label": null,
           "name": "Road : 6",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298813.08740905626,
@@ -230,7 +217,7 @@
         {
           "label": null,
           "name": "Single-Family : 2",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298789.80753764417,
@@ -253,7 +240,7 @@
         {
           "label": null,
           "name": "Single-Family : 24",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298939.68955077045,
@@ -276,7 +263,7 @@
         {
           "label": null,
           "name": "Single-Family : 8",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298917.9711102806,
@@ -299,7 +286,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298885.1450854675,
@@ -322,7 +309,7 @@
         {
           "label": null,
           "name": "Single-Family : 11",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298896.11151963286,
@@ -345,7 +332,7 @@
         {
           "label": null,
           "name": "Single-Family : 12",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298928.5539480774,
@@ -368,7 +355,7 @@
         {
           "label": null,
           "name": "Single-Family : 13",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298956.4009244456,
@@ -391,7 +378,7 @@
         {
           "label": null,
           "name": "Single-Family : 14",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298991.3825659035,
@@ -414,7 +401,7 @@
         {
           "label": null,
           "name": "Single-Family : 15",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298983.8789783938,
@@ -437,7 +424,7 @@
         {
           "label": null,
           "name": "Single-Family : 21",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298995.66469545476,
@@ -460,7 +447,7 @@
         {
           "label": null,
           "name": "Single-Family : 16",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299013.8310379293,
@@ -483,7 +470,7 @@
         {
           "label": null,
           "name": "Single-Family : 22",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299017.6781079001,
@@ -506,7 +493,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299017.4068936156,
@@ -529,7 +516,7 @@
         {
           "label": null,
           "name": "Single-Family : 19",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299014.9818146392,
@@ -552,7 +539,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299005.8125266554,
@@ -575,7 +562,7 @@
         {
           "label": null,
           "name": "Single-Family : 23",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298960.4594465182,
@@ -598,7 +585,7 @@
         {
           "label": null,
           "name": "Single-Family : 25",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298802.6511568059,
@@ -621,7 +608,7 @@
         {
           "label": null,
           "name": "Single-Family : 26",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298807.1300193039,
@@ -644,7 +631,7 @@
         {
           "label": null,
           "name": "Single-Family : 27",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298814.62921986124,
@@ -667,7 +654,7 @@
         {
           "label": null,
           "name": "Single-Family : 28",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298826.5862055118,
@@ -690,7 +677,7 @@
         {
           "label": null,
           "name": "Single-Family : 29",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298849.24305268703,
@@ -713,7 +700,7 @@
         {
           "label": null,
           "name": "Single-Family : 30",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298865.39952645777,
@@ -736,7 +723,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298877.3107535569,
@@ -759,7 +746,7 @@
         {
           "label": null,
           "name": "Single-Family : 32",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298942.62936929427,
@@ -782,7 +769,7 @@
         {
           "label": null,
           "name": "Single-Family : 33",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298928.7831834154,
@@ -805,7 +792,7 @@
         {
           "label": null,
           "name": "Single-Family : 34",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298914.9369975361,
@@ -828,7 +815,7 @@
         {
           "label": null,
           "name": "Single-Family : 35",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298909.98234311584,
@@ -851,7 +838,7 @@
         {
           "label": null,
           "name": "Single-Family : 36",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298901.05016820505,
@@ -874,7 +861,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298896.00347833056,
@@ -897,7 +884,7 @@
         {
           "label": null,
           "name": "Single-Family : 37",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298888.3521160055,
@@ -920,7 +907,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298887.4025020106,
@@ -943,7 +930,7 @@
         {
           "label": null,
           "name": "Single-Family : 41",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               298878.47544855066,
@@ -966,7 +953,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299033.0400507301,
@@ -992,7 +979,7 @@
             54396.72908052271
           ],
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299054.2330572484,
@@ -1015,7 +1002,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299073.7327162777,
@@ -1038,7 +1025,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299146.743294321,
@@ -1061,7 +1048,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299172.60319761466,
@@ -1084,7 +1071,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299198.4631009083,
@@ -1107,7 +1094,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299222.74921656493,
@@ -1130,7 +1117,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299117.8592796987,
@@ -1153,7 +1140,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299101.04445619555,
@@ -1176,7 +1163,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299078.97890644753,
@@ -1199,7 +1186,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299061.84960685205,
@@ -1222,7 +1209,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299148.8232933474,
@@ -1248,7 +1235,7 @@
             54491.68686416937
           ],
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299092.2003774848,
@@ -1271,7 +1258,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Site",
           "vertices": [
             [
               299120.9085888717,

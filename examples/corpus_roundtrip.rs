@@ -352,20 +352,46 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         gaps.push(gap("tin_surface.triangulation", surfaces.len(), "parameter: the stored triangle list (the points writer retriangulates)", "uncertain — check whether TinOperation has a faces op"));
     }
 
-    // Parcels: name + outline from the proxy-graphics profile (a closing
-    // point repeated as the first is dropped).
-    let parcels = all_of(doc, "AECC_PARCEL");
-    if !parcels.is_empty() {
-        let items: Vec<Json> = parcels.iter().map(|h| {
-            let a = arch_of(doc, *h).unwrap();
-            let (name, _alt) = a.face_name().unwrap_or_default();
-            let mut outline = a.profiles.first().cloned().unwrap_or_default();
-            if outline.len() > 1 && outline.first() == outline.last() {
-                outline.pop();
-            }
-            serde_json::json!({ "name": name, "site": "", "label": a.parcel_label().map(|p| j2(p)).unwrap_or(Json::Null), "vertices": outline.iter().map(|p| j2(Vector2::new(p.x, p.y))).collect::<Vec<_>>() })
-        }).collect();
-        families.push(serde_json::json!({ "family": "parcel", "count": parcels.len(), "items": items }));
+    // AECC_PARCEL holds sites and parcels in one record form: the
+    // application shows both as AeccDbFace and casts the record to Site or
+    // Parcel by its site reference — a parcel carries its site as the
+    // record's second reference ([`ArchEntityData::parcel_site`]), a site
+    // carries none. Survey-3 was the lesson (W1-6): its 163 AECC_PARCEL
+    // records are 163 sites and no parcels — the application's site names
+    // match the record names exactly (captured through the bridge,
+    // 2026-11-25) — and the outlines the proxy graphics of site records
+    // sketch are not parcel boundaries. So the parcel outline is only read
+    // for records that carry a site, and site records are reported as their
+    // own family (name + description; a site has no outline).
+    let faces: Vec<(Handle, acadrust::classes::arch::ArchEntityData)> = all_of(doc, "AECC_PARCEL")
+        .into_iter()
+        .filter_map(|h| arch_of(doc, h).map(|a| (h, a)))
+        .collect();
+    if !faces.is_empty() {
+        let sites: Vec<&(Handle, _)> = faces.iter().filter(|(_, a)| a.parcel_site().is_none()).collect();
+        if !sites.is_empty() {
+            let items: Vec<Json> = sites.iter().map(|(_, a)| {
+                let (name, desc) = a.face_name().unwrap_or_default();
+                serde_json::json!({ "name": name, "desc": desc })
+            }).collect();
+            families.push(serde_json::json!({ "family": "site", "count": sites.len(), "items": items }));
+        }
+        let parcels: Vec<&(Handle, _)> = faces.iter().filter(|(_, a)| a.parcel_site().is_some()).collect();
+        if !parcels.is_empty() {
+            let site_names: BTreeMap<u64, String> = sites.iter().filter_map(|(h, a)| {
+                Some((h.value(), a.face_name()?.0))
+            }).collect();
+            let items: Vec<Json> = parcels.iter().map(|(_, a)| {
+                let (name, _alt) = a.face_name().unwrap_or_default();
+                let site = a.parcel_site().and_then(|s| site_names.get(&s).cloned()).unwrap_or_default();
+                let mut outline = a.profiles.first().cloned().unwrap_or_default();
+                if outline.len() > 1 && outline.first() == outline.last() {
+                    outline.pop();
+                }
+                serde_json::json!({ "name": name, "site": site, "label": a.parcel_label().map(|p| j2(p)).unwrap_or(Json::Null), "vertices": outline.iter().map(|p| j2(Vector2::new(p.x, p.y))).collect::<Vec<_>>() })
+            }).collect();
+            families.push(serde_json::json!({ "family": "parcel", "count": parcels.len(), "items": items }));
+        }
     }
 
     // Alignments: PIs from the solved pieces, curve radius at a vertex from
@@ -777,11 +803,28 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
         }
     }
 
-    // Sites + parcels.
+    // Sites + parcels. Sites first (the application holds both in the
+    // AECC_PARCEL record form; see analyze), then each parcel joins the
+    // site its manifest names — the record the parcel's site reference
+    // points at in the oracle.
     let mut site: Option<Handle> = None;
+    let mut site_handles: BTreeMap<String, Handle> = BTreeMap::new();
+    if let Some(f) = find(&fams, "site") {
+        for item in f["items"].as_array().unwrap_or(&vec![]) {
+            let name = item["name"].as_str().unwrap_or_default();
+            let desc = item["desc"].as_str().unwrap_or_default();
+            match add_site(&mut doc, name, desc) {
+                Ok(h) => { site_handles.insert(name.to_string(), h); }
+                Err(e) => notes.push(format!("site {name}: {e}")),
+            }
+        }
+    }
     if let Some(f) = find(&fams, "parcel") {
         for item in f["items"].as_array().unwrap_or(&vec![]) {
-            let s = *site.get_or_insert_with(|| add_site(&mut doc, "SITE", "").unwrap());
+            let s = item["site"].as_str()
+                .and_then(|n| site_handles.get(n).copied())
+                .or_else(|| { let s = site.get_or_insert_with(|| add_site(&mut doc, "SITE", "").unwrap()); Some(*s) });
+            let Some(s) = s else { continue };
             let vertices: Vec<Vector2> = item["vertices"].as_array().map(|a| a.iter().map(|v| v2(v)).collect()).unwrap_or_default();
             match add_parcel(&mut doc, s, &vertices, None) {
                 Ok(_) => {}

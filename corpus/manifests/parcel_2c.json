@@ -19,36 +19,23 @@
   },
   "families": [
     {
-      "count": 12,
+      "count": 1,
+      "family": "site",
+      "items": [
+        {
+          "desc": "",
+          "name": "Subdivision A"
+        }
+      ]
+    },
+    {
+      "count": 11,
       "family": "parcel",
       "items": [
         {
           "label": null,
-          "name": "Subdivision A",
-          "site": "",
-          "vertices": [
-            [
-              1216.2122041741386,
-              1088.4756543682888
-            ],
-            [
-              1566.2122044768184,
-              1088.4756543682888
-            ],
-            [
-              1566.2122044768184,
-              1378.4756543682888
-            ],
-            [
-              1216.2122041741386,
-              1378.4756543682888
-            ]
-          ]
-        },
-        {
-          "label": null,
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1212.0700685504078,
@@ -71,7 +58,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1275.260877136141,
@@ -94,7 +81,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1275.2608770928346,
@@ -120,7 +107,7 @@
             1322.047083115438
           ],
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1400.5618195036177,
@@ -143,7 +130,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1212.0700685504078,
@@ -169,7 +156,7 @@
             1318.475654544076
           ],
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1341.9275439982302,
@@ -192,7 +179,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1463.9391644774005,
@@ -218,7 +205,7 @@
             1144.904225972714
           ],
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1400.7479883519231,
@@ -244,7 +231,7 @@
             1148.475654544076
           ],
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1212.0700688530876,
@@ -267,7 +254,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1457.2925533442758,
@@ -290,7 +277,7 @@
         {
           "label": null,
           "name": "",
-          "site": "",
+          "site": "Subdivision A",
           "vertices": [
             [
               1341.927543564234,
