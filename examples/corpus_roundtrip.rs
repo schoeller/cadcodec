@@ -384,14 +384,67 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
             let items: Vec<Json> = parcels.iter().map(|(_, a)| {
                 let (name, _alt) = a.face_name().unwrap_or_default();
                 let site = a.parcel_site().and_then(|s| site_names.get(&s).cloned()).unwrap_or_default();
+                // W3-3: whether the outline re-decodes as a CLOSED ring
+                // (first vertex repeated at the end) — the writer #665
+                // embeds the face boundary ring; the manifest carries the
+                // flag so the built file's ring is checked, not assumed.
                 let mut outline = a.profiles.first().cloned().unwrap_or_default();
-                if outline.len() > 1 && outline.first() == outline.last() {
+                let ring_closed = outline.len() > 1 && outline.first() == outline.last();
+                if ring_closed {
                     outline.pop();
                 }
-                serde_json::json!({ "name": name, "site": site, "label": a.parcel_label().map(|p| j2(p)).unwrap_or(Json::Null), "vertices": outline.iter().map(|p| j2(Vector2::new(p.x, p.y))).collect::<Vec<_>>() })
+                serde_json::json!({ "name": name, "site": site, "label": a.parcel_label().map(|p| j2(p)).unwrap_or(Json::Null), "ring_closed": ring_closed, "vertices": outline.iter().map(|p| j2(Vector2::new(p.x, p.y))).collect::<Vec<_>>() })
             }).collect();
             families.push(serde_json::json!({ "family": "parcel", "count": parcels.len(), "items": items }));
         }
+    }
+
+    // Feature lines: name plus the vertices of the line's edge in its site
+    // container's topology (reader #666; PARTIAL FILL by design — only the
+    // records whose site container, topology and edge id all decode return
+    // vertices; Grading-3A ships 2 of 14, its second topology section is
+    // unmapped). The bin wires no feature-line writer this round: the
+    // family is decode-only ("write": false; compare_verify skips it).
+    let flines = all_of(doc, "AECC_FEATURE_LINE");
+    if !flines.is_empty() {
+        let mut items = Vec::new();
+        let mut undecoded = Vec::new();
+        for h in &flines {
+            let a = arch_of(doc, *h).unwrap();
+            let (name, _desc) = a.feature_line_name().unwrap_or_default();
+            match acadrust::classes::civil::feature_line_vertices(doc, *h) {
+                Some(vs) => items.push(serde_json::json!({
+                    "name": name,
+                    "vertices": vs.iter().map(|v| serde_json::json!([jf(v.point.x), jf(v.point.y), jf(v.point.z), jf(v.bulge), v.elevation_point])).collect::<Vec<_>>(),
+                })),
+                None => undecoded.push(name),
+            }
+        }
+        families.push(serde_json::json!({ "family": "feature_line", "count": flines.len(), "write": false, "items": items, "undecoded": undecoded }));
+    }
+
+    // Survey figures: name, site, the traverse-vertex cache the class body
+    // keeps and the bbox solid's elevation range (reader #664; the
+    // elevations are bit for bit the live application's Min/MaxElevation,
+    // the vertices within the shared solved-point tolerance). Decode-only
+    // this round ("write": false).
+    let sfigs = all_of(doc, "AECC_SVFIGURE");
+    if !sfigs.is_empty() {
+        let mut items = Vec::new();
+        let mut undecoded = Vec::new();
+        for h in &sfigs {
+            let a = arch_of(doc, *h).unwrap();
+            let Some(f) = a.survey_figure() else { undecoded.push(Json::Null); continue };
+            match a.survey_figure_geometry() {
+                Some(g) => items.push(serde_json::json!({
+                    "name": f.name, "site": f.site,
+                    "vertices": g.vertices.iter().map(|v| j3(*v)).collect::<Vec<_>>(),
+                    "elevations": [jf(g.min_elevation), jf(g.max_elevation)],
+                })),
+                None => undecoded.push(Json::from(f.name)),
+            }
+        }
+        families.push(serde_json::json!({ "family": "survey_figure", "count": sfigs.len(), "write": false, "items": items, "undecoded": undecoded }));
     }
 
     // Alignments: PIs from the solved pieces, curve radius at a vertex from
@@ -437,8 +490,14 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
                     let Some(pi) = pi else { continue };
                     let vi = vertices.len();
                     vertices.push(pi);
-                    // curve_radii[i] is the curve at inner vertex i+1.
-                    radii_at.push(((vi - 1), 1.0 / curvature.abs()));
+                    // vi is the PI's vertex index; the inner index (what
+                    // curve_radii indexes) is vi-1. Recorded verify2 fix:
+                    // the walk previously subtracted 1 twice (here and in
+                    // the apply loop below), dropping the first curve's
+                    // radius and shifting the rest — visible once the site
+                    // alignments (#662) made curves round-trip through the
+                    // built file's own decode.
+                    radii_at.push((vi, 1.0 / curvature.abs()));
                 } else {
                     let next_is_arc = pieces.get(j + 1).map(|p| p.1 != 0.0).unwrap_or(false);
                     if next_is_arc {

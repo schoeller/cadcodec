@@ -40,6 +40,13 @@ def main():
     bf = {f["family"]: f for f in built["families"]}
     for fam, f in mf.items():
         g = bf.get(fam)
+        if f.get("write") is False:
+            # decode-only family (no writer in the bin this round): the
+            # built file cannot carry it — report the decode result, not a
+            # failure.
+            n = g["count"] if g else 0
+            print(f"  {fam}: DECODE-ONLY (no writer) — oracle {f['count']}, built {n}")
+            continue
         if g is None:
             print(f"  {fam}: MISSING in built"); fails += 1; continue
         if g["count"] != f["count"]:
