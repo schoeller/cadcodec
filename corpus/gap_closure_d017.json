@@ -1,0 +1,119 @@
+{
+    "format": "closure entries extending the gap-log format: {id, closed_by, status, verification} — verification carries the three layers (L1 codec manifest↔built-analysis, L2 application open/audit/census on the built file, L3 semantic sample vs live API reads). Cross-reference the original gap entries in gap_log_wave1.json / gap_log_packet2.json / gap_log_packet4.json.",
+    "wave": "D017 VERIFICATION round (2026-11-25) — prove the merged fix wave closes the logged gaps",
+    "base": "parity/corpus-roundtrip rebased onto upstream/main 52244c53 (rebase of dd184638; packet commits 24fda2c2..335a649a)",
+    "suite": "cargo test 3306 passed / 0 failed (3281 baseline + fix-PR tests)",
+    "protocol": "attrib -r before every bridge open; port 7900; expect NO dialog (none seen); AUDIT clean; close discardChanges:true; never 7901. One contamination event (another client's active drawing) detected and defeated by active-document checks + reopen; clean captures recorded under cap.d17.b2.*",
+    "build-side adaptations (recorded)": [
+        "corpus_roundtrip bin: emit an empty TIN surface shell via add_empty_tin_surface (#656) when a tin item is the empty-shell decode (4 corners at ±f64::MAX, 0 triangles) or when count > items — W4-3/W2-2 census closure requires the shell",
+        "corpus_roundtrip bin: carry the decoded closed flag into Polyline3D.flags.closed — the W4-2 build-side fix #657's message says belongs on this branch (writer was already correct, pinned upstream)"
+    ],
+    "closures": [
+        {
+            "id": "W1-5",
+            "closed_by": "PR #655 (a304a101 Civil: read the point databases the application writes)",
+            "status": "CLOSED",
+            "verification": {
+                "file": "Survey-3.dwg",
+                "L1": "manifest cogo_point 538/538; built analysis cogo_point 538 items BIT-EXACT",
+                "L2": "built survey_3.dwg: open NO dialog, audit 607 entities 0 null/erased, app census {AeccDbCogoPoint:538, AeccDbFace:35, AeccDbLotLine:34}, CogoPoints.Count=538",
+                "L3": "app sample pt #1 E=4999.999999999999 N=4999.999999999999 Z=263.65 desc=STA1 == manifest position bit-exact; also #6 (6104, 5087.999999999999, 249.63499999999996 STA6) and #2 (5286.803552162979, 5087.999471398328, 259.9600095783419 STA2) exact"
+            }
+        },
+        {
+            "id": "W2-1",
+            "closed_by": "PR #655 (a304a101)",
+            "status": "CLOSED",
+            "verification": {
+                "file": "Points-4a.dwg",
+                "L1": "manifest cogo_point 2405/2405 (was 0); built analysis cogo_point 2405 items BIT-EXACT — full write+read roundtrip of all 2405 points",
+                "L2": "built points_4a.dwg: open NO dialog, audit 2405 entities 0 null/erased, app census AeccDbCogoPoint=2405, CogoPoints.Count=2405 (was a 20884-byte empty shell)",
+                "L3": "packet-2 oracle sample VERIFIED: decoded point #1 E=19857.2577 N=20260.4556 Z=100.3058 desc=GRND matches the app read to the digits shown (manifest carries full precision); desc GRND matches"
+            }
+        },
+        {
+            "id": "W2-2",
+            "closed_by": "PR #656 (b74c489a Civil: write and read an empty TIN surface's shell)",
+            "status": "CLOSED",
+            "verification": {
+                "file": "Surface-1A.dwg (same record family as Surface-2 'EG')",
+                "L1": "tin_surface count 1==1, items BIT-EXACT (the empty-shell decode: 4 corners at ±f64::MAX, 0 triangles — round-trips identically through write+read)",
+                "L2": "built surface_1a.dwg: app census {AcDb3dPolyline:3, AcDbCircle:7, AcDbPolyline:1, AeccDbSurfaceTin:1} == oracle census EXACTLY; built tin reads vertices=0 triangles=0 — same as the oracle's EG (0/0); audit 12 entities 0 null/erased",
+                "L3": "oracle EG reads vertices=0 triangles=0; built shell reads vertices=0 triangles=0 — both sides agree the record carries no triangulation"
+            }
+        },
+        {
+            "id": "W4-2",
+            "closed_by": "PR #657 (ef745bbe pin test, upstream) + builder fix on parity/corpus-roundtrip (closed flag set in the corpus builder — where #657's message routes the fix)",
+            "status": "CLOSED",
+            "verification": {
+                "file": "Surface-1A.dwg",
+                "L1": "polyline3d 3 items BIT-EXACT (was 1 RAW diff on [2].closed); lwpolyline 1, circle 7, tin_surface 1 all BIT-EXACT — the file is now FULLY bit-exact (0 RAW diffs in compare_verify; was 'plines bit-exact except W4-2')",
+                "L2": "built surface_1a.dwg app read: pln _EG-BNDY closed=True (was False); pln _EG-BREAKLINES x2 closed=False — matches oracle probe verbatim",
+                "L3": "oracle probe: 'pln _EG-BNDY closed=True' == built probe 'pln _EG-BNDY closed=True'"
+            }
+        },
+        {
+            "id": "W4-3",
+            "closed_by": "PR #656 (b74c489a) + builder empty-shell routing (this branch)",
+            "status": "CLOSED",
+            "verification": {
+                "file": "Surface-1A.dwg",
+                "census": "built AeccDbSurfaceTin 1==1 (was 0 vs 1)",
+                "residuals": [
+                    "READ (triangulation): stays a parameter gap by design — the record stores no triangulation (app reads 0/0 on BOTH sides); nothing to decode",
+                    "NAME fidelity: the empty shell's name decode (strings.get(2)) picks 'leightkadmin' for the record the app names 'EG'; the built surface therefore carries the decoded name. Census/shell CLOSED; name decode heuristic recorded as a residual parameter miss (not re-counted as a new gap id)"
+                ]
+            }
+        },
+        {
+            "id": "W1-2",
+            "closed_by": "PR #655 read-chain family (empty-shell decode of the unbuilt surface record)",
+            "status": "CLOSED",
+            "verification": {
+                "file": "Pipe Networks-3B.dwg",
+                "L1": "tin_surface count 3 items 3 (was 2 items + '1 of 3 has no decodable triangulation'): yed 782 pts/1388 tris, leightkadmin 2628 pts/4827 tris (both match the wave-1 recorded point counts), third surface is the empty-shell record (4 corners ±f64::MAX, 0 triangles — the same shape the app stores for an unbuilt surface)"
+            }
+        }
+    ],
+    "still-open (re-measured on the fixed+stack tree)": [
+        {
+            "id": "W1-1",
+            "file": "Pipe Networks-3B.dwg",
+            "status": "OPEN (unchanged)",
+            "updated": "fresh analyze on the fixed tree: 2 alignments (ROAD1, XC_STORM), 0 elements decoded each — vertices 0, build still refuses ('needs two or more distinct finite vertices')"
+        },
+        {
+            "id": "W1-9",
+            "file": "Grading-3A.dwg",
+            "status": "OPEN (unchanged)",
+            "updated": "fresh analyze: census AECC_FEATURE_LINE=14, manifest carries NO feature_line family — vertex geometry still undecoded"
+        },
+        {
+            "id": "W1-7",
+            "file": "Survey-3.dwg",
+            "status": "OPEN (unchanged)",
+            "updated": "denominator re-stated from the live app census: AECC_SVFIGURE 85 + AECC_SVNETWORK 1 (85+1); app census {AeccDbCogoPoint:538, AeccDbFace:163, AeccDbGrading:21, AeccDbSvFigure:85, AeccDbSvNetwork:1} — codec census matches 1:1, no survey-figure/network decoder or writer"
+        },
+        {
+            "id": "W1-6",
+            "file": "Survey-3.dwg + Parcel-2C.dwg + Labels-Parcels.dwg",
+            "status": "OPEN — WITH-LIMITS refusals unchanged by the ramox81 stack (#614/#616/#619/#625)",
+            "updated": {
+                "Survey-3": "163 oracle parcel outlines; add_parcel refuses 129 (NOTE count 129 on the fixed+stack build, was 129 NOTEs pre-stack); 34 parcels written + 1 auto SITE shell = 35 AeccDbFace (was 35). App on built: Face=35, LotLine=34, Parcel cast 34 ('Standard : N' defaults; names not carried). App on oracle: AeccDbFace=163 but Parcel cast count=0 (survey-site faces do not cast to Parcel on this record form — recorded).",
+                "Parcel-2C (W4-1)": "12 manifest attempts; 11 refused ('the line crosses or touches a member it may not meet'); 1 parcel built + 1 SITE shell = 2 faces (unchanged from the packet-4 record of 11/1/11). App on built: Face=2, LotLine=1, 1 parcel 'Standard : 1'; audit 3 entities clean. Oracle: 11 Parcels cast of 12 Faces.",
+                "conclusion": "the stack's parcel machinery did not admit any of the previously refused outlines; denominators stand"
+            }
+        },
+        {
+            "id": "W4-1",
+            "file": "Parcel-2C.dwg",
+            "status": "OPEN (same numbers as W1-6 Parcel-2C row — re-confirmed on the fixed+stack tree)"
+        },
+        {
+            "id": "W1-8",
+            "file": "Survey-3.dwg + Grading-3A.dwg",
+            "status": "OPEN (unchanged; fresh Grading-3A census AECC_GRADING=4 with no grading family, Survey-3 census AECC_GRADING=21)"
+        }
+    ]
+}

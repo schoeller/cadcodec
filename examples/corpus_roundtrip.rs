@@ -323,6 +323,7 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
     let surfaces = all_of(doc, "AECC_TIN_SURFACE");
     if !surfaces.is_empty() {
         let mut items = Vec::new();
+        let mut empties = Vec::new();
         for h in &surfaces {
             let a = arch_of(doc, *h).unwrap();
             let name = a.decode().strings.get(2).cloned().unwrap_or_default();
@@ -338,9 +339,14 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
                     "points": t.vertices.iter().map(|v| j3(v.position)).collect::<Vec<_>>(),
                     "triangles": tris,
                 }));
+            } else {
+                // D017 verification adaptation (recorded): keep the name of
+                // an undecodable surface so the build can emit an empty
+                // shell (#656 add_empty_tin_surface) with a faithful name.
+                empties.push(name);
             }
         }
-        families.push(serde_json::json!({ "family": "tin_surface", "count": surfaces.len(), "items": items }));
+        families.push(serde_json::json!({ "family": "tin_surface", "count": surfaces.len(), "items": items, "empty": empties }));
         // Triangulation note: the points writer retriangulates; triangle
         // identity is compared in verify and expected to differ.
         gaps.push(gap("tin_surface.triangulation", surfaces.len(), "parameter: the stored triangle list (the points writer retriangulates)", "uncertain — check whether TinOperation has a faces op"));
@@ -681,6 +687,10 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                     "polyline3d" => {
                         let mut p = Polyline3D::new();
                         p.common.layer = item["layer"].as_str().unwrap_or("0").to_string();
+                        // W4-2 build-side fix (recorded): carry the decoded
+                        // closed flag into the typed field — the writer
+                        // round-trips it (pinned upstream in #657).
+                        p.flags.closed = item["closed"].as_bool().unwrap_or(false);
                         p.vertices = item["vertices"].as_array().unwrap().iter().map(|v| Vertex3DPolyline { handle: Handle::NULL, layer: String::new(), position: v3(v), flags: 0 }).collect();
                         doc.add_entity(EntityType::Polyline3D(p)).map_err(|e| e.to_string())?;
                     }
@@ -782,12 +792,42 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
 
     // Surfaces.
     let mut surface_handles: Vec<Handle> = Vec::new();
+    // D017 verification adaptation (recorded): on the fixed tree the
+    // empty-shell reader (#656) decodes an unbuilt surface as the four
+    // bounding corners at ±f64::MAX with no triangles. Route that item to
+    // the empty-shell writer so the built record stays the empty shell the
+    // application stores (app reads vertices=0 triangles=0, as the oracle).
+    fn is_empty_shell(points: &[Vector3], n_tris: usize) -> bool {
+        n_tris == 0
+            && points.len() == 4
+            && points.iter().all(|p| p.x.abs() == f64::MAX && p.y.abs() == f64::MAX && p.z.abs() == f64::MAX)
+    }
     if let Some(f) = find(&fams, "tin_surface") {
         for item in f["items"].as_array().unwrap_or(&vec![]) {
             let points: Vec<Vector3> = item["points"].as_array().map(|a| a.iter().map(|v| v3(v)).collect()).unwrap_or_default();
-            match add_tin_surface(&mut doc, item["name"].as_str().unwrap_or("SURF"), &points, None) {
+            let n_tris = item["triangles"].as_array().map(|a| a.len()).unwrap_or(0);
+            let name = item["name"].as_str().unwrap_or("SURF");
+            let res = if is_empty_shell(&points, n_tris) {
+                acadrust::classes::civil::add_empty_tin_surface(&mut doc, name, None)
+            } else {
+                add_tin_surface(&mut doc, name, &points, None)
+            };
+            match res {
                 Ok(h) => surface_handles.push(h),
                 Err(e) => notes.push(format!("tin_surface: {e}")),
+            }
+        }
+        // D017 verification adaptation (recorded): surfaces whose stored
+        // triangulation is undecodable (items < count, e.g. W4-3 'EG') now
+        // longer drifts. Names come from analyze's "empty" list.
+        let count = f["count"].as_u64().unwrap_or(0) as usize;
+        let written = f["items"].as_array().map(|a| a.len()).unwrap_or(0);
+        let empties: Vec<String> = f["empty"].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect()).unwrap_or_default();
+        for i in written..count {
+            let name = empties.get(i - written).map(|s| s.as_str()).unwrap_or("SURF");
+            match acadrust::classes::civil::add_empty_tin_surface(&mut doc, name, None) {
+                Ok(h) => surface_handles.push(h),
+                Err(e) => notes.push(format!("tin_surface empty {name:?}: {e}")),
             }
         }
     }
