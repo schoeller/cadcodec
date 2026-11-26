@@ -397,9 +397,136 @@
       ]
     },
     {
+      "count": 1,
+      "family": "assembly",
+      "handles": [
+        269
+      ],
+      "items": [
+        {
+          "key": "ASM0",
+          "layer": "C-ROAD-ASSM",
+          "name": "ROAD1",
+          "origin": null
+        }
+      ],
+      "write": false
+    },
+    {
+      "count": 1,
+      "family": "corridor",
+      "items": [
+        {
+          "complete": false,
+          "definition": {
+            "baselines": [
+              {
+                "alignment": 0,
+                "built": true,
+                "feature_line": 0,
+                "name": "",
+                "profile": 0,
+                "regions": [
+                  {
+                    "assembly": 0,
+                    "end": 1841.7603350166155,
+                    "frequency": {
+                      "adjacent_to_offset_target_start_end": false,
+                      "along_curves": 25.0,
+                      "along_profile_curves": 10.0,
+                      "along_spirals": 25.0,
+                      "along_tangents": 25.0,
+                      "along_target_curves": 25.0,
+                      "at_horizontal_geometry_points": true,
+                      "at_offset_target_geometry_points": false,
+                      "at_profile_geometry_points": true,
+                      "at_profile_high_low_points": false,
+                      "at_superelevation_critical_points": true,
+                      "curve_mid_ordinate": 0.1,
+                      "curves": "AtIncrement",
+                      "target_curve_mid_ordinate": 0.1,
+                      "target_curves": "None"
+                    },
+                    "name": "",
+                    "start": 0.0,
+                    "targets": [
+                      {
+                        "farthest": false,
+                        "kind": "Surface",
+                        "name": "",
+                        "objects": [
+                          0
+                        ],
+                        "subassembly": 0
+                      },
+                      {
+                        "farthest": false,
+                        "kind": "Surface",
+                        "name": "",
+                        "objects": [
+                          0
+                        ],
+                        "subassembly": 0
+                      },
+                      {
+                        "farthest": false,
+                        "kind": "Surface",
+                        "name": "",
+                        "objects": [
+                          0
+                        ],
+                        "subassembly": 0
+                      }
+                    ]
+                  }
+                ],
+                "stations": []
+              }
+            ],
+            "boundaries": [
+              {
+                "components": 2,
+                "corners": [],
+                "description": "",
+                "kind": 2,
+                "name": "",
+                "surface": ""
+              }
+            ],
+            "description": "",
+            "geometry_lock": false,
+            "maximum_triangle_side": 0.0,
+            "name": "",
+            "rebuild_automatic": false,
+            "surfaces": [
+              {
+                "build": true,
+                "feature_line_codes": [],
+                "link_codes": [
+                  [
+                    "",
+                    false
+                  ]
+                ],
+                "name": "",
+                "overhang_correction": 0
+              }
+            ]
+          },
+          "key": "COR0"
+        }
+      ],
+      "write": false
+    },
+    {
       "count": 3,
       "empty": [],
       "family": "tin_surface",
+      "handles": [
+        255,
+        1579,
+        3059
+      ],
       "items": [
         {
           "name": "yed",
@@ -48581,6 +48708,10 @@
     {
       "count": 2,
       "family": "alignment",
+      "handles": [
+        205,
+        351
+      ],
       "items": [
         {
           "curve_radii": [
@@ -48655,6 +48786,10 @@
     {
       "count": 2,
       "family": "profile",
+      "handles": [
+        155,
+        3092
+      ],
       "items": [
         {
           "alignment": "ROAD1",
@@ -48676,6 +48811,9 @@
       "items": [
         {
           "alignment": "ROAD1",
+          "bands": [
+            "ProfileData"
+          ],
           "elevations": [
             580.0,
             700.0

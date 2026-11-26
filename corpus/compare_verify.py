@@ -10,11 +10,57 @@ FAM2RX = {
     "mtext": "AcDbMText", "tin_surface": "AeccDbSurfaceTin", "parcel": "AeccDbFace", "site": "AeccDbFace",
     "cogo_point": "AECC_COGO_POINT", "pipe": "AECC_PIPE", "structure": "AECC_STRUCTURE",
     "alignment": "AeccDbAlignment", "profile": "AeccDbVAlignment",
+    "assembly": "AeccDbAssembly", "corridor": "AeccDbCorridor",
     "profile_view": "AeccDbGraphProfile", "sample_line_group": "AeccDbSampleLineGroup",
     "sample_line": "AeccDbSampleLine", "section": "AeccDbSection",
     "section_view": "AeccDbGraphCrossSection",
 }
 DERIVED_FIELDS = {"curve_radii", "triangles", "origin", "stations", "elevations"}
+
+# Handle-valued fields of a corridor definition: compared as family
+# ordinals (the builder remaps oracle handles onto the rebuilt records in
+# analyze order; ordinal equality is topology equality).
+CORRIDOR_REF_FIELDS = {"alignment", "profile", "assembly", "subassembly", "objects"}
+
+def family_handles(manifest, fam_name, side):
+    f = next((x for x in manifest.get("families", []) if x.get("family") == fam_name), None)
+    if not f:
+        return {}
+    hs = f.get("handles") or []
+    return {v: i for i, v in enumerate(hs) if isinstance(v, int)}
+
+def normalize_corridor_ref(v, field, maps):
+    # v is a handle value (or list of them for "objects"); map to the
+    # family ordinal, or to -1 when unknown (dangling on either side).
+    def one(x):
+        if not isinstance(x, int) or x == 0:
+            return x
+        for m in maps:
+            if x in m:
+                return m[x]
+        return -1
+    if field == "objects":
+        return [one(x) for x in v] if isinstance(v, list) else v
+    return one(v)
+
+def normalize_corridor_items(items, maps):
+    out = []
+    for it in items:
+        it = json.loads(json.dumps(it))  # deep copy
+        d = it.get("definition")
+        if isinstance(d, dict):
+            for b in d.get("baselines", []):
+                for fld in ("alignment", "profile"):
+                    if fld in b:
+                        b[fld] = normalize_corridor_ref(b[fld], fld, maps)
+                for r in b.get("regions", []):
+                    if "assembly" in r:
+                        r["assembly"] = normalize_corridor_ref(r["assembly"], "assembly", maps)
+                    for t in r.get("targets", []):
+                        if "objects" in t:
+                            t["objects"] = normalize_corridor_ref(t["objects"], "objects", maps)
+        out.append(it)
+    return out
 
 def diff(path, a, b, out):
     if type(a) != type(b):
@@ -53,7 +99,13 @@ def main():
             print(f"  {fam}: count {g['count']} != {f['count']}"); fails += 1; continue
         diffs = []
         if f["items"]:
-            diff(fam, f["items"], g["items"], diffs)
+            a_items, b_items = f["items"], g["items"]
+            if fam == "corridor":
+                amaps = [family_handles(manifest, n, "oracle") for n in ("alignment", "profile", "assembly", "tin_surface")]
+                bmaps = [family_handles(built, n, "built") for n in ("alignment", "profile", "assembly", "tin_surface")]
+                a_items = normalize_corridor_items(a_items, amaps)
+                b_items = normalize_corridor_items(b_items, bmaps)
+            diff(fam, a_items, b_items, diffs)
         if not diffs:
             print(f"  {fam}: {f['count']} items BIT-EXACT")
         else:

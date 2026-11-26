@@ -18,7 +18,7 @@
 //! and audit clean, and its census must show the manifest's written
 //! families with the same counts.
 
-use acadrust::classes::civil::{add_alignment_with_curves, add_cogo_point, add_parcel, add_pipe, add_pipe_network, add_profile, add_profile_view_with_range, add_sample_line, add_sample_line_group, add_section_view, add_sections, add_site, add_structure, add_surface_profile, add_tin_surface, cpp_class_name, VertexCurve};
+use acadrust::classes::civil::{add_alignment_with_curves, add_assembly, add_cogo_point, add_corridor_with, add_parcel, add_pipe, add_pipe_network, add_profile, add_profile_view_with_bands, add_profile_view_with_range, add_sample_line, add_sample_line_group, add_section_view, add_sections, add_site, add_structure, add_surface_profile, add_tin_surface, cpp_class_name, VertexCurve};
 use acadrust::entities::{Arc, Circle, EntityType, Line, LwPolyline, LwVertex, MText, Polyline3D, Vertex3DPolyline};
 use acadrust::io::dwg::{DwgReader, DwgWriter};
 use acadrust::tables::Layer;
@@ -542,6 +542,79 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         families.push(serde_json::json!({ "family": "pipe_network", "count": networks.len(), "items": items }));
     }
 
+    // Assemblies: the baseline point, name and layer (W1-4). The writers
+    // reproduce an empty assembly; the subassemblies hang on the PKT
+    // catalog (open pilot gap #3 — the record keeps the catalog package's
+    // MD5, so no package can be rebuilt from the drawing alone).
+    let assemblies = all_of(doc, "AECC_ASSEMBLY");
+    if !assemblies.is_empty() {
+        let items: Vec<Json> = assemblies
+            .iter()
+            .enumerate()
+            .map(|(i, h)| {
+                let a = arch_of(doc, *h).unwrap();
+                let origin = a.assembly_layout().map(|l| j3(l.origin)).unwrap_or(Json::Null);
+                let layer = doc.get_entity(*h).and_then(|e| match e {
+                    EntityType::Extended(x) => Some(x.common.layer.clone()),
+                    _ => None,
+                }).unwrap_or_default();
+                serde_json::json!({ "key": format!("ASM{i}"), "name": a.decode().strings.get(2).cloned().unwrap_or_default(), "origin": origin, "layer": layer })
+            })
+            .collect();
+        // Family-level oracle handles (items are in the same order): the
+        // corridor definitions reference these, and the builder remaps
+        // them onto the rebuilt assemblies.
+        // An assembly whose layout did not decode (an empty assembly —
+        // "an assembly without subassemblies decodes to None", the
+        // rt_infra_corridors reader boundary) cannot be rebuilt: the
+        // writer needs a baseline point.
+        let handles: Vec<Json> = assemblies.iter().map(|h| Json::from(h.value())).collect();
+        let any_undecodable = items.iter().any(|i| i["origin"].is_null());
+        let mut fam = serde_json::json!({ "family": "assembly", "count": assemblies.len(), "items": items, "handles": handles });
+        if any_undecodable {
+            fam["write"] = Json::from(false);
+        }
+        families.push(fam);
+    }
+
+    // Corridors: the definition the writers reproduce bit for bit
+    // (rt_infra_corridors): settings, surfaces with codes, boundaries,
+    // baselines with regions, frequencies, targets, added stations.
+    // Built-station corridors decode names/references only for the
+    // unbuilt part; the corpus files carry unbuilt definitions.
+    let corridors = all_of(doc, "AECC_CORRIDOR");
+    if !corridors.is_empty() {
+        // The reader fills names and references for a corridor that holds
+        // no built station only; a built corridor decodes an empty shell
+        // (reader boundary, rt_infra_corridors §3i). Rebuildable iff the
+        // definition is complete: named baselines over decoded
+        // alignment/profile records with assembly-bearing regions.
+        let items: Vec<Json> = corridors
+            .iter()
+            .enumerate()
+            .map(|(i, h)| {
+                let a = arch_of(doc, *h).unwrap();
+                match a.corridor_definition() {
+                    Some(def) => {
+                        let complete = !def.baselines.is_empty()
+                            && def.baselines.iter().all(|b| !b.built && !b.name.is_empty() && b.alignment != 0 && b.profile != 0)
+                            && def.baselines.iter().flat_map(|b| &b.regions).all(|r| !r.name.is_empty() && r.assembly != 0);
+                        serde_json::json!({ "key": format!("COR{i}"), "definition": def, "complete": complete })
+                    }
+                    None => serde_json::json!({ "key": format!("COR{i}"), "definition": null, "complete": false }),
+                }
+            })
+            .collect();
+        let any_incomplete = items.iter().any(|i| i["complete"] != serde_json::json!(true));
+        let mut fam = serde_json::json!({ "family": "corridor", "count": corridors.len(), "items": items });
+        if any_incomplete {
+            // decode-only: the built-corridor shells cannot be rebuilt
+            // (their names/references sit behind the built-station lists)
+            fam["write"] = Json::from(false);
+        }
+        families.push(fam);
+    }
+
     // TIN surfaces: points and triangle list (the points writer rebuilds the
     // TIN; the stored triangulation itself is a parameter gap).
     let surfaces = all_of(doc, "AECC_TIN_SURFACE");
@@ -570,7 +643,8 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
                 empties.push(name);
             }
         }
-        families.push(serde_json::json!({ "family": "tin_surface", "count": surfaces.len(), "items": items, "empty": empties }));
+        let handles: Vec<Json> = surfaces.iter().map(|h| Json::from(h.value())).collect();
+        families.push(serde_json::json!({ "family": "tin_surface", "count": surfaces.len(), "items": items, "empty": empties, "handles": handles }));
         // Triangulation note: the points writer retriangulates; triangle
         // identity is compared in verify and expected to differ.
         gaps.push(gap("tin_surface.triangulation", surfaces.len(), "parameter: the stored triangle list (the points writer retriangulates)", "uncertain — check whether TinOperation has a faces op"));
@@ -777,7 +851,8 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
             };
             items.push(serde_json::json!({ "key": key, "name": name, "layer": "C-ROAD", "vertices": vertices.iter().map(|v| j2(*v)).collect::<Vec<_>>(), "curve_radii": curve_radii.iter().map(|r| jf(*r)).collect::<Vec<_>>(), "curves": curves }));
         }
-        families.push(serde_json::json!({ "family": "alignment", "count": alignments.len(), "items": items }));
+        let handles: Vec<Json> = alignments.iter().map(|h| Json::from(h.value())).collect();
+        families.push(serde_json::json!({ "family": "alignment", "count": alignments.len(), "items": items, "handles": handles }));
     }
 
     // Profiles: PVIs with curve lengths, linked to their alignment by the
@@ -809,12 +884,32 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
             let pvis: Vec<Json> = a.profile_pvis().iter().map(|p| serde_json::json!({ "station": jf(p.point.x), "elevation": jf(p.point.y), "curve": jf(p.curve_length) })).collect();
             items.push(serde_json::json!({ "key": format!("PF{i}"), "name": name, "alignment": align_key, "pvis": pvis }));
         }
-        families.push(serde_json::json!({ "family": "profile", "count": profiles.len(), "items": items }));
+        let handles: Vec<Json> = profiles.iter().map(|h| Json::from(h.value())).collect();
+        families.push(serde_json::json!({ "family": "profile", "count": profiles.len(), "items": items, "handles": handles }));
     }
 
-    // Profile views: frame (origin + ranges), linked to the alignment.
+    // Profile views: frame (origin + ranges), linked to the alignment,
+    // plus the band kinds the view carries (W1-4: the band label groups
+    // reference their view through their first non-null kind-4
+    // reference — the #600 writers give a view its bands' label groups).
     let pviews = all_of(doc, "AECC_PROFILE_VIEW");
     if !pviews.is_empty() {
+        let band_kinds: [(&str, &str); 3] = [
+            ("AECC_PROFILEDATABAND_LABELGROUP", "ProfileData"),
+            ("AECC_VERTICALGEOMETRYBAND_LABELGROUP", "VerticalGeometry"),
+            ("AECC_HORIZONTALGEOMETRYBAND_LABELGROUP", "HorizontalGeometry"),
+        ];
+        let mut band_of_view: BTreeMap<u64, Vec<&str>> = BTreeMap::new();
+        for (dxf, kind) in band_kinds {
+            for h in all_of(doc, dxf) {
+                let a = arch_of(doc, h).unwrap();
+                // Refs run [0/4, 0/4, view/4, 0/5, view/5 ...]: the
+                // first non-null hard pointer is the view.
+                if let Some(view) = a.typed_handles().iter().find(|(v, k)| *v != 0 && *k == 4).map(|(v, _)| *v) {
+                    band_of_view.entry(view).or_default().push(kind);
+                }
+            }
+        }
         let items: Vec<Json> = pviews
             .iter()
             .enumerate()
@@ -827,7 +922,10 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
                     .find_map(|(v, _k)| align_keys.iter().find(|(ah, _k)| ah.value() == *v).map(|(_ah, k)| k.clone()))
                     .unwrap_or_default();
                 match a.profile_view_frame() {
-                    Some(f) => serde_json::json!({ "key": format!("PV{i}"), "name": name, "alignment": align_key, "origin": j2(f.origin), "stations": [jf(f.station_min), jf(f.station_max)], "elevations": [jf(f.elevation_min), jf(f.elevation_max)] }),
+                    Some(f) => {
+                        let bands = band_of_view.get(&h.value()).cloned().unwrap_or_default();
+                        serde_json::json!({ "key": format!("PV{i}"), "name": name, "alignment": align_key, "origin": j2(f.origin), "stations": [jf(f.station_min), jf(f.station_max)], "elevations": [jf(f.elevation_min), jf(f.elevation_max)], "bands": bands })
+                    }
                     None => serde_json::json!({ "key": format!("PV{i}"), "name": name, "alignment": align_key, "origin": null }),
                 }
             })
@@ -1222,8 +1320,10 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
         }
     }
 
-    // Alignments, keyed.
+    // Alignments, keyed (build order = manifest order; the corridor
+    // remap walks the same order).
     let mut align_map: std::collections::HashMap<String, Handle> = Default::default();
+    let mut align_order: Vec<Handle> = Vec::new();
     if let Some(f) = find(&fams, "alignment") {
         for item in f["items"].as_array().unwrap_or(&vec![]) {
             let vertices: Vec<Vector2> = item["vertices"].as_array().map(|a| a.iter().map(|v| v2(v)).collect()).unwrap_or_default();
@@ -1248,6 +1348,7 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
             match add_alignment_with_curves(&mut doc, &name, &vertices, &curves, None) {
                 Ok(h) => {
                     align_map.insert(key, h);
+                    align_order.push(h);
                 }
                 Err(e) => notes.push(format!("alignment {key}: {e}")),
             }
@@ -1297,7 +1398,22 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
             let stations = item["stations"].as_array().map(|a| (a[0].as_f64(), a[1].as_f64()));
             let elevations = item["elevations"].as_array().map(|a| (a[0].as_f64(), a[1].as_f64()));
             let name = item["name"].as_str().unwrap_or("PV").to_string();
-            match add_profile_view_with_range(&mut doc, alignment, &name, origin, stations.and_then(|(a, b)| Some((a?, b?))), elevations.and_then(|(a, b)| Some((a?, b?))), None) {
+            let bands: Vec<acadrust::classes::civil::ProfileViewBand> = item["bands"].as_array().map(|a| a.iter().filter_map(|b| b.as_str()).map(|b| match b {
+                "VerticalGeometry" => acadrust::classes::civil::BandKind::VerticalGeometry,
+                "HorizontalGeometry" => acadrust::classes::civil::BandKind::HorizontalGeometry,
+                _ => acadrust::classes::civil::BandKind::ProfileData,
+            }).map(acadrust::classes::civil::ProfileViewBand::new).collect()).unwrap_or_default();
+            let built = if bands.is_empty() {
+                add_profile_view_with_range(&mut doc, alignment, &name, origin, stations.and_then(|(a, b)| Some((a?, b?))), elevations.and_then(|(a, b)| Some((a?, b?))), None)
+            } else {
+                // The oracle view carries band label groups: the #600
+                // writer gives the rebuilt view the same bands (their
+                // label groups come from the default label set). The
+                // band writer computes the frame automatically; the
+                // range word then records the automatic form.
+                add_profile_view_with_bands(&mut doc, alignment, &name, origin, None, &bands, None)
+            };
+            match built {
                 Ok(_) => {}
                 Err(e) => notes.push(format!("profile_view {}: {e}", item["key"])),
             }
@@ -1359,6 +1475,116 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                 let sname = format!("SV{}", j + 1);
                 if let Err(e) = add_section_view(&mut doc, line, &sname, origin, None) {
                     notes.push(format!("section_view {sname}: {e}"));
+                }
+            }
+        }
+    }
+
+    // Assemblies (W1-4): empty assemblies at the oracle's baseline point,
+    // named and layered as decoded (the subassemblies are the PKT catalog
+    // gap #3 and stay unwired).
+    let mut assembly_handles: Vec<Handle> = Vec::new();
+    if let Some(f) = find(&fams, "assembly") {
+        if f.get("write") == Some(&Json::from(false)) {
+            notes.push("assembly: decode-only (an oracle assembly's layout did not decode — reader boundary)".into());
+        }
+        for item in f["items"].as_array().unwrap_or(&vec![]) {
+            let name = item["name"].as_str().unwrap_or("ASM").to_string();
+            let Some(origin) = item.get("origin").and_then(|v| v.is_array().then(|| v3(v))) else {
+                notes.push(format!("assembly {name}: no origin decoded"));
+                continue;
+            };
+            let layer = item["layer"].as_str().filter(|s| !s.is_empty());
+            match add_assembly(&mut doc, &name, origin, layer) {
+                Ok(h) => assembly_handles.push(h),
+                Err(e) => notes.push(format!("assembly {name}: {e}")),
+            }
+        }
+    }
+
+    // Corridors (W1-4): the decoded definition through the upstream
+    // writer. The definition references the ORACLE's handles (regions'
+    // assemblies, baselines' alignment/profile, targets' objects); each
+    // remaps onto the rebuilt record at the same family ordinal (analyze
+    // and build walk `all_of` in the same order, and the builder creates
+    // the families in manifest order, so ordinal k on both sides is the
+    // same drawing object).
+    if let Some(f) = find(&fams, "corridor") {
+        if f.get("write") != Some(&Json::from(false)) {
+            // handle maps: oracle handle -> rebuilt handle, over the
+            // families a corridor definition can reference.
+            let fam_map = |name: &str, built: &[Handle]| -> std::collections::HashMap<u64, u64> {
+                let mut m = std::collections::HashMap::new();
+                if let Some(f) = find(&fams, name) {
+                    if let Some(hs) = f["handles"].as_array() {
+                        for (i, v) in hs.iter().enumerate() {
+                            if let (Some(hv), Some(bh)) = (v.as_u64(), built.get(i)) {
+                                m.insert(hv, bh.value());
+                            }
+                        }
+                    }
+                }
+                m
+            };
+            let mut all_map = fam_map("alignment", &align_order);
+            for (k, v) in fam_map("profile", &profile_handles) {
+                all_map.insert(k, v);
+            }
+            for (k, v) in fam_map("assembly", &assembly_handles) {
+                all_map.insert(k, v);
+            }
+            // Surfaces remap only when every oracle surface decoded (the
+            // items/empties split shifts the ordinals otherwise).
+            let surfaces_complete = find(&fams, "tin_surface").map(|f| f["empty"].as_array().map_or(true, |e| e.is_empty())).unwrap_or(false);
+            if surfaces_complete {
+                for (k, v) in fam_map("tin_surface", &surface_handles) {
+                    all_map.insert(k, v);
+                }
+            }
+            for item in f["items"].as_array().unwrap_or(&vec![]) {
+                let key = item["key"].as_str().unwrap_or("COR").to_string();
+                let Some(def_json) = item.get("definition").cloned() else { continue };
+                if def_json.is_null() || item["complete"] != serde_json::json!(true) {
+                    notes.push(format!("corridor {key}: definition not rebuildable (built-corridor shell or incomplete decode)"));
+                    continue;
+                }
+                let mut def: acadrust::classes::civil::CorridorDefinition = match serde_json::from_value(def_json) {
+                    Ok(d) => d,
+                    Err(e) => {
+                        notes.push(format!("corridor {key}: definition decode {e}"));
+                        continue;
+                    }
+                };
+                let mut dangling = false;
+                let remap = |v: u64, dangling: &mut bool| -> u64 {
+                    if v == 0 {
+                        return 0;
+                    }
+                    match all_map.get(&v) {
+                        Some(h) => *h,
+                        None => {
+                            *dangling = true;
+                            0
+                        }
+                    }
+                };
+                for b in &mut def.baselines {
+                    b.alignment = remap(b.alignment, &mut dangling);
+                    b.profile = remap(b.profile, &mut dangling);
+                    for r in &mut b.regions {
+                        r.assembly = remap(r.assembly, &mut dangling);
+                        for t in &mut r.targets {
+                            t.objects = t.objects.iter().map(|o| remap(*o, &mut dangling)).collect();
+                        }
+                    }
+                }
+                if dangling {
+                    notes.push(format!("corridor {key}: a reference did not resolve to a rebuilt record — skipped"));
+                    continue;
+                }
+                match add_corridor_with(&mut doc, &def, None) {
+                    Ok(_) => {}
+                    Err(e) => notes.push(format!("corridor {key}: {e}")),
                 }
             }
         }
@@ -1510,6 +1736,29 @@ fn main() {
             out["structures"] = serde_json::json!(parts("AECC_STRUCTURE"));
             out["pipes"] = serde_json::json!(parts("AECC_PIPE"));
             out["connectors"] = serde_json::json!(parts("AECC_NETWORK_PART_CONNECTOR"));
+            println!("{}", serde_json::to_string_pretty(&out).unwrap());
+        }
+        Some("probe_pv") => {
+            // W1-4 probe: per band label group (profile/vertical/horizontal
+            // geometry), its typed-handle refs and strings, plus the view
+            // handles — to wire the band kinds into the profile views.
+            let oracle = &args[2];
+            let doc = DwgReader::from_file(oracle).unwrap().read_with_stats().unwrap().document;
+            let mut out = serde_json::json!({});
+            let mut groups = Vec::new();
+            for dxf in ["AECC_PROFILEDATABAND_LABELGROUP", "AECC_VERTICALGEOMETRYBAND_LABELGROUP", "AECC_HORIZONTALGEOMETRYBAND_LABELGROUP"] {
+                for h in all_of(&doc, dxf) {
+                    let a = arch_of(&doc, h).unwrap();
+                    groups.push(serde_json::json!({ "dxf": dxf, "handle": h.value(), "refs": a.typed_handles().iter().map(|(v, k)| format!("{v}/{k}")).collect::<Vec<_>>(), "strings": a.decode().strings }));
+                }
+            }
+            out["band_groups"] = serde_json::json!(groups);
+            let mut views = Vec::new();
+            for h in all_of(&doc, "AECC_PROFILE_VIEW") {
+                let a = arch_of(&doc, h).unwrap();
+                views.push(serde_json::json!({ "handle": h.value(), "refs": a.typed_handles().iter().map(|(v, k)| format!("{v}/{k}")).collect::<Vec<_>>() }));
+            }
+            out["views"] = serde_json::json!(views);
             println!("{}", serde_json::to_string_pretty(&out).unwrap());
         }
         _ => {

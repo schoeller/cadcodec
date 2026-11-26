@@ -69,6 +69,13 @@ criterion = "0.5"
 proptest = "1.4"
 serde_json = { version = "1", features = ["float_roundtrip"] }
 
+# The corpus builder round-trips serde-derived civil structures
+# (CorridorDefinition) through JSON; it only compiles with the serde
+# feature (the harness bin enables it).
+[[example]]
+name = "corpus_roundtrip"
+required-features = ["serde", "import"]
+
 [profile.release]
 opt-level = 3
 lto = true

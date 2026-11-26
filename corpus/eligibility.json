@@ -1,14 +1,14 @@
 {
- "round": "D016 wave-1 (packet cadence)",
+ "round": "D010 close-out (2026-11-26) \u2014 assembly/corridor/band wiring; deferred count 126 unchanged (no file flips: the only family-level candidate Intro-2 is blocked by pre-existing parcel/alignment decode gaps)",
  "date": "2026-11-24",
  "base": "parity/corpus-roundtrip@bd2492d5",
  "rule": {
   "DEFERRED-BLOCKED": "no writer + no decode expectation (mass haul; grading entities beyond #642 group tree)",
   "DEFERRED-OPEN-GAP": "open pilot gaps #3 assembly/corridor PKT, #6 block refs, #7 mv-block refs, #8 section data bands, #9 fixed arcs",
-  "DEFERRED-HARNESS-SCOPE": "family has upstream writers but the corpus bin does not wire it into analyze/build (labels, pipes, feature lines, intersections, survey, stormwater, native text/hatch/2d-poly...)",
+  "DEFERRED-HARNESS-SCOPE": "family has upstream writers but the corpus bin does not wire it into analyze/build (labels, pipes, feature lines, intersections, survey, stormwater, native text/hatch/2d-polyline...) \u2014 as of 2026-11-26 the bin wires assemblies (add_assembly; empty-layout assemblies are a documented reader boundary, decode-only), corridors (corridor_definition analyze; the corpus corridors are all built-corridor shells, decode-only reader boundary) and profile-view bands (add_profile_view_with_bands, the #600 pattern). Still unwired: alignment labelings (no codec writer \u2014 new record templates needed), AECC_CSVGRID (no writer), subassemblies (the #3 PKT catalog: the record keeps only the package MD5)",
   "ELIGIBLE": "every census family bin-writable or a known tolerated side-effect (#11 TIN retriangulation/corner padding, #12 parcel Face/LotLine/ParcelSegment counts, profile-write labeling side effects)"
  },
- "note": "all 161 .dwg (163 dir entries incl. 2 .dwt templates excluded); #11/#12 do NOT defer (pilots passed 3 layers carrying them) but L1 mismatches of those kinds are gap-logged",
+ "note": "all 161 .dwg (163 dir entries incl. 2 .dwt templates excluded); #11/#12 do NOT defer (pilots passed 3 layers carrying them) but L1 mismatches of those kinds are gap-logged | 2026-11-26 D010: reasons below still name the pre-wiring state; per-family state as of tonight is corpus/gap_closure_d010_wiring.json (AeccDbAssembly wired; AeccDbCorridor decode-only built-shell boundary; profile-view band label groups wired)",
  "files": [
   {
    "file": "Align-1.dwg",

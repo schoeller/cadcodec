@@ -1,0 +1,50 @@
+{
+ "format": "same shape as gap_closure_d010.json / gap_closure_d017.json",
+ "wave": "D010 close-out round (2026-11-26) — W1-4 harness wiring: assemblies, corridors, profile-view bands",
+ "base": "parity/corpus-roundtrip@15851fe2",
+ "bridge": "Civil 3D 2027 UP and healthy all session (acad.exe pid 22752); every session under flock /tmp/opencode/bridge.lock, port 7900 only, read-only opens, active-document verified, closed with discardChanges; zero internal errors (no incident entries)",
+ "closures": [
+  {
+   "id": "W1-4/a (AeccDbAssembly — builder wiring)",
+   "closed_by": "corpus builder wiring over the existing upstream writer add_assembly (create/assembly.rs): analyze decodes AECC_ASSEMBLY (name = strings[2], origin = assembly_layout().origin, layer = the entity common) into a new 'assembly' manifest family with family-level oracle handles; build emits add_assembly under the decoded name/origin/layer",
+   "status": "CLOSED (wired; reader boundary documented)",
+   "verification": {
+    "files": "Corridor-5a.dwg (1 assembly), Assembly-3a.dwg (4 assemblies)",
+    "L1": "Corridor-5a: assembly 1 item, 0 RAW diffs — origin [5980.4235, 4242.1235, 0.0] written; built census AeccDbAssembly 1 == oracle 1. Assembly-3a: assembly 4 items, 0 RAW diffs; built census AeccDbAssembly 4 == oracle 4",
+    "boundary": "the READER decodes an assembly's layout to None when the assembly has no subassemblies (the rt_infra_corridors documented reader boundary: 'an assembly without subassemblies decodes to None') — so the built analysis reports origin null and compare_verify shows it as a derived (non-RAW) diff; Assembly-1c's 8 oracle assemblies are ALL empty-shell form (every layout undecodable) so the family flips to write:false DECODE-ONLY there",
+    "L2": "Corridor-5a built file opened read-only on port 7900: AUDIT clean (0 nullOrErasedReferences), app census AeccDbAssembly=1 — matches the built codec census field for field (11 classes)"
+   }
+  },
+  {
+   "id": "W1-4/b (AeccDbCorridor — builder wiring, decode-only on the corpus)",
+   "closed_by": "corpus builder wiring: analyze decodes AECC_CORRIDOR through corridor_definition() into a 'corridor' manifest family (serde both ways); build rebuilds via add_corridor_with after remapping the definition's oracle handles (baselines' alignment/profile, regions' assemblies, targets' objects) onto the rebuilt records by family ordinal (manifest carries family-level 'handles' arrays)",
+   "status": "WIRED — the corpus's corridors are all BUILT corridors, whose decode is an empty shell (reader boundary), so every corpus file carries the family write:false DECODE-ONLY",
+   "verification": {
+    "files": "Pipe Networks-3B.dwg, Corridor-5a.dwg, Assembly-2a.dwg (probed)",
+    "boundary": "corridor::definition fills names and references for a corridor that holds no built station only; all tutorial corridors hold built stations, so the decoded definition has empty baseline/region names and 0 alignment/profile/assembly refs — nothing rebuildable without a reader extension past the built-station lists (new read-gap work, not wiring). compare_verify normalizes handle-valued corridor fields to family ordinals on both sides, so a rebuildable corridor would compare exactly when the reader boundary lifts",
+    "L1": "Pipe Networks-3B + Corridor-5a + Assembly-2a: corridor DECODE-ONLY — no false diffs, decode recorded in the manifest"
+   }
+  },
+  {
+   "id": "W1-4/c (profile-view band label groups — AeccDbProfileDataBandLabeling et al.)",
+   "closed_by": "corpus builder wiring: analyze reads each AECC_PROFILE_VIEW's band label groups (AECC_PROFILEDATABAND_LABELGROUP / AECC_VERTICALGEOMETRYBAND_LABELGROUP / AECC_HORIZONTALGEOMETRYBAND_LABELGROUP; a group's first non-null hard pointer names its view) into the view item's 'bands'; build routes views carrying bands through the #600 writer add_profile_view_with_bands (ProfileViewBand per decoded kind)",
+   "status": "CLOSED (wired; partial coverage on multi-view files is pre-existing view-frame decode gaps, not band wiring)",
+   "verification": {
+    "files": "Corridor-5a.dwg (1 of 2 views carried a band the builder could reach; PV1 has no decoded frame — pre-existing)",
+    "L1": "built census gains AeccDbProfileDataBandLabeling 1 (the band's label group from the default band style, the #600 pattern) — matches the oracle's band kind for the view that built",
+    "L2": "Corridor-5a built file: app census shows AeccDbProfileDataBandLabeling=1, AeccDbVAlignmentLineLabeling=2, AeccDbVAlignmentPVILabeling=2, AeccDbVAlignmentSagCurveLabeling=2, AeccDbVAlignmentCrestCurveLabeling=2 — the view's label groups all visible to the application; AUDIT clean"
+   }
+  },
+  {
+   "id": "W1-4/d (AECC_CSVGRID, alignment labelings, subassemblies)",
+   "closed_by": "not attempted — out of scope per the round directive (PKT catalog content) or no upstream writer",
+   "status": "STILL DEFERRED (re-scoped)",
+   "verification": {
+    "AECC_CSVGRID": "no codec writer exists (grep over src/ — the class is not in the writer tables); stays DEFERRED-HARNESS-SCOPE",
+    "alignment labelings (AeccDbAlignmentStationLabeling / MinorStation / GeomPoint / VAGeomPoint — the largest bucket, 17 files block ONLY on these)": "no codec writer exists; the #600 label-group writers are the VIEW-attached pattern (write_group in create/profile_view.rs writes AECC_VALIGNMENT_* groups around a profile+view pair). Alignment label groups are a different record family (mod.rs reads their grammar at lines 559-576) — writing them needs new record templates from pilot evidence, a new-writer round, not wiring",
+    "AeccDbSubassembly": "the writer add_pkt_subassembly needs the PktPackage; the oracle record keeps only the catalog package's MD5 (verified: create/assembly.rs 'the record keeps their MD5'), so no package can be rebuilt from the drawing — this IS the #3 catalog gap, out of scope tonight. 43 assembly/corridor files stay deferred on this alone",
+    "deferred count": "stays 126 tonight — the only family-level candidate under the new wiring was Intro-2.dwg, and it is blocked by pre-existing decode gaps (parcel 16 of 34 decode; 6 of 7 alignments undecodable; PV0 no frame), not by the wired families. The wiring still moves 43 files' reasons from HARNESS-SCOPE to wired/boundary (see eligibility.json round note)"
+   }
+  }
+ ]
+}
