@@ -1,0 +1,36 @@
+{
+ "format": "same shape as gap_closure_d010_wiring.json",
+ "wave": "D010 close-out round #2 (2026-11-26, evening) — the alignment label-group writer (W1-5)",
+ "base": "parity/corpus-roundtrip@6fe88e1e + merge d010/alignment-labelings@6efadba3 (upstream PR #688)",
+ "bridge": "C3D host DOWN at L2 time (tasklist: no acad.exe; 'AEC Pilot for AutoCAD is not reachable' on three attempts 45-180 s apart under flock /tmp/opencode/bridge.lock, port 7900) — the app leg is PENDING, built file staged at C:\\Temp\\d010_Align-2.built.dwg (attrib -r verified, R flag clear)",
+ "closures": [
+  {
+   "id": "W1-5/a (alignment label groups — AeccDbAlignmentStationLabeling / MinorStationLabeling / GeomPointLabeling)",
+   "closed_by": "upstream writer add_alignment_label_group (create/alignment_labels.rs, PR #688): typed-field emission of the labels.rs record grammar — class header (constant run BL 80,0,80,80,0,0x10025F04, tag 010010, 16 residual bytes, BL 80,80,0x04BE0000,0xFFFFFF, 010), labels as keyed property sets (keys with typed values, 2 bits 00 + RC 1 + BL flag 0x1000/0x1003, the label set's key ids, overrides of the five value types the reader knows), settings (label set key 0x0F00B401/402/403, words 69,1, five doubles), range (3 bits 111 + BD start + BD end), the kind's tail (BD increment, or BL count + count x full-BL 0x0100|kind), close B 0 + BS 0x04BE; references soft 0, soft 0, alignment (soft), label style (hard), per label alignment (soft); strings the kind's class text + three empties. The 16 bytes after the tag are residual in the application's own records (zeros, UTF-16 fragments, heap addresses across the corpus) and are carried verbatim (AlignmentLabelGroup::guid). Unmapped forms (nested labels, unknown override value types, out-of-form tails/ranges) refuse — never invented",
+   "status": "CLOSED codec-side + L1 (bit-exact, two independent gates); L2 PENDING (host down)",
+   "verification": {
+    "bit_exactness_gate_D007": "ALL 40 alignment label groups of Align-2, Align-3, Align-4, Align-6A, Align-6B, Labels-Alignments, Parcel-1A, Profile-1, Profile-4A, Profile-4B, Assembly-1a decode by their fields and rebuild through the writer with main stream == oracle bit for bit (0 refusals, 0 differing bits; the harness decoder + writer roundtrip, /tmp/opencode/alignlabel_runlog.md)",
+    "upstream_tests": "4 roundtrip tests in create/alignment_labels.rs (station, minor+geompoint, overrides+layers, refusals); upstream suite 3366 passed / 0 failed on d866d2ad+writer",
+    "L1": "analyze -> build -> re-analyze -> compare_verify on the corpus branch: alignment_label_group BIT-EXACT for Align-2 (3), Align-3 (3), Align-4 (3), Align-6A (3), Align-6B (7), Align-6C (7), Align-6D (7), Align-7B (3), Align-7C (3), Labels-Alignments (4), Parcel-1A (4), Profile-1 (3), Profile-4A (3), Profile-4B (3), Assembly-1a (4) — 46 items; every built census carries the oracle's labeling classes with the oracle's counts. Labels-Alignments's two East Street groups stay unbuilt: that alignment does not rebuild (pre-existing curve-fit gap in the alignment writer, build NOTE logged)",
+    "L2": "PENDING-BLOCKED: C:\\Temp\\d010_Align-2.built.dwg staged and attrib -r verified; open read-only + audit_drawing + custom_c3d_class_census + close discardChanges as soon as the host is back"
+   }
+  },
+  {
+   "id": "W1-5/b (the 15 files that blocked ONLY on alignment labelings)",
+   "closed_by": "the writer above routes their groups; their remaining reasons are now the wired families (assemblies/corridors/bands per gap_closure_d010_wiring.json) and each file's own pre-existing decode gaps",
+   "status": "REASON CLEARED (files' own OPEN-GAPs unchanged; eligibility.json per-file reasons are the orchestrator's to roll up)",
+   "verification": {
+    "list": "derived from eligibility.json @6fe88e1e post-W1-4-wiring: Align-2, Align-3, Align-4, Align-6A, Align-6B, Align-6C, Align-6D, Align-7B, Align-7C, Assembly-1a, Labels-Alignments, Parcel-1A, Profile-1, Profile-4A, Profile-4B. NOTE: the rt-closure runlog said '17' — the eligibility-derived count is 15; the 17 was approximate (no other file qualifies under any wiring-state combination checked: alignment labelings + wired bands/assemblies/corridors excluded, 15 both before and after)",
+    "not_covered": "AECC_ALIGNMENT_VAGEOMPOINT_LABELING (profile-attached VA geometry point labels), StaEquLabeling, DesignSpeedLabeling, SuperelevationLabeling keep no writer — different record forms, untouched; the census gate shows them unchanged"
+   }
+  },
+  {
+   "id": "W1-5/c (11 stale manifests)",
+   "closed_by": "regenerated from fresh analyze runs on the same oracle files (grading_3a, labels_parcels, parcel_2c, part_builder_1a, points_2, points_4a, surface_1a, surface_2, survey_1, survey_2a, survey_3); oracle sections carried (the analyzers' codec/doc/object censuses are fresh; none of the 11 carried an mcp_census section)",
+   "status": "CLOSED",
+   "verification": {
+    "census_drift": "none in all 11 (every codec_census class identical old -> new); points_2 gains the cogo_point family (2405 points) the current analyzer decodes and the stale manifest lacked"
+   }
+  }
+ ]
+}
