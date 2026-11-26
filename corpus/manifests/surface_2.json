@@ -1,8 +1,10 @@
 {
+  "source": "/mnt/c/Program Files/Autodesk/AutoCAD 2027/C3D/Help/Civil Tutorials/Drawings/Surface-2.dwg",
   "codec_census": {
     "AcDbPolyline": 85,
     "AeccDbSurfaceTin": 1
   },
+  "mcp_census": null,
   "doc_census": {
     "AcDbArc": 3,
     "AcDbBlockReference": 2,
@@ -15,15 +17,587 @@
     "AcDbWipeout": 1,
     "AeccDbSurfaceTin": 1
   },
+  "object_census": {
+    "AECC_ALIGNMENT_DESIGN_CHECK_SET": 2,
+    "AECC_ALIGNMENT_LABEL_SET": 5,
+    "AECC_ALIGNMENT_PARCEL_NODE": 1,
+    "AECC_ALIGNMENT_STYLE": 5,
+    "AECC_APPURTENANCE_STYLE": 2,
+    "AECC_ASSEMBLY_STYLE": 2,
+    "AECC_BRIDGE_PROJECTION_LABEL_SET": 2,
+    "AECC_BRIDGE_PROJECTION_STYLE": 2,
+    "AECC_BUILDING_SITE_STYLE": 2,
+    "AECC_CANT_DIAGRAM_VIEW_STYLE": 2,
+    "AECC_CATCHMENT_STYLE": 2,
+    "AECC_CLASS_FOLDER_NODE": 12,
+    "AECC_CLASS_NODE": 218,
+    "AECC_CONTOURVIEW": 1,
+    "AECC_CORRIDOR_STYLE": 2,
+    "AECC_DISP_REP_ALIGNMENT": 1,
+    "AECC_DISP_REP_ALIGNMENT_CANT_INFO_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_CANT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_CSV": 1,
+    "AECC_DISP_REP_ALIGNMENT_CURVE_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_DESIGNSPEED_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_GEOMPT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_INDEXED_PI_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_PI_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_PI_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_SPIRAL_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_STAEQU_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_STATION_OFFSET_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_SUPERELEVATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_TABLE": 1,
+    "AECC_DISP_REP_ALIGNMENT_TANGENT_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_VERTICAL_GEOMPT_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE": 1,
+    "AECC_DISP_REP_APPURTENANCE_CSV": 1,
+    "AECC_DISP_REP_APPURTENANCE_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_ASSEMBLY": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_CSV": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_DECK": 1,
+    "AECC_DISP_REP_BRIDGE_DECK_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_DECK_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_FEATURE": 1,
+    "AECC_DISP_REP_BRIDGE_FEATURE_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER_GROUP_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GRIDER_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_PIER": 1,
+    "AECC_DISP_REP_BRIDGE_PIER_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_PIER_LABELING": 1,
+    "AECC_DISP_REP_BUILDINGSITE": 1,
+    "AECC_DISP_REP_BUILDINGUTIL_CONNECTOR": 1,
+    "AECC_DISP_REP_CANT_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_CANT_DIAGRAM_VIEW": 1,
+    "AECC_DISP_REP_CATCHMENT_AREA": 1,
+    "AECC_DISP_REP_CATCHMENT_AREA_LABEL": 1,
+    "AECC_DISP_REP_COGO_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_CORRIDOR": 1,
+    "AECC_DISP_REP_CROSSING_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_CROSSING_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_CSVSTATIONSLIDER": 1,
+    "AECC_DISP_REP_CURVE_TABLE": 1,
+    "AECC_DISP_REP_DISTANCE_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_FACE": 1,
+    "AECC_DISP_REP_FEATURE": 1,
+    "AECC_DISP_REP_FEATURE_LABEL": 1,
+    "AECC_DISP_REP_FEATURE_LINE": 1,
+    "AECC_DISP_REP_FEATURE_LINE_CSV": 1,
+    "AECC_DISP_REP_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_FITTING": 1,
+    "AECC_DISP_REP_FITTING_CSV": 1,
+    "AECC_DISP_REP_FITTING_LABELING": 1,
+    "AECC_DISP_REP_FITTING_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_FITTING_SECTION_LABELING": 1,
+    "AECC_DISP_REP_FLOW_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_GENERAL_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_GRADING": 1,
+    "AECC_DISP_REP_GRAPH": 1,
+    "AECC_DISP_REP_GRAPHPROFILE_NETWORKPART": 1,
+    "AECC_DISP_REP_GRAPHPROFILE_PRESSUREPART": 1,
+    "AECC_DISP_REP_GRID_SURFACE": 1,
+    "AECC_DISP_REP_GRID_SURFACE_CSV": 1,
+    "AECC_DISP_REP_HORGEOMETRY_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_HYDRO_REGION": 1,
+    "AECC_DISP_REP_INTERFERENCE_CHECK": 1,
+    "AECC_DISP_REP_INTERFERENCE_PART": 1,
+    "AECC_DISP_REP_INTERFERENCE_PART_SECTION": 1,
+    "AECC_DISP_REP_INTERSECTION": 1,
+    "AECC_DISP_REP_INTERSECTION_LOCATION_LABELING": 1,
+    "AECC_DISP_REP_LABELING": 1,
+    "AECC_DISP_REP_LEGEND_TABLE": 1,
+    "AECC_DISP_REP_LINE_BETWEEN_POINTS_LABEL": 1,
+    "AECC_DISP_REP_LINE_TABLE": 1,
+    "AECC_DISP_REP_LOTLINE_CSV": 1,
+    "AECC_DISP_REP_MASSHAULLINE": 1,
+    "AECC_DISP_REP_MASS_HAUL_VIEW": 1,
+    "AECC_DISP_REP_MATCHLINE_LABELING": 1,
+    "AECC_DISP_REP_MATCH_LINE": 1,
+    "AECC_DISP_REP_MATERIAL_SECTION": 1,
+    "AECC_DISP_REP_NETWORK": 1,
+    "AECC_DISP_REP_NOTE_LABEL": 1,
+    "AECC_DISP_REP_OFFSET_ELEV_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_BOUNDARY": 1,
+    "AECC_DISP_REP_PARCEL_FACE_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT_TABLE": 1,
+    "AECC_DISP_REP_PARCEL_TABLE": 1,
+    "AECC_DISP_REP_PIPE": 1,
+    "AECC_DISP_REP_PIPENETWORK_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PIPE_CSV": 1,
+    "AECC_DISP_REP_PIPE_LABELING": 1,
+    "AECC_DISP_REP_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_PIPE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_PIPE_TABLE": 1,
+    "AECC_DISP_REP_POINT_ENT": 1,
+    "AECC_DISP_REP_POINT_GROUP": 1,
+    "AECC_DISP_REP_POINT_TABLE": 1,
+    "AECC_DISP_REP_PRESSURENETWORK_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PRESSUREPIPENETWORK": 1,
+    "AECC_DISP_REP_PRESSURE_PART_TABLE": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_CSV": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_LABELING": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_PROFILE": 1,
+    "AECC_DISP_REP_PROFILEDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PROFILE_CROSSING": 1,
+    "AECC_DISP_REP_PROFILE_CROSSING_LABEL": 1,
+    "AECC_DISP_REP_PROFILE_PROJECTION": 1,
+    "AECC_DISP_REP_PROFILE_PROJECTION_LABEL": 1,
+    "AECC_DISP_REP_PROFILE_VIEW": 1,
+    "AECC_DISP_REP_PROFILE_VIEW_DEPTH_LABEL": 1,
+    "AECC_DISP_REP_QUANTITY_TAKEOFF_AGGREGATE_EARTHWORK_TABLE": 1,
+    "AECC_DISP_REP_REHAB_NOTE_LABEL": 1,
+    "AECC_DISP_REP_REHAB_WARNING_MARKER": 1,
+    "AECC_DISP_REP_RIGHT_OF_WAY": 1,
+    "AECC_DISP_REP_SAMPLELINE_LABELING": 1,
+    "AECC_DISP_REP_SAMPLE_LINE": 1,
+    "AECC_DISP_REP_SAMPLE_LINE_GROUP": 1,
+    "AECC_DISP_REP_SECTION": 1,
+    "AECC_DISP_REP_SECTIONALDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTIONDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTIONSEGMENT_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_CORRIDOR": 1,
+    "AECC_DISP_REP_SECTION_CORRIDOR_POINT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_CROSSING_LABEL": 1,
+    "AECC_DISP_REP_SECTION_GRADEBREAK_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_MINOR_OFFSET_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_OFFSET_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_PIPENETWORK": 1,
+    "AECC_DISP_REP_SECTION_PRESSUREPIPENETWORK": 1,
+    "AECC_DISP_REP_SECTION_PROJECTION": 1,
+    "AECC_DISP_REP_SECTION_PROJECTION_LABEL": 1,
+    "AECC_DISP_REP_SECTION_SEGMENT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_VIEW": 1,
+    "AECC_DISP_REP_SECTION_VIEW_DEPTH_LABEL": 1,
+    "AECC_DISP_REP_SECTION_VIEW_QUANTITY_TAKEOFF_TABLE": 1,
+    "AECC_DISP_REP_SHEET": 1,
+    "AECC_DISP_REP_SPANNING_PIPE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_SPEED_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_STATION_ELEV_LABEL": 1,
+    "AECC_DISP_REP_STRUCTURE": 1,
+    "AECC_DISP_REP_STRUCTURE_CSV": 1,
+    "AECC_DISP_REP_STRUCTURE_LABELING": 1,
+    "AECC_DISP_REP_STRUCTURE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_STRUCTURE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_SUBASSEMBLY": 1,
+    "AECC_DISP_REP_SUPERELEVATION_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SUPERELEVATION_DIAGRAM_VIEW": 1,
+    "AECC_DISP_REP_SURFACE_CONTOUR_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SURFACE_ELEVATION_LABEL": 1,
+    "AECC_DISP_REP_SURFACE_SLOPE_LABEL": 1,
+    "AECC_DISP_REP_SURVEY_FIGURE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SVFIGURE": 1,
+    "AECC_DISP_REP_SVFIGURE_CSV": 1,
+    "AECC_DISP_REP_SVFIGURE_PROFILE": 1,
+    "AECC_DISP_REP_SVFIGURE_SECTION": 1,
+    "AECC_DISP_REP_SVFIGURE_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_SVNETWORK": 1,
+    "AECC_DISP_REP_TANGENT_INTERSECTION_TABLE": 1,
+    "AECC_DISP_REP_TIN_SURFACE": 1,
+    "AECC_DISP_REP_TIN_SURFACE_CSV": 1,
+    "AECC_DISP_REP_VALIGNMENT_CRESTCURVE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_CSV": 1,
+    "AECC_DISP_REP_VALIGNMENT_HAGEOMPT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_LINE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_PVI_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_SAGCURVE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VERTICALGEOMETRY_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VIEWFRAME_LABELING": 1,
+    "AECC_DISP_REP_VIEW_FRAME": 1,
+    "AECC_EXTRAPOLATE_SURFACE_OP_OBJECT": 1,
+    "AECC_FEATURELINE_STYLE": 25,
+    "AECC_FEATURE_STYLE": 1,
+    "AECC_FITTING_STYLE": 2,
+    "AECC_FORMAT_MANAGER_OBJECT": 18,
+    "AECC_GRADEVIEW": 1,
+    "AECC_GRADING_CRITERIA": 5,
+    "AECC_GRADING_CRITERIA_SET": 2,
+    "AECC_GRADING_GROUP": 1,
+    "AECC_GRADING_STYLE": 4,
+    "AECC_IMPORT_STORM_SEWER_DEFAULTS": 2,
+    "AECC_INTERFERENCE_STYLE": 2,
+    "AECC_INTERSECTION_STYLE": 2,
+    "AECC_LABEL_BLOCK_STYLE": 21,
+    "AECC_LABEL_COLLECTOR_STYLE": 496,
+    "AECC_LABEL_NODE": 1,
+    "AECC_LABEL_RADIAL_LINE_STYLE": 43,
+    "AECC_LABEL_TEXT_ITERATOR_CURVE_OR_SPIRAL_STYLE": 4,
+    "AECC_LABEL_TEXT_ITERATOR_STYLE": 5,
+    "AECC_LABEL_TEXT_STYLE": 402,
+    "AECC_LABEL_TICK_STYLE": 7,
+    "AECC_LABEL_VECTOR_ARROW_STYLE": 12,
+    "AECC_LEGEND_TABLE_STYLE": 14,
+    "AECC_MASS_HAUL_LINE_STYLE": 2,
+    "AECC_MASS_HAUL_VIEW_STYLE": 2,
+    "AECC_MATCHLINE_STYLE": 2,
+    "AECC_MATERIAL_STYLE": 2,
+    "AECC_NAME_TEMPLATES_NODE": 6,
+    "AECC_NAME_TEMPLATES_ROOT": 1,
+    "AECC_NETWORK_PART_CATALOG_DEF_NODE": 1,
+    "AECC_NETWORK_PART_FAMILY_ITEM": 37,
+    "AECC_NETWORK_PART_LIST": 3,
+    "AECC_NETWORK_RULE": 13,
+    "AECC_PARCEL_NODE": 1,
+    "AECC_PARCEL_STYLE": 6,
+    "AECC_PART_PROPERTY_MAPPINGS": 1,
+    "AECC_PART_SIZE_FILTER": 68,
+    "AECC_PIPE_RULES": 2,
+    "AECC_PIPE_STYLE": 8,
+    "AECC_POINTCLOUD_STYLE": 2,
+    "AECC_POINTVIEW": 1,
+    "AECC_POINT_DESCRIPTION_KEY2": 3,
+    "AECC_POINT_DESCRIPTION_KEY_SET": 1,
+    "AECC_POINT_DESCRIPTION_KEY_SET_NODE": 1,
+    "AECC_POINT_GROUP_NODE": 1,
+    "AECC_POINT_NODE": 1,
+    "AECC_POINT_PG": 1,
+    "AECC_POINT_STYLE": 25,
+    "AECC_PRESSURE_PART_LIST": 2,
+    "AECC_PRESSURE_PIPE_STYLE": 2,
+    "AECC_PROFILESECTIONENTITY_STYLE": 2,
+    "AECC_PROFILE_DESIGN_CHECK_SET": 2,
+    "AECC_PROFILE_LABEL_SET": 3,
+    "AECC_PROFILE_STYLE": 7,
+    "AECC_PROFILE_VIEW_BAND_STYLE_SET": 9,
+    "AECC_PROFILE_VIEW_CANT_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_DATA_BAND_STYLE": 8,
+    "AECC_PROFILE_VIEW_HORIZONTAL_GEOMETRY_BAND_STYLE": 3,
+    "AECC_PROFILE_VIEW_PIPE_NETWORK_BAND_STYLE": 5,
+    "AECC_PROFILE_VIEW_PRESSURE_NETWORK_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_SECTIONAL_DATA_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_STYLE": 7,
+    "AECC_PROFILE_VIEW_SUPERELEVATION_DIAGRAM_BAND_STYLE": 5,
+    "AECC_PROFILE_VIEW_VERTICAL_GEOMETRY_BAND_STYLE": 2,
+    "AECC_QUANTITY_TAKEOFF_CRITERIA": 4,
+    "AECC_QUERY_STATEMENT": 2,
+    "AECC_REFERENCED_ITEM_HOST": 7,
+    "AECC_REFERENCED_STYLE_CACHE": 1,
+    "AECC_REFERENCED_STYLE_INFO_HOST": 1,
+    "AECC_REFERENCED_STYLE_INFO_INDEX": 1,
+    "AECC_REFERENCED_TEMPLATE_HOST": 1,
+    "AECC_REFERENCED_TEMPLATE_RECORD_LIST": 1,
+    "AECC_ROADWAYLINK_STYLE": 21,
+    "AECC_ROADWAYMARKER_STYLE": 44,
+    "AECC_ROADWAYSHAPE_STYLE": 25,
+    "AECC_ROADWAY_STYLE_SET": 6,
+    "AECC_ROOT_SETTINGS_NODE": 1,
+    "AECC_SAMPLE_LINE_GROUP_STYLE": 4,
+    "AECC_SAMPLE_LINE_STYLE": 2,
+    "AECC_SECTION_LABEL_SET": 5,
+    "AECC_SECTION_STYLE": 3,
+    "AECC_SECTION_VIEW_BAND_STYLE_SET": 4,
+    "AECC_SECTION_VIEW_DATA_BAND_STYLE": 5,
+    "AECC_SECTION_VIEW_ROAD_SURFACE_BAND_STYLE": 2,
+    "AECC_SECTION_VIEW_STYLE": 2,
+    "AECC_SETTINGS_NODE": 1439,
+    "AECC_SHEET_STYLE": 8,
+    "AECC_SLOPE_PATTERN_STYLE": 4,
+    "AECC_STATION_FORMAT_STYLE": 1,
+    "AECC_STRUCTURE_RULES": 2,
+    "AECC_STUCTURE_STYLE": 8,
+    "AECC_SUPERELEVATION_DIAGRAM_VIEW_STYLE": 2,
+    "AECC_SURFACE_STYLE": 12,
+    "AECC_SVFIGURE_STYLE": 7,
+    "AECC_SVNETWORK_STYLE": 2,
+    "AECC_TABLE_STYLE": 39,
+    "AECC_TAG_MANAGER": 1,
+    "AECC_TREE_NODE": 5,
+    "AECC_USER_DEFINED_ATTRIBUTE": 2,
+    "AECC_USER_DEFINED_ATTRIBUTE_CLASSIFICATION": 217,
+    "AECC_VALIGNMENT_STYLE_EXTENSION": 7,
+    "AECC_VIEW_FRAME_STYLE": 2,
+    "AECS_DISP_PROPS_MEMBER": 2,
+    "AECS_DISP_PROPS_MEMBER_LOGICAL": 1,
+    "AECS_DISP_PROPS_MEMBER_PLAN": 2,
+    "AECS_DISP_PROPS_MEMBER_PLAN_SKETCH": 1,
+    "AECS_DISP_PROPS_MEMBER_PROJECTED": 2,
+    "AECS_DISP_REP_MEMBER_ELEVATION_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_ELEVATION_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_LOGICAL": 1,
+    "AECS_DISP_REP_MEMBER_MODEL_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_MODEL_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_SKETCH": 1,
+    "AEC_AECDBDISPREPBDGELEVLINEPLAN100": 1,
+    "AEC_AECDBDISPREPBDGELEVLINEPLAN50": 1,
+    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN100": 1,
+    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN50": 1,
+    "AEC_AECDBDISPREPCEILINGGRIDPLAN100": 1,
+    "AEC_AECDBDISPREPCEILINGGRIDPLAN50": 1,
+    "AEC_AECDBDISPREPCOLUMNGRIDPLAN100": 1,
+    "AEC_AECDBDISPREPCOLUMNGRIDPLAN50": 1,
+    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN100": 1,
+    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN50": 1,
+    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN100": 1,
+    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN50": 1,
+    "AEC_AECDBDISPREPMVBLOCKREFPLAN100": 1,
+    "AEC_AECDBDISPREPMVBLOCKREFPLAN50": 1,
+    "AEC_AECDBDISPREPROOFPLAN100": 1,
+    "AEC_AECDBDISPREPROOFPLAN50": 1,
+    "AEC_AECDBDISPREPROOFSLABPLAN100": 1,
+    "AEC_AECDBDISPREPROOFSLABPLAN50": 1,
+    "AEC_AECDBDISPREPSLABPLAN100": 1,
+    "AEC_AECDBDISPREPSLABPLAN50": 1,
+    "AEC_AECDBDISPREPSPACEPLAN100": 1,
+    "AEC_AECDBDISPREPSPACEPLAN50": 1,
+    "AEC_AECDBDISPREPWALLPLAN100": 1,
+    "AEC_AECDBDISPREPWALLPLAN50": 1,
+    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN100": 1,
+    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN50": 1,
+    "AEC_AECDBDISPREPZONE100": 1,
+    "AEC_AECDBDISPREPZONE50": 1,
+    "AEC_CVSECTIONVIEW": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN100": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLANREFLECTED": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGSILLPLAN": 1,
+    "AEC_DISPROPSMASSELEMPLANCOMMON": 2,
+    "AEC_DISPROPSMASSGROUPPLANCOMMON": 2,
+    "AEC_DISPROPSOPENINGPLANCOMMON": 1,
+    "AEC_DISPROPSOPENINGPLANCOMMONHATCHED": 2,
+    "AEC_DISPROPSOPENINGSILLPLAN": 1,
+    "AEC_DISP_PROPS_2D_SECTION": 1,
+    "AEC_DISP_PROPS_CLIP_VOLUME": 12,
+    "AEC_DISP_PROPS_CLIP_VOLUME_RESULT": 2,
+    "AEC_DISP_PROPS_DIM": 3,
+    "AEC_DISP_PROPS_DISPLAYTHEME": 1,
+    "AEC_DISP_PROPS_DOOR": 4,
+    "AEC_DISP_PROPS_DOOR_NOMINAL": 1,
+    "AEC_DISP_PROPS_DOOR_PLAN_100": 1,
+    "AEC_DISP_PROPS_DOOR_PLAN_50": 1,
+    "AEC_DISP_PROPS_DOOR_THRESHOLD_PLAN": 1,
+    "AEC_DISP_PROPS_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
+    "AEC_DISP_PROPS_EDITINPLACEPROFILE_MODEL": 1,
+    "AEC_DISP_PROPS_ENT": 7,
+    "AEC_DISP_PROPS_ENT_REF": 1,
+    "AEC_DISP_PROPS_GRID_ASSEMBLY_MODEL": 3,
+    "AEC_DISP_PROPS_GRID_ASSEMBLY_PLAN": 9,
+    "AEC_DISP_PROPS_LAYOUT_CURVE": 1,
+    "AEC_DISP_PROPS_LAYOUT_GRID2D": 11,
+    "AEC_DISP_PROPS_LAYOUT_GRID3D": 1,
+    "AEC_DISP_PROPS_MASKBLOCK": 2,
+    "AEC_DISP_PROPS_MASS_ELEM_MODEL": 3,
+    "AEC_DISP_PROPS_MASS_GROUP": 3,
+    "AEC_DISP_PROPS_MATERIAL": 1,
+    "AEC_DISP_PROPS_OPENING": 2,
+    "AEC_DISP_PROPS_POLYGON_MODEL": 1,
+    "AEC_DISP_PROPS_POLYGON_TRUECOLOUR": 1,
+    "AEC_DISP_PROPS_RAILING_MODEL": 1,
+    "AEC_DISP_PROPS_RAILING_PLAN": 1,
+    "AEC_DISP_PROPS_ROOF": 5,
+    "AEC_DISP_PROPS_ROOFSLAB": 1,
+    "AEC_DISP_PROPS_ROOFSLAB_PLAN": 3,
+    "AEC_DISP_PROPS_SCHEDULE_TABLE": 1,
+    "AEC_DISP_PROPS_SLAB": 1,
+    "AEC_DISP_PROPS_SLAB_PLAN": 3,
+    "AEC_DISP_PROPS_SLICE": 1,
+    "AEC_DISP_PROPS_SPACE_DECOMPOSED": 1,
+    "AEC_DISP_PROPS_SPACE_MODEL": 1,
+    "AEC_DISP_PROPS_SPACE_PLAN": 4,
+    "AEC_DISP_PROPS_STAIR_MODEL": 1,
+    "AEC_DISP_PROPS_STAIR_PLAN": 2,
+    "AEC_DISP_PROPS_STAIR_PLAN_OVERLAPPING": 1,
+    "AEC_DISP_PROPS_WALL_GRAPH": 1,
+    "AEC_DISP_PROPS_WALL_MODEL": 1,
+    "AEC_DISP_PROPS_WALL_PLAN": 4,
+    "AEC_DISP_PROPS_WALL_SCHEM": 1,
+    "AEC_DISP_PROPS_WINDOW": 4,
+    "AEC_DISP_PROPS_WINDOW_ASSEMBLY_SILL_PLAN": 1,
+    "AEC_DISP_PROPS_WINDOW_NOMINAL": 1,
+    "AEC_DISP_PROPS_WINDOW_PLAN_100": 1,
+    "AEC_DISP_PROPS_WINDOW_PLAN_50": 1,
+    "AEC_DISP_PROPS_WINDOW_SILL_PLAN": 1,
+    "AEC_DISP_PROPS_ZONE": 3,
+    "AEC_DISP_REP_2D_SECTION": 1,
+    "AEC_DISP_REP_ANCHOR": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_MODEL": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_RCP": 1,
+    "AEC_DISP_REP_ANCHOR_ENT_TO_NODE": 1,
+    "AEC_DISP_REP_ANCHOR_EXT_TAG_TO_ENT": 1,
+    "AEC_DISP_REP_ANCHOR_TAG_TO_ENT": 1,
+    "AEC_DISP_REP_BDG_ELEVLINE_MODEL": 1,
+    "AEC_DISP_REP_BDG_ELEVLINE_RCP": 1,
+    "AEC_DISP_REP_BDG_SECTIONLINE_MODEL": 1,
+    "AEC_DISP_REP_BDG_SECTIONLINE_PLAN": 2,
+    "AEC_DISP_REP_BDG_SECTIONLINE_RCP": 1,
+    "AEC_DISP_REP_BDG_SECTION_MODEL": 1,
+    "AEC_DISP_REP_BDG_SECTION_SUBDIV": 1,
+    "AEC_DISP_REP_CEILING_GRID": 1,
+    "AEC_DISP_REP_CEILING_GRID_MODEL": 1,
+    "AEC_DISP_REP_CEILING_GRID_RCP": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_MODEL": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_PLAN": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_RESULT": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_RESULT_SUBDIV": 1,
+    "AEC_DISP_REP_COLUMN_GRID": 1,
+    "AEC_DISP_REP_COLUMN_GRID_MODEL": 1,
+    "AEC_DISP_REP_COLUMN_GRID_RCP": 1,
+    "AEC_DISP_REP_COL_BLOCK": 1,
+    "AEC_DISP_REP_COL_CIRCARC2D": 1,
+    "AEC_DISP_REP_COL_CONCOINCIDENT": 1,
+    "AEC_DISP_REP_COL_CONCONCENTRIC": 1,
+    "AEC_DISP_REP_COL_CONEQUALDISTANCE": 1,
+    "AEC_DISP_REP_COL_CONMIDPOINT": 1,
+    "AEC_DISP_REP_COL_CONNECTOR": 1,
+    "AEC_DISP_REP_COL_CONNORMAL": 1,
+    "AEC_DISP_REP_COL_CONPARALLEL": 1,
+    "AEC_DISP_REP_COL_CONPERPENDICULAR": 1,
+    "AEC_DISP_REP_COL_CONSYMMETRIC": 1,
+    "AEC_DISP_REP_COL_CONTANGENT": 1,
+    "AEC_DISP_REP_COL_DIMANGLE": 1,
+    "AEC_DISP_REP_COL_DIMDIAMETER": 1,
+    "AEC_DISP_REP_COL_DIMDISTANCE": 1,
+    "AEC_DISP_REP_COL_DIMLENGTH": 1,
+    "AEC_DISP_REP_COL_DIMMAJORRADIUS": 1,
+    "AEC_DISP_REP_COL_DIMMINORRADIUS": 1,
+    "AEC_DISP_REP_COL_ELLIPARC2D": 1,
+    "AEC_DISP_REP_COL_LAYOUTDATA": 1,
+    "AEC_DISP_REP_COL_LINE2D": 1,
+    "AEC_DISP_REP_COL_MODIFIER_ADD": 1,
+    "AEC_DISP_REP_COL_MODIFIER_CUTPLANE": 1,
+    "AEC_DISP_REP_COL_MODIFIER_EXTRUSION": 1,
+    "AEC_DISP_REP_COL_MODIFIER_GROUP": 1,
+    "AEC_DISP_REP_COL_MODIFIER_PATH": 1,
+    "AEC_DISP_REP_COL_MODIFIER_SUBTRACT": 1,
+    "AEC_DISP_REP_COL_MODIFIER_TRANSITION": 1,
+    "AEC_DISP_REP_COL_POINT2D": 1,
+    "AEC_DISP_REP_COL_PROFILE": 1,
+    "AEC_DISP_REP_COL_WORKPLANE": 1,
+    "AEC_DISP_REP_COL_WORKPLANE_REF": 1,
+    "AEC_DISP_REP_CONFIG": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_MODEL": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_PLAN": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_UNIT_MODEL": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_UNIT_PLAN": 1,
+    "AEC_DISP_REP_DCM_DIMRADIUS": 1,
+    "AEC_DISP_REP_DISPLAYTHEME": 1,
+    "AEC_DISP_REP_DOOR_ELEV": 1,
+    "AEC_DISP_REP_DOOR_MODEL": 1,
+    "AEC_DISP_REP_DOOR_NOMINAL": 1,
+    "AEC_DISP_REP_DOOR_PLAN": 1,
+    "AEC_DISP_REP_DOOR_PLAN_50": 1,
+    "AEC_DISP_REP_DOOR_PLAN_HEKTO": 1,
+    "AEC_DISP_REP_DOOR_RCP": 1,
+    "AEC_DISP_REP_DOOR_THRESHOLD_PLAN": 1,
+    "AEC_DISP_REP_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
+    "AEC_DISP_REP_EDITINPLACEPROFILE": 1,
+    "AEC_DISP_REP_ENT_REF": 1,
+    "AEC_DISP_REP_LAYOUT_CURVE": 1,
+    "AEC_DISP_REP_LAYOUT_GRID2D": 1,
+    "AEC_DISP_REP_LAYOUT_GRID3D": 1,
+    "AEC_DISP_REP_MASKBLOCK_REF": 1,
+    "AEC_DISP_REP_MASKBLOCK_REF_RCP": 1,
+    "AEC_DISP_REP_MASS_ELEM_MODEL": 1,
+    "AEC_DISP_REP_MASS_ELEM_RCP": 1,
+    "AEC_DISP_REP_MASS_ELEM_SCHEM": 1,
+    "AEC_DISP_REP_MASS_GROUP_MODEL": 1,
+    "AEC_DISP_REP_MASS_GROUP_PLAN": 1,
+    "AEC_DISP_REP_MASS_GROUP_RCP": 1,
+    "AEC_DISP_REP_MATERIAL": 1,
+    "AEC_DISP_REP_MVBLOCK_REF": 1,
+    "AEC_DISP_REP_MVBLOCK_REF_MODEL": 1,
+    "AEC_DISP_REP_MVBLOCK_REF_RCP": 1,
+    "AEC_DISP_REP_OPENING": 1,
+    "AEC_DISP_REP_OPENING_MODEL": 1,
+    "AEC_DISP_REP_POLYGON_MODEL": 1,
+    "AEC_DISP_REP_POLYGON_TRUECOLOUR": 1,
+    "AEC_DISP_REP_RAILING_MODEL": 1,
+    "AEC_DISP_REP_RAILING_PLAN": 1,
+    "AEC_DISP_REP_RAILING_PLAN_100": 1,
+    "AEC_DISP_REP_RAILING_PLAN_50": 1,
+    "AEC_DISP_REP_ROOFSLAB_MODEL": 1,
+    "AEC_DISP_REP_ROOFSLAB_PLAN": 1,
+    "AEC_DISP_REP_ROOF_MODEL": 1,
+    "AEC_DISP_REP_ROOF_PLAN": 1,
+    "AEC_DISP_REP_ROOF_RCP": 1,
+    "AEC_DISP_REP_SCHEDULE_TABLE": 1,
+    "AEC_DISP_REP_SET": 9,
+    "AEC_DISP_REP_SLAB_MODEL": 1,
+    "AEC_DISP_REP_SLAB_PLAN": 1,
+    "AEC_DISP_REP_SLICE": 1,
+    "AEC_DISP_REP_SPACE_DECOMPOSED": 1,
+    "AEC_DISP_REP_SPACE_MODEL": 1,
+    "AEC_DISP_REP_SPACE_PLAN": 1,
+    "AEC_DISP_REP_SPACE_RCP": 1,
+    "AEC_DISP_REP_SPACE_VOLUME": 1,
+    "AEC_DISP_REP_STAIR_MODEL": 1,
+    "AEC_DISP_REP_STAIR_PLAN": 1,
+    "AEC_DISP_REP_STAIR_PLAN_100": 1,
+    "AEC_DISP_REP_STAIR_PLAN_50": 1,
+    "AEC_DISP_REP_STAIR_PLAN_OVERLAPPING": 1,
+    "AEC_DISP_REP_STAIR_RCP": 1,
+    "AEC_DISP_REP_WALL_GRAPH": 1,
+    "AEC_DISP_REP_WALL_MODEL": 1,
+    "AEC_DISP_REP_WALL_PLAN": 1,
+    "AEC_DISP_REP_WALL_RCP": 1,
+    "AEC_DISP_REP_WALL_SCHEM": 1,
+    "AEC_DISP_REP_WINDOWASSEMBLY_SILL_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_ASSEMBLY_MODEL": 1,
+    "AEC_DISP_REP_WINDOW_ASSEMBLY_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_ELEV": 1,
+    "AEC_DISP_REP_WINDOW_MODEL": 1,
+    "AEC_DISP_REP_WINDOW_NOMINAL": 1,
+    "AEC_DISP_REP_WINDOW_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_PLAN_100": 1,
+    "AEC_DISP_REP_WINDOW_PLAN_50": 1,
+    "AEC_DISP_REP_WINDOW_RCP": 1,
+    "AEC_DISP_REP_WINDOW_SILL_PLAN": 1,
+    "AEC_DISP_REP_ZONE": 1,
+    "AEC_DISP_ROPS_RAILING_PLAN_100": 1,
+    "AEC_DISP_ROPS_RAILING_PLAN_50": 1,
+    "AEC_DISP_ROPS_STAIR_PLAN_100": 1,
+    "AEC_DISP_ROPS_STAIR_PLAN_50": 1,
+    "AEC_VARS_DWG_SETUP": 1
+  },
   "families": [
     {
-      "count": 85,
       "family": "lwpolyline",
+      "count": 85,
       "items": [
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6318.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639170.440423077,
@@ -53,9 +627,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6318.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639172.3635,
@@ -500,9 +1074,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6318.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639029.5095674158,
@@ -927,9 +1501,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6318.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639212.1968333332,
@@ -959,9 +1533,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6318.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639184.470642857,
@@ -1406,9 +1980,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6322.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639010.3635,
@@ -1633,9 +2207,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6322.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639031.8250384615,
@@ -2100,9 +2674,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6322.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639049.657617647,
@@ -2532,9 +3106,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6322.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639000.3635,
@@ -3319,9 +3893,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6322.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639310.5301666667,
@@ -11431,9 +12005,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6324.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639004.2271363635,
@@ -11493,9 +12067,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6324.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639000.3635,
@@ -11530,9 +12104,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6324.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639300.3635,
@@ -18122,9 +18696,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6326.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639167.9950789474,
@@ -18229,9 +18803,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6326.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639270.3046764706,
@@ -24556,9 +25130,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6328.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639159.8079444445,
@@ -24823,9 +25397,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6328.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639240.1282058824,
@@ -30515,9 +31089,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6332.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639138.3635,
@@ -30607,9 +31181,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6332.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639218.8635,
@@ -36344,9 +36918,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6334.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639212.8407727273,
@@ -41381,9 +41955,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6336.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639072.1235,
@@ -41458,9 +42032,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6336.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639208.3992142857,
@@ -46415,9 +46989,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6338.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639203.9939347827,
@@ -51212,9 +51786,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6342.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639004.7271363635,
@@ -51334,9 +51908,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6342.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639193.64475,
@@ -55451,9 +56025,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6344.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639050.511648148,
@@ -55583,9 +56157,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6344.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639189.1589545454,
@@ -60060,9 +60634,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6346.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639076.1412777777,
@@ -60242,9 +60816,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6346.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639184.9635,
@@ -63949,9 +64523,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6348.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639179.1327307692,
@@ -67856,9 +68430,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6352.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639170.4556052631,
@@ -71483,9 +72057,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6354.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639167.5222301588,
@@ -75215,9 +75789,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6356.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639152.3250384615,
@@ -75257,9 +75831,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6356.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639147.7481153845,
@@ -78254,9 +78828,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6356.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639164.4241060605,
@@ -78851,9 +79425,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6356.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639152.3635,
@@ -78873,9 +79447,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6358.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639142.3862272727,
@@ -81755,9 +82329,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6362.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639136.6193139534,
@@ -84552,9 +85126,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6364.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639134.2937325581,
@@ -87309,9 +87883,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6366.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639131.875695122,
@@ -89926,9 +90500,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6368.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639126.4241060605,
@@ -92458,9 +93032,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6372.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639118.8701666666,
@@ -94805,9 +95379,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6374.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639000.3635,
@@ -97082,9 +97656,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6376.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639105.069382353,
@@ -99229,9 +99803,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6376.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639112.5777857143,
@@ -99316,9 +99890,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6378.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639096.9424473683,
@@ -101378,9 +101952,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6382.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639088.9216395349,
@@ -103215,9 +103789,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6384.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639084.9306641791,
@@ -104992,9 +105566,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6386.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639081.6346864407,
@@ -106649,9 +107223,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6388.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639077.526765306,
@@ -108161,9 +108735,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6392.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639068.6035,
@@ -109508,9 +110082,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6394.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639063.2255689655,
@@ -110740,9 +111314,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6396.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639055.666530303,
@@ -111877,9 +112451,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6398.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639051.020216418,
@@ -112959,9 +113533,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6402.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639045.2301666667,
@@ -113936,9 +114510,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6404.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639042.1699516128,
@@ -114868,9 +115442,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6406.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639038.7119848484,
@@ -115735,9 +116309,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6408.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639035.210957627,
@@ -116552,9 +117126,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6412.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639028.7128975904,
@@ -117249,9 +117823,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6414.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639026.4421516855,
@@ -117901,9 +118475,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6416.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639024.1345843372,
@@ -118513,9 +119087,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6418.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639021.7128975904,
@@ -119020,9 +119594,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6422.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639016.685722222,
@@ -119407,9 +119981,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6424.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639011.851,
@@ -119699,9 +120273,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6426.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639009.338808642,
@@ -119941,9 +120515,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MINR-ORIG",
           "closed": false,
           "elevation": 6428.0,
-          "layer": "C-TOPO-CONT-MINR-ORIG",
           "vertices": [
             [
               1639006.428016129,
@@ -120113,9 +120687,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6320.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639325.1968333332,
@@ -120285,9 +120859,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6320.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639302.7920714286,
@@ -120662,9 +121236,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6320.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639021.858123656,
@@ -121394,9 +121968,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6320.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639158.440423077,
@@ -124176,9 +124750,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6320.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639293.3635,
@@ -124313,9 +124887,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6330.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639228.3635,
@@ -129920,9 +130494,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6340.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639199.1349285713,
@@ -134252,9 +134826,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6350.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639128.3635,
@@ -134314,9 +134888,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6350.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639173.6878243242,
@@ -137691,9 +138265,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6360.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639139.0942692307,
@@ -140618,9 +141192,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6370.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639122.1175983606,
@@ -143115,9 +143689,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6380.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639092.0635,
@@ -144982,9 +145556,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6390.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639072.3089545455,
@@ -146444,9 +147018,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6400.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639048.0777857143,
@@ -147461,9 +148035,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6410.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639031.8380762711,
@@ -148198,9 +148772,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6420.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639019.181681818,
@@ -148650,9 +149224,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "closed": false,
           "elevation": 6430.0,
-          "layer": "C-TOPO-CONT-MAJR-ORIG",
           "vertices": [
             [
               1639003.252388889,
@@ -148767,9 +149341,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-BNDY-CORR",
           "closed": true,
           "elevation": 0.0,
-          "layer": "C-TOPO-BNDY-CORR",
           "vertices": [
             [
               1639082.5655437438,
@@ -148814,9 +149388,9 @@
           ]
         },
         {
+          "layer": "C-TOPO-BNDY-SITE",
           "closed": true,
           "elevation": 6322.0,
-          "layer": "C-TOPO-BNDY-SITE",
           "vertices": [
             [
               1639001.9170714286,
@@ -157088,9 +157662,8 @@
       ]
     },
     {
-      "count": 1,
-      "empty": [],
       "family": "tin_surface",
+      "count": 1,
       "items": [
         {
           "name": "leightkadmin",
@@ -157118,589 +157691,19 @@
           ],
           "triangles": []
         }
+      ],
+      "empty": [],
+      "handles": [
+        17059
       ]
     }
   ],
   "gaps": [
     {
-      "count": 1,
       "family": "tin_surface.triangulation",
-      "implementable": "uncertain — check whether TinOperation has a faces op",
-      "missing": "parameter: the stored triangle list (the points writer retriangulates)"
+      "count": 1,
+      "missing": "parameter: the stored triangle list (the points writer retriangulates)",
+      "implementable": "uncertain — check whether TinOperation has a faces op"
     }
-  ],
-  "mcp_census": null,
-  "object_census": {
-    "AECC_ALIGNMENT_DESIGN_CHECK_SET": 2,
-    "AECC_ALIGNMENT_LABEL_SET": 5,
-    "AECC_ALIGNMENT_PARCEL_NODE": 1,
-    "AECC_ALIGNMENT_STYLE": 5,
-    "AECC_APPURTENANCE_STYLE": 2,
-    "AECC_ASSEMBLY_STYLE": 2,
-    "AECC_BRIDGE_PROJECTION_LABEL_SET": 2,
-    "AECC_BRIDGE_PROJECTION_STYLE": 2,
-    "AECC_BUILDING_SITE_STYLE": 2,
-    "AECC_CANT_DIAGRAM_VIEW_STYLE": 2,
-    "AECC_CATCHMENT_STYLE": 2,
-    "AECC_CLASS_FOLDER_NODE": 12,
-    "AECC_CLASS_NODE": 218,
-    "AECC_CONTOURVIEW": 1,
-    "AECC_CORRIDOR_STYLE": 2,
-    "AECC_DISP_REP_ALIGNMENT": 1,
-    "AECC_DISP_REP_ALIGNMENT_CANT_INFO_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_CANT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_CSV": 1,
-    "AECC_DISP_REP_ALIGNMENT_CURVE_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_DESIGNSPEED_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_GEOMPT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_INDEXED_PI_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_PI_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_PI_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_SPIRAL_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_STAEQU_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_STATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_STATION_OFFSET_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_SUPERELEVATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_TABLE": 1,
-    "AECC_DISP_REP_ALIGNMENT_TANGENT_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_VERTICAL_GEOMPT_LABELING": 1,
-    "AECC_DISP_REP_APPURTENANCE": 1,
-    "AECC_DISP_REP_APPURTENANCE_CSV": 1,
-    "AECC_DISP_REP_APPURTENANCE_LABELING": 1,
-    "AECC_DISP_REP_APPURTENANCE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_APPURTENANCE_SECTION_LABELING": 1,
-    "AECC_DISP_REP_ASSEMBLY": 1,
-    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE": 1,
-    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_PROFILE": 1,
-    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_SECTION": 1,
-    "AECC_DISP_REP_AUTO_FEATURE_LINE": 1,
-    "AECC_DISP_REP_AUTO_FEATURE_LINE_CSV": 1,
-    "AECC_DISP_REP_AUTO_FEATURE_LINE_PROFILE": 1,
-    "AECC_DISP_REP_AUTO_FEATURE_LINE_SECTION": 1,
-    "AECC_DISP_REP_BRIDGE_ABUTMENT": 1,
-    "AECC_DISP_REP_BRIDGE_ABUTMENT_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_ABUTMENT_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_DECK": 1,
-    "AECC_DISP_REP_BRIDGE_DECK_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_DECK_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_FEATURE": 1,
-    "AECC_DISP_REP_BRIDGE_FEATURE_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_FOUNDATION": 1,
-    "AECC_DISP_REP_BRIDGE_FOUNDATION_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_FOUNDATION_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_GENERICOBJ": 1,
-    "AECC_DISP_REP_BRIDGE_GENERICOBJ_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_GENERICOBJ_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_GIRDER": 1,
-    "AECC_DISP_REP_BRIDGE_GIRDER_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_GIRDER_GROUP_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_GRIDER_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_PIER": 1,
-    "AECC_DISP_REP_BRIDGE_PIER_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_PIER_LABELING": 1,
-    "AECC_DISP_REP_BUILDINGSITE": 1,
-    "AECC_DISP_REP_BUILDINGUTIL_CONNECTOR": 1,
-    "AECC_DISP_REP_CANT_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_CANT_DIAGRAM_VIEW": 1,
-    "AECC_DISP_REP_CATCHMENT_AREA": 1,
-    "AECC_DISP_REP_CATCHMENT_AREA_LABEL": 1,
-    "AECC_DISP_REP_COGO_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_CORRIDOR": 1,
-    "AECC_DISP_REP_CROSSING_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_CROSSING_PRESSURE_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_CSVSTATIONSLIDER": 1,
-    "AECC_DISP_REP_CURVE_TABLE": 1,
-    "AECC_DISP_REP_DISTANCE_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_FACE": 1,
-    "AECC_DISP_REP_FEATURE": 1,
-    "AECC_DISP_REP_FEATURE_LABEL": 1,
-    "AECC_DISP_REP_FEATURE_LINE": 1,
-    "AECC_DISP_REP_FEATURE_LINE_CSV": 1,
-    "AECC_DISP_REP_FEATURE_LINE_PROFILE": 1,
-    "AECC_DISP_REP_FEATURE_LINE_SECTION": 1,
-    "AECC_DISP_REP_FITTING": 1,
-    "AECC_DISP_REP_FITTING_CSV": 1,
-    "AECC_DISP_REP_FITTING_LABELING": 1,
-    "AECC_DISP_REP_FITTING_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_FITTING_SECTION_LABELING": 1,
-    "AECC_DISP_REP_FLOW_SEGMENT_LABEL": 1,
-    "AECC_DISP_REP_GENERAL_SEGMENT_LABEL": 1,
-    "AECC_DISP_REP_GRADING": 1,
-    "AECC_DISP_REP_GRAPH": 1,
-    "AECC_DISP_REP_GRAPHPROFILE_NETWORKPART": 1,
-    "AECC_DISP_REP_GRAPHPROFILE_PRESSUREPART": 1,
-    "AECC_DISP_REP_GRID_SURFACE": 1,
-    "AECC_DISP_REP_GRID_SURFACE_CSV": 1,
-    "AECC_DISP_REP_HORGEOMETRY_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_HYDRO_REGION": 1,
-    "AECC_DISP_REP_INTERFERENCE_CHECK": 1,
-    "AECC_DISP_REP_INTERFERENCE_PART": 1,
-    "AECC_DISP_REP_INTERFERENCE_PART_SECTION": 1,
-    "AECC_DISP_REP_INTERSECTION": 1,
-    "AECC_DISP_REP_INTERSECTION_LOCATION_LABELING": 1,
-    "AECC_DISP_REP_LABELING": 1,
-    "AECC_DISP_REP_LEGEND_TABLE": 1,
-    "AECC_DISP_REP_LINE_BETWEEN_POINTS_LABEL": 1,
-    "AECC_DISP_REP_LINE_TABLE": 1,
-    "AECC_DISP_REP_LOTLINE_CSV": 1,
-    "AECC_DISP_REP_MASSHAULLINE": 1,
-    "AECC_DISP_REP_MASS_HAUL_VIEW": 1,
-    "AECC_DISP_REP_MATCHLINE_LABELING": 1,
-    "AECC_DISP_REP_MATCH_LINE": 1,
-    "AECC_DISP_REP_MATERIAL_SECTION": 1,
-    "AECC_DISP_REP_NETWORK": 1,
-    "AECC_DISP_REP_NOTE_LABEL": 1,
-    "AECC_DISP_REP_OFFSET_ELEV_LABEL": 1,
-    "AECC_DISP_REP_PARCEL_BOUNDARY": 1,
-    "AECC_DISP_REP_PARCEL_FACE_LABEL": 1,
-    "AECC_DISP_REP_PARCEL_SEGMENT": 1,
-    "AECC_DISP_REP_PARCEL_SEGMENT_LABEL": 1,
-    "AECC_DISP_REP_PARCEL_SEGMENT_TABLE": 1,
-    "AECC_DISP_REP_PARCEL_TABLE": 1,
-    "AECC_DISP_REP_PIPE": 1,
-    "AECC_DISP_REP_PIPENETWORK_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_PIPE_CSV": 1,
-    "AECC_DISP_REP_PIPE_LABELING": 1,
-    "AECC_DISP_REP_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_PIPE_SECTION_LABELING": 1,
-    "AECC_DISP_REP_PIPE_TABLE": 1,
-    "AECC_DISP_REP_POINT_ENT": 1,
-    "AECC_DISP_REP_POINT_GROUP": 1,
-    "AECC_DISP_REP_POINT_TABLE": 1,
-    "AECC_DISP_REP_PRESSURENETWORK_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_PRESSUREPIPENETWORK": 1,
-    "AECC_DISP_REP_PRESSURE_PART_TABLE": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE_CSV": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE_LABELING": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE_SECTION_LABELING": 1,
-    "AECC_DISP_REP_PROFILE": 1,
-    "AECC_DISP_REP_PROFILEDATA_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_PROFILE_CROSSING": 1,
-    "AECC_DISP_REP_PROFILE_CROSSING_LABEL": 1,
-    "AECC_DISP_REP_PROFILE_PROJECTION": 1,
-    "AECC_DISP_REP_PROFILE_PROJECTION_LABEL": 1,
-    "AECC_DISP_REP_PROFILE_VIEW": 1,
-    "AECC_DISP_REP_PROFILE_VIEW_DEPTH_LABEL": 1,
-    "AECC_DISP_REP_QUANTITY_TAKEOFF_AGGREGATE_EARTHWORK_TABLE": 1,
-    "AECC_DISP_REP_REHAB_NOTE_LABEL": 1,
-    "AECC_DISP_REP_REHAB_WARNING_MARKER": 1,
-    "AECC_DISP_REP_RIGHT_OF_WAY": 1,
-    "AECC_DISP_REP_SAMPLELINE_LABELING": 1,
-    "AECC_DISP_REP_SAMPLE_LINE": 1,
-    "AECC_DISP_REP_SAMPLE_LINE_GROUP": 1,
-    "AECC_DISP_REP_SECTION": 1,
-    "AECC_DISP_REP_SECTIONALDATA_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTIONDATA_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTIONSEGMENT_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_CORRIDOR": 1,
-    "AECC_DISP_REP_SECTION_CORRIDOR_POINT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_CROSSING_LABEL": 1,
-    "AECC_DISP_REP_SECTION_GRADEBREAK_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_MINOR_OFFSET_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_OFFSET_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_PIPENETWORK": 1,
-    "AECC_DISP_REP_SECTION_PRESSUREPIPENETWORK": 1,
-    "AECC_DISP_REP_SECTION_PROJECTION": 1,
-    "AECC_DISP_REP_SECTION_PROJECTION_LABEL": 1,
-    "AECC_DISP_REP_SECTION_SEGMENT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_VIEW": 1,
-    "AECC_DISP_REP_SECTION_VIEW_DEPTH_LABEL": 1,
-    "AECC_DISP_REP_SECTION_VIEW_QUANTITY_TAKEOFF_TABLE": 1,
-    "AECC_DISP_REP_SHEET": 1,
-    "AECC_DISP_REP_SPANNING_PIPE_LABELING": 1,
-    "AECC_DISP_REP_SPANNING_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_LABELING": 1,
-    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_SPEED_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_STATION_ELEV_LABEL": 1,
-    "AECC_DISP_REP_STRUCTURE": 1,
-    "AECC_DISP_REP_STRUCTURE_CSV": 1,
-    "AECC_DISP_REP_STRUCTURE_LABELING": 1,
-    "AECC_DISP_REP_STRUCTURE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_STRUCTURE_SECTION_LABELING": 1,
-    "AECC_DISP_REP_SUBASSEMBLY": 1,
-    "AECC_DISP_REP_SUPERELEVATION_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SUPERELEVATION_DIAGRAM_VIEW": 1,
-    "AECC_DISP_REP_SURFACE_CONTOUR_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SURFACE_ELEVATION_LABEL": 1,
-    "AECC_DISP_REP_SURFACE_SLOPE_LABEL": 1,
-    "AECC_DISP_REP_SURVEY_FIGURE_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SVFIGURE": 1,
-    "AECC_DISP_REP_SVFIGURE_CSV": 1,
-    "AECC_DISP_REP_SVFIGURE_PROFILE": 1,
-    "AECC_DISP_REP_SVFIGURE_SECTION": 1,
-    "AECC_DISP_REP_SVFIGURE_SEGMENT_LABEL": 1,
-    "AECC_DISP_REP_SVNETWORK": 1,
-    "AECC_DISP_REP_TANGENT_INTERSECTION_TABLE": 1,
-    "AECC_DISP_REP_TIN_SURFACE": 1,
-    "AECC_DISP_REP_TIN_SURFACE_CSV": 1,
-    "AECC_DISP_REP_VALIGNMENT_CRESTCURVE_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_CSV": 1,
-    "AECC_DISP_REP_VALIGNMENT_HAGEOMPT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_LINE_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_PVI_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_SAGCURVE_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_STATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VERTICALGEOMETRY_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VIEWFRAME_LABELING": 1,
-    "AECC_DISP_REP_VIEW_FRAME": 1,
-    "AECC_EXTRAPOLATE_SURFACE_OP_OBJECT": 1,
-    "AECC_FEATURELINE_STYLE": 25,
-    "AECC_FEATURE_STYLE": 1,
-    "AECC_FITTING_STYLE": 2,
-    "AECC_FORMAT_MANAGER_OBJECT": 18,
-    "AECC_GRADEVIEW": 1,
-    "AECC_GRADING_CRITERIA": 5,
-    "AECC_GRADING_CRITERIA_SET": 2,
-    "AECC_GRADING_GROUP": 1,
-    "AECC_GRADING_STYLE": 4,
-    "AECC_IMPORT_STORM_SEWER_DEFAULTS": 2,
-    "AECC_INTERFERENCE_STYLE": 2,
-    "AECC_INTERSECTION_STYLE": 2,
-    "AECC_LABEL_BLOCK_STYLE": 21,
-    "AECC_LABEL_COLLECTOR_STYLE": 496,
-    "AECC_LABEL_NODE": 1,
-    "AECC_LABEL_RADIAL_LINE_STYLE": 43,
-    "AECC_LABEL_TEXT_ITERATOR_CURVE_OR_SPIRAL_STYLE": 4,
-    "AECC_LABEL_TEXT_ITERATOR_STYLE": 5,
-    "AECC_LABEL_TEXT_STYLE": 402,
-    "AECC_LABEL_TICK_STYLE": 7,
-    "AECC_LABEL_VECTOR_ARROW_STYLE": 12,
-    "AECC_LEGEND_TABLE_STYLE": 14,
-    "AECC_MASS_HAUL_LINE_STYLE": 2,
-    "AECC_MASS_HAUL_VIEW_STYLE": 2,
-    "AECC_MATCHLINE_STYLE": 2,
-    "AECC_MATERIAL_STYLE": 2,
-    "AECC_NAME_TEMPLATES_NODE": 6,
-    "AECC_NAME_TEMPLATES_ROOT": 1,
-    "AECC_NETWORK_PART_CATALOG_DEF_NODE": 1,
-    "AECC_NETWORK_PART_FAMILY_ITEM": 37,
-    "AECC_NETWORK_PART_LIST": 3,
-    "AECC_NETWORK_RULE": 13,
-    "AECC_PARCEL_NODE": 1,
-    "AECC_PARCEL_STYLE": 6,
-    "AECC_PART_PROPERTY_MAPPINGS": 1,
-    "AECC_PART_SIZE_FILTER": 68,
-    "AECC_PIPE_RULES": 2,
-    "AECC_PIPE_STYLE": 8,
-    "AECC_POINTCLOUD_STYLE": 2,
-    "AECC_POINTVIEW": 1,
-    "AECC_POINT_DESCRIPTION_KEY2": 3,
-    "AECC_POINT_DESCRIPTION_KEY_SET": 1,
-    "AECC_POINT_DESCRIPTION_KEY_SET_NODE": 1,
-    "AECC_POINT_GROUP_NODE": 1,
-    "AECC_POINT_NODE": 1,
-    "AECC_POINT_PG": 1,
-    "AECC_POINT_STYLE": 25,
-    "AECC_PRESSURE_PART_LIST": 2,
-    "AECC_PRESSURE_PIPE_STYLE": 2,
-    "AECC_PROFILESECTIONENTITY_STYLE": 2,
-    "AECC_PROFILE_DESIGN_CHECK_SET": 2,
-    "AECC_PROFILE_LABEL_SET": 3,
-    "AECC_PROFILE_STYLE": 7,
-    "AECC_PROFILE_VIEW_BAND_STYLE_SET": 9,
-    "AECC_PROFILE_VIEW_CANT_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_DATA_BAND_STYLE": 8,
-    "AECC_PROFILE_VIEW_HORIZONTAL_GEOMETRY_BAND_STYLE": 3,
-    "AECC_PROFILE_VIEW_PIPE_NETWORK_BAND_STYLE": 5,
-    "AECC_PROFILE_VIEW_PRESSURE_NETWORK_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_SECTIONAL_DATA_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_STYLE": 7,
-    "AECC_PROFILE_VIEW_SUPERELEVATION_DIAGRAM_BAND_STYLE": 5,
-    "AECC_PROFILE_VIEW_VERTICAL_GEOMETRY_BAND_STYLE": 2,
-    "AECC_QUANTITY_TAKEOFF_CRITERIA": 4,
-    "AECC_QUERY_STATEMENT": 2,
-    "AECC_REFERENCED_ITEM_HOST": 7,
-    "AECC_REFERENCED_STYLE_CACHE": 1,
-    "AECC_REFERENCED_STYLE_INFO_HOST": 1,
-    "AECC_REFERENCED_STYLE_INFO_INDEX": 1,
-    "AECC_REFERENCED_TEMPLATE_HOST": 1,
-    "AECC_REFERENCED_TEMPLATE_RECORD_LIST": 1,
-    "AECC_ROADWAYLINK_STYLE": 21,
-    "AECC_ROADWAYMARKER_STYLE": 44,
-    "AECC_ROADWAYSHAPE_STYLE": 25,
-    "AECC_ROADWAY_STYLE_SET": 6,
-    "AECC_ROOT_SETTINGS_NODE": 1,
-    "AECC_SAMPLE_LINE_GROUP_STYLE": 4,
-    "AECC_SAMPLE_LINE_STYLE": 2,
-    "AECC_SECTION_LABEL_SET": 5,
-    "AECC_SECTION_STYLE": 3,
-    "AECC_SECTION_VIEW_BAND_STYLE_SET": 4,
-    "AECC_SECTION_VIEW_DATA_BAND_STYLE": 5,
-    "AECC_SECTION_VIEW_ROAD_SURFACE_BAND_STYLE": 2,
-    "AECC_SECTION_VIEW_STYLE": 2,
-    "AECC_SETTINGS_NODE": 1439,
-    "AECC_SHEET_STYLE": 8,
-    "AECC_SLOPE_PATTERN_STYLE": 4,
-    "AECC_STATION_FORMAT_STYLE": 1,
-    "AECC_STRUCTURE_RULES": 2,
-    "AECC_STUCTURE_STYLE": 8,
-    "AECC_SUPERELEVATION_DIAGRAM_VIEW_STYLE": 2,
-    "AECC_SURFACE_STYLE": 12,
-    "AECC_SVFIGURE_STYLE": 7,
-    "AECC_SVNETWORK_STYLE": 2,
-    "AECC_TABLE_STYLE": 39,
-    "AECC_TAG_MANAGER": 1,
-    "AECC_TREE_NODE": 5,
-    "AECC_USER_DEFINED_ATTRIBUTE": 2,
-    "AECC_USER_DEFINED_ATTRIBUTE_CLASSIFICATION": 217,
-    "AECC_VALIGNMENT_STYLE_EXTENSION": 7,
-    "AECC_VIEW_FRAME_STYLE": 2,
-    "AECS_DISP_PROPS_MEMBER": 2,
-    "AECS_DISP_PROPS_MEMBER_LOGICAL": 1,
-    "AECS_DISP_PROPS_MEMBER_PLAN": 2,
-    "AECS_DISP_PROPS_MEMBER_PLAN_SKETCH": 1,
-    "AECS_DISP_PROPS_MEMBER_PROJECTED": 2,
-    "AECS_DISP_REP_MEMBER_ELEVATION_DESIGN": 1,
-    "AECS_DISP_REP_MEMBER_ELEVATION_DETAIL": 1,
-    "AECS_DISP_REP_MEMBER_LOGICAL": 1,
-    "AECS_DISP_REP_MEMBER_MODEL_DESIGN": 1,
-    "AECS_DISP_REP_MEMBER_MODEL_DETAIL": 1,
-    "AECS_DISP_REP_MEMBER_PLAN_DESIGN": 1,
-    "AECS_DISP_REP_MEMBER_PLAN_DETAIL": 1,
-    "AECS_DISP_REP_MEMBER_PLAN_SKETCH": 1,
-    "AEC_AECDBDISPREPBDGELEVLINEPLAN100": 1,
-    "AEC_AECDBDISPREPBDGELEVLINEPLAN50": 1,
-    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN100": 1,
-    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN50": 1,
-    "AEC_AECDBDISPREPCEILINGGRIDPLAN100": 1,
-    "AEC_AECDBDISPREPCEILINGGRIDPLAN50": 1,
-    "AEC_AECDBDISPREPCOLUMNGRIDPLAN100": 1,
-    "AEC_AECDBDISPREPCOLUMNGRIDPLAN50": 1,
-    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN100": 1,
-    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN50": 1,
-    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN100": 1,
-    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN50": 1,
-    "AEC_AECDBDISPREPMVBLOCKREFPLAN100": 1,
-    "AEC_AECDBDISPREPMVBLOCKREFPLAN50": 1,
-    "AEC_AECDBDISPREPROOFPLAN100": 1,
-    "AEC_AECDBDISPREPROOFPLAN50": 1,
-    "AEC_AECDBDISPREPROOFSLABPLAN100": 1,
-    "AEC_AECDBDISPREPROOFSLABPLAN50": 1,
-    "AEC_AECDBDISPREPSLABPLAN100": 1,
-    "AEC_AECDBDISPREPSLABPLAN50": 1,
-    "AEC_AECDBDISPREPSPACEPLAN100": 1,
-    "AEC_AECDBDISPREPSPACEPLAN50": 1,
-    "AEC_AECDBDISPREPWALLPLAN100": 1,
-    "AEC_AECDBDISPREPWALLPLAN50": 1,
-    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN100": 1,
-    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN50": 1,
-    "AEC_AECDBDISPREPZONE100": 1,
-    "AEC_AECDBDISPREPZONE50": 1,
-    "AEC_CVSECTIONVIEW": 1,
-    "AEC_DB_DISP_REP_DIM_GROUP_PLAN": 1,
-    "AEC_DB_DISP_REP_DIM_GROUP_PLAN100": 1,
-    "AEC_DB_DISP_REP_DIM_GROUP_PLAN50": 1,
-    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN100": 1,
-    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN50": 1,
-    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN100": 1,
-    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN50": 1,
-    "AEC_DISPREPAECDBDISPREPOPENINGPLAN100": 1,
-    "AEC_DISPREPAECDBDISPREPOPENINGPLAN50": 1,
-    "AEC_DISPREPAECDBDISPREPOPENINGPLANREFLECTED": 1,
-    "AEC_DISPREPAECDBDISPREPOPENINGSILLPLAN": 1,
-    "AEC_DISPROPSMASSELEMPLANCOMMON": 2,
-    "AEC_DISPROPSMASSGROUPPLANCOMMON": 2,
-    "AEC_DISPROPSOPENINGPLANCOMMON": 1,
-    "AEC_DISPROPSOPENINGPLANCOMMONHATCHED": 2,
-    "AEC_DISPROPSOPENINGSILLPLAN": 1,
-    "AEC_DISP_PROPS_2D_SECTION": 1,
-    "AEC_DISP_PROPS_CLIP_VOLUME": 12,
-    "AEC_DISP_PROPS_CLIP_VOLUME_RESULT": 2,
-    "AEC_DISP_PROPS_DIM": 3,
-    "AEC_DISP_PROPS_DISPLAYTHEME": 1,
-    "AEC_DISP_PROPS_DOOR": 4,
-    "AEC_DISP_PROPS_DOOR_NOMINAL": 1,
-    "AEC_DISP_PROPS_DOOR_PLAN_100": 1,
-    "AEC_DISP_PROPS_DOOR_PLAN_50": 1,
-    "AEC_DISP_PROPS_DOOR_THRESHOLD_PLAN": 1,
-    "AEC_DISP_PROPS_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
-    "AEC_DISP_PROPS_EDITINPLACEPROFILE_MODEL": 1,
-    "AEC_DISP_PROPS_ENT": 7,
-    "AEC_DISP_PROPS_ENT_REF": 1,
-    "AEC_DISP_PROPS_GRID_ASSEMBLY_MODEL": 3,
-    "AEC_DISP_PROPS_GRID_ASSEMBLY_PLAN": 9,
-    "AEC_DISP_PROPS_LAYOUT_CURVE": 1,
-    "AEC_DISP_PROPS_LAYOUT_GRID2D": 11,
-    "AEC_DISP_PROPS_LAYOUT_GRID3D": 1,
-    "AEC_DISP_PROPS_MASKBLOCK": 2,
-    "AEC_DISP_PROPS_MASS_ELEM_MODEL": 3,
-    "AEC_DISP_PROPS_MASS_GROUP": 3,
-    "AEC_DISP_PROPS_MATERIAL": 1,
-    "AEC_DISP_PROPS_OPENING": 2,
-    "AEC_DISP_PROPS_POLYGON_MODEL": 1,
-    "AEC_DISP_PROPS_POLYGON_TRUECOLOUR": 1,
-    "AEC_DISP_PROPS_RAILING_MODEL": 1,
-    "AEC_DISP_PROPS_RAILING_PLAN": 1,
-    "AEC_DISP_PROPS_ROOF": 5,
-    "AEC_DISP_PROPS_ROOFSLAB": 1,
-    "AEC_DISP_PROPS_ROOFSLAB_PLAN": 3,
-    "AEC_DISP_PROPS_SCHEDULE_TABLE": 1,
-    "AEC_DISP_PROPS_SLAB": 1,
-    "AEC_DISP_PROPS_SLAB_PLAN": 3,
-    "AEC_DISP_PROPS_SLICE": 1,
-    "AEC_DISP_PROPS_SPACE_DECOMPOSED": 1,
-    "AEC_DISP_PROPS_SPACE_MODEL": 1,
-    "AEC_DISP_PROPS_SPACE_PLAN": 4,
-    "AEC_DISP_PROPS_STAIR_MODEL": 1,
-    "AEC_DISP_PROPS_STAIR_PLAN": 2,
-    "AEC_DISP_PROPS_STAIR_PLAN_OVERLAPPING": 1,
-    "AEC_DISP_PROPS_WALL_GRAPH": 1,
-    "AEC_DISP_PROPS_WALL_MODEL": 1,
-    "AEC_DISP_PROPS_WALL_PLAN": 4,
-    "AEC_DISP_PROPS_WALL_SCHEM": 1,
-    "AEC_DISP_PROPS_WINDOW": 4,
-    "AEC_DISP_PROPS_WINDOW_ASSEMBLY_SILL_PLAN": 1,
-    "AEC_DISP_PROPS_WINDOW_NOMINAL": 1,
-    "AEC_DISP_PROPS_WINDOW_PLAN_100": 1,
-    "AEC_DISP_PROPS_WINDOW_PLAN_50": 1,
-    "AEC_DISP_PROPS_WINDOW_SILL_PLAN": 1,
-    "AEC_DISP_PROPS_ZONE": 3,
-    "AEC_DISP_REP_2D_SECTION": 1,
-    "AEC_DISP_REP_ANCHOR": 1,
-    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID": 1,
-    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_MODEL": 1,
-    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_RCP": 1,
-    "AEC_DISP_REP_ANCHOR_ENT_TO_NODE": 1,
-    "AEC_DISP_REP_ANCHOR_EXT_TAG_TO_ENT": 1,
-    "AEC_DISP_REP_ANCHOR_TAG_TO_ENT": 1,
-    "AEC_DISP_REP_BDG_ELEVLINE_MODEL": 1,
-    "AEC_DISP_REP_BDG_ELEVLINE_RCP": 1,
-    "AEC_DISP_REP_BDG_SECTIONLINE_MODEL": 1,
-    "AEC_DISP_REP_BDG_SECTIONLINE_PLAN": 2,
-    "AEC_DISP_REP_BDG_SECTIONLINE_RCP": 1,
-    "AEC_DISP_REP_BDG_SECTION_MODEL": 1,
-    "AEC_DISP_REP_BDG_SECTION_SUBDIV": 1,
-    "AEC_DISP_REP_CEILING_GRID": 1,
-    "AEC_DISP_REP_CEILING_GRID_MODEL": 1,
-    "AEC_DISP_REP_CEILING_GRID_RCP": 1,
-    "AEC_DISP_REP_CLIP_VOLUME_MODEL": 1,
-    "AEC_DISP_REP_CLIP_VOLUME_PLAN": 1,
-    "AEC_DISP_REP_CLIP_VOLUME_RESULT": 1,
-    "AEC_DISP_REP_CLIP_VOLUME_RESULT_SUBDIV": 1,
-    "AEC_DISP_REP_COLUMN_GRID": 1,
-    "AEC_DISP_REP_COLUMN_GRID_MODEL": 1,
-    "AEC_DISP_REP_COLUMN_GRID_RCP": 1,
-    "AEC_DISP_REP_COL_BLOCK": 1,
-    "AEC_DISP_REP_COL_CIRCARC2D": 1,
-    "AEC_DISP_REP_COL_CONCOINCIDENT": 1,
-    "AEC_DISP_REP_COL_CONCONCENTRIC": 1,
-    "AEC_DISP_REP_COL_CONEQUALDISTANCE": 1,
-    "AEC_DISP_REP_COL_CONMIDPOINT": 1,
-    "AEC_DISP_REP_COL_CONNECTOR": 1,
-    "AEC_DISP_REP_COL_CONNORMAL": 1,
-    "AEC_DISP_REP_COL_CONPARALLEL": 1,
-    "AEC_DISP_REP_COL_CONPERPENDICULAR": 1,
-    "AEC_DISP_REP_COL_CONSYMMETRIC": 1,
-    "AEC_DISP_REP_COL_CONTANGENT": 1,
-    "AEC_DISP_REP_COL_DIMANGLE": 1,
-    "AEC_DISP_REP_COL_DIMDIAMETER": 1,
-    "AEC_DISP_REP_COL_DIMDISTANCE": 1,
-    "AEC_DISP_REP_COL_DIMLENGTH": 1,
-    "AEC_DISP_REP_COL_DIMMAJORRADIUS": 1,
-    "AEC_DISP_REP_COL_DIMMINORRADIUS": 1,
-    "AEC_DISP_REP_COL_ELLIPARC2D": 1,
-    "AEC_DISP_REP_COL_LAYOUTDATA": 1,
-    "AEC_DISP_REP_COL_LINE2D": 1,
-    "AEC_DISP_REP_COL_MODIFIER_ADD": 1,
-    "AEC_DISP_REP_COL_MODIFIER_CUTPLANE": 1,
-    "AEC_DISP_REP_COL_MODIFIER_EXTRUSION": 1,
-    "AEC_DISP_REP_COL_MODIFIER_GROUP": 1,
-    "AEC_DISP_REP_COL_MODIFIER_PATH": 1,
-    "AEC_DISP_REP_COL_MODIFIER_SUBTRACT": 1,
-    "AEC_DISP_REP_COL_MODIFIER_TRANSITION": 1,
-    "AEC_DISP_REP_COL_POINT2D": 1,
-    "AEC_DISP_REP_COL_PROFILE": 1,
-    "AEC_DISP_REP_COL_WORKPLANE": 1,
-    "AEC_DISP_REP_COL_WORKPLANE_REF": 1,
-    "AEC_DISP_REP_CONFIG": 1,
-    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_MODEL": 1,
-    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_PLAN": 1,
-    "AEC_DISP_REP_CURTAIN_WALL_UNIT_MODEL": 1,
-    "AEC_DISP_REP_CURTAIN_WALL_UNIT_PLAN": 1,
-    "AEC_DISP_REP_DCM_DIMRADIUS": 1,
-    "AEC_DISP_REP_DISPLAYTHEME": 1,
-    "AEC_DISP_REP_DOOR_ELEV": 1,
-    "AEC_DISP_REP_DOOR_MODEL": 1,
-    "AEC_DISP_REP_DOOR_NOMINAL": 1,
-    "AEC_DISP_REP_DOOR_PLAN": 1,
-    "AEC_DISP_REP_DOOR_PLAN_50": 1,
-    "AEC_DISP_REP_DOOR_PLAN_HEKTO": 1,
-    "AEC_DISP_REP_DOOR_RCP": 1,
-    "AEC_DISP_REP_DOOR_THRESHOLD_PLAN": 1,
-    "AEC_DISP_REP_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
-    "AEC_DISP_REP_EDITINPLACEPROFILE": 1,
-    "AEC_DISP_REP_ENT_REF": 1,
-    "AEC_DISP_REP_LAYOUT_CURVE": 1,
-    "AEC_DISP_REP_LAYOUT_GRID2D": 1,
-    "AEC_DISP_REP_LAYOUT_GRID3D": 1,
-    "AEC_DISP_REP_MASKBLOCK_REF": 1,
-    "AEC_DISP_REP_MASKBLOCK_REF_RCP": 1,
-    "AEC_DISP_REP_MASS_ELEM_MODEL": 1,
-    "AEC_DISP_REP_MASS_ELEM_RCP": 1,
-    "AEC_DISP_REP_MASS_ELEM_SCHEM": 1,
-    "AEC_DISP_REP_MASS_GROUP_MODEL": 1,
-    "AEC_DISP_REP_MASS_GROUP_PLAN": 1,
-    "AEC_DISP_REP_MASS_GROUP_RCP": 1,
-    "AEC_DISP_REP_MATERIAL": 1,
-    "AEC_DISP_REP_MVBLOCK_REF": 1,
-    "AEC_DISP_REP_MVBLOCK_REF_MODEL": 1,
-    "AEC_DISP_REP_MVBLOCK_REF_RCP": 1,
-    "AEC_DISP_REP_OPENING": 1,
-    "AEC_DISP_REP_OPENING_MODEL": 1,
-    "AEC_DISP_REP_POLYGON_MODEL": 1,
-    "AEC_DISP_REP_POLYGON_TRUECOLOUR": 1,
-    "AEC_DISP_REP_RAILING_MODEL": 1,
-    "AEC_DISP_REP_RAILING_PLAN": 1,
-    "AEC_DISP_REP_RAILING_PLAN_100": 1,
-    "AEC_DISP_REP_RAILING_PLAN_50": 1,
-    "AEC_DISP_REP_ROOFSLAB_MODEL": 1,
-    "AEC_DISP_REP_ROOFSLAB_PLAN": 1,
-    "AEC_DISP_REP_ROOF_MODEL": 1,
-    "AEC_DISP_REP_ROOF_PLAN": 1,
-    "AEC_DISP_REP_ROOF_RCP": 1,
-    "AEC_DISP_REP_SCHEDULE_TABLE": 1,
-    "AEC_DISP_REP_SET": 9,
-    "AEC_DISP_REP_SLAB_MODEL": 1,
-    "AEC_DISP_REP_SLAB_PLAN": 1,
-    "AEC_DISP_REP_SLICE": 1,
-    "AEC_DISP_REP_SPACE_DECOMPOSED": 1,
-    "AEC_DISP_REP_SPACE_MODEL": 1,
-    "AEC_DISP_REP_SPACE_PLAN": 1,
-    "AEC_DISP_REP_SPACE_RCP": 1,
-    "AEC_DISP_REP_SPACE_VOLUME": 1,
-    "AEC_DISP_REP_STAIR_MODEL": 1,
-    "AEC_DISP_REP_STAIR_PLAN": 1,
-    "AEC_DISP_REP_STAIR_PLAN_100": 1,
-    "AEC_DISP_REP_STAIR_PLAN_50": 1,
-    "AEC_DISP_REP_STAIR_PLAN_OVERLAPPING": 1,
-    "AEC_DISP_REP_STAIR_RCP": 1,
-    "AEC_DISP_REP_WALL_GRAPH": 1,
-    "AEC_DISP_REP_WALL_MODEL": 1,
-    "AEC_DISP_REP_WALL_PLAN": 1,
-    "AEC_DISP_REP_WALL_RCP": 1,
-    "AEC_DISP_REP_WALL_SCHEM": 1,
-    "AEC_DISP_REP_WINDOWASSEMBLY_SILL_PLAN": 1,
-    "AEC_DISP_REP_WINDOW_ASSEMBLY_MODEL": 1,
-    "AEC_DISP_REP_WINDOW_ASSEMBLY_PLAN": 1,
-    "AEC_DISP_REP_WINDOW_ELEV": 1,
-    "AEC_DISP_REP_WINDOW_MODEL": 1,
-    "AEC_DISP_REP_WINDOW_NOMINAL": 1,
-    "AEC_DISP_REP_WINDOW_PLAN": 1,
-    "AEC_DISP_REP_WINDOW_PLAN_100": 1,
-    "AEC_DISP_REP_WINDOW_PLAN_50": 1,
-    "AEC_DISP_REP_WINDOW_RCP": 1,
-    "AEC_DISP_REP_WINDOW_SILL_PLAN": 1,
-    "AEC_DISP_REP_ZONE": 1,
-    "AEC_DISP_ROPS_RAILING_PLAN_100": 1,
-    "AEC_DISP_ROPS_RAILING_PLAN_50": 1,
-    "AEC_DISP_ROPS_STAIR_PLAN_100": 1,
-    "AEC_DISP_ROPS_STAIR_PLAN_50": 1,
-    "AEC_VARS_DWG_SETUP": 1
-  },
-  "source": "/mnt/c/Program Files/Autodesk/AutoCAD 2027/C3D/Help/Civil Tutorials/Drawings/Surface-2.dwg"
+  ]
 }

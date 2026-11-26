@@ -166,6 +166,223 @@ fn doc_census(doc: &acadrust::CadDocument) -> BTreeMap<String, usize> {
     c
 }
 
+// ---------------- alignment label groups (W1-5: the D010 writer) ----------------
+
+/// Minimal bit cursor over a label record (the `labels.rs` grammar), for
+/// the fields the public readers do not surface (the per-label keys, the
+/// settings' words and doubles, the range, the residual bytes).
+struct LabelBits<'a> {
+    data: &'a [u8],
+    pos: usize,
+    end: usize,
+}
+
+impl<'a> LabelBits<'a> {
+    fn new(data: &'a [u8], pos: usize, end: usize) -> Self {
+        Self { data, pos, end: end.min(data.len() * 8) }
+    }
+    fn bit(&mut self) -> Option<bool> {
+        (self.pos < self.end).then(|| {
+            let b = (self.data[self.pos / 8] >> (7 - self.pos % 8)) & 1 == 1;
+            self.pos += 1;
+            b
+        })
+    }
+    fn bits_value(&mut self, n: usize) -> Option<u32> {
+        let mut v = 0u32;
+        for _ in 0..n {
+            v = (v << 1) | self.bit()? as u32;
+        }
+        Some(v)
+    }
+    fn raw_byte(&mut self) -> Option<u8> {
+        Some(self.bits_value(8)? as u8)
+    }
+    fn bit_long(&mut self) -> Option<u32> {
+        match self.bits_value(2)? {
+            0 => {
+                let mut by = [0u8; 4];
+                for b in &mut by {
+                    *b = self.raw_byte()?;
+                }
+                Some(u32::from_le_bytes(by))
+            }
+            1 => self.raw_byte().map(|v| v as u32),
+            2 => Some(0),
+            _ => Some(256),
+        }
+    }
+    fn bit_short(&mut self) -> Option<u16> {
+        match self.bits_value(2)? {
+            0 => {
+                let lo = self.raw_byte()?;
+                let hi = self.raw_byte()?;
+                Some(u16::from_le_bytes([lo, hi]))
+            }
+            1 => self.raw_byte().map(|v| v as u16),
+            2 => Some(0),
+            _ => Some(256),
+        }
+    }
+    fn bit_double(&mut self) -> Option<f64> {
+        match self.bits_value(2)? {
+            0 => {
+                let mut by = [0u8; 8];
+                for b in &mut by {
+                    *b = self.raw_byte()?;
+                }
+                Some(f64::from_le_bytes(by))
+            }
+            1 => Some(1.0),
+            2 => Some(0.0),
+            _ => Some(0.0),
+        }
+    }
+}
+
+/// One key's value, by the key's type (alignment.rs `read_key`); the
+/// corpus groups' keys carry doubles, longs and bytes.
+fn label_key_value(bits: &mut LabelBits, key: u32) -> Option<acadrust::classes::civil::LabelKeyValue> {
+    use acadrust::classes::civil::LabelKeyValue;
+    Some(match key >> 24 {
+        0x01 | 0x0A | 0x0D => LabelKeyValue::Long(bits.bit_long()?),
+        0x02 => LabelKeyValue::Double(bits.bit_double()?),
+        0x03 | 0x1A => LabelKeyValue::Byte(bits.raw_byte()?),
+        0x04 | 0x0F | 0x10 | 0x12 => return None,
+        _ => return None,
+    })
+}
+
+fn label_skip_key_value(bits: &mut LabelBits, key: u32) -> Option<()> {
+    Some(match key >> 24 {
+        0x01 | 0x0A | 0x0D => {
+            bits.bit_long()?;
+        }
+        0x02 => {
+            bits.bit_double()?;
+        }
+        0x03 | 0x1A => {
+            bits.raw_byte()?;
+        }
+        0x04 | 0x0F | 0x10 | 0x12 => {}
+        _ => return None,
+    })
+}
+
+fn label_override_property(bits: &mut LabelBits) -> Option<acadrust::classes::civil::LabelOverrideProperty> {
+    use acadrust::classes::civil::{LabelOverrideProperty, LabelOverrideValue};
+    let id = bits.raw_byte()?;
+    let set = u16::from_le_bytes([bits.raw_byte()?, bits.raw_byte()?]);
+    let value = match bits.bits_value(7)? {
+        2 => LabelOverrideValue::Double(bits.bit_double()?),
+        3 | 26 => LabelOverrideValue::Byte(bits.raw_byte()?),
+        8 | 9 => LabelOverrideValue::Point([bits.bit_double()?, bits.bit_double()?, bits.bit_double()?]),
+        13 | 25 => LabelOverrideValue::Long(bits.bit_long()?),
+        16 => LabelOverrideValue::None,
+        _ => return None,
+    };
+    bits.bits_value(3)?;
+    Some(LabelOverrideProperty { id, set, value })
+}
+
+fn label_of_record(bits: &mut LabelBits) -> Option<acadrust::classes::civil::AlignmentGroupLabel> {
+    use acadrust::classes::civil::AlignmentGroupLabel;
+    let mut keys = Vec::new();
+    for _ in 0..bits.bit_long()? {
+        let k = bits.bit_long()?;
+        let v = label_key_value(bits, k)?;
+        keys.push((k, v));
+    }
+    bits.bits_value(2)?;
+    bits.raw_byte()?;
+    bits.bit_long()?;
+    let ids = (0..bits.bit_long()?).map(|_| bits.bit_long()).collect::<Option<Vec<_>>>()?;
+    (bits.bit_long()? == 0).then_some(())?;
+    let mut overrides = Vec::new();
+    for _ in 0..bits.bit_long()? {
+        (bits.bit_long()? == 1).then_some(())?;
+        bits.bit_long()?;
+        bits.bit_long()?;
+        bits.bits_value(2)?;
+        let size = bits.raw_byte()?;
+        (size % 8 == 0).then_some(())?;
+        let mut props = Vec::new();
+        for _ in 0..size / 8 {
+            props.push(label_override_property(bits)?);
+        }
+        overrides.push(props);
+    }
+    Some(AlignmentGroupLabel { keys, ids, overrides })
+}
+
+/// The full record of one alignment label group, by its fields; `None`
+/// for a form the writer does not cover (graceful refusal).
+fn decode_alignment_label_group(kind: acadrust::classes::civil::AlignmentLabelGroupKind, data: &[u8], start: usize, end: usize) -> Option<acadrust::classes::civil::AlignmentLabelGroup> {
+    use acadrust::classes::civil::AlignmentLabelGroup;
+    let mut b = LabelBits::new(data, start, end);
+    for _ in 0..6 {
+        b.bit_long()?;
+    }
+    b.bits_value(6)?;
+    let mut guid = [0u8; 16];
+    for g in &mut guid {
+        *g = b.raw_byte()?;
+    }
+    for _ in 0..4 {
+        b.bit_long()?;
+    }
+    b.bits_value(3)?;
+    let mut labels = Vec::new();
+    for _ in 0..b.bit_long()? {
+        labels.push(label_of_record(&mut b)?);
+    }
+    for _ in 0..b.bit_long()? {
+        let k = b.bit_long()?;
+        label_skip_key_value(&mut b, k)?;
+    }
+    let words = (b.bit_long()?, b.bit_long()?);
+    let mut doubles = [0.0; 5];
+    for d in &mut doubles {
+        *d = b.bit_double()?;
+    }
+    let range = (b.bits_value(3)?, b.bit_double()?, b.bit_double()?);
+    let (increment, point_kinds) = if kind == acadrust::classes::civil::AlignmentLabelGroupKind::GeomPoint {
+        let n = b.bit_long()?;
+        let mut kinds = Vec::new();
+        for _ in 0..n {
+            let v = match b.bits_value(2)? {
+                0 => {
+                    let mut by = [0u8; 4];
+                    for x in &mut by {
+                        *x = b.raw_byte()?;
+                    }
+                    u32::from_le_bytes(by)
+                }
+                1 => b.raw_byte()? as u32,
+                2 => 0,
+                _ => 256,
+            };
+            kinds.push(v);
+        }
+        (None, kinds)
+    } else {
+        (Some(b.bit_double()?), Vec::new())
+    };
+    (b.bit()? == false).then_some(())?;
+    (b.bit_short()? == 0x04BE && b.pos == end).then_some(())?;
+    Some(AlignmentLabelGroup { kind, labels, words, doubles, range, increment, point_kinds, guid })
+}
+
+fn align_label_kind_of(dxf: &str) -> Option<acadrust::classes::civil::AlignmentLabelGroupKind> {
+    use acadrust::classes::civil::AlignmentLabelGroupKind as K;
+    Some(match dxf {
+        "AECC_ALIGNMENT_STATION_LABEL_GROUP" => K::Station,
+        "AECC_ALIGNMENT_MINOR_STATION_LABEL_GROUP" => K::MinorStation,
+        "AECC_ALIGNMENT_GEOMPOINT_LABEL_GROUP" => K::GeomPoint,
+        _ => return None,
+    })
+}
+
 fn arch_of(doc: &acadrust::CadDocument, handle: Handle) -> Option<acadrust::classes::arch::ArchEntityData> {
     match doc.get_entity(handle) {
         Some(EntityType::Extended(x)) => match &x.data {
@@ -933,6 +1150,59 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         families.push(serde_json::json!({ "family": "profile_view", "count": pviews.len(), "items": items }));
     }
 
+    // Alignment label groups (W1-5): station, minor station and geometry
+    // point groups, decoded by their fields and rebuilt through the D010
+    // writer. A group whose record does not decode (nested labels,
+    // unknown override value types) stays a gap — graceful refusal.
+    let label_groups: Vec<Handle> = ["AECC_ALIGNMENT_STATION_LABEL_GROUP", "AECC_ALIGNMENT_MINOR_STATION_LABEL_GROUP", "AECC_ALIGNMENT_GEOMPOINT_LABEL_GROUP"]
+        .iter()
+        .flat_map(|dxf| all_of(doc, dxf))
+        .collect();
+    if !label_groups.is_empty() {
+        let mut items = Vec::new();
+        let mut refused = 0usize;
+        for (i, h) in label_groups.iter().enumerate() {
+            let a = arch_of(doc, *h).unwrap();
+            let Some(kind) = align_label_kind_of(&a.dxf_name) else { continue };
+            let align_key = a
+                .typed_handles()
+                .iter()
+                .find_map(|(v, _k)| align_keys.iter().find(|(ah, _k)| ah.value() == *v).map(|(_ah, k)| k.clone()))
+                .unwrap_or_default();
+            let layer = doc.get_entity(*h).map(|e| match e {
+                EntityType::Extended(x) => x.common.layer.clone(),
+                _ => String::new(),
+            }).unwrap_or_default();
+            // main stream of the entity record
+            let stream = (|| {
+                let raw = a.raw_dwg_data.as_deref()?;
+                let ver = a.dwg_source_version.unwrap_or(acadrust::types::DxfVersion::AC1032);
+                let objects = acadrust::io::dwg::dwg_stream_readers::object_reader::DwgObjectReader::new(Vec::new(), ver, Default::default()).ok()?;
+                let (_tc, mut reader) = objects.read_raw_record(raw, a.dwg_handle_bits).ok()?;
+                objects.read_common_entity_data(&mut reader, _tc);
+                let start = usize::try_from(reader.position_in_bits()).ok()?;
+                let len = usize::try_from(reader.main_remaining_bits()).ok()?;
+                Some((raw.to_vec(), start, start + len))
+            })();
+            let group = stream.and_then(|(raw, s, e)| decode_alignment_label_group(kind, &raw, s, e));
+            match group {
+                Some(g) => items.push(serde_json::json!({
+                    "key": format!("ALG{i}"),
+                    "kind": format!("{kind:?}"),
+                    "alignment": align_key,
+                    "layer": layer,
+                    "group": serde_json::to_value(&g).unwrap_or(Json::Null),
+                })),
+                None => {
+                    refused += 1;
+                    items.push(serde_json::json!({ "key": format!("ALG{i}"), "kind": format!("{kind:?}"), "alignment": align_key, "layer": layer, "refused": true }));
+                }
+            }
+        }
+        let handles: Vec<Json> = label_groups.iter().map(|h| Json::from(h.value())).collect();
+        families.push(serde_json::json!({ "family": "alignment_label_group", "count": label_groups.len(), "items": items, "handles": handles }));
+    }
+
     // Sample line groups: stations + swath widths, linked to the alignment.
     let groups = all_of(doc, "AECC_SAMPLE_LINE_GROUP");
     let mut group_keys: Vec<(Handle, String)> = Vec::new();
@@ -1416,6 +1686,42 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
             match built {
                 Ok(_) => {}
                 Err(e) => notes.push(format!("profile_view {}: {e}", item["key"])),
+            }
+        }
+    }
+
+    // Alignment label groups (W1-5): rebuilt through the D010 writer with
+    // the group's decoded fields. The label style is a fresh copy of the
+    // drawing's default point label style (the oracle's own collector
+    // styles are not rebuilt — the record carries no style bits, only the
+    // entity's hard pointer); the alignment is the rebuilt one.
+    if let Some(f) = find(&fams, "alignment_label_group") {
+        let mut style: Option<Handle> = None;
+        for item in f["items"].as_array().unwrap_or(&vec![]) {
+            if item.get("refused").and_then(|r| r.as_bool()).unwrap_or(false) {
+                notes.push(format!("alignment_label_group {}: refused (record form not decoded)", item["key"]));
+                continue;
+            }
+            let Some(align_key) = item["alignment"].as_str().map(|s| s.to_string()) else { continue };
+            let Some(alignment) = align_map.get(&align_key).copied() else {
+                notes.push(format!("alignment_label_group {}: alignment {align_key} missing", item["key"]));
+                continue;
+            };
+            let Ok(group) = serde_json::from_value::<acadrust::classes::civil::AlignmentLabelGroup>(item["group"].clone()) else {
+                notes.push(format!("alignment_label_group {}: group fields not read", item["key"]));
+                continue;
+            };
+            let layer = item["layer"].as_str().filter(|s| !s.is_empty());
+            if style.is_none() {
+                match acadrust::classes::civil::add_point_label_style(&mut doc, "ALG", |_| {}) {
+                    Ok(h) => style = Some(h),
+                    Err(e) => notes.push(format!("alignment_label_group style: {e}")),
+                }
+            }
+            let Some(st) = style else { continue };
+            match acadrust::classes::civil::add_alignment_label_group(&mut doc, alignment, st, layer, &group) {
+                Ok(_) => {}
+                Err(e) => notes.push(format!("alignment_label_group {}: {e}", item["key"])),
             }
         }
     }
