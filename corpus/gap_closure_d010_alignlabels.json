@@ -2,7 +2,7 @@
  "format": "same shape as gap_closure_d010_wiring.json",
  "wave": "D010 close-out round #2 (2026-11-26, evening) — the alignment label-group writer (W1-5)",
  "base": "parity/corpus-roundtrip@6fe88e1e + merge d010/alignment-labelings@6efadba3 (upstream PR #688)",
- "bridge": "C3D host DOWN at L2 time (tasklist: no acad.exe; 'AEC Pilot for AutoCAD is not reachable' on three attempts 45-180 s apart under flock /tmp/opencode/bridge.lock, port 7900) — the app leg is PENDING, built file staged at C:\\Temp\\d010_Align-2.built.dwg (attrib -r verified, R flag clear)",
+ "bridge": "C3D host DOWN at L2 time (tasklist: no acad.exe; 'AEC Pilot for AutoCAD is not reachable' on three attempts 45-180 s apart under flock /tmp/opencode/bridge.lock, port 7900); the host returned ~40 min later but with the SIBLING's experiment live (active document C:\\Temp\\owner_scratch2.dwg during the one reachable window — never switched out from under them) and cycled unreachable again on 6 further polls over ~35 min — the app leg is PENDING, built file staged at C:\\Temp\\d010_Align-2.built.dwg (attrib -r verified, R flag clear)",
  "closures": [
   {
    "id": "W1-5/a (alignment label groups — AeccDbAlignmentStationLabeling / MinorStationLabeling / GeomPointLabeling)",
@@ -12,7 +12,7 @@
     "bit_exactness_gate_D007": "ALL 40 alignment label groups of Align-2, Align-3, Align-4, Align-6A, Align-6B, Labels-Alignments, Parcel-1A, Profile-1, Profile-4A, Profile-4B, Assembly-1a decode by their fields and rebuild through the writer with main stream == oracle bit for bit (0 refusals, 0 differing bits; the harness decoder + writer roundtrip, /tmp/opencode/alignlabel_runlog.md)",
     "upstream_tests": "4 roundtrip tests in create/alignment_labels.rs (station, minor+geompoint, overrides+layers, refusals); upstream suite 3366 passed / 0 failed on d866d2ad+writer",
     "L1": "analyze -> build -> re-analyze -> compare_verify on the corpus branch: alignment_label_group BIT-EXACT for Align-2 (3), Align-3 (3), Align-4 (3), Align-6A (3), Align-6B (7), Align-6C (7), Align-6D (7), Align-7B (3), Align-7C (3), Labels-Alignments (4), Parcel-1A (4), Profile-1 (3), Profile-4A (3), Profile-4B (3), Assembly-1a (4) — 46 items; every built census carries the oracle's labeling classes with the oracle's counts. Labels-Alignments's two East Street groups stay unbuilt: that alignment does not rebuild (pre-existing curve-fit gap in the alignment writer, build NOTE logged)",
-    "L2": "PENDING-BLOCKED: C:\\Temp\\d010_Align-2.built.dwg staged and attrib -r verified; open read-only + audit_drawing + custom_c3d_class_census + close discardChanges as soon as the host is back"
+    "L2": "PENDING-BLOCKED: C:\\Temp\\d010_Align-2.built.dwg staged and attrib -r verified; open read-only + audit_drawing + custom_c3d_class_census + close discardChanges as soon as the host is free (the sibling's experiment cycles it: one reachable window had owner_scratch2.dwg active, left untouched)"
    }
   },
   {
