@@ -1,18 +1,9 @@
 {
- "round": "D010 close-out (2026-11-26) \u2014 assembly/corridor/band wiring; deferred count 126 unchanged (no file flips: the only family-level candidate Intro-2 is blocked by pre-existing parcel/alignment decode gaps)",
- "date": "2026-11-24",
  "base": "parity/corpus-roundtrip@bd2492d5",
- "rule": {
-  "DEFERRED-BLOCKED": "no writer + no decode expectation (mass haul; grading entities beyond #642 group tree)",
-  "DEFERRED-OPEN-GAP": "open pilot gaps #3 assembly/corridor PKT, #6 block refs, #7 mv-block refs, #8 section data bands, #9 fixed arcs",
-  "DEFERRED-HARNESS-SCOPE": "family has upstream writers but the corpus bin does not wire it into analyze/build (labels, pipes, feature lines, intersections, survey, stormwater, native text/hatch/2d-polyline...) \u2014 as of 2026-11-26 the bin wires assemblies (add_assembly; empty-layout assemblies are a documented reader boundary, decode-only), corridors (corridor_definition analyze; the corpus corridors are all built-corridor shells, decode-only reader boundary) and profile-view bands (add_profile_view_with_bands, the #600 pattern). Still unwired: alignment labelings (no codec writer \u2014 new record templates needed), AECC_CSVGRID (no writer), subassemblies (the #3 PKT catalog: the record keeps only the package MD5)",
-  "ELIGIBLE": "every census family bin-writable or a known tolerated side-effect (#11 TIN retriangulation/corner padding, #12 parcel Face/LotLine/ParcelSegment counts, profile-write labeling side effects)"
- },
- "note": "all 161 .dwg (163 dir entries incl. 2 .dwt templates excluded); #11/#12 do NOT defer (pilots passed 3 layers carrying them) but L1 mismatches of those kinds are gap-logged | 2026-11-26 D010: reasons below still name the pre-wiring state; per-family state as of tonight is corpus/gap_closure_d010_wiring.json (AeccDbAssembly wired; AeccDbCorridor decode-only built-shell boundary; profile-view band label groups wired)",
+ "date": "2026-11-24",
  "files": [
   {
-   "file": "Align-1.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AcDb2dPolyline": 1,
     "AcDb3dPolyline": 5,
@@ -23,16 +14,38 @@
     "AeccDbAlignmentVAGeomPointLabeling": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Align-1.dwg",
    "reasons": [
     "HARNESS-SCOPE AcDb2dPolyline=1",
     "HARNESS-SCOPE AcDbHatch=7",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_COGO_POINT": 16,
+    "AECC_PARCEL_SEGMENT": 1,
+    "AcDbCircle": 6,
+    "AcDbMText": 6,
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1,
+    "AeccDbFace": 2,
+    "AeccDbSurfaceTin": 1
+   },
    "file": "Align-2.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 16,
     "AECC_PARCEL_SEGMENT": 1,
@@ -45,16 +58,16 @@
     "AeccDbFace": 2,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
-  },
-  {
    "file": "Align-3.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 16,
     "AECC_PARCEL_SEGMENT": 1,
@@ -67,38 +80,21 @@
     "AeccDbFace": 2,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
-  },
-  {
    "file": "Align-4.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_COGO_POINT": 16,
-    "AECC_PARCEL_SEGMENT": 1,
-    "AcDbCircle": 6,
-    "AcDbMText": 6,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1,
-    "AeccDbFace": 2,
-    "AeccDbSurfaceTin": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Align-5.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10,
+    "FreeArc": 2,
+    "other": 2
+   },
    "families": {
     "AECC_ALIGNMENT_TANGENT_LABEL": 5,
     "AECC_INTERSECTION": 1,
@@ -115,12 +111,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 14
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10,
-    "FreeArc": 2,
-    "other": 2
-   },
+   "file": "Align-5.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=5",
     "HARNESS-SCOPE AECC_INTERSECTION=1",
@@ -128,30 +119,49 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=9",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_PARCEL_SEGMENT": 1,
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1,
+    "AeccDbFace": 1,
+    "AeccDbSurfaceTin": 1
+   },
    "file": "Align-6A.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_PARCEL_SEGMENT": 1,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1,
-    "AeccDbFace": 1,
-    "AeccDbSurfaceTin": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_PARCEL_SEGMENT": 1,
+    "AeccDbAlignment": 3,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 3,
+    "AeccDbAlignmentStationLabeling": 3,
+    "AeccDbFace": 1,
+    "AeccDbSurfaceTin": 1
+   },
    "file": "Align-6B.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=3",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=3"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AeccDbAlignment": 3,
@@ -161,16 +171,16 @@
     "AeccDbFace": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=3"
-   ]
-  },
-  {
    "file": "Align-6C.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=3",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=3"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AeccDbAlignment": 3,
@@ -180,46 +190,46 @@
     "AeccDbFace": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=3"
-   ]
-  },
-  {
    "file": "Align-6D.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_PARCEL_SEGMENT": 1,
-    "AeccDbAlignment": 3,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 3,
-    "AeccDbAlignmentStationLabeling": 3,
-    "AeccDbFace": 1,
-    "AeccDbSurfaceTin": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=3",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=3"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AcDbCircle": 5,
+    "AcDbMText": 5,
+    "AeccDbSurfaceTin": 1
+   },
    "file": "Align-7A.dwg",
-   "status": "ELIGIBLE",
+   "reasons": [],
+   "status": "ELIGIBLE"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AcDbCircle": 5,
     "AcDbMText": 5,
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
-  },
-  {
    "file": "Align-7B.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AcDbCircle": 5,
     "AcDbMText": 5,
@@ -229,35 +239,44 @@
     "AeccDbAlignmentStationLabeling": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
-  },
-  {
    "file": "Align-7C.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AcDbCircle": 5,
-    "AcDbMText": 5,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1,
-    "AeccDbSurfaceTin": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {
+    "FixedArc": 4,
+    "FixedLine": 4,
+    "other": 4
+   },
+   "families": {
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1,
+    "AeccDbAlignmentSuperelevationLabeling": 1,
+    "AeccDbSurfaceTin": 1
+   },
    "file": "Align-Superelevation-1.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
+    "OPEN-GAP #9 FixedArc=4"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {
+    "FixedArc": 4,
+    "FixedLine": 4,
+    "other": 4
+   },
    "families": {
     "AeccDbAlignment": 1,
     "AeccDbAlignmentGeomPointLabeling": 1,
@@ -266,22 +285,22 @@
     "AeccDbAlignmentSuperelevationLabeling": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {
-    "FixedArc": 4,
-    "FixedLine": 4,
-    "other": 4
-   },
-   "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
-    "OPEN-GAP #9 FixedArc=4"
-   ]
-  },
-  {
    "file": "Align-Superelevation-2.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
+    "OPEN-GAP #9 FixedArc=4"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {
+    "FixedArc": 4,
+    "FixedLine": 4,
+    "other": 4
+   },
    "families": {
     "AeccDbAlignment": 1,
     "AeccDbAlignmentGeomPointLabeling": 1,
@@ -290,23 +309,24 @@
     "AeccDbAlignmentSuperelevationLabeling": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {
-    "FixedArc": 4,
-    "FixedLine": 4,
-    "other": 4
-   },
-   "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
-    "OPEN-GAP #9 FixedArc=4"
-   ]
-  },
-  {
    "file": "Align-Superelevation-3.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
+    "OPEN-GAP #9 FixedArc=4"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {
+    "FixedArc": 4,
+    "FixedLine": 4,
+    "other": 4
+   },
    "families": {
+    "AECC_SUPERELEVATION_DIAGRAM_VIEW": 1,
     "AeccDbAlignment": 1,
     "AeccDbAlignmentGeomPointLabeling": 1,
     "AeccDbAlignmentMinorStationLabeling": 1,
@@ -314,22 +334,23 @@
     "AeccDbAlignmentSuperelevationLabeling": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {
-    "FixedArc": 4,
-    "FixedLine": 4,
-    "other": 4
-   },
-   "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
-    "OPEN-GAP #9 FixedArc=4"
-   ]
-  },
-  {
    "file": "Align-Superelevation-4.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_SUPERELEVATION_DIAGRAM_VIEW=1",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
+    "OPEN-GAP #9 FixedArc=4"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {
+    "FixedArc": 4,
+    "FixedLine": 4,
+    "other": 4
+   },
    "families": {
     "AECC_SUPERELEVATION_DIAGRAM_VIEW": 1,
     "AeccDbAlignment": 1,
@@ -339,37 +360,7 @@
     "AeccDbAlignmentSuperelevationLabeling": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {
-    "FixedArc": 4,
-    "FixedLine": 4,
-    "other": 4
-   },
-   "reasons": [
-    "HARNESS-SCOPE AECC_SUPERELEVATION_DIAGRAM_VIEW=1",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
-    "OPEN-GAP #9 FixedArc=4"
-   ]
-  },
-  {
    "file": "Align-Superelevation-5.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_SUPERELEVATION_DIAGRAM_VIEW": 1,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1,
-    "AeccDbAlignmentSuperelevationLabeling": 1,
-    "AeccDbSurfaceTin": 1
-   },
-   "alignment_element_kinds": {
-    "FixedArc": 4,
-    "FixedLine": 4,
-    "other": 4
-   },
    "reasons": [
     "HARNESS-SCOPE AECC_SUPERELEVATION_DIAGRAM_VIEW=1",
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
@@ -377,11 +368,11 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentSuperelevationLabeling=1",
     "OPEN-GAP #9 FixedArc=4"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Assembly-1a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 102,
     "AcDb3dPolyline": 3,
@@ -397,16 +388,16 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Assembly-1a.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Assembly-1b.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 157,
     "AECC_PARCEL_SEGMENT_LABEL": 182,
@@ -430,7 +421,8 @@
     "AeccDbVAlignmentPVILabeling": 2,
     "AeccDbVAlignmentSagCurveLabeling": 2
    },
-   "alignment_element_kinds": {},
+   "file": "Assembly-1b.dwg",
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_PARCEL_SEGMENT_LABEL=182",
     "HARNESS-SCOPE AeccDbAlignmentDesignSpeedLabeling=2",
@@ -441,11 +433,11 @@
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=2",
     "OPEN-GAP #3 AeccDbAssembly=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Assembly-1c.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 157,
     "AECC_PARCEL_SEGMENT_LABEL": 182,
@@ -471,7 +463,8 @@
     "AeccDbVAlignmentPVILabeling": 2,
     "AeccDbVAlignmentSagCurveLabeling": 2
    },
-   "alignment_element_kinds": {},
+   "file": "Assembly-1c.dwg",
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_PARCEL_SEGMENT_LABEL=182",
     "HARNESS-SCOPE AeccDbAlignmentDesignSpeedLabeling=1",
@@ -483,11 +476,11 @@
     "OPEN-GAP #3 AeccDbAssembly=8",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=30"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Assembly-2a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 1,
     "AECC_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
@@ -511,7 +504,8 @@
     "AeccDbVAlignmentPVILabeling": 1,
     "AeccDbVAlignmentSagCurveLabeling": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Assembly-2a.dwg",
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=1",
     "HARNESS-SCOPE AECC_VALIGNMENT_MINOR_STATION_LABEL_GROUP=1",
@@ -524,11 +518,53 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=32"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 1,
+    "AECC_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
+    "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AcDbMText": 2,
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1,
+    "AeccDbAssembly": 2,
+    "AeccDbCorridor": 1,
+    "AeccDbFace": 1,
+    "AeccDbGraphProfile": 1,
+    "AeccDbHorizontalGeometryBandLabeling": 1,
+    "AeccDbProfileDataBandLabeling": 1,
+    "AeccDbSubassembly": 44,
+    "AeccDbSurfaceTin": 1,
+    "AeccDbVAlignment": 2,
+    "AeccDbVAlignmentCrestCurveLabeling": 1,
+    "AeccDbVAlignmentLineLabeling": 1,
+    "AeccDbVAlignmentPVILabeling": 1,
+    "AeccDbVAlignmentSagCurveLabeling": 1
+   },
    "file": "Assembly-2b.dwg",
-   "status": "DEFERRED",
+   "l1": "NOT-CARRIED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=1",
+    "HARNESS-SCOPE AECC_VALIGNMENT_MINOR_STATION_LABEL_GROUP=1",
+    "HARNESS-SCOPE AECC_VALIGNMENT_STATION_LABEL_GROUP=1",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
+    "OPEN-GAP #3 AeccDbAssembly=2",
+    "OPEN-GAP #3 AeccDbCorridor=1",
+    "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=1",
+    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
+    "OPEN-GAP #3 AeccDbSubassembly=44"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 1,
     "AECC_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
@@ -552,48 +588,8 @@
     "AeccDbVAlignmentPVILabeling": 1,
     "AeccDbVAlignmentSagCurveLabeling": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=1",
-    "HARNESS-SCOPE AECC_VALIGNMENT_MINOR_STATION_LABEL_GROUP=1",
-    "HARNESS-SCOPE AECC_VALIGNMENT_STATION_LABEL_GROUP=1",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
-    "OPEN-GAP #3 AeccDbAssembly=2",
-    "OPEN-GAP #3 AeccDbCorridor=1",
-    "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=1",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
-    "OPEN-GAP #3 AeccDbSubassembly=44"
-   ]
-  },
-  {
    "file": "Assembly-2c.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 1,
-    "AECC_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
-    "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
-    "AcDbMText": 2,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1,
-    "AeccDbAssembly": 2,
-    "AeccDbCorridor": 1,
-    "AeccDbFace": 1,
-    "AeccDbGraphProfile": 1,
-    "AeccDbHorizontalGeometryBandLabeling": 1,
-    "AeccDbProfileDataBandLabeling": 1,
-    "AeccDbSubassembly": 44,
-    "AeccDbSurfaceTin": 1,
-    "AeccDbVAlignment": 2,
-    "AeccDbVAlignmentCrestCurveLabeling": 1,
-    "AeccDbVAlignmentLineLabeling": 1,
-    "AeccDbVAlignmentPVILabeling": 1,
-    "AeccDbVAlignmentSagCurveLabeling": 1
-   },
-   "alignment_element_kinds": {},
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=1",
     "HARNESS-SCOPE AECC_VALIGNMENT_MINOR_STATION_LABEL_GROUP=1",
@@ -606,11 +602,11 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=44"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Assembly-3a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_CSVGRID": 1,
     "AECC_FEATURE_LINE": 1,
@@ -627,7 +623,8 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Assembly-3a.dwg",
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_CSVGRID=1",
     "HARNESS-SCOPE AECC_FEATURE_LINE=1",
@@ -636,29 +633,29 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "OPEN-GAP #3 AeccDbAssembly=4",
     "OPEN-GAP #3 AeccDbSubassembly=21"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Berm Breaklines.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AcDb3dPolyline": 5
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Berm Breaklines.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Breaklines.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AcDb3dPolyline": 33
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Breaklines.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Corridor-1a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 102,
     "AcDb3dPolyline": 3,
@@ -676,18 +673,23 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Corridor-1a.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "OPEN-GAP #3 AeccDbAssembly=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Corridor-2a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 1,
+    "FixedLine": 4,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_AUTO_FEATURE_LINE": 1,
     "AcDbPolyline": 1,
@@ -702,22 +704,22 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 1,
-    "FixedLine": 4,
-    "FreeArc": 1
-   },
+   "file": "Corridor-2a.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_AUTO_FEATURE_LINE=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #9 FixedArc=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Corridor-2b.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 1,
+    "FixedLine": 4,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_AUTO_FEATURE_LINE": 1,
     "AcDbPolyline": 1,
@@ -734,11 +736,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 1,
-    "FixedLine": 4,
-    "FreeArc": 1
-   },
+   "file": "Corridor-2b.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_AUTO_FEATURE_LINE=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
@@ -747,11 +746,15 @@
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=8",
     "OPEN-GAP #9 FixedArc=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Corridor-3a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AeccDbAlignment": 3,
     "AeccDbAlignmentMinorStationLabeling": 1,
@@ -764,21 +767,21 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Corridor-3a.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Corridor-3b.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AeccDbAlignment": 3,
     "AeccDbAlignmentMinorStationLabeling": 1,
@@ -793,11 +796,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Corridor-3b.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
@@ -805,11 +805,15 @@
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Corridor-4a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_CSVGRID": 1,
     "AeccDbAlignment": 3,
@@ -826,11 +830,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Corridor-4a.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_CSVGRID=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
@@ -840,11 +841,15 @@
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Corridor-5a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AeccDbAlignment": 3,
     "AeccDbAssembly": 1,
@@ -858,22 +863,56 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Corridor-5a.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "OPEN-GAP #3 AeccDbAssembly=1",
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
+   "families": {
+    "AcDb3dPolyline": 1,
+    "AcDbCircle": 12,
+    "AcDbMText": 12,
+    "AeccDbAlignment": 3,
+    "AeccDbAssembly": 1,
+    "AeccDbCorridor": 1,
+    "AeccDbFace": 1,
+    "AeccDbGraphProfile": 2,
+    "AeccDbProfileDataBandLabeling": 2,
+    "AeccDbSubassembly": 7,
+    "AeccDbSurfaceTin": 5,
+    "AeccDbVAlignment": 4,
+    "AeccDbVAlignmentCrestCurveLabeling": 4,
+    "AeccDbVAlignmentSagCurveLabeling": 4
+   },
    "file": "Corridor-5b.dwg",
-   "status": "DEFERRED",
+   "l1": "L1-WITH-NOTES",
+   "reasons": [
+    "OPEN-GAP #3 AeccDbAssembly=1",
+    "OPEN-GAP #3 AeccDbCorridor=1",
+    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
+    "OPEN-GAP #3 AeccDbSubassembly=7",
+    "OPEN-GAP #9 FixedArc=2"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AcDb3dPolyline": 1,
     "AcDbCircle": 12,
@@ -890,54 +929,23 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
-   "reasons": [
-    "OPEN-GAP #3 AeccDbAssembly=1",
-    "OPEN-GAP #3 AeccDbCorridor=1",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
-    "OPEN-GAP #3 AeccDbSubassembly=7",
-    "OPEN-GAP #9 FixedArc=2"
-   ]
-  },
-  {
    "file": "Corridor-5c.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AcDb3dPolyline": 1,
-    "AcDbCircle": 12,
-    "AcDbMText": 12,
-    "AeccDbAlignment": 3,
-    "AeccDbAssembly": 1,
-    "AeccDbCorridor": 1,
-    "AeccDbFace": 1,
-    "AeccDbGraphProfile": 2,
-    "AeccDbProfileDataBandLabeling": 2,
-    "AeccDbSubassembly": 7,
-    "AeccDbSurfaceTin": 5,
-    "AeccDbVAlignment": 4,
-    "AeccDbVAlignmentCrestCurveLabeling": 4,
-    "AeccDbVAlignmentSagCurveLabeling": 4
-   },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "OPEN-GAP #3 AeccDbAssembly=1",
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Earthworks-1.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_SAMPLE_LINE": 91,
     "AECC_SECTION": 273,
@@ -959,11 +967,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Earthworks-1.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_SAMPLE_LINE=91",
     "HARNESS-SCOPE AECC_SECTION=273",
@@ -977,11 +982,15 @@
     "OPEN-GAP #8 AeccDbSectionDataBandLabeling=53",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Earthworks-2.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_QUANTITY_TAKEOFF_MATERIAL_SECTION": 91,
     "AECC_SAMPLE_LINE": 91,
@@ -1004,11 +1013,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Earthworks-2.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_QUANTITY_TAKEOFF_MATERIAL_SECTION=91",
     "HARNESS-SCOPE AECC_SAMPLE_LINE=91",
@@ -1023,11 +1029,11 @@
     "OPEN-GAP #8 AeccDbSectionDataBandLabeling=53",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Existing Basemap.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AcDb2dPolyline": 1,
     "AcDb3dPolyline": 2,
@@ -1038,40 +1044,40 @@
     "AcDbPolyline": 12,
     "AcDbText": 165
    },
-   "alignment_element_kinds": {},
+   "file": "Existing Basemap.dwg",
    "reasons": [
     "HARNESS-SCOPE AcDb2dPolyline=1",
     "OPEN-GAP #6 AcDbBlockReference=159",
     "HARNESS-SCOPE AcDbHatch=377"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AcDbCircle": 6,
+    "AcDbMText": 6,
+    "AeccDbFace": 1,
+    "AeccDbSurfaceTin": 1
+   },
    "file": "Grading-1.dwg",
-   "status": "ELIGIBLE",
+   "reasons": [],
+   "status": "ELIGIBLE"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AcDbCircle": 6,
     "AcDbMText": 6,
     "AeccDbFace": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
-  },
-  {
    "file": "Grading-2.dwg",
-   "status": "ELIGIBLE",
-   "families": {
-    "AcDbCircle": 6,
-    "AcDbMText": 6,
-    "AeccDbFace": 1,
-    "AeccDbSurfaceTin": 1
-   },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Grading-3.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_FEATURE_LINE": 3,
     "AcDbCircle": 6,
@@ -1079,14 +1085,14 @@
     "AeccDbFace": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Grading-3.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_FEATURE_LINE=3"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Grading-3A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_FEATURE_LINE": 14,
     "AECC_GRADING": 4,
@@ -1095,45 +1101,45 @@
     "AeccDbFace": 1,
     "AeccDbSurfaceTin": 3
    },
-   "alignment_element_kinds": {},
+   "file": "Grading-3A.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_FEATURE_LINE=14",
     "BLOCKED AECC_GRADING=4"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_FEATURE_LINE": 2,
+    "AECC_GRADING": 2,
+    "AeccDbFace": 1,
+    "AeccDbSurfaceTin": 2
+   },
    "file": "Grading-4.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_FEATURE_LINE=2",
+    "BLOCKED AECC_GRADING=2"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_FEATURE_LINE": 2,
     "AECC_GRADING": 2,
     "AeccDbFace": 1,
     "AeccDbSurfaceTin": 2
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_FEATURE_LINE=2",
-    "BLOCKED AECC_GRADING=2"
-   ]
-  },
-  {
    "file": "Grading-5.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_FEATURE_LINE": 2,
-    "AECC_GRADING": 2,
-    "AeccDbFace": 1,
-    "AeccDbSurfaceTin": 2
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AECC_FEATURE_LINE=2",
     "BLOCKED AECC_GRADING=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Grading-6.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_FEATURE_LINE": 1,
     "AECC_GENERAL_SEGMENT_LABEL": 2,
@@ -1144,16 +1150,16 @@
     "AeccDbFace": 2,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Grading-6.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_FEATURE_LINE=1",
     "HARNESS-SCOPE AECC_GENERAL_SEGMENT_LABEL=2",
     "BLOCKED AECC_GRADING=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Grading-7.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_FEATURE_LINE": 3,
     "AECC_GENERAL_SEGMENT_LABEL": 2,
@@ -1164,16 +1170,16 @@
     "AeccDbFace": 2,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Grading-7.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_FEATURE_LINE=3",
     "HARNESS-SCOPE AECC_GENERAL_SEGMENT_LABEL=2",
     "BLOCKED AECC_GRADING=3"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Grading-8.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_FEATURE_LINE": 4,
     "AECC_GENERAL_SEGMENT_LABEL": 2,
@@ -1184,16 +1190,16 @@
     "AeccDbFace": 2,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Grading-8.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_FEATURE_LINE=4",
     "HARNESS-SCOPE AECC_GENERAL_SEGMENT_LABEL=2",
     "BLOCKED AECC_GRADING=3"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Intersection-Create-1.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 102,
     "AcDb3dPolyline": 3,
@@ -1212,7 +1218,8 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Intersection-Create-1.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
@@ -1220,11 +1227,11 @@
     "OPEN-GAP #3 AeccDbCorridor=2",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=56"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Intersection-Create-2.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_ALIGNMENT_TANGENT_LABEL": 8,
     "AeccDbAlignment": 4,
@@ -1238,7 +1245,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 8
    },
-   "alignment_element_kinds": {},
+   "file": "Intersection-Create-2.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=8",
     "HARNESS-SCOPE AeccDbAlignmentDesignSpeedLabeling=4",
@@ -1247,11 +1254,16 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=4",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=4",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=4"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Intersection-Create-3.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 8,
+    "FixedLine": 17,
+    "FreeArc": 3,
+    "other": 3
+   },
    "families": {
     "AECC_ALIGNMENT_TANGENT_LABEL": 8,
     "AECC_INTERSECTION": 1,
@@ -1272,12 +1284,8 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 16
    },
-   "alignment_element_kinds": {
-    "FixedArc": 8,
-    "FixedLine": 17,
-    "FreeArc": 3,
-    "other": 3
-   },
+   "file": "Intersection-Create-3.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=8",
     "HARNESS-SCOPE AECC_INTERSECTION=1",
@@ -1292,11 +1300,15 @@
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=4",
     "OPEN-GAP #3 AeccDbSubassembly=31",
     "OPEN-GAP #9 FixedArc=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Intersection-Edit-Corridor.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 4,
+    "FixedLine": 8,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_ALIGNMENT_TANGENT_LABEL": 8,
     "AECC_INTERSECTION": 1,
@@ -1312,11 +1324,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 16
    },
-   "alignment_element_kinds": {
-    "FixedArc": 4,
-    "FixedLine": 8,
-    "FreeArc": 1
-   },
+   "file": "Intersection-Edit-Corridor.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=8",
     "HARNESS-SCOPE AECC_INTERSECTION=1",
@@ -1327,11 +1335,11 @@
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=4",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=4",
     "OPEN-GAP #9 FixedArc=4"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Intersection-Edit-Horizontal.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_ALIGNMENT_TANGENT_LABEL": 8,
     "AECC_INTERSECTION": 1,
@@ -1347,7 +1355,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 16
    },
-   "alignment_element_kinds": {},
+   "file": "Intersection-Edit-Horizontal.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=8",
     "HARNESS-SCOPE AECC_INTERSECTION=1",
@@ -1357,11 +1365,15 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=8",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=4",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=4"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Intersection-Edit-Vertical.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedLine": 8,
+    "FreeArc": 3,
+    "other": 2
+   },
    "families": {
     "AECC_ALIGNMENT_TANGENT_LABEL": 8,
     "AECC_INTERSECTION": 2,
@@ -1378,11 +1390,7 @@
     "AeccDbVAlignment": 28,
     "AeccDbVAlignmentLineLabeling": 1
    },
-   "alignment_element_kinds": {
-    "FixedLine": 8,
-    "FreeArc": 3,
-    "other": 2
-   },
+   "file": "Intersection-Edit-Vertical.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=8",
     "HARNESS-SCOPE AECC_INTERSECTION=2",
@@ -1392,11 +1400,11 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=10",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=4",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Intro-1.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_NETWORK": 1,
     "AECC_NETWORK_PART_CONNECTOR": 28,
@@ -1419,7 +1427,8 @@
     "AeccDbSurfaceTin": 2,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Intro-1.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_NETWORK=1",
     "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=28",
@@ -1431,11 +1440,15 @@
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Intro-2.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 24,
+    "FixedLine": 8,
+    "FreeArc": 3
+   },
    "families": {
     "AECC_COGO_POINT": 2405,
     "AECC_PARCEL_SEGMENT": 78,
@@ -1452,41 +1465,59 @@
     "AeccDbVAlignmentCrestCurveLabeling": 7,
     "AeccDbVAlignmentSagCurveLabeling": 7
    },
-   "alignment_element_kinds": {
-    "FixedArc": 24,
-    "FixedLine": 8,
-    "FreeArc": 3
-   },
+   "file": "Intro-2.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=7",
     "OPEN-GAP #9 FixedArc=24"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Labels-1a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AcDbBlockReference": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Labels-1a.dwg",
    "reasons": [
     "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Labels-2a.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AcDbBlockReference": 3
    },
-   "alignment_element_kinds": {},
+   "file": "Labels-2a.dwg",
    "reasons": [
     "OPEN-GAP #6 AcDbBlockReference=3"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_ALIGNMENT_CURVE_LABEL": 4,
+    "AECC_ALIGNMENT_TANGENT_LABEL": 3,
+    "AcDbBlockReference": 3,
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentGeomPointLabeling": 3,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1
+   },
    "file": "Labels-2b.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
+    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
+    "OPEN-GAP #6 AcDbBlockReference=3",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_ALIGNMENT_CURVE_LABEL": 4,
     "AECC_ALIGNMENT_TANGENT_LABEL": 3,
@@ -1496,19 +1527,19 @@
     "AeccDbAlignmentMinorStationLabeling": 1,
     "AeccDbAlignmentStationLabeling": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
-    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
-    "OPEN-GAP #6 AcDbBlockReference=3",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
-  },
-  {
    "file": "Labels-3a.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
+    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
+    "OPEN-GAP #6 AcDbBlockReference=3",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_ALIGNMENT_CURVE_LABEL": 4,
     "AECC_ALIGNMENT_TANGENT_LABEL": 3,
@@ -1518,29 +1549,7 @@
     "AeccDbAlignmentMinorStationLabeling": 1,
     "AeccDbAlignmentStationLabeling": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
-    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
-    "OPEN-GAP #6 AcDbBlockReference=3",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
-  },
-  {
    "file": "Labels-4a.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_ALIGNMENT_CURVE_LABEL": 4,
-    "AECC_ALIGNMENT_TANGENT_LABEL": 3,
-    "AcDbBlockReference": 3,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentGeomPointLabeling": 3,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
@@ -1548,11 +1557,35 @@
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_ALIGNMENT_CURVE_LABEL": 4,
+    "AECC_ALIGNMENT_TANGENT_LABEL": 3,
+    "AECC_PARCEL_SEGMENT_TABLE": 2,
+    "AcDbBlockReference": 3,
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentGeomPointLabeling": 3,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1
+   },
    "file": "Labels-4b.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
+    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
+    "HARNESS-SCOPE AECC_PARCEL_SEGMENT_TABLE=2",
+    "OPEN-GAP #6 AcDbBlockReference=3",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_ALIGNMENT_CURVE_LABEL": 4,
     "AECC_ALIGNMENT_TANGENT_LABEL": 3,
@@ -1563,20 +1596,20 @@
     "AeccDbAlignmentMinorStationLabeling": 1,
     "AeccDbAlignmentStationLabeling": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
-    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
-    "HARNESS-SCOPE AECC_PARCEL_SEGMENT_TABLE=2",
-    "OPEN-GAP #6 AcDbBlockReference=3",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
-  },
-  {
    "file": "Labels-5a.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
+    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
+    "HARNESS-SCOPE AECC_PARCEL_SEGMENT_TABLE=2",
+    "OPEN-GAP #6 AcDbBlockReference=3",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_ALIGNMENT_CURVE_LABEL": 4,
     "AECC_ALIGNMENT_TANGENT_LABEL": 3,
@@ -1587,31 +1620,7 @@
     "AeccDbAlignmentMinorStationLabeling": 1,
     "AeccDbAlignmentStationLabeling": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
-    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
-    "HARNESS-SCOPE AECC_PARCEL_SEGMENT_TABLE=2",
-    "OPEN-GAP #6 AcDbBlockReference=3",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
-  },
-  {
    "file": "Labels-5b.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_ALIGNMENT_CURVE_LABEL": 4,
-    "AECC_ALIGNMENT_TANGENT_LABEL": 3,
-    "AECC_PARCEL_SEGMENT_TABLE": 2,
-    "AcDbBlockReference": 3,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentGeomPointLabeling": 3,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=3",
@@ -1620,11 +1629,35 @@
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_ALIGNMENT_CURVE_LABEL": 4,
+    "AECC_ALIGNMENT_TANGENT_LABEL": 4,
+    "AECC_PARCEL_SEGMENT_TABLE": 2,
+    "AcDbBlockReference": 3,
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentGeomPointLabeling": 3,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1
+   },
    "file": "Labels-5c.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
+    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=4",
+    "HARNESS-SCOPE AECC_PARCEL_SEGMENT_TABLE=2",
+    "OPEN-GAP #6 AcDbBlockReference=3",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_ALIGNMENT_CURVE_LABEL": 4,
     "AECC_ALIGNMENT_TANGENT_LABEL": 4,
@@ -1635,31 +1668,7 @@
     "AeccDbAlignmentMinorStationLabeling": 1,
     "AeccDbAlignmentStationLabeling": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
-    "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=4",
-    "HARNESS-SCOPE AECC_PARCEL_SEGMENT_TABLE=2",
-    "OPEN-GAP #6 AcDbBlockReference=3",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
-  },
-  {
    "file": "Labels-6a.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_ALIGNMENT_CURVE_LABEL": 4,
-    "AECC_ALIGNMENT_TANGENT_LABEL": 4,
-    "AECC_PARCEL_SEGMENT_TABLE": 2,
-    "AcDbBlockReference": 3,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentGeomPointLabeling": 3,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AECC_ALIGNMENT_CURVE_LABEL=4",
     "HARNESS-SCOPE AECC_ALIGNMENT_TANGENT_LABEL=4",
@@ -1668,11 +1677,11 @@
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=3",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Labels-Alignments.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AcDbPolyline": 1,
     "AeccDbAlignment": 2,
@@ -1680,36 +1689,36 @@
     "AeccDbAlignmentStationLabeling": 2,
     "AeccDbFace": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Labels-Alignments.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Labels-Parcels.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 55,
     "AeccDbFace": 55
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Labels-Parcels.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Labels-Surface.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AcDb3dPolyline": 1,
     "AeccDbFace": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Labels-Surface.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Mass Haul-1.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_QUANTITY_TAKEOFF_MATERIAL_SECTION": 132,
     "AECC_SAMPLE_LINE": 164,
@@ -1739,7 +1748,8 @@
     "AeccDbVAlignmentPVILabeling": 1,
     "AeccDbVAlignmentSagCurveLabeling": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Mass Haul-1.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_QUANTITY_TAKEOFF_MATERIAL_SECTION=132",
     "HARNESS-SCOPE AECC_SAMPLE_LINE=164",
@@ -1757,11 +1767,11 @@
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "HARNESS-SCOPE AeccDbSampleLineLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=7"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Mass Haul-2.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_MASSHAULLINE": 1,
     "AECC_MASS_HAUL_VIEW": 1,
@@ -1792,7 +1802,8 @@
     "AeccDbVAlignmentPVILabeling": 1,
     "AeccDbVAlignmentSagCurveLabeling": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Mass Haul-2.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "BLOCKED AECC_MASSHAULLINE=1",
     "HARNESS-SCOPE AECC_MASS_HAUL_VIEW=1",
@@ -1812,20 +1823,20 @@
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "HARNESS-SCOPE AeccDbSampleLineLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=7"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Outer Boundary.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AcDbPolyline": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Outer Boundary.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Parcel-1A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AcDb3dPolyline": 3,
     "AcDbArc": 39,
@@ -1839,46 +1850,49 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Parcel-1A.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Parcel-1B.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 13,
     "AeccDbFace": 3
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Parcel-1B.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Parcel-1C.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 15,
     "AeccDbFace": 5
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Parcel-1C.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Parcel-1D.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 22,
     "AeccDbFace": 11
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Parcel-1D.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Parcel-1E.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 14,
+    "FixedLine": 2
+   },
    "families": {
     "AECC_COGO_POINT": 2405,
     "AECC_PARCEL_SEGMENT": 78,
@@ -1893,50 +1907,50 @@
     "AeccDbFace": 38,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {
-    "FixedArc": 14,
-    "FixedLine": 2
-   },
+   "file": "Parcel-1E.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=4",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=4",
     "OPEN-GAP #9 FixedArc=14"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Parcel-2A.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 24,
     "AeccDbFace": 12
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Parcel-2A.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_PARCEL_SEGMENT": 30,
+    "AeccDbFace": 12
+   },
    "file": "Parcel-2B.dwg",
-   "status": "ELIGIBLE",
+   "reasons": [],
+   "status": "ELIGIBLE"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 30,
     "AeccDbFace": 12
    },
-   "alignment_element_kinds": {},
-   "reasons": []
-  },
-  {
    "file": "Parcel-2C.dwg",
-   "status": "ELIGIBLE",
-   "families": {
-    "AECC_PARCEL_SEGMENT": 30,
-    "AeccDbFace": 12
-   },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Parcel-3A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 14,
+    "FixedLine": 2
+   },
    "families": {
     "AECC_COGO_POINT": 2405,
     "AECC_PARCEL_SEGMENT": 78,
@@ -1951,31 +1965,28 @@
     "AeccDbFace": 35,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {
-    "FixedArc": 14,
-    "FixedLine": 2
-   },
+   "file": "Parcel-3A.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=5",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=5",
     "OPEN-GAP #9 FixedArc=14"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Part Builder-1a.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AcDb3dPolyline": 94,
     "AeccDbFace": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Part Builder-1a.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Part Builder-1b.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECCU_COL_CON_CONCENTRIC": 1,
     "AECCU_COL_DIM_DIAMETER": 7,
@@ -1987,7 +1998,7 @@
     "AECCU_COL_WORKPLANE": 1,
     "AECCU_COL_WORKPLANE_REF": 5
    },
-   "alignment_element_kinds": {},
+   "file": "Part Builder-1b.dwg",
    "reasons": [
     "HARNESS-SCOPE AECCU_COL_CON_CONCENTRIC=1",
     "HARNESS-SCOPE AECCU_COL_DIM_DIAMETER=7",
@@ -1998,11 +2009,11 @@
     "HARNESS-SCOPE AECCU_COL_PROFILE=7",
     "HARNESS-SCOPE AECCU_COL_WORKPLANE=1",
     "HARNESS-SCOPE AECCU_COL_WORKPLANE_REF=5"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Part Builder-2.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECCU_COL_CON_COINCIDENT": 21,
     "AECCU_COL_CON_CONCENTRIC": 1,
@@ -2020,7 +2031,7 @@
     "AECCU_COL_PROFILE": 4,
     "AECCU_COL_WORKPLANE": 2
    },
-   "alignment_element_kinds": {},
+   "file": "Part Builder-2.dwg",
    "reasons": [
     "HARNESS-SCOPE AECCU_COL_CON_COINCIDENT=21",
     "HARNESS-SCOPE AECCU_COL_CON_CONCENTRIC=1",
@@ -2037,11 +2048,47 @@
     "HARNESS-SCOPE AECCU_COL_MODIFIER_PATH=10",
     "HARNESS-SCOPE AECCU_COL_PROFILE=4",
     "HARNESS-SCOPE AECCU_COL_WORKPLANE=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_GRAPH_PROFILE_NETWORK_PART": 5,
+    "AECC_NETWORK": 1,
+    "AECC_NETWORK_PART_CONNECTOR": 8,
+    "AECC_PIPE": 2,
+    "AECC_STRUCTURE": 3,
+    "AcDb3dPolyline": 5,
+    "AcDbBlockReference": 4,
+    "AcDbLine": 16,
+    "AcDbPolyline": 1,
+    "AcDbText": 1,
+    "AeccDbAlignment": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 1,
+    "AeccDbFace": 1,
+    "AeccDbGraphProfile": 1,
+    "AeccDbProfileDataBandLabeling": 1,
+    "AeccDbSurfaceTin": 1,
+    "AeccDbVAlignment": 1
+   },
    "file": "Part Builder-3a.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=5",
+    "HARNESS-SCOPE AECC_NETWORK=1",
+    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=8",
+    "HARNESS-SCOPE AECC_PIPE=2",
+    "HARNESS-SCOPE AECC_STRUCTURE=3",
+    "OPEN-GAP #6 AcDbBlockReference=4",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
+    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_GRAPH_PROFILE_NETWORK_PART": 5,
     "AECC_NETWORK": 1,
@@ -2062,43 +2109,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=5",
-    "HARNESS-SCOPE AECC_NETWORK=1",
-    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=8",
-    "HARNESS-SCOPE AECC_PIPE=2",
-    "HARNESS-SCOPE AECC_STRUCTURE=3",
-    "OPEN-GAP #6 AcDbBlockReference=4",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
-   ]
-  },
-  {
    "file": "Part Builder-3b.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_GRAPH_PROFILE_NETWORK_PART": 5,
-    "AECC_NETWORK": 1,
-    "AECC_NETWORK_PART_CONNECTOR": 8,
-    "AECC_PIPE": 2,
-    "AECC_STRUCTURE": 3,
-    "AcDb3dPolyline": 5,
-    "AcDbBlockReference": 4,
-    "AcDbLine": 16,
-    "AcDbPolyline": 1,
-    "AcDbText": 1,
-    "AeccDbAlignment": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 1,
-    "AeccDbFace": 1,
-    "AeccDbGraphProfile": 1,
-    "AeccDbProfileDataBandLabeling": 1,
-    "AeccDbSurfaceTin": 1,
-    "AeccDbVAlignment": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=5",
     "HARNESS-SCOPE AECC_NETWORK=1",
@@ -2109,11 +2120,11 @@
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Pipe Networks-1A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 102,
     "AcDb3dPolyline": 3,
@@ -2132,7 +2143,8 @@
     "AeccDbSurfaceTin": 2,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Pipe Networks-1A.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
@@ -2140,11 +2152,11 @@
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Pipe Networks-1B.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_CSVGRID": 1,
     "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
@@ -2161,7 +2173,8 @@
     "AeccDbSurfaceTin": 3,
     "AeccDbVAlignment": 2
    },
-   "alignment_element_kinds": {},
+   "file": "Pipe Networks-1B.dwg",
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_CSVGRID=1",
     "HARNESS-SCOPE AECC_VALIGNMENT_STATION_LABEL_GROUP=1",
@@ -2172,11 +2185,11 @@
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Pipe Networks-1C.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_CSVGRID": 1,
     "AECC_NETWORK": 1,
@@ -2197,7 +2210,8 @@
     "AeccDbSurfaceTin": 3,
     "AeccDbVAlignment": 2
    },
-   "alignment_element_kinds": {},
+   "file": "Pipe Networks-1C.dwg",
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_CSVGRID=1",
     "HARNESS-SCOPE AECC_NETWORK=1",
@@ -2212,11 +2226,52 @@
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_CSVGRID": 1,
+    "AECC_NETWORK": 1,
+    "AECC_NETWORK_PART_CONNECTOR": 36,
+    "AECC_PIPE": 9,
+    "AECC_STRUCTURE": 10,
+    "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AeccDbAlignment": 2,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 2,
+    "AeccDbAssembly": 1,
+    "AeccDbCorridor": 1,
+    "AeccDbFace": 1,
+    "AeccDbGraphProfile": 1,
+    "AeccDbProfileDataBandLabeling": 1,
+    "AeccDbSubassembly": 8,
+    "AeccDbSurfaceTin": 3,
+    "AeccDbVAlignment": 2
+   },
    "file": "Pipe Networks-2.dwg",
-   "status": "DEFERRED",
+   "l1": "NOT-CARRIED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_CSVGRID=1",
+    "HARNESS-SCOPE AECC_NETWORK=1",
+    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=36",
+    "HARNESS-SCOPE AECC_PIPE=9",
+    "HARNESS-SCOPE AECC_STRUCTURE=10",
+    "HARNESS-SCOPE AECC_VALIGNMENT_STATION_LABEL_GROUP=1",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
+    "OPEN-GAP #3 AeccDbAssembly=1",
+    "OPEN-GAP #3 AeccDbCorridor=1",
+    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
+    "OPEN-GAP #3 AeccDbSubassembly=8"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_CSVGRID": 1,
     "AECC_NETWORK": 1,
@@ -2237,47 +2292,8 @@
     "AeccDbSurfaceTin": 3,
     "AeccDbVAlignment": 2
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_CSVGRID=1",
-    "HARNESS-SCOPE AECC_NETWORK=1",
-    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=36",
-    "HARNESS-SCOPE AECC_PIPE=9",
-    "HARNESS-SCOPE AECC_STRUCTURE=10",
-    "HARNESS-SCOPE AECC_VALIGNMENT_STATION_LABEL_GROUP=1",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
-    "OPEN-GAP #3 AeccDbAssembly=1",
-    "OPEN-GAP #3 AeccDbCorridor=1",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
-    "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
-  },
-  {
    "file": "Pipe Networks-2B.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_CSVGRID": 1,
-    "AECC_NETWORK": 1,
-    "AECC_NETWORK_PART_CONNECTOR": 36,
-    "AECC_PIPE": 9,
-    "AECC_STRUCTURE": 10,
-    "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
-    "AeccDbAlignment": 2,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 2,
-    "AeccDbAssembly": 1,
-    "AeccDbCorridor": 1,
-    "AeccDbFace": 1,
-    "AeccDbGraphProfile": 1,
-    "AeccDbProfileDataBandLabeling": 1,
-    "AeccDbSubassembly": 8,
-    "AeccDbSurfaceTin": 3,
-    "AeccDbVAlignment": 2
-   },
-   "alignment_element_kinds": {},
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_CSVGRID=1",
     "HARNESS-SCOPE AECC_NETWORK=1",
@@ -2292,32 +2308,33 @@
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_CSVGRID": 1,
+    "AECC_NETWORK": 1,
+    "AECC_NETWORK_PART_CONNECTOR": 44,
+    "AECC_PIPE": 11,
+    "AECC_STRUCTURE": 12,
+    "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AeccDbAlignment": 2,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 2,
+    "AeccDbAssembly": 1,
+    "AeccDbCorridor": 1,
+    "AeccDbFace": 1,
+    "AeccDbGraphProfile": 1,
+    "AeccDbProfileDataBandLabeling": 1,
+    "AeccDbSubassembly": 8,
+    "AeccDbSurfaceTin": 3,
+    "AeccDbVAlignment": 2
+   },
    "file": "Pipe Networks-3.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_CSVGRID": 1,
-    "AECC_NETWORK": 1,
-    "AECC_NETWORK_PART_CONNECTOR": 44,
-    "AECC_PIPE": 11,
-    "AECC_STRUCTURE": 12,
-    "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
-    "AeccDbAlignment": 2,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 2,
-    "AeccDbAssembly": 1,
-    "AeccDbCorridor": 1,
-    "AeccDbFace": 1,
-    "AeccDbGraphProfile": 1,
-    "AeccDbProfileDataBandLabeling": 1,
-    "AeccDbSubassembly": 8,
-    "AeccDbSurfaceTin": 3,
-    "AeccDbVAlignment": 2
-   },
-   "alignment_element_kinds": {},
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_CSVGRID=1",
     "HARNESS-SCOPE AECC_NETWORK=1",
@@ -2332,11 +2349,62 @@
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_CSVGRID": 1,
+    "AECC_GRAPH_PROFILE_NETWORK_PART": 19,
+    "AECC_NETWORK": 1,
+    "AECC_NETWORK_PART_CONNECTOR": 44,
+    "AECC_PIPE": 11,
+    "AECC_PIPE_LABEL": 11,
+    "AECC_PIPE_PROFILE_LABEL": 2,
+    "AECC_SPANNING_PIPE_LABEL": 1,
+    "AECC_STRUCTURE": 12,
+    "AECC_STRUCTURE_LABEL": 12,
+    "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AeccDbAlignment": 2,
+    "AeccDbAlignmentGeomPointLabeling": 1,
+    "AeccDbAlignmentMinorStationLabeling": 1,
+    "AeccDbAlignmentStationLabeling": 2,
+    "AeccDbAssembly": 1,
+    "AeccDbCorridor": 1,
+    "AeccDbFace": 1,
+    "AeccDbGraphProfile": 1,
+    "AeccDbProfileDataBandLabeling": 1,
+    "AeccDbSubassembly": 8,
+    "AeccDbSurfaceTin": 3,
+    "AeccDbVAlignment": 2
+   },
    "file": "Pipe Networks-3B.dwg",
-   "status": "DEFERRED",
+   "l1": "NOT-CARRIED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_CSVGRID=1",
+    "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=19",
+    "HARNESS-SCOPE AECC_NETWORK=1",
+    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=44",
+    "HARNESS-SCOPE AECC_PIPE=11",
+    "HARNESS-SCOPE AECC_PIPE_LABEL=11",
+    "HARNESS-SCOPE AECC_PIPE_PROFILE_LABEL=2",
+    "HARNESS-SCOPE AECC_SPANNING_PIPE_LABEL=1",
+    "HARNESS-SCOPE AECC_STRUCTURE=12",
+    "HARNESS-SCOPE AECC_STRUCTURE_LABEL=12",
+    "HARNESS-SCOPE AECC_VALIGNMENT_STATION_LABEL_GROUP=1",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
+    "OPEN-GAP #3 AeccDbAssembly=1",
+    "OPEN-GAP #3 AeccDbCorridor=1",
+    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
+    "OPEN-GAP #3 AeccDbSubassembly=8"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_CSVGRID": 1,
     "AECC_GRAPH_PROFILE_NETWORK_PART": 19,
@@ -2362,57 +2430,8 @@
     "AeccDbSurfaceTin": 3,
     "AeccDbVAlignment": 2
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_CSVGRID=1",
-    "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=19",
-    "HARNESS-SCOPE AECC_NETWORK=1",
-    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=44",
-    "HARNESS-SCOPE AECC_PIPE=11",
-    "HARNESS-SCOPE AECC_PIPE_LABEL=11",
-    "HARNESS-SCOPE AECC_PIPE_PROFILE_LABEL=2",
-    "HARNESS-SCOPE AECC_SPANNING_PIPE_LABEL=1",
-    "HARNESS-SCOPE AECC_STRUCTURE=12",
-    "HARNESS-SCOPE AECC_STRUCTURE_LABEL=12",
-    "HARNESS-SCOPE AECC_VALIGNMENT_STATION_LABEL_GROUP=1",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
-    "OPEN-GAP #3 AeccDbAssembly=1",
-    "OPEN-GAP #3 AeccDbCorridor=1",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
-    "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
-  },
-  {
    "file": "Pipe Networks-3C.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_CSVGRID": 1,
-    "AECC_GRAPH_PROFILE_NETWORK_PART": 19,
-    "AECC_NETWORK": 1,
-    "AECC_NETWORK_PART_CONNECTOR": 44,
-    "AECC_PIPE": 11,
-    "AECC_PIPE_LABEL": 11,
-    "AECC_PIPE_PROFILE_LABEL": 2,
-    "AECC_SPANNING_PIPE_LABEL": 1,
-    "AECC_STRUCTURE": 12,
-    "AECC_STRUCTURE_LABEL": 12,
-    "AECC_VALIGNMENT_STATION_LABEL_GROUP": 1,
-    "AeccDbAlignment": 2,
-    "AeccDbAlignmentGeomPointLabeling": 1,
-    "AeccDbAlignmentMinorStationLabeling": 1,
-    "AeccDbAlignmentStationLabeling": 2,
-    "AeccDbAssembly": 1,
-    "AeccDbCorridor": 1,
-    "AeccDbFace": 1,
-    "AeccDbGraphProfile": 1,
-    "AeccDbProfileDataBandLabeling": 1,
-    "AeccDbSubassembly": 8,
-    "AeccDbSurfaceTin": 3,
-    "AeccDbVAlignment": 2
-   },
-   "alignment_element_kinds": {},
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_CSVGRID=1",
     "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=19",
@@ -2432,11 +2451,11 @@
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Plan Production-Plan Profile Sheets-Create.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_GRAPH_PROFILE_NETWORK_PART": 11,
     "AECC_MATCHLINE": 4,
@@ -2461,7 +2480,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Plan Production-Plan Profile Sheets-Create.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=11",
     "HARNESS-SCOPE AECC_MATCHLINE=4",
@@ -2478,11 +2497,15 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Plan Production-Section Sheets-Create.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_OFFSET_ELEVATION_LABEL": 12,
     "AECC_SAMPLE_LINE": 91,
@@ -2506,11 +2529,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Plan Production-Section Sheets-Create.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_OFFSET_ELEVATION_LABEL=12",
     "HARNESS-SCOPE AECC_SAMPLE_LINE=91",
@@ -2526,11 +2546,11 @@
     "OPEN-GAP #8 AeccDbSectionDataBandLabeling=53",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Plan Production-View Frames-Create.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_GRAPH_PROFILE_NETWORK_PART": 11,
     "AECC_NETWORK": 1,
@@ -2550,7 +2570,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Plan Production-View Frames-Create.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=11",
     "HARNESS-SCOPE AECC_NETWORK=1",
@@ -2562,91 +2582,91 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {},
    "file": "Points-1.dwg",
-   "status": "ELIGIBLE",
-   "families": {},
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {},
    "file": "Points-1a.dwg",
-   "status": "ELIGIBLE",
-   "families": {},
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Points-2.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Points-2.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Points-3.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDbBlockReference": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Points-3.dwg",
    "reasons": [
     "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_COGO_POINT": 2405
+   },
    "file": "Points-4a.dwg",
-   "status": "ELIGIBLE",
+   "reasons": [],
+   "status": "ELIGIBLE"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405
    },
-   "alignment_element_kinds": {},
-   "reasons": []
-  },
-  {
    "file": "Points-4b.dwg",
-   "status": "ELIGIBLE",
+   "reasons": [],
+   "status": "ELIGIBLE"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405
    },
-   "alignment_element_kinds": {},
-   "reasons": []
-  },
-  {
    "file": "Points-4c.dwg",
-   "status": "ELIGIBLE",
+   "reasons": [],
+   "status": "ELIGIBLE"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405
    },
-   "alignment_element_kinds": {},
-   "reasons": []
-  },
-  {
    "file": "Points-4d.dwg",
-   "status": "ELIGIBLE",
+   "reasons": [],
+   "status": "ELIGIBLE"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405
    },
-   "alignment_element_kinds": {},
-   "reasons": []
-  },
-  {
    "file": "Points-4e.dwg",
-   "status": "ELIGIBLE",
-   "families": {
-    "AECC_COGO_POINT": 2405
-   },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Profile-1.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AcDb3dPolyline": 3,
     "AcDbPolyline": 136,
@@ -2656,16 +2676,19 @@
     "AeccDbAlignmentStationLabeling": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Profile-1.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-2A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AeccDbAlignment": 2,
@@ -2675,20 +2698,20 @@
     "AeccDbFace": 2,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
+   "file": "Profile-2A.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-2B.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AeccDbAlignment": 2,
@@ -2702,10 +2725,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 3
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
+   "file": "Profile-2B.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
@@ -2713,11 +2733,14 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-2C.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AeccDbAlignment": 2,
@@ -2731,10 +2754,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 3
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
+   "file": "Profile-2C.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
@@ -2742,11 +2762,47 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=2",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
+   "families": {
+    "AECC_PARCEL_SEGMENT": 1,
+    "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 2,
+    "AeccDbAlignment": 2,
+    "AeccDbAlignmentGeomPointLabeling": 2,
+    "AeccDbAlignmentMinorStationLabeling": 2,
+    "AeccDbAlignmentStationLabeling": 2,
+    "AeccDbFace": 2,
+    "AeccDbGraphProfile": 2,
+    "AeccDbHorizontalGeometryBandLabeling": 2,
+    "AeccDbProfileDataBandLabeling": 2,
+    "AeccDbSurfaceTin": 1,
+    "AeccDbVAlignment": 4,
+    "AeccDbVAlignmentCrestCurveLabeling": 2,
+    "AeccDbVAlignmentSagCurveLabeling": 2
+   },
    "file": "Profile-3A.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=2",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
+    "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=2",
+    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
+    "OPEN-GAP #9 FixedArc=2"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 2,
@@ -2763,43 +2819,7 @@
     "AeccDbVAlignmentCrestCurveLabeling": 2,
     "AeccDbVAlignmentSagCurveLabeling": 2
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
-   "reasons": [
-    "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=2",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
-    "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=2",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
-    "OPEN-GAP #9 FixedArc=2"
-   ]
-  },
-  {
    "file": "Profile-3B.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_PARCEL_SEGMENT": 1,
-    "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 2,
-    "AeccDbAlignment": 2,
-    "AeccDbAlignmentGeomPointLabeling": 2,
-    "AeccDbAlignmentMinorStationLabeling": 2,
-    "AeccDbAlignmentStationLabeling": 2,
-    "AeccDbFace": 2,
-    "AeccDbGraphProfile": 2,
-    "AeccDbHorizontalGeometryBandLabeling": 2,
-    "AeccDbProfileDataBandLabeling": 2,
-    "AeccDbSurfaceTin": 1,
-    "AeccDbVAlignment": 4,
-    "AeccDbVAlignmentCrestCurveLabeling": 2,
-    "AeccDbVAlignmentSagCurveLabeling": 2
-   },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
    "reasons": [
     "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=2",
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
@@ -2808,11 +2828,15 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=2",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-4A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedLine": 3,
+    "FreeArc": 1,
+    "other": 1
+   },
    "families": {
     "AcDbCircle": 9,
     "AcDbMText": 10,
@@ -2825,21 +2849,21 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 1
    },
-   "alignment_element_kinds": {
-    "FixedLine": 3,
-    "FreeArc": 1,
-    "other": 1
-   },
+   "file": "Profile-4A.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-4B.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedLine": 3,
+    "FreeArc": 1,
+    "other": 1
+   },
    "families": {
     "AcDbCircle": 9,
     "AcDbMText": 10,
@@ -2852,21 +2876,20 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 2
    },
-   "alignment_element_kinds": {
-    "FixedLine": 3,
-    "FreeArc": 1,
-    "other": 1
-   },
+   "file": "Profile-4B.dwg",
    "reasons": [
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-5A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 2,
@@ -2883,10 +2906,7 @@
     "AeccDbVAlignmentCrestCurveLabeling": 2,
     "AeccDbVAlignmentSagCurveLabeling": 2
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
+   "file": "Profile-5A.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=2",
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
@@ -2895,11 +2915,14 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=2",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-5B.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 7,
@@ -2916,10 +2939,7 @@
     "AeccDbVAlignmentCrestCurveLabeling": 7,
     "AeccDbVAlignmentSagCurveLabeling": 7
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
+   "file": "Profile-5B.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=7",
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
@@ -2928,11 +2948,11 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=3",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=3",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-5C.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 1525,
     "AECC_PARCEL_SEGMENT": 102,
@@ -2953,7 +2973,8 @@
     "AeccDbSurfaceTin": 2,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Profile-5C.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "OPEN-GAP #7 AecDbMvBlockRef=9",
     "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
@@ -2962,11 +2983,14 @@
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=8"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-5D.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 7,
@@ -2983,10 +3007,7 @@
     "AeccDbVAlignmentCrestCurveLabeling": 7,
     "AeccDbVAlignmentSagCurveLabeling": 7
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
+   "file": "Profile-5D.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=7",
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
@@ -2995,11 +3016,11 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=3",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=3",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-5E.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_GRAPH_PROFILE_NETWORK_PART": 11,
     "AECC_NETWORK": 1,
@@ -3019,7 +3040,7 @@
     "AeccDbSurfaceTin": 1,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
+   "file": "Profile-5E.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=11",
     "HARNESS-SCOPE AECC_NETWORK=1",
@@ -3031,11 +3052,14 @@
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-5F.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 5,
+    "FixedLine": 3
+   },
    "families": {
     "AECC_COGO_POINT": 2405,
     "AECC_GRAPH_PROFILE_NETWORK_PART": 13,
@@ -3057,10 +3081,8 @@
     "AeccDbSurfaceTin": 2,
     "AeccDbVAlignment": 14
    },
-   "alignment_element_kinds": {
-    "FixedArc": 5,
-    "FixedLine": 3
-   },
+   "file": "Profile-5F.dwg",
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_GRAPH_PROFILE_NETWORK_PART=13",
     "HARNESS-SCOPE AECC_INTERSECTION=1",
@@ -3075,11 +3097,14 @@
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=27",
     "OPEN-GAP #9 FixedArc=5"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Profile-6A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 6,
@@ -3096,10 +3121,7 @@
     "AeccDbVAlignmentCrestCurveLabeling": 6,
     "AeccDbVAlignmentSagCurveLabeling": 6
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
+   "file": "Profile-6A.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=6",
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
@@ -3108,11 +3130,49 @@
     "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=3",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=3",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
+   "families": {
+    "AECC_PARCEL_SEGMENT": 1,
+    "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 6,
+    "AeccDbAlignment": 2,
+    "AeccDbAlignmentGeomPointLabeling": 2,
+    "AeccDbAlignmentMinorStationLabeling": 2,
+    "AeccDbAlignmentStationLabeling": 2,
+    "AeccDbFace": 2,
+    "AeccDbGraphProfile": 3,
+    "AeccDbHorizontalGeometryBandLabeling": 4,
+    "AeccDbProfileDataBandLabeling": 4,
+    "AeccDbSurfaceTin": 1,
+    "AeccDbVAlignment": 5,
+    "AeccDbVAlignmentCrestCurveLabeling": 6,
+    "AeccDbVAlignmentSagCurveLabeling": 6,
+    "AeccDbVerticalGeometryBandLabeling": 1
+   },
    "file": "Profile-6B.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=6",
+    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
+    "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=4",
+    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=4",
+    "HARNESS-SCOPE AeccDbVerticalGeometryBandLabeling=1",
+    "OPEN-GAP #9 FixedArc=2"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 10
+   },
    "families": {
     "AECC_PARCEL_SEGMENT": 1,
     "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 6,
@@ -3130,45 +3190,7 @@
     "AeccDbVAlignmentSagCurveLabeling": 6,
     "AeccDbVerticalGeometryBandLabeling": 1
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
-   "reasons": [
-    "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=6",
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
-    "HARNESS-SCOPE AeccDbHorizontalGeometryBandLabeling=4",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=4",
-    "HARNESS-SCOPE AeccDbVerticalGeometryBandLabeling=1",
-    "OPEN-GAP #9 FixedArc=2"
-   ]
-  },
-  {
    "file": "Profile-6C.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_PARCEL_SEGMENT": 1,
-    "AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP": 6,
-    "AeccDbAlignment": 2,
-    "AeccDbAlignmentGeomPointLabeling": 2,
-    "AeccDbAlignmentMinorStationLabeling": 2,
-    "AeccDbAlignmentStationLabeling": 2,
-    "AeccDbFace": 2,
-    "AeccDbGraphProfile": 3,
-    "AeccDbHorizontalGeometryBandLabeling": 4,
-    "AeccDbProfileDataBandLabeling": 4,
-    "AeccDbSurfaceTin": 1,
-    "AeccDbVAlignment": 5,
-    "AeccDbVAlignmentCrestCurveLabeling": 6,
-    "AeccDbVAlignmentSagCurveLabeling": 6,
-    "AeccDbVerticalGeometryBandLabeling": 1
-   },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 10
-   },
    "reasons": [
     "HARNESS-SCOPE AECC_VALIGNMENT_HAGEOMPOINT_LABEL_GROUP=6",
     "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=2",
@@ -3178,11 +3200,11 @@
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=4",
     "HARNESS-SCOPE AeccDbVerticalGeometryBandLabeling=1",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Project Management-1.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_PARCEL_SEGMENT": 157,
     "AECC_PARCEL_SEGMENT_LABEL": 182,
@@ -3198,7 +3220,7 @@
     "AeccDbFace": 54,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Project Management-1.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_PARCEL_SEGMENT_LABEL=182",
     "HARNESS-SCOPE AeccDbAlignmentDesignSpeedLabeling=2",
@@ -3207,18 +3229,64 @@
     "HARNESS-SCOPE AeccDbAlignmentStaEquLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
     "HARNESS-SCOPE AeccDbAlignmentVAGeomPointLabeling=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Project Management-2.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {},
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Project Management-2.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_NETWORK": 1,
+    "AECC_NETWORK_PART_CONNECTOR": 180,
+    "AECC_PIPE": 46,
+    "AECC_STRUCTURE": 51,
+    "AcDb2dPolyline": 57,
+    "AcDbArc": 123,
+    "AcDbBlockReference": 227,
+    "AcDbHatch": 12,
+    "AcDbLeader": 4,
+    "AcDbLine": 1032,
+    "AcDbPolyline": 322,
+    "AcDbSolid": 1,
+    "AcDbText": 86,
+    "AeccDbAlignment": 7,
+    "AeccDbAlignmentMinorStationLabeling": 7,
+    "AeccDbAlignmentStationLabeling": 7,
+    "AeccDbAssembly": 1,
+    "AeccDbCorridor": 1,
+    "AeccDbFace": 1,
+    "AeccDbSubassembly": 4,
+    "AeccDbSurfaceTin": 2,
+    "AeccDbVAlignment": 4
+   },
    "file": "Quantities-1.dwg",
-   "status": "DEFERRED",
+   "l1": "NOT-CARRIED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_NETWORK=1",
+    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
+    "HARNESS-SCOPE AECC_PIPE=46",
+    "HARNESS-SCOPE AECC_STRUCTURE=51",
+    "HARNESS-SCOPE AcDb2dPolyline=57",
+    "OPEN-GAP #6 AcDbBlockReference=227",
+    "HARNESS-SCOPE AcDbHatch=12",
+    "HARNESS-SCOPE AcDbLeader=4",
+    "HARNESS-SCOPE AcDbSolid=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=7",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
+    "OPEN-GAP #3 AeccDbAssembly=1",
+    "OPEN-GAP #3 AeccDbCorridor=1",
+    "OPEN-GAP #3 AeccDbSubassembly=4"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_NETWORK": 1,
     "AECC_NETWORK_PART_CONNECTOR": 180,
@@ -3243,52 +3311,8 @@
     "AeccDbSurfaceTin": 2,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_NETWORK=1",
-    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
-    "HARNESS-SCOPE AECC_PIPE=46",
-    "HARNESS-SCOPE AECC_STRUCTURE=51",
-    "HARNESS-SCOPE AcDb2dPolyline=57",
-    "OPEN-GAP #6 AcDbBlockReference=227",
-    "HARNESS-SCOPE AcDbHatch=12",
-    "HARNESS-SCOPE AcDbLeader=4",
-    "HARNESS-SCOPE AcDbSolid=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=7",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
-    "OPEN-GAP #3 AeccDbAssembly=1",
-    "OPEN-GAP #3 AeccDbCorridor=1",
-    "OPEN-GAP #3 AeccDbSubassembly=4"
-   ]
-  },
-  {
    "file": "Quantities-2.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_NETWORK": 1,
-    "AECC_NETWORK_PART_CONNECTOR": 180,
-    "AECC_PIPE": 46,
-    "AECC_STRUCTURE": 51,
-    "AcDb2dPolyline": 57,
-    "AcDbArc": 123,
-    "AcDbBlockReference": 227,
-    "AcDbHatch": 12,
-    "AcDbLeader": 4,
-    "AcDbLine": 1032,
-    "AcDbPolyline": 322,
-    "AcDbSolid": 1,
-    "AcDbText": 86,
-    "AeccDbAlignment": 7,
-    "AeccDbAlignmentMinorStationLabeling": 7,
-    "AeccDbAlignmentStationLabeling": 7,
-    "AeccDbAssembly": 1,
-    "AeccDbCorridor": 1,
-    "AeccDbFace": 1,
-    "AeccDbSubassembly": 4,
-    "AeccDbSurfaceTin": 2,
-    "AeccDbVAlignment": 4
-   },
-   "alignment_element_kinds": {},
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_NETWORK=1",
     "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
@@ -3304,11 +3328,57 @@
     "OPEN-GAP #3 AeccDbAssembly=1",
     "OPEN-GAP #3 AeccDbCorridor=1",
     "OPEN-GAP #3 AeccDbSubassembly=4"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_NETWORK": 1,
+    "AECC_NETWORK_PART_CONNECTOR": 180,
+    "AECC_PIPE": 46,
+    "AECC_STRUCTURE": 51,
+    "AcDb2dPolyline": 57,
+    "AcDbArc": 123,
+    "AcDbBlockReference": 227,
+    "AcDbHatch": 43,
+    "AcDbLeader": 4,
+    "AcDbLine": 1032,
+    "AcDbPolyline": 322,
+    "AcDbSolid": 1,
+    "AcDbText": 86,
+    "AeccDbAlignment": 7,
+    "AeccDbAlignmentMinorStationLabeling": 7,
+    "AeccDbAlignmentStationLabeling": 7,
+    "AeccDbAssembly": 1,
+    "AeccDbCorridor": 1,
+    "AeccDbFace": 1,
+    "AeccDbSubassembly": 4,
+    "AeccDbSurfaceTin": 2,
+    "AeccDbVAlignment": 4
+   },
    "file": "Quantities-3.dwg",
-   "status": "DEFERRED",
+   "l1": "NOT-CARRIED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_NETWORK=1",
+    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
+    "HARNESS-SCOPE AECC_PIPE=46",
+    "HARNESS-SCOPE AECC_STRUCTURE=51",
+    "HARNESS-SCOPE AcDb2dPolyline=57",
+    "OPEN-GAP #6 AcDbBlockReference=227",
+    "HARNESS-SCOPE AcDbHatch=43",
+    "HARNESS-SCOPE AcDbLeader=4",
+    "HARNESS-SCOPE AcDbSolid=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=7",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
+    "OPEN-GAP #3 AeccDbAssembly=1",
+    "OPEN-GAP #3 AeccDbCorridor=1",
+    "OPEN-GAP #3 AeccDbSubassembly=4"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_NETWORK": 1,
     "AECC_NETWORK_PART_CONNECTOR": 180,
@@ -3333,27 +3403,28 @@
     "AeccDbSurfaceTin": 2,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_NETWORK=1",
-    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
-    "HARNESS-SCOPE AECC_PIPE=46",
-    "HARNESS-SCOPE AECC_STRUCTURE=51",
-    "HARNESS-SCOPE AcDb2dPolyline=57",
-    "OPEN-GAP #6 AcDbBlockReference=227",
-    "HARNESS-SCOPE AcDbHatch=43",
-    "HARNESS-SCOPE AcDbLeader=4",
-    "HARNESS-SCOPE AcDbSolid=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=7",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
-    "OPEN-GAP #3 AeccDbAssembly=1",
-    "OPEN-GAP #3 AeccDbCorridor=1",
-    "OPEN-GAP #3 AeccDbSubassembly=4"
-   ]
-  },
-  {
    "file": "Quantities-4.dwg",
-   "status": "DEFERRED",
+   "l1": "NOT-CARRIED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_NETWORK=1",
+    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
+    "HARNESS-SCOPE AECC_PIPE=46",
+    "HARNESS-SCOPE AECC_STRUCTURE=51",
+    "HARNESS-SCOPE AcDb2dPolyline=57",
+    "OPEN-GAP #6 AcDbBlockReference=227",
+    "HARNESS-SCOPE AcDbHatch=43",
+    "HARNESS-SCOPE AcDbLeader=4",
+    "HARNESS-SCOPE AcDbSolid=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=7",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
+    "OPEN-GAP #3 AeccDbAssembly=1",
+    "OPEN-GAP #3 AeccDbCorridor=1",
+    "OPEN-GAP #3 AeccDbSubassembly=4"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_NETWORK": 1,
     "AECC_NETWORK_PART_CONNECTOR": 180,
@@ -3378,52 +3449,8 @@
     "AeccDbSurfaceTin": 2,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_NETWORK=1",
-    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
-    "HARNESS-SCOPE AECC_PIPE=46",
-    "HARNESS-SCOPE AECC_STRUCTURE=51",
-    "HARNESS-SCOPE AcDb2dPolyline=57",
-    "OPEN-GAP #6 AcDbBlockReference=227",
-    "HARNESS-SCOPE AcDbHatch=43",
-    "HARNESS-SCOPE AcDbLeader=4",
-    "HARNESS-SCOPE AcDbSolid=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=7",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
-    "OPEN-GAP #3 AeccDbAssembly=1",
-    "OPEN-GAP #3 AeccDbCorridor=1",
-    "OPEN-GAP #3 AeccDbSubassembly=4"
-   ]
-  },
-  {
    "file": "Quantities-5.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_NETWORK": 1,
-    "AECC_NETWORK_PART_CONNECTOR": 180,
-    "AECC_PIPE": 46,
-    "AECC_STRUCTURE": 51,
-    "AcDb2dPolyline": 57,
-    "AcDbArc": 123,
-    "AcDbBlockReference": 227,
-    "AcDbHatch": 43,
-    "AcDbLeader": 4,
-    "AcDbLine": 1032,
-    "AcDbPolyline": 322,
-    "AcDbSolid": 1,
-    "AcDbText": 86,
-    "AeccDbAlignment": 7,
-    "AeccDbAlignmentMinorStationLabeling": 7,
-    "AeccDbAlignmentStationLabeling": 7,
-    "AeccDbAssembly": 1,
-    "AeccDbCorridor": 1,
-    "AeccDbFace": 1,
-    "AeccDbSubassembly": 4,
-    "AeccDbSurfaceTin": 2,
-    "AeccDbVAlignment": 4
-   },
-   "alignment_element_kinds": {},
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_NETWORK=1",
     "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
@@ -3439,11 +3466,59 @@
     "OPEN-GAP #3 AeccDbAssembly=1",
     "OPEN-GAP #3 AeccDbCorridor=1",
     "OPEN-GAP #3 AeccDbSubassembly=4"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_NETWORK": 1,
+    "AECC_NETWORK_PART_CONNECTOR": 180,
+    "AECC_PIPE": 46,
+    "AECC_STRUCTURE": 51,
+    "AcDb2dPolyline": 57,
+    "AcDbArc": 123,
+    "AcDbBlockReference": 227,
+    "AcDbHatch": 43,
+    "AcDbLeader": 4,
+    "AcDbLine": 1032,
+    "AcDbPolyline": 322,
+    "AcDbSolid": 1,
+    "AcDbTable": 1,
+    "AcDbText": 86,
+    "AeccDbAlignment": 7,
+    "AeccDbAlignmentMinorStationLabeling": 7,
+    "AeccDbAlignmentStationLabeling": 7,
+    "AeccDbAssembly": 1,
+    "AeccDbCorridor": 1,
+    "AeccDbFace": 1,
+    "AeccDbSubassembly": 4,
+    "AeccDbSurfaceTin": 2,
+    "AeccDbVAlignment": 4
+   },
    "file": "Quantities-6.dwg",
-   "status": "DEFERRED",
+   "l1": "NOT-CARRIED",
+   "reasons": [
+    "HARNESS-SCOPE AECC_NETWORK=1",
+    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
+    "HARNESS-SCOPE AECC_PIPE=46",
+    "HARNESS-SCOPE AECC_STRUCTURE=51",
+    "HARNESS-SCOPE AcDb2dPolyline=57",
+    "OPEN-GAP #6 AcDbBlockReference=227",
+    "HARNESS-SCOPE AcDbHatch=43",
+    "HARNESS-SCOPE AcDbLeader=4",
+    "HARNESS-SCOPE AcDbSolid=1",
+    "HARNESS-SCOPE AcDbTable=1",
+    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=7",
+    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
+    "OPEN-GAP #3 AeccDbAssembly=1",
+    "OPEN-GAP #3 AeccDbCorridor=1",
+    "OPEN-GAP #3 AeccDbSubassembly=4"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_NETWORK": 1,
     "AECC_NETWORK_PART_CONNECTOR": 180,
@@ -3469,54 +3544,8 @@
     "AeccDbSurfaceTin": 2,
     "AeccDbVAlignment": 4
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "HARNESS-SCOPE AECC_NETWORK=1",
-    "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
-    "HARNESS-SCOPE AECC_PIPE=46",
-    "HARNESS-SCOPE AECC_STRUCTURE=51",
-    "HARNESS-SCOPE AcDb2dPolyline=57",
-    "OPEN-GAP #6 AcDbBlockReference=227",
-    "HARNESS-SCOPE AcDbHatch=43",
-    "HARNESS-SCOPE AcDbLeader=4",
-    "HARNESS-SCOPE AcDbSolid=1",
-    "HARNESS-SCOPE AcDbTable=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=7",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=7",
-    "OPEN-GAP #3 AeccDbAssembly=1",
-    "OPEN-GAP #3 AeccDbCorridor=1",
-    "OPEN-GAP #3 AeccDbSubassembly=4"
-   ]
-  },
-  {
    "file": "Quantities-7.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_NETWORK": 1,
-    "AECC_NETWORK_PART_CONNECTOR": 180,
-    "AECC_PIPE": 46,
-    "AECC_STRUCTURE": 51,
-    "AcDb2dPolyline": 57,
-    "AcDbArc": 123,
-    "AcDbBlockReference": 227,
-    "AcDbHatch": 43,
-    "AcDbLeader": 4,
-    "AcDbLine": 1032,
-    "AcDbPolyline": 322,
-    "AcDbSolid": 1,
-    "AcDbTable": 1,
-    "AcDbText": 86,
-    "AeccDbAlignment": 7,
-    "AeccDbAlignmentMinorStationLabeling": 7,
-    "AeccDbAlignmentStationLabeling": 7,
-    "AeccDbAssembly": 1,
-    "AeccDbCorridor": 1,
-    "AeccDbFace": 1,
-    "AeccDbSubassembly": 4,
-    "AeccDbSurfaceTin": 2,
-    "AeccDbVAlignment": 4
-   },
-   "alignment_element_kinds": {},
+   "l1": "NOT-CARRIED",
    "reasons": [
     "HARNESS-SCOPE AECC_NETWORK=1",
     "HARNESS-SCOPE AECC_NETWORK_PART_CONNECTOR=180",
@@ -3533,11 +3562,15 @@
     "OPEN-GAP #3 AeccDbAssembly=1",
     "OPEN-GAP #3 AeccDbCorridor=1",
     "OPEN-GAP #3 AeccDbSubassembly=4"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Sections-Data-Band.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_SAMPLE_LINE": 91,
     "AECC_SECTION": 273,
@@ -3561,11 +3594,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Sections-Data-Band.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_SAMPLE_LINE=91",
     "HARNESS-SCOPE AECC_SECTION=273",
@@ -3581,11 +3611,15 @@
     "OPEN-GAP #8 AeccDbSectionDataBandLabeling=53",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Sections-Grade-Label.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_SAMPLE_LINE": 91,
     "AECC_SECTION": 273,
@@ -3608,11 +3642,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Sections-Grade-Label.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_SAMPLE_LINE=91",
     "HARNESS-SCOPE AECC_SECTION=273",
@@ -3627,11 +3658,15 @@
     "OPEN-GAP #8 AeccDbSectionDataBandLabeling=53",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Sections-Project-Objects.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_SAMPLE_LINE": 19,
     "AECC_SECTION": 38,
@@ -3656,11 +3691,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Sections-Project-Objects.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_SAMPLE_LINE=19",
     "HARNESS-SCOPE AECC_SECTION=38",
@@ -3674,11 +3706,15 @@
     "OPEN-GAP #8 AeccDbSectionDataBandLabeling=19",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Sections-Sample-Lines-Create.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AeccDbAlignment": 3,
     "AeccDbAssembly": 1,
@@ -3692,22 +3728,23 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Sections-Sample-Lines-Create.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "OPEN-GAP #3 AeccDbAssembly=1",
     "OPEN-GAP #3 AeccDbCorridor=1",
     "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Sections-Views-Create.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {
+    "FixedArc": 2,
+    "FixedLine": 6,
+    "FreeArc": 1
+   },
    "families": {
     "AECC_SAMPLE_LINE": 91,
     "AECC_SECTION": 273,
@@ -3726,11 +3763,8 @@
     "AeccDbVAlignmentCrestCurveLabeling": 4,
     "AeccDbVAlignmentSagCurveLabeling": 4
    },
-   "alignment_element_kinds": {
-    "FixedArc": 2,
-    "FixedLine": 6,
-    "FreeArc": 1
-   },
+   "file": "Sections-Views-Create.dwg",
+   "l1": "L1-WITH-NOTES",
    "reasons": [
     "HARNESS-SCOPE AECC_SAMPLE_LINE=91",
     "HARNESS-SCOPE AECC_SECTION=273",
@@ -3741,45 +3775,45 @@
     "HARNESS-SCOPE AeccDbSampleLineLabeling=1",
     "OPEN-GAP #3 AeccDbSubassembly=7",
     "OPEN-GAP #9 FixedArc=2"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AcDb3dPolyline": 3,
+    "AcDbCircle": 7,
+    "AcDbPolyline": 1,
+    "AeccDbSurfaceTin": 1
+   },
    "file": "Surface-1A.dwg",
-   "status": "ELIGIBLE",
+   "reasons": [],
+   "status": "ELIGIBLE"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AcDb3dPolyline": 3,
     "AcDbCircle": 7,
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
-  },
-  {
    "file": "Surface-1B.dwg",
-   "status": "ELIGIBLE",
-   "families": {
-    "AcDb3dPolyline": 3,
-    "AcDbCircle": 7,
-    "AcDbPolyline": 1,
-    "AeccDbSurfaceTin": 1
-   },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Surface-2.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AcDbPolyline": 85,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Surface-2.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Surface-3.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,
@@ -3787,12 +3821,27 @@
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Surface-3.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {
+    "AECC_COGO_POINT": 2405,
+    "AcDb3dPolyline": 33,
+    "AcDbBlockReference": 1,
+    "AcDbPolyline": 1,
+    "AeccDbSurfaceTin": 1
+   },
    "file": "Surface-4A.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "OPEN-GAP #6 AcDbBlockReference=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,
@@ -3800,14 +3849,14 @@
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
-  },
-  {
    "file": "Surface-4B.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "OPEN-GAP #6 AcDbBlockReference=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,
@@ -3815,14 +3864,14 @@
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
-  },
-  {
    "file": "Surface-4C.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "OPEN-GAP #6 AcDbBlockReference=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,
@@ -3830,14 +3879,14 @@
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
-  },
-  {
    "file": "Surface-4D.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "OPEN-GAP #6 AcDbBlockReference=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,
@@ -3845,14 +3894,14 @@
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
-  },
-  {
    "file": "Surface-5A.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "OPEN-GAP #6 AcDbBlockReference=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,
@@ -3860,14 +3909,14 @@
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
-  },
-  {
    "file": "Surface-5B.dwg",
-   "status": "DEFERRED",
+   "reasons": [
+    "OPEN-GAP #6 AcDbBlockReference=1"
+   ],
+   "status": "DEFERRED"
+  },
+  {
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,
@@ -3875,40 +3924,25 @@
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
-  },
-  {
    "file": "Surface-5C.dwg",
-   "status": "DEFERRED",
-   "families": {
-    "AECC_COGO_POINT": 2405,
-    "AcDb3dPolyline": 33,
-    "AcDbBlockReference": 1,
-    "AcDbPolyline": 1,
-    "AeccDbSurfaceTin": 1
-   },
-   "alignment_element_kinds": {},
    "reasons": [
     "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Surface-6.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2234,
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Surface-6.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Surface-7.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,
@@ -3916,14 +3950,14 @@
     "AcDbPolyline": 1,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Surface-7.dwg",
    "reasons": [
     "OPEN-GAP #6 AcDbBlockReference=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Surface-8.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AcDbBlockReference": 3301,
     "AcDbCircle": 1,
@@ -3931,21 +3965,21 @@
     "AcDbText": 191,
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
+   "file": "Surface-8.dwg",
    "reasons": [
     "OPEN-GAP #6 AcDbBlockReference=3301"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Survey-1.dwg",
-   "status": "ELIGIBLE",
-   "families": {},
    "alignment_element_kinds": {},
-   "reasons": []
+   "families": {},
+   "file": "Survey-1.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Survey-2B.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 538,
     "AECC_GRADING": 20,
@@ -3953,23 +3987,23 @@
     "AECC_SVNETWORK": 1,
     "AeccDbFace": 86
    },
-   "alignment_element_kinds": {},
+   "file": "Survey-2B.dwg",
    "reasons": [
     "BLOCKED AECC_GRADING=20",
     "HARNESS-SCOPE AECC_SVFIGURE=85",
     "HARNESS-SCOPE AECC_SVNETWORK=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Survey-2a.dwg",
-   "status": "ELIGIBLE",
-   "families": {},
    "alignment_element_kinds": {},
-   "reasons": []
+   "families": {},
+   "file": "Survey-2a.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Survey-3.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 538,
     "AECC_GRADING": 21,
@@ -3977,37 +4011,37 @@
     "AECC_SVNETWORK": 1,
     "AeccDbFace": 163
    },
-   "alignment_element_kinds": {},
+   "file": "Survey-3.dwg",
    "reasons": [
     "BLOCKED AECC_GRADING=21",
     "HARNESS-SCOPE AECC_SVFIGURE=85",
     "HARNESS-SCOPE AECC_SVNETWORK=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {},
    "file": "Survey-4A.dwg",
-   "status": "ELIGIBLE",
-   "families": {},
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {},
    "file": "Survey-4B.dwg",
-   "status": "ELIGIBLE",
-   "families": {},
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
+   "alignment_element_kinds": {},
+   "families": {},
    "file": "Survey-4C.dwg",
-   "status": "ELIGIBLE",
-   "families": {},
-   "alignment_element_kinds": {},
-   "reasons": []
+   "reasons": [],
+   "status": "ELIGIBLE"
   },
   {
-   "file": "Survey-4D.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_GENERAL_SEGMENT_LABEL": 36,
     "AECC_GRADING": 5,
@@ -4018,17 +4052,17 @@
     "AcDbMText": 8,
     "AeccDbFace": 167
    },
-   "alignment_element_kinds": {},
+   "file": "Survey-4D.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_GENERAL_SEGMENT_LABEL=36",
     "BLOCKED AECC_GRADING=5",
     "HARNESS-SCOPE AECC_SVFIGURE=8",
     "OPEN-GAP #6 AcDbBlockReference=26"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Survey-5A.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_COGO_POINT": 538,
     "AECC_GRADING": 21,
@@ -4036,16 +4070,16 @@
     "AECC_SVNETWORK": 1,
     "AeccDbFace": 163
    },
-   "alignment_element_kinds": {},
+   "file": "Survey-5A.dwg",
    "reasons": [
     "BLOCKED AECC_GRADING=21",
     "HARNESS-SCOPE AECC_SVFIGURE=85",
     "HARNESS-SCOPE AECC_SVNETWORK=1"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Survey-5B.dwg",
-   "status": "DEFERRED",
+   "alignment_element_kinds": {},
    "families": {
     "AECC_GENERAL_SEGMENT_LABEL": 38,
     "AECC_GRADING": 5,
@@ -4058,7 +4092,7 @@
     "AcDbMText": 8,
     "AeccDbFace": 167
    },
-   "alignment_element_kinds": {},
+   "file": "Survey-5B.dwg",
    "reasons": [
     "HARNESS-SCOPE AECC_GENERAL_SEGMENT_LABEL=38",
     "BLOCKED AECC_GRADING=5",
@@ -4066,16 +4100,25 @@
     "HARNESS-SCOPE AECC_PARCEL_SEGMENT_TABLE=1",
     "HARNESS-SCOPE AECC_SVFIGURE=8",
     "OPEN-GAP #6 AcDbBlockReference=26"
-   ]
+   ],
+   "status": "DEFERRED"
   },
   {
-   "file": "Survey-5C.dwg",
-   "status": "ELIGIBLE",
+   "alignment_element_kinds": {},
    "families": {
     "AeccDbSurfaceTin": 1
    },
-   "alignment_element_kinds": {},
-   "reasons": []
+   "file": "Survey-5C.dwg",
+   "reasons": [],
+   "status": "ELIGIBLE"
   }
- ]
+ ],
+ "note": "all 161 .dwg (163 dir entries incl. 2 .dwt templates excluded); #11/#12 do NOT defer (pilots passed 3 layers carrying them) but L1 mismatches of those kinds are gap-logged | 2026-11-26 D010: reasons below still name the pre-wiring state; per-family state as of tonight is corpus/gap_closure_d010_wiring.json (AeccDbAssembly wired; AeccDbCorridor decode-only built-shell boundary; profile-view band label groups wired) | 2026-11-26 L1 round: the 43 assembly/corridor-carrier files each carry per-file class 'l1' below and full evidence in corpus/gap_closure_l1_verify.json (census gate 43/43 zero drift; no wiring bug; deferred reasons unchanged \u2014 the wired families verify, the non-wired blockers keep every file deferred)",
+ "round": "D010 final codec-only round (2026-11-26) \u2014 the 43 re-scoped files L1-verified + classified (22 L1-WITH-NOTES / 21 NOT-CARRIED / 0 L1-VERIFIED / 0 new L2-PENDING); deferred count 126 honestly unchanged",
+ "rule": {
+  "DEFERRED-BLOCKED": "no writer + no decode expectation (mass haul; grading entities beyond #642 group tree)",
+  "DEFERRED-HARNESS-SCOPE": "family has upstream writers but the corpus bin does not wire it into analyze/build (labels, pipes, feature lines, intersections, survey, stormwater, native text/hatch/2d-polyline...) \u2014 as of 2026-11-26 the bin wires assemblies (add_assembly; empty-layout assemblies are a documented reader boundary, decode-only), corridors (corridor_definition analyze; the corpus corridors are all built-corridor shells, decode-only reader boundary) and profile-view bands (add_profile_view_with_bands, the #600 pattern). Still unwired: alignment labelings (no codec writer \u2014 new record templates needed), AECC_CSVGRID (no writer), subassemblies (the #3 PKT catalog: the record keeps only the package MD5)",
+  "DEFERRED-OPEN-GAP": "open pilot gaps #3 assembly/corridor PKT, #6 block refs, #7 mv-block refs, #8 section data bands, #9 fixed arcs",
+  "ELIGIBLE": "every census family bin-writable or a known tolerated side-effect (#11 TIN retriangulation/corner padding, #12 parcel Face/LotLine/ParcelSegment counts, profile-write labeling side effects)"
+ }
 }

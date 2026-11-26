@@ -1,0 +1,1603 @@
+{
+ "base": "parity/corpus-roundtrip@53c9e880 (the label-wiring tip: d010/alignment-labelings merge b19c21ee + 40da666d + 17eeef42 + L2-pending record)",
+ "bridge": "NONE this round per directive \u2014 codec-side only; no C3D, no app legs attempted. The two files that carry L2 evidence (Corridor-5a, Pipe Networks-3B) keep the legs recorded by the rt-closure round",
+ "classes": {
+  "L1-VERIFIED": "0 \u2014 no file of the 43 is fully clean: every one carries at least the tolerated #11 TIN retriangulation RAW diff or census-level unwired classes (the reason each stays DEFERRED)",
+  "L1-WITH-NOTES": 22,
+  "L2-PENDING": "0 new \u2014 the app leg is out of scope this round (no bridge/C3D); Corridor-5a and Pipe Networks-3B carry L2 evidence recorded 2026-11-26 by the rt-closure round",
+  "NOT-CARRIED": 21,
+  "deferred_count": "stays 126 / 161 (35 ELIGIBLE) \u2014 honest: no file of the 43 flips; the wired families verify but every file keeps non-wired RAW/census blockers"
+ },
+ "format": "same shape as gap_closure_d010_wiring.json",
+ "method": "per file: harness analyze (codec census + family decode) -> build via the wired builder paths -> verify (codec re-analysis of the BUILT file) -> corpus/compare_verify.py (exact f64 ==, RAW vs derived classification). Census gate: all 43 manifests' codec_census match the recorded eligibility.json families exactly (0 drift, 43/43)",
+ "notable_findings": [
+  "NO wiring bug found: all 43 analyze/build/verify cleanly; zero census drift; the wired families behave exactly as the wiring round recorded",
+  "assembly (W1-4/a): every decodable-origin assembly writes with 0 RAW diffs (Assembly-3a 4/4, Intersection-Create-3 8/8, Profile-5F 7/7, Corridor/Sections files 1/1, Intersection-Create-1 11/12 \u2014 'Null Assembly' has no origin and is skipped with an honest NOTE); the origin derived diff on the built side is the documented empty-rebuild boundary (#3: the rebuilt assembly carries no subassemblies)",
+  "assembly flag quirk (not a bug, recorded): Intersection-Create-1's manifest family carries write:false (set whenever an oracle assembly's layout does not decode) yet the builder wrote 11/12 \u2014 the manifest flag is conservative (advisory to compare_verify) while the builder decides per assembly on decodable name/origin/layer; compare_verify reports DECODE-ONLY without failing, so no false gate either way",
+  "corridor (W1-4/b): decode-only everywhere as documented \u2014 19 of the 43 carry an AeccDbCorridor family; all are BUILT corridors whose definition decode is an empty shell (reader boundary), compare_verify reports them DECODE-ONLY with no false diffs",
+  "profile-view bands (W1-4/c): carried in every file whose views build \u2014 built band-label census matches the oracle exactly (AeccDbProfileDataBandLabeling / AeccDbHorizontalGeometryBandLabeling / AeccDbVerticalGeometryBandLabeling); profile_view items are 0-RAW everywhere they build (stations derived-only). NOT carried in Pipe Networks-1B/1C/2/2B/3/3B/3C: their single AECC_PROFILE_VIEW refuses at build with the pre-existing parse boundary 'the profiles have no elevations within the stations' \u2014 the bands have no view carrier (recorded as pre-existing in the rt-closure round for 3B)",
+  "alignment label groups (W1-5/#688): BIT-EXACT where the record forms are covered (Corridor-1a 4, Corridor-2b/3b/4a 2 each, Intersection-Create-1 4, Intersection-Create-3 16, Intro-1 4, Mass Haul-1/2 3 each, Pipe Networks-1A 4, Profile-5C 4). NOT carried elsewhere \u2014 the writer refuses never-invented forms: Assembly-1b/1c/2a/2b/2c + Quantities-1..7 refuse ALL their groups ('record form not decoded'); Assembly-3a builds 2 of 5 (1 refused, 2 blocked by the 'Proposed Loop' alignment not rebuilding \u2014 pre-existing); Profile-5F builds 2 of 4 (2 blocked by 'West-East Road' not rebuilding). The covered-form set is exactly the W1-5/b 15-file set \u2014 no form outside it is covered, consistent with the alignment-labelings round",
+  "names: #675 network part names BIT-EXACT everywhere pipes/structures carry (e.g. Quantities-1: 51 structures + 46 pipes BIT-EXACT even in a NOT-CARRIED file); #668 assembly names/layers written under the decoded name/layer (C-ROAD-ASSM etc.); #656 empty-shell routing behaves as documented",
+  "non-wired blockers that keep all 43 DEFERRED (unchanged reasons): #3 AeccDbSubassembly (PKT catalog MD5-only), AECC_CSVGRID (no writer), #6/#7 block/mv-block refs, #8 section data bands (AeccDbSectionDataBandLabeling 19-53 per file in the Sections/Earthworks family \u2014 census-exact oracle-side, no writer), #9 FixedArc, sample lines/sections/graph cross-sections, alignment labelings beyond the covered forms (StaEqu/DesignSpeed/VAGeomPoint/Superelevation), #11 TIN retriangulation (tolerated, gap-logged), last-ULP alignment vertex diffs (2-74 RAW per file, the known 1e-12-class residuals), parcel member-count diffs"
+ ],
+ "per_file": [
+  {
+   "class": "NOT-CARRIED",
+   "file": "Assembly-1b.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "parcel ({v.split(\"count\")[1].strip()})",
+    "alignment (RAW 5)"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "6 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 8 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Assembly-1c.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "parcel ({v.split(\"count\")[1].strip()})",
+    "alignment (RAW 74)"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "8 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 8, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 8 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Assembly-2a.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment (RAW 2)"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "3 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 2, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "1 items, 0 RAW diffs, 3 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbHorizontalGeometryBandLabeling\": 1, \"AeccDbProfileDataBandLabeling\": 1})"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Assembly-2b.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment (RAW 2)"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "3 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 2, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "1 items, 0 RAW diffs, 3 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbHorizontalGeometryBandLabeling\": 1, \"AeccDbProfileDataBandLabeling\": 1})"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Assembly-2c.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment (RAW 2)"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "3 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 2, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "1 items, 0 RAW diffs, 3 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbHorizontalGeometryBandLabeling\": 1, \"AeccDbProfileDataBandLabeling\": 1})"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Assembly-3a.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "count 2 != 5; refusals 1, parent-alignment-missing 2 (pre-existing alignment rebuild gap)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED (partial)"
+    },
+    "assembly": {
+     "evidence": "4 items, 0 RAW diffs, 4 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Corridor-1a.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "parcel ({v.split(\"count\")[1].strip()})",
+    "alignment (RAW 6)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 8 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Corridor-2b.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment (RAW 2)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "2 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Corridor-3b.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment (RAW 1)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "2 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Corridor-4a.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment (RAW 3)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "2 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Corridor-5a.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment (RAW 2)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Corridor-5b.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 5)",
+    "alignment (RAW 3)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Corridor-5c.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 5)",
+    "alignment (RAW 2)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Earthworks-1.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 2)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})",
+    "section_view MISSING-in-built"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbGraphCrossSection",
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSectionDataBandLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Earthworks-2.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 2)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})",
+    "section_view MISSING-in-built"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbGraphCrossSection",
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSectionDataBandLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Intersection-Create-1.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "parcel ({v.split(\"count\")[1].strip()})",
+    "alignment (RAW 6)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 12, built 11",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 2, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 8 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Intersection-Create-3.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 1)",
+    "alignment (RAW 16)",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "16 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "8 items, 0 RAW diffs, 8 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "4 items, 0 RAW diffs, 16 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 4})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Intro-1.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "parcel ({v.split(\"count\")[1].strip()})",
+    "alignment (RAW 6)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 8 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Mass Haul-1.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 3)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "3 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "1 items, 0 RAW diffs, 3 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbHorizontalGeometryBandLabeling\": 1, \"AeccDbProfileDataBandLabeling\": 1})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Mass Haul-2.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 3)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "3 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "1 items, 0 RAW diffs, 3 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbHorizontalGeometryBandLabeling\": 1, \"AeccDbProfileDataBandLabeling\": 1})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Pipe Networks-1A.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "parcel ({v.split(\"count\")[1].strip()})",
+    "alignment (RAW 6)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 8 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Pipe Networks-1B.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)"
+   ],
+   "not_carried": [
+    "profile-view-bands"
+   ],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "NOTE: profile_view \"PV0\": Parse error: the profiles have no elevations within the stations",
+     "family": "profile_view",
+     "verdict": "NOT-CARRIED"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Pipe Networks-1C.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)"
+   ],
+   "not_carried": [
+    "profile-view-bands"
+   ],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "NOTE: profile_view \"PV0\": Parse error: the profiles have no elevations within the stations",
+     "family": "profile_view",
+     "verdict": "NOT-CARRIED"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Pipe Networks-2.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)"
+   ],
+   "not_carried": [
+    "profile-view-bands"
+   ],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "NOTE: profile_view \"PV0\": Parse error: the profiles have no elevations within the stations",
+     "family": "profile_view",
+     "verdict": "NOT-CARRIED"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Pipe Networks-2B.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)"
+   ],
+   "not_carried": [
+    "profile-view-bands"
+   ],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "NOTE: profile_view \"PV0\": Parse error: the profiles have no elevations within the stations",
+     "family": "profile_view",
+     "verdict": "NOT-CARRIED"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Pipe Networks-3.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)"
+   ],
+   "not_carried": [
+    "profile-view-bands"
+   ],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "NOTE: profile_view \"PV0\": Parse error: the profiles have no elevations within the stations",
+     "family": "profile_view",
+     "verdict": "NOT-CARRIED"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Pipe Networks-3B.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)"
+   ],
+   "not_carried": [
+    "profile-view-bands"
+   ],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "NOTE: profile_view \"PV0\": Parse error: the profiles have no elevations within the stations",
+     "family": "profile_view",
+     "verdict": "NOT-CARRIED"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Pipe Networks-3C.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)"
+   ],
+   "not_carried": [
+    "profile-view-bands"
+   ],
+   "unwired_census_classes": [
+    "AECC_CSVGRID",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "NOTE: profile_view \"PV0\": Parse error: the profiles have no elevations within the stations",
+     "family": "profile_view",
+     "verdict": "NOT-CARRIED"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Plan Production-Section Sheets-Create.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 1)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})",
+    "section_view MISSING-in-built"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbGraphCrossSection",
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSectionDataBandLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Profile-5C.dwg",
+   "names": [],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "parcel ({v.split(\"count\")[1].strip()})",
+    "alignment (RAW 6)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "4 items BIT-EXACT",
+     "family": "alignment_label_group",
+     "verdict": "BIT-EXACT"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "1 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 1})"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Profile-5F.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "structure (RAW 7)",
+    "pipe (RAW 6)",
+    "tin_surface (RAW 2)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "count 2 != 4; refusals 0, parent-alignment-missing 2 (pre-existing alignment rebuild gap)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED (partial)"
+    },
+    "assembly": {
+     "evidence": "7 items, 0 RAW diffs, 7 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "1 items, 0 RAW diffs, 3 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 1})"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Quantities-1.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "14 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Quantities-2.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "14 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Quantities-3.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "14 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Quantities-4.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "14 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Quantities-5.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "14 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Quantities-6.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "14 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    }
+   }
+  },
+  {
+   "class": "NOT-CARRIED",
+   "file": "Quantities-7.dwg",
+   "names": [
+    "pipe names BIT-EXACT (#675)",
+    "structure names BIT-EXACT (#675)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "alignment ({v.split(\"count\")[1].strip()})",
+    "profile ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [
+    "alignment-label-groups"
+   ],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "alignment-label-groups": {
+     "evidence": "14 group(s) refused by the #688 writer (record form not decoded \u2014 never invented); first: alignment_label_group \"ALG0\": refused (record form not decoded)",
+     "family": "alignment_label_group",
+     "verdict": "NOT-CARRIED"
+    },
+    "assembly": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "assembly",
+     "verdict": "BOUNDARY (empty-shell decode / write:false DECODE-ONLY)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Sections-Data-Band.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 1)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})",
+    "section_view MISSING-in-built"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbGraphCrossSection",
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSectionDataBandLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Sections-Grade-Label.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 1)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})",
+    "section_view MISSING-in-built"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbGraphCrossSection",
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSectionDataBandLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Sections-Project-Objects.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 2)",
+    "alignment (RAW 2)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbGraphCrossSection",
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSectionDataBandLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Sections-Sample-Lines-Create.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 1)"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  },
+  {
+   "class": "L1-WITH-NOTES",
+   "file": "Sections-Views-Create.dwg",
+   "names": [
+    "assembly names/layers written (#668)"
+   ],
+   "non_wired_blockers": [
+    "tin_surface (RAW 3)",
+    "alignment (RAW 1)",
+    "sample_line ({v.split(\"count\")[1].strip()})",
+    "section ({v.split(\"count\")[1].strip()})"
+   ],
+   "not_carried": [],
+   "unwired_census_classes": [
+    "AeccDbSampleLineGroup",
+    "AeccDbSampleLineLabeling",
+    "AeccDbSubassembly"
+   ],
+   "wired": {
+    "assembly": {
+     "evidence": "1 items, 0 RAW diffs, 1 derived diffs",
+     "family": "assembly",
+     "verdict": "BIT-EXACT-on-RAW (origin derived diff: the rebuilt assembly carries no subassemblies \u2014 #3 PKT boundary)"
+    },
+    "corridor": {
+     "evidence": "DECODE-ONLY (no writer) \u2014 oracle 1, built 0",
+     "family": "corridor",
+     "verdict": "BOUNDARY (built-corridor shell: reader decodes empty definition corpus-wide)"
+    },
+    "profile-view-bands": {
+     "evidence": "2 items, 0 RAW diffs, 4 derived diffs",
+     "family": "profile_view",
+     "verdict": "BIT-EXACT-on-RAW (stations derived-only; band census {\"AeccDbProfileDataBandLabeling\": 2})"
+    }
+   }
+  }
+ ],
+ "scope_derivation": "the 43 = eligibility.json DEFERRED files whose families include AeccDbAssembly and/or AeccDbCorridor \u2014 exactly the set gap_closure_d010_wiring.json item W1-4/d re-scoped from HARNESS-SCOPE to wired/boundary ('43 assembly/corridor files stay deferred on this alone'). Cross-checked: 69 deferred files touch a wired family if band labelings are counted too; the wiring JSON's own '43' matches the assembly/corridor carrier set",
+ "wave": "D010 final codec-only round (2026-11-26, evening) \u2014 the 43-file L1 verification + classification round (closes the corpus-level roundtrip inventory)"
+}
