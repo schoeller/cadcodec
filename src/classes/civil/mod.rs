@@ -17,6 +17,7 @@ mod grading;
 mod intersection;
 mod labels;
 mod label_style;
+mod section_bands;
 mod network;
 mod parameters;
 mod profile;
@@ -35,11 +36,12 @@ pub use alignment::{
     display_station, AlignmentAnchor, AlignmentCriteria, AlignmentElement, AlignmentType, OffsetParameters, OffsetRegion, WideningTransition, AlignmentElementKind, AlignmentPiece, BestFitPoint, DesignSpeed, GeometryPoint, SpiralShape,
     StationEquation, CriticalStationData, SuperelevationCurveData, SuperelevationView};
 pub use cogo::{CogoPoint, PointGroupClassification, PointGroupOverrides, PropertyValue, UserProperty};
-pub use create::{add_empty_tin_surface, add_tin_surface_with, add_assembly, add_pkt_subassembly, add_pkt_subassembly_on, PktSource, add_alignment, add_alignment_with_curves, add_offset_alignment, add_offset_alignment_with_widenings, Widening, add_alignment_of_kind, add_design_speeds, add_station_equations, add_superelevation, CriticalStation, CriticalStationKind, SuperelevationCurve, AlignmentKind, VertexCurve, add_corridor, add_corridor_with, add_cogo_point, create_cogo_point, point_creation_layer, NO_ELEVATION, add_intersection, add_point_group, add_point_group_query, add_profile, add_profile_entities, add_profile_with_curves, add_static_profile, add_surface_profile, ProfileEntity, VerticalCurve, add_profile_view, add_profile_view_with_bands, add_profile_view_with_range, BandKind, BandStagger, ProfileViewBand, add_sample_line, add_sample_line_through, add_sample_line_group, add_sections, add_section_view, add_site, add_alignment_on_site, add_feature_line, add_parcel, parcel_name, PARCEL_STYLE_NAME, PARCEL_NUMBER, add_feature_line_vertices, FeatureLineVertex, add_tin_surface, cogo_points, ensure_civil, feature_line_vertices, remove_cogo_point, set_cogo_point, set_cogo_point_name, set_point_group, set_point_group_overrides, set_point_group_query, set_point_group_styles, Comparison, PointAttribute, PointQuery, QueryConstant, QueryExpression, add_lot_line, add_pipe, add_pipe_network, add_pipe_of_family, add_structure, add_structure_of_family, connect_pipe, set_network_part_name, network_part_families, add_pressure_appurtenance, add_pressure_arc_pipe, add_pressure_cross, add_pressure_fitting, add_pressure_network, add_pressure_part, add_pressure_pipe, add_pressure_pipe_of_size, add_pressure_tee, connect_pressure_parts, pressure_part_descriptions, add_profile_view_style, add_profile_view_with_style, add_offset_profile, add_section_view_group, add_profile_view_style_with, set_feature_line_vertices, set_cogo_point_label_style, add_label_style, add_point_label_style, label_style, LabelStyle, add_intersection_with, add_intersection_with_curb_returns, IntersectionOffsets, CURB_RETURN_MARGIN, add_curb_return, add_curb_return_with, CurbReturnCurve, add_point_choice_property, add_point_property, add_point_property_classification, point_properties, set_cogo_point_property, add_pipe_of_size, network_pipe_sizes, add_structure_of_size, network_structure_size_fields, StructureSizeChoice, add_intersection_with_curb_return_profiles, CurbReturnProfiles, add_alignment_label_group, AlignmentGroupLabel, AlignmentLabelGroup, AlignmentLabelGroupKind, LabelKeyValue, LabelOverrideProperty, LabelOverrideValue};
+pub use create::{add_empty_tin_surface, add_tin_surface_with, add_assembly, add_pkt_subassembly, add_pkt_subassembly_on, PktSource, add_alignment, add_alignment_with_curves, add_offset_alignment, add_offset_alignment_with_widenings, Widening, add_alignment_of_kind, add_design_speeds, add_station_equations, add_superelevation, CriticalStation, CriticalStationKind, SuperelevationCurve, AlignmentKind, VertexCurve, add_corridor, add_corridor_with, add_cogo_point, create_cogo_point, point_creation_layer, NO_ELEVATION, add_intersection, add_point_group, add_point_group_query, add_profile, add_profile_entities, add_profile_with_curves, add_static_profile, add_surface_profile, ProfileEntity, VerticalCurve, add_profile_view, add_profile_view_with_bands, add_profile_view_with_range, BandKind, BandStagger, ProfileViewBand, add_sample_line, add_sample_line_through, add_sample_line_group, add_sections, add_section_view, add_site, add_alignment_on_site, add_feature_line, add_parcel, parcel_name, PARCEL_STYLE_NAME, PARCEL_NUMBER, add_feature_line_vertices, FeatureLineVertex, add_tin_surface, cogo_points, ensure_civil, feature_line_vertices, remove_cogo_point, set_cogo_point, set_cogo_point_name, set_point_group, set_point_group_overrides, set_point_group_query, set_point_group_styles, Comparison, PointAttribute, PointQuery, QueryConstant, QueryExpression, add_lot_line, add_pipe, add_pipe_network, add_pipe_of_family, add_structure, add_structure_of_family, connect_pipe, set_network_part_name, network_part_families, add_pressure_appurtenance, add_pressure_arc_pipe, add_pressure_cross, add_pressure_fitting, add_pressure_network, add_pressure_part, add_pressure_pipe, add_pressure_pipe_of_size, add_pressure_tee, connect_pressure_parts, pressure_part_descriptions, add_profile_view_style, add_profile_view_with_style, add_offset_profile, add_section_view_group, add_profile_view_style_with, set_feature_line_vertices, set_cogo_point_label_style, add_label_style, add_point_label_style, label_style, LabelStyle, add_intersection_with, add_intersection_with_curb_returns, IntersectionOffsets, CURB_RETURN_MARGIN, add_curb_return, add_curb_return_with, CurbReturnCurve, add_point_choice_property, add_point_property, add_point_property_classification, point_properties, set_cogo_point_property, add_pipe_of_size, network_pipe_sizes, add_structure_of_size, network_structure_size_fields, StructureSizeChoice, add_intersection_with_curb_return_profiles, CurbReturnProfiles, add_section_data_band_label_group, add_alignment_label_group, AlignmentGroupLabel, AlignmentLabelGroup, AlignmentLabelGroupKind, LabelKeyValue, LabelOverrideProperty, LabelOverrideValue};
 pub use corridor::{CorridorBaseline, CorridorBoundary, CorridorDefinition, CorridorRegion, CorridorSurfaceDefinition, CurveStations, RegionFrequency, RegionTarget, TargetCurveStations, TargetKind};
 pub use grading::{CriteriaValue, GradingCriteria, GradingEntity, GradingGroup, GradingGroupRecord, GradingGroupTree};
 pub use intersection::IntersectionLayout;
-pub use labels::{parse_format, property, LabelPart, LabelText};
+pub use labels::{parse_format, property, LabelDimensionAnchor, LabelPart, LabelText};
+pub use section_bands::{BandKeyValue, SectionDataBandGroup, SectionDataBandLabel};
 pub use label_style::{LabelArrowComponent, LabelBlockComponent, LabelBorder, LabelDraggedState, LabelIteratorComponent, LabelLeader, LabelLineComponent, LabelStyleSettings, LabelTextComponent, LabelTickComponent};
 pub use network::{PartField, PressurePipe, PressurePort};
 pub use parameters::{Parameter, ParameterValue};
@@ -164,6 +166,11 @@ pub const ENTITY_CLASSES: &[(&str, &str, CivilKind)] = &[
         CivilKind::Label,
     ),
     (
+        "AECC_SECTIONDATABAND_LABELGROUP",
+        "AeccDbSectionDataBandLabeling",
+        CivilKind::Label,
+    ),
+    (
         "AECC_STATION_ELEVATION_LABEL",
         "AeccDbStaElevLabel",
         CivilKind::Label,
@@ -260,8 +267,9 @@ impl ArchEntityData {
     /// The surface's name: the first non-empty string after the
     /// definitions' texts. The application stores a created-by name before
     /// them (2027 samples: "", "", "leightkadmin", then the definitions'
-    /// names, the surface's name and its description — `Surface-2.dwg`'s
-    /// empty shell reads "EG"); records this crate writes keep the name
+    /// names, two texts per elevation analysis range, the surface's name
+    /// and its description — `Surface-2.dwg`'s empty shell reads "EG");
+    /// records this crate writes keep the name
     /// right after the texts, so it is read there as a fallback. A record
     /// whose definitions this grammar does not read names `None` — its
     /// text boundary is unknown.
@@ -271,7 +279,7 @@ impl ArchEntityData {
         }
         let (data, start, end) = self.main_stream()?;
         let texts = match tin::definitions(data, start, end) {
-            Some(d) => d.list.iter().map(TinDefinition::text_count).sum::<usize>(),
+            Some(d) => d.list.iter().map(TinDefinition::text_count).sum::<usize>() + 2 * d.ranges,
             None => match tin::definitions_count(data, start, end) {
                 None => 0,
                 Some(_) => return None,
@@ -289,6 +297,19 @@ impl ArchEntityData {
     /// texts (before the surface name) and source objects (the references
     /// after the hard owner), and whether the surface
     /// rebuilds itself when a source changes.
+    ///
+    /// The two layouts' text streams differ in one slot: the application
+    /// keeps a created-by name between the two empty strings and the
+    /// definitions' texts, records this crate writes start the texts
+    /// right there. Which layout a record keeps follows from its own
+    /// lengths — the stream runs the two empty strings, the created-by
+    /// name (application only), the definitions' texts, two texts per
+    /// elevation range, the surface's name, its description and one empty
+    /// string, and the definitions' text need is known from their kinds.
+    /// A record of neither length keeps an unmapped stream: `None` rather
+    /// than a guessed boundary — unless its definitions keep no texts, when
+    /// no boundary is needed (the Civil 2013 surfaces, whose leading texts
+    /// also hold the source drawing's path).
     pub fn tin_definitions(&self) -> Option<(Vec<TinDefinition>, bool)> {
         if self.civil_kind() != Some(CivilKind::TinSurface) {
             return None;
@@ -297,7 +318,14 @@ impl ArchEntityData {
         let found = tin::definitions(data, start, end)?;
         let strings = self.decode().strings;
         let refs = self.typed_handles();
-        let mut text = 2;
+        let need = found.list.iter().map(TinDefinition::text_count).sum::<usize>() + 2 * found.ranges;
+        let mut text = if strings.len() == 3 + need + 3 {
+            3
+        } else if strings.len() == 2 + need + 3 || need == 0 {
+            2
+        } else {
+            return None;
+        };
         let mut source = refs.iter().position(|r| r.1 == 3)? + 1;
         let mut list = found.list;
         for d in &mut list {
@@ -608,6 +636,26 @@ impl ArchEntityData {
             .unwrap_or_default()
     }
 
+    /// A section view data band's label group
+    /// (`AECC_SECTIONDATABAND_LABELGROUP`), by its fields; `None` when the
+    /// record stores a form the crate does not read (a label set in the
+    /// settings, nested labels, overrides, or key values beyond numbers —
+    /// the corpus's 19 records carry none of these).
+    pub fn section_data_band_group(&self) -> Option<SectionDataBandGroup> {
+        if self.dxf_name != "AECC_SECTIONDATABAND_LABELGROUP" {
+            return None;
+        }
+        let (data, start, end) = self.main_stream()?;
+        section_bands::group(data, start, end)
+    }
+
+    /// Offsets a section view data band's labels name (see
+    /// [`Self::section_data_band_group`]), in record order; empty for a
+    /// group this crate does not read.
+    pub fn section_data_band_offsets(&self) -> Vec<f64> {
+        self.section_data_band_group().map(|g| g.offsets()).unwrap_or_default()
+    }
+
     /// Offset from the labelled point to where a dragged label sits, `None`
     /// for a label left in place.
     pub fn label_dragged_offset(&self) -> Option<Vector2> {
@@ -616,6 +664,29 @@ impl ArchEntityData {
         }
         let (data, start, end) = self.main_stream()?;
         labels::dragged_offset(data, start, end)?
+    }
+
+    /// Each label's offset from the point it labels to where it was
+    /// dragged, in the order the record numbers its labels (a group's
+    /// sub-labels); `None` for a label left in place. Empty when the record
+    /// does not read.
+    pub fn label_dragged_offsets(&self) -> Vec<Option<Vector2>> {
+        if self.civil_kind() != Some(CivilKind::Label) {
+            return Vec::new();
+        }
+        self.main_stream()
+            .and_then(|(data, start, end)| labels::dragged_offsets(data, start, end))
+            .unwrap_or_default()
+    }
+
+    /// The dimension anchor a Civil 3D label record gives its labels by
+    /// default (see [`LabelDimensionAnchor`]).
+    pub fn label_dimension_anchor(&self) -> Option<LabelDimensionAnchor> {
+        if self.civil_kind() != Some(CivilKind::Label) {
+            return None;
+        }
+        let (data, start, end) = self.main_stream()?;
+        labels::dimension_anchor(data, start, end)
     }
 
     /// Ids of the profile entities a profile label group
@@ -1513,21 +1584,22 @@ impl ArchObject {
     }
 
     /// The feature-line topology of a site container
-    /// (`AECC_FEATURE_STYLE`): the topology the application keeps for the
-    /// container's feature lines once it extended the container (a site
-    /// that gained members after it was first written) — one edge per
-    /// feature line, not split where lines cross, unlike [`Self::topology`]
-    /// on such a container, whose first section the parcels' faces hang
-    /// off.
+    /// (`AECC_FEATURE_STYLE`): one edge per feature line, not split where
+    /// lines cross. This reads through [`Self::topology`]: on a site that
+    /// gained gradings after it was first written, the record keeps its
+    /// grading data between the elevation-point table and the site graph
+    /// as elements whose faces' bodies are modeler binary streams, and
+    /// `topology` reads each body to its end record, steps over the
+    /// elements' own graphs, and lands on the site graph that follows —
+    /// the feature lines'. On the six graded tutorial containers
+    /// (Grading-3A to Grading-8) the walk ends exactly there (Grading-3A:
+    /// 14 edges, ids in the recorded slot order), so the two read the
+    /// same graph.
     ///
-    /// Not wired yet: the bytes between the container's first section and
-    /// the feature-line section carry the site's grading data, and no
-    /// grammar for them is mapped (on the whole tutorial corpus the parcel
-    /// grammars account for none of that span — 2026-11-25 sweep of all
-    /// 163 drawings). Until that walk is mapped this reads through
-    /// [`Self::topology`], whose first section is the feature lines' own
-    /// on every container this crate writes and on the containers the
-    /// application never extended.
+    /// One limit stays at the record level: a feature line the user
+    /// imported (`AeccImpFeatureLine`) keeps no edge word in its own
+    /// record, so it decodes to `None` even where the site's graph holds
+    /// its edge — handle 0xC88 on the Grading-4 and Grading-5 drawings.
     pub fn feature_line_topology(&self) -> Option<Topology> {
         if !self.dxf_name.eq_ignore_ascii_case("AECC_FEATURE_STYLE") {
             return None;
@@ -1610,14 +1682,11 @@ impl ArchObject {
             .unwrap_or_default()
     }
 
-    /// Plotted length and angle (radians, to the anchor's direction) of a
-    /// Civil 3D label line component.
+    /// Plotted fixed length and angle (radians, to the anchor's direction)
+    /// of a Civil 3D label line component, read by its fields; `None` for a
+    /// dragged-state copy that shows the copied component's values.
     pub fn label_line(&self) -> Option<(f64, f64)> {
-        if self.dxf_name != "AECC_LABEL_RADIAL_LINE_STYLE" {
-            return None;
-        }
-        let (data, start, end) = self.main_stream()?;
-        labels::line_component(data, start, end)
+        self.label_component_fields(true)?.0.line_shown()
     }
 
     /// Whether a label style component (text, line, tick, ...) is shown;
@@ -1869,11 +1938,12 @@ impl ArchObject {
             .unwrap_or_default()
     }
 
-    /// UTF-16 strings the record stores inline (label formats and the
-    /// like), in record order.
+    /// UTF-16 texts a style's settings keys hold inline (label formats and
+    /// the like), in key order; empty for a record that is not a style or
+    /// whose settings do not read.
     pub fn inline_strings(&self) -> Vec<String> {
         self.main_stream()
-            .map(|(data, start, end)| labels::inline_strings(data, start, end))
+            .and_then(|(data, start, end)| style::key_texts(data, start, end))
             .unwrap_or_default()
     }
 

@@ -15,6 +15,25 @@
 //! 0x40) span the surface extents, and the triangles that use them have
 //! flag bit 0 set and are not drawn. A second copy of the block follows the
 //! first; the first is the built surface.
+//!
+//! The stored lists are the surface's full triangulation database; the
+//! application's live `TinSurface.Vertices`/`Triangles` collections surface
+//! the drawn mesh only. Every vertex kept only by hidden triangles — the
+//! four extent corners among them — is absent from the live collection, as
+//! is every hidden triangle. Recorded 2026-11-27 (execute_civil_code,
+//! cap.night.*.census.txt): the tutorials' Grading-1, Align-7A,
+//! Labels-Surface and Surface-3 keep 782/10158/35815/2410 stored vertices
+//! and 1558/20310/71624/4814 stored triangles, where the application reads
+//! 778/8572/35677/2405 vertices and 1388/16868/70602/4593 triangles — each
+//! live count equals the drawn-mesh subset exactly (the vertices referenced
+//! by at least one non-hidden triangle, and the non-hidden triangles), on
+//! every file. A surface the application has not built keeps only the shell
+//! (the four corners at the drawing extremes, no triangles), which the live
+//! collections read as 0/0. Both denominators are faithful: this crate keeps
+//! the stored lists as stored (the #543/#559 scaffold adjudication, the F3
+//! denominator rule) — count the drawn subset ([`TinSurface::visible_triangles`],
+//! or vertices whose flag bit 0 is clear and whose incident triangle draws)
+//! to compare against the application.
 
 use super::bits::Bits;
 use crate::types::{Vector2, Vector3};
@@ -57,7 +76,12 @@ impl TinTriangle {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TinSurface {
+    /// Every vertex as stored, including the ones only hidden triangles use
+    /// (the live application collections read fewer — the module header has
+    /// the denominator).
     pub vertices: Vec<TinVertex>,
+    /// Every triangle as stored; hidden ones ([`TinTriangle::is_visible`]
+    /// false) carry the scaffold the live application does not count.
     pub triangles: Vec<TinTriangle>,
     /// Indices of the four bounding corner vertices.
     pub corners: [u32; 4],
@@ -239,6 +263,9 @@ impl TinDefinition {
 pub(super) struct Definitions {
     pub list: Vec<TinDefinition>,
     pub auto_rebuild: bool,
+    /// The elevation analysis ranges (see [`elevation_ranges`]); each keeps
+    /// two texts after the definitions' texts.
+    pub ranges: usize,
 }
 
 pub(super) const AUTO_REBUILD: i32 = 0x0100_0000;
@@ -252,7 +279,8 @@ pub(super) const AUTO_REBUILD: i32 = 0x0100_0000;
 ///   index, once the application rebuilt the snapshot: TS03, TO03 to TO05),
 ///   RC 0x80 + breakline count / 2, B,
 /// count x { BL kind, BL flags, BL 16, GUID, BL named, data (`read_operation`) },
-/// BL 0, BL options (0x01000000: rebuild automatically), 2 bits
+/// elevation ranges (`elevation_ranges`), BL options (0x01000000: rebuild
+/// automatically), 2 bits
 /// ```
 // ponytail: the head's other bits, the two bits after it, the 0x0C field
 // and the bit are skipped here; the writer stores them as the samples show them.
@@ -274,10 +302,62 @@ pub(super) fn read_definitions(bits: &mut Bits) -> Option<Definitions> {
     }
     bits.skip(9)?;
     let list = (0..n).map(|_| read_operation(bits)).collect::<Option<_>>()?;
-    bits.bit_long()?;
+    let ranges = elevation_ranges(bits)?;
     let options = bits.bit_long()?;
     bits.skip(2)?;
-    Some(Definitions { list, auto_rebuild: options & AUTO_REBUILD != 0 })
+    Some(Definitions { list, auto_rebuild: options & AUTO_REBUILD != 0, ranges })
+}
+
+/// The surface's elevation analysis ranges, after the definitions:
+///
+/// ```text
+/// 2 bits 00, 6 bits n, n x { 2 bits 10, range }, 2 bits 00, 24 bits 0
+/// range: BL color (0xC3000000 | color index), RC 0, BD minimum elevation,
+///   BD maximum elevation, BD 2D area, BD 3D area, RD x 4 (the range's
+///   plan extents: minimum x, y, maximum x, y; +-f64::MAX when empty),
+///   BL triangles, BD, BD, 2 x { BS, BL, RC } (two colors), 3 x BS,
+///   BL 0, BL 0
+/// ```
+///
+/// Without ranges this is the 34 bits this crate writes (`2 bits 00,
+/// RL 0`). Each range keeps two texts (a label and a hatch pattern).
+/// Proved on surfaces given 1, 2, 3 and 8 ranges from points and from a
+/// point group (each range read with its elevations, areas, extents and
+/// triangle count; a range adds 788 bits), and on the tutorials'
+/// eight-range surfaces (Intro-2, Parcel-1E, Parcel-3A).
+// ponytail: the RC, the BD before the volume and the two colors' and
+// three BS' meanings are not named (constant in the samples).
+fn elevation_ranges(bits: &mut Bits) -> Option<usize> {
+    (bits.bits_value(2)? == 0).then_some(())?;
+    let n = usize::from(bits.bits_value(6)?);
+    for _ in 0..n {
+        (bits.bits_value(2)? == 0b10).then_some(())?;
+        bits.bit_long()?;
+        bits.skip(8)?;
+        for _ in 0..4 {
+            bits.bit_double()?;
+        }
+        bits.skip(4 * 64)?;
+        bits.bit_long()?;
+        bits.bit_double()?;
+        bits.bit_double()?;
+        for _ in 0..2 {
+            bits.bit_short()?;
+            bits.bit_long()?;
+            bits.skip(8)?;
+        }
+        for _ in 0..3 {
+            bits.bit_short()?;
+        }
+        for _ in 0..2 {
+            (bits.bit_long()? == 0).then_some(())?;
+        }
+    }
+    (bits.bits_value(2)? == 0).then_some(())?;
+    for _ in 0..3 {
+        (bits.bits_value(8)? == 0).then_some(())?;
+    }
+    Some(n)
 }
 
 fn vector2(bits: &mut Bits) -> Option<Vector2> {
@@ -457,11 +537,18 @@ pub(super) fn definitions_at(data: &[u8], start: usize, end: usize) -> Option<us
     Some(bits.pos)
 }
 
-/// After the definitions: RL, `RS 0x05A2` (0x04A2 in newer drawings),
-/// `RC k`, `k` x 2 bytes, "MMS01"; returns where the triangulation starts.
+/// After the definitions: RL, `BL n`, 6 bits `100010`, `RC 5` (4 in newer
+/// drawings), `RC k`, `k` x 2 bytes, "MMS01"; returns where the
+/// triangulation starts. `n` counts the surface's region reactors (the
+/// `AECC_REGION_PERSISTENT_REACTOR` references after its sources in the
+/// handle list): 0 in most surfaces, where the BL and the next 14 bits
+/// read as `RS 0x05A2` (0x04A2); 1 once a region reactor is attached
+/// (the tutorials' "EG" in Corridor-5b and Corridor-5c, the same record
+/// as Corridor-5a's but for that reference).
 fn marker(bits: &mut Bits) -> Option<usize> {
     bits.raw_long()?;
-    matches!(u16::from_le_bytes([bits.raw_short_byte()?, bits.raw_short_byte()?]), 0x05A2 | 0x04A2).then_some(())?;
+    usize::try_from(bits.bit_long()?).ok().filter(|n| *n <= bits.remaining())?;
+    (bits.bits_value(6)? == 0b10_0010 && matches!(bits.raw_short_byte()?, 4 | 5)).then_some(())?;
     let k = usize::from(bits.raw_short_byte()?);
     bits.skip(16 * k)?;
     (b"MMS01".iter().all(|c| bits.raw_short_byte() == Some(*c))).then_some(bits.pos)
@@ -727,6 +814,59 @@ mod tests {
         // triangles is not a triangulation.
         let five = empty_shell().replacen("00000100", "00000101", 1);
         assert!(read_at(&bits_of(&five), 0, five.len() * 8).is_none());
+    }
+
+    #[test]
+    fn reads_the_elevation_ranges() {
+        // One range as a surface from a 5 x 5 grid writes it: red (0xC3000001),
+        // 5 to 13, areas 1600 and 1627.5, extents (0, 0)-(40, 40), 32
+        // triangles, BD 0, volume 5100, two by-layer colors, BS -2 x 3.
+        let bytes = |v: &[u8]| v.iter().map(|b| format!("{b:08b}")).collect::<String>();
+        let bd = |v: f64| format!("00{}", bytes(&v.to_le_bytes()));
+        let rd = |v: f64| bytes(&v.to_le_bytes());
+        let color = |v: u32| format!("00{}", bytes(&v.to_le_bytes()));
+        let range = format!(
+            "{} 00000000 {} {} {} {} {} {} {} {} 0100100000 10 {} 10 {} 00000000 10 {} 00000000 {} 10 10",
+            color(0xC300_0001),
+            bd(5.0),
+            bd(13.0),
+            bd(1600.0),
+            bd(1627.5),
+            rd(0.0),
+            rd(0.0),
+            rd(40.0),
+            rd(40.0),
+            bd(5100.0),
+            color(0xC100_0000),
+            color(0xC100_0000),
+            "00 11111110 11111111 ".repeat(3)
+        );
+        let tail = format!("00 {}", "0".repeat(24));
+        for n in [0usize, 1, 2] {
+            let s = format!("00 {:06b} {} {tail} 1", n, format!("10 {range} ").repeat(n));
+            let b = bits_of(&s);
+            let mut bits = Bits::new(&b, 0, b.len() * 8);
+            assert_eq!(elevation_ranges(&mut bits), Some(n));
+            assert_eq!(bits.pos, s.chars().filter(|c| *c == '0' || *c == '1').count() - 1);
+        }
+    }
+
+    #[test]
+    fn the_marker_counts_the_region_reactors() {
+        // RL, BL n, 6 bits 100010, RC 5, RC 0 (no 2-byte items), "MMS01":
+        // a surface without a region reactor (BL 0, the run reading as
+        // RS 0x05A2) and the tutorials' Corridor-5b "EG" with one.
+        let mms = "01001101 01001101 01010011 00110000 00110001";
+        for count in ["10", "01 00000001"] {
+            let s = format!("{} {count} 100010 00000101 00000000 {mms}", "1".repeat(32));
+            let b = bits_of(&s);
+            let mut bits = Bits::new(&b, 0, b.len() * 8);
+            assert_eq!(marker(&mut bits), Some(s.chars().filter(|c| *c == '0' || *c == '1').count()));
+        }
+        // Any other run after the count is not the marker.
+        let s = format!("{} 10 100011 00000101 00000000 {mms}", "1".repeat(32));
+        let b = bits_of(&s);
+        assert!(marker(&mut Bits::new(&b, 0, b.len() * 8)).is_none());
     }
 
     #[test]
