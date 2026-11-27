@@ -18,7 +18,7 @@
 //! and audit clean, and its census must show the manifest's written
 //! families with the same counts.
 
-use acadrust::classes::civil::{add_alignment_with_curves, add_assembly, add_cogo_point, add_corridor_with, add_parcel, add_pipe, add_pipe_network, add_profile, add_profile_view_with_bands, add_profile_view_with_range, add_sample_line, add_sample_line_group, add_section_view, add_sections, add_site, add_structure, add_surface_profile, add_tin_surface, cpp_class_name, VertexCurve};
+use acadrust::classes::civil::{add_alignment_with_curves, add_assembly, add_cogo_point, add_corridor_with, add_parcel, add_pipe, add_pipe_network, add_profile, add_sample_line, add_sample_line_group, add_section_view, add_sections, add_site, add_structure, add_surface_profile, add_tin_surface, cpp_class_name, VertexCurve};
 use acadrust::entities::{Arc, Circle, EntityType, Line, LwPolyline, LwVertex, MText, Polyline3D, Vertex3DPolyline};
 use acadrust::io::dwg::{DwgReader, DwgWriter};
 use acadrust::tables::Layer;
@@ -1904,7 +1904,7 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
         }
     }
 
-    // Surfaces.
+
     let mut surface_handles: Vec<Handle> = Vec::new();
     // D017 verification adaptation (recorded): on the fixed tree the
     // empty-shell reader (#656) decodes an unbuilt surface as the four
@@ -2030,14 +2030,20 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                 _ => acadrust::classes::civil::BandKind::ProfileData,
             }).map(acadrust::classes::civil::ProfileViewBand::new).collect()).unwrap_or_default();
             let built = if bands.is_empty() {
-                add_profile_view_with_range(&mut doc, alignment, &name, origin, stations.and_then(|(a, b)| Some((a?, b?))), elevations.and_then(|(a, b)| Some((a?, b?))), None)
+                acadrust::classes::civil::add_profile_view_without_profile_label_groups(&mut doc, alignment, &name, origin, None, stations.and_then(|(a, b)| Some((a?, b?))), elevations.and_then(|(a, b)| Some((a?, b?))), &[], None)
             } else {
                 // The oracle view carries band label groups: the #600
                 // writer gives the rebuilt view the same bands (their
                 // label groups come from the default label set). The
                 // band writer computes the frame automatically; the
                 // range word then records the automatic form.
-                add_profile_view_with_bands(&mut doc, alignment, &name, origin, None, &bands, None)
+                // C-3: the default VAlignment profile label groups are
+                // NOT stamped — the manifest carries no VAlignment
+                // label-group family, i.e. the oracle has none; the
+                // default-stamping was the packet C drift. (A future
+                // oracle that carries them needs a decode+rebuild round
+                // for those groups first.)
+                acadrust::classes::civil::add_profile_view_without_profile_label_groups(&mut doc, alignment, &name, origin, None, None, None, &bands, None)
             };
             match built {
                 Ok(_) => {}

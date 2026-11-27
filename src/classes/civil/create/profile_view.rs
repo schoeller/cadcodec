@@ -940,7 +940,7 @@ pub fn add_profile_view_with_range(doc: &mut CadDocument, alignment: Handle, nam
 /// exaggeration.
 #[allow(clippy::too_many_arguments)]
 pub fn add_profile_view_with_style(doc: &mut CadDocument, alignment: Handle, name: &str, origin: Vector2, style: Option<Handle>, stations: Option<(f64, f64)>, elevations: Option<(f64, f64)>, layer: Option<&str>) -> Result<Handle, DxfError> {
-    add_view(doc, alignment, name, origin, style, stations, elevations, &[], layer)
+    add_view(doc, alignment, name, origin, style, stations, elevations, &[], layer, true)
 }
 
 /// [`add_profile_view_with_style`] with `bands` (below the view first, in
@@ -949,11 +949,23 @@ pub fn add_profile_view_with_style(doc: &mut CadDocument, alignment: Handle, nam
 /// default ones) and given its label group. Only profile data bands are
 /// written above the view.
 pub fn add_profile_view_with_bands(doc: &mut CadDocument, alignment: Handle, name: &str, origin: Vector2, style: Option<Handle>, bands: &[ProfileViewBand], layer: Option<&str>) -> Result<Handle, DxfError> {
-    add_view(doc, alignment, name, origin, style, None, None, bands, layer)
+    add_view(doc, alignment, name, origin, style, None, None, bands, layer, true)
+}
+
+/// [`add_profile_view_with_style`] and [`add_profile_view_with_bands`]
+/// combined, but without the profile label groups the drawing's default
+/// profile label set stamps for every shown profile. A new drawing's view
+/// gets them (the default set labels every profile); a rebuild of a
+/// drawing whose oracle carries no `AeccDbVAlignment{PVI,Line,Crest,Sag}
+/// Curve/Line}Labeling` objects must not (packet C's C-3: sixteen default
+/// groups the oracle does not carry). The bands keep their label groups.
+#[allow(clippy::too_many_arguments)]
+pub fn add_profile_view_without_profile_label_groups(doc: &mut CadDocument, alignment: Handle, name: &str, origin: Vector2, style: Option<Handle>, stations: Option<(f64, f64)>, elevations: Option<(f64, f64)>, bands: &[ProfileViewBand], layer: Option<&str>) -> Result<Handle, DxfError> {
+    add_view(doc, alignment, name, origin, style, stations, elevations, bands, layer, false)
 }
 
 #[allow(clippy::too_many_arguments)]
-fn add_view(doc: &mut CadDocument, alignment: Handle, name: &str, origin: Vector2, style: Option<Handle>, stations: Option<(f64, f64)>, elevations: Option<(f64, f64)>, bands: &[ProfileViewBand], layer: Option<&str>) -> Result<Handle, DxfError> {
+fn add_view(doc: &mut CadDocument, alignment: Handle, name: &str, origin: Vector2, style: Option<Handle>, stations: Option<(f64, f64)>, elevations: Option<(f64, f64)>, bands: &[ProfileViewBand], layer: Option<&str>, stamp_profile_labels: bool) -> Result<Handle, DxfError> {
     // A geometry band item holds the band's number in four bits.
     if bands.len() > 15 {
         return Err(invalid("a profile view holds at most 15 bands"));
@@ -1025,11 +1037,13 @@ fn add_view(doc: &mut CadDocument, alignment: Handle, name: &str, origin: Vector
     let common = |handle: Handle| EntityCommon { handle, owner_handle: owner, layer: layer.into(), layer_handle: Some(layer_handle), ..EntityCommon::default() };
     let handle = doc.allocate_handle();
     let mut groups = Vec::new();
-    if let Some(styles) = &label_styles {
-        for (p, ids) in list.iter().zip(&labels) {
-            for (kind, ids) in Group::ALL.into_iter().zip(ids) {
-                if let Some(s) = styles.get(kind.style_index()).copied().filter(|s| *s != 0) {
-                    groups.push((doc.allocate_handle(), kind, ids.clone(), p.handle, s));
+    if stamp_profile_labels {
+        if let Some(styles) = &label_styles {
+            for (p, ids) in list.iter().zip(&labels) {
+                for (kind, ids) in Group::ALL.into_iter().zip(ids) {
+                    if let Some(s) = styles.get(kind.style_index()).copied().filter(|s| *s != 0) {
+                        groups.push((doc.allocate_handle(), kind, ids.clone(), p.handle, s));
+                    }
                 }
             }
         }
