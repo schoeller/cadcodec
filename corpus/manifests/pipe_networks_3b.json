@@ -1,4 +1,5 @@
 {
+  "source": "/mnt/c/Program Files/Autodesk/AutoCAD 2027/C3D/Help/Civil Tutorials/Drawings/Pipe Networks-3B.dwg",
   "codec_census": {
     "AECC_CSVGRID": 1,
     "AECC_GRAPH_PROFILE_NETWORK_PART": 19,
@@ -24,6 +25,7 @@
     "AeccDbSurfaceTin": 3,
     "AeccDbVAlignment": 2
   },
+  "mcp_census": null,
   "doc_census": {
     "AECC_CSVGRID": 1,
     "AECC_GRAPH_PROFILE_NETWORK_PART": 19,
@@ -55,10 +57,595 @@
     "AeccDbSurfaceTin": 3,
     "AeccDbVAlignment": 2
   },
+  "object_census": {
+    "AECC_ALIGNMENT_DESIGN_CHECK_SET": 2,
+    "AECC_ALIGNMENT_LABEL_SET": 2,
+    "AECC_ALIGNMENT_PARCEL_NODE": 1,
+    "AECC_ALIGNMENT_STYLE": 2,
+    "AECC_APPURTENANCE_STYLE": 2,
+    "AECC_ASSEMBLY_STYLE": 2,
+    "AECC_BRIDGE_PROJECTION_LABEL_SET": 2,
+    "AECC_BRIDGE_PROJECTION_STYLE": 2,
+    "AECC_BUILDING_SITE_STYLE": 2,
+    "AECC_CANT_DIAGRAM_VIEW_STYLE": 2,
+    "AECC_CATCHMENT_STYLE": 2,
+    "AECC_CLASS_FOLDER_NODE": 12,
+    "AECC_CLASS_NODE": 230,
+    "AECC_CONTOURVIEW": 1,
+    "AECC_CORRIDOR_STYLE": 2,
+    "AECC_DB_FIXED_ARC_HLPT": 2,
+    "AECC_DB_FIXED_PARABOLA_HLPT": 2,
+    "AECC_DB_FIXED_PARABOLA_HLPTPATSPEAK": 2,
+    "AECC_DB_FLOAT_TANGENT_GRADELEN": 2,
+    "AECC_DISP_REP_ALIGNMENT": 1,
+    "AECC_DISP_REP_ALIGNMENT_CANT_INFO_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_CANT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_CSV": 1,
+    "AECC_DISP_REP_ALIGNMENT_CURVE_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_DESIGNSPEED_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_GEOMPT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_INDEXED_PI_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_PI_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_PI_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_SPIRAL_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_STAEQU_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_STATION_OFFSET_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_SUPERELEVATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_ALIGNMENT_TABLE": 1,
+    "AECC_DISP_REP_ALIGNMENT_TANGENT_LABEL": 1,
+    "AECC_DISP_REP_ALIGNMENT_VERTICAL_GEOMPT_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE": 1,
+    "AECC_DISP_REP_APPURTENANCE_CSV": 1,
+    "AECC_DISP_REP_APPURTENANCE_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_APPURTENANCE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_ASSEMBLY": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_CSV": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_AUTO_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_ABUTMENT_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_DECK": 1,
+    "AECC_DISP_REP_BRIDGE_DECK_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_DECK_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_FEATURE": 1,
+    "AECC_DISP_REP_BRIDGE_FEATURE_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_FOUNDATION_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_GENERICOBJ_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_GIRDER_GROUP_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_GRIDER_LABELING": 1,
+    "AECC_DISP_REP_BRIDGE_PIER": 1,
+    "AECC_DISP_REP_BRIDGE_PIER_FROFILE": 1,
+    "AECC_DISP_REP_BRIDGE_PIER_LABELING": 1,
+    "AECC_DISP_REP_BUILDINGSITE": 1,
+    "AECC_DISP_REP_BUILDINGUTIL_CONNECTOR": 1,
+    "AECC_DISP_REP_CANT_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_CANT_DIAGRAM_VIEW": 1,
+    "AECC_DISP_REP_CATCHMENT_AREA": 1,
+    "AECC_DISP_REP_CATCHMENT_AREA_LABEL": 1,
+    "AECC_DISP_REP_COGO_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_CORRIDOR": 1,
+    "AECC_DISP_REP_CROSSING_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_CROSSING_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_CSVSTATIONSLIDER": 1,
+    "AECC_DISP_REP_CURVE_TABLE": 1,
+    "AECC_DISP_REP_DISTANCE_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_FACE": 1,
+    "AECC_DISP_REP_FEATURE": 1,
+    "AECC_DISP_REP_FEATURE_LABEL": 1,
+    "AECC_DISP_REP_FEATURE_LINE": 1,
+    "AECC_DISP_REP_FEATURE_LINE_CSV": 1,
+    "AECC_DISP_REP_FEATURE_LINE_PROFILE": 1,
+    "AECC_DISP_REP_FEATURE_LINE_SECTION": 1,
+    "AECC_DISP_REP_FITTING": 1,
+    "AECC_DISP_REP_FITTING_CSV": 1,
+    "AECC_DISP_REP_FITTING_LABELING": 1,
+    "AECC_DISP_REP_FITTING_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_FITTING_SECTION_LABELING": 1,
+    "AECC_DISP_REP_FLOW_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_GENERAL_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_GRADING": 1,
+    "AECC_DISP_REP_GRAPH": 1,
+    "AECC_DISP_REP_GRAPHPROFILE_NETWORKPART": 1,
+    "AECC_DISP_REP_GRAPHPROFILE_PRESSUREPART": 1,
+    "AECC_DISP_REP_GRAPHPROFILE_TURNOUT": 1,
+    "AECC_DISP_REP_GRID_SURFACE": 1,
+    "AECC_DISP_REP_GRID_SURFACE_CSV": 1,
+    "AECC_DISP_REP_HORGEOMETRY_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_HYDRO_REGION": 1,
+    "AECC_DISP_REP_INTERFERENCE_CHECK": 1,
+    "AECC_DISP_REP_INTERFERENCE_PART": 1,
+    "AECC_DISP_REP_INTERFERENCE_PART_SECTION": 1,
+    "AECC_DISP_REP_INTERSECTION": 1,
+    "AECC_DISP_REP_INTERSECTION_LOCATION_LABELING": 1,
+    "AECC_DISP_REP_LABELING": 1,
+    "AECC_DISP_REP_LEGEND_TABLE": 1,
+    "AECC_DISP_REP_LINE_BETWEEN_POINTS_LABEL": 1,
+    "AECC_DISP_REP_LINE_TABLE": 1,
+    "AECC_DISP_REP_LOTLINE_CSV": 1,
+    "AECC_DISP_REP_MASSHAULLINE": 1,
+    "AECC_DISP_REP_MASS_HAUL_VIEW": 1,
+    "AECC_DISP_REP_MATCHLINE_LABELING": 1,
+    "AECC_DISP_REP_MATCH_LINE": 1,
+    "AECC_DISP_REP_MATERIAL_SECTION": 1,
+    "AECC_DISP_REP_NETWORK": 1,
+    "AECC_DISP_REP_NOTE_LABEL": 1,
+    "AECC_DISP_REP_OFFSET_ELEV_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_BOUNDARY": 1,
+    "AECC_DISP_REP_PARCEL_FACE_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_PARCEL_SEGMENT_TABLE": 1,
+    "AECC_DISP_REP_PARCEL_TABLE": 1,
+    "AECC_DISP_REP_PIPE": 1,
+    "AECC_DISP_REP_PIPENETWORK_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PIPE_CSV": 1,
+    "AECC_DISP_REP_PIPE_LABELING": 1,
+    "AECC_DISP_REP_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_PIPE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_PIPE_TABLE": 1,
+    "AECC_DISP_REP_POINT_ENT": 1,
+    "AECC_DISP_REP_POINT_GROUP": 1,
+    "AECC_DISP_REP_POINT_TABLE": 1,
+    "AECC_DISP_REP_PRESSURENETWORK_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PRESSUREPIPENETWORK": 1,
+    "AECC_DISP_REP_PRESSURE_PART_TABLE": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_CSV": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_LABELING": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_PRESSURE_PIPE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_PROFILE": 1,
+    "AECC_DISP_REP_PROFILEDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_PROFILE_CROSSING": 1,
+    "AECC_DISP_REP_PROFILE_CROSSING_LABEL": 1,
+    "AECC_DISP_REP_PROFILE_PROJECTION": 1,
+    "AECC_DISP_REP_PROFILE_PROJECTION_LABEL": 1,
+    "AECC_DISP_REP_PROFILE_VIEW": 1,
+    "AECC_DISP_REP_PROFILE_VIEW_DEPTH_LABEL": 1,
+    "AECC_DISP_REP_QUANTITY_TAKEOFF_AGGREGATE_EARTHWORK_TABLE": 1,
+    "AECC_DISP_REP_REHAB_NOTE_LABEL": 1,
+    "AECC_DISP_REP_REHAB_WARNING_MARKER": 1,
+    "AECC_DISP_REP_RIGHT_OF_WAY": 1,
+    "AECC_DISP_REP_SAMPLELINE_LABELING": 1,
+    "AECC_DISP_REP_SAMPLE_LINE": 1,
+    "AECC_DISP_REP_SAMPLE_LINE_GROUP": 1,
+    "AECC_DISP_REP_SECTION": 1,
+    "AECC_DISP_REP_SECTIONALDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTIONDATA_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTIONSEGMENT_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_CORRIDOR": 1,
+    "AECC_DISP_REP_SECTION_CORRIDOR_POINT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_CROSSING_LABEL": 1,
+    "AECC_DISP_REP_SECTION_GRADEBREAK_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_MINOR_OFFSET_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_OFFSET_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_PIPENETWORK": 1,
+    "AECC_DISP_REP_SECTION_PRESSUREPIPENETWORK": 1,
+    "AECC_DISP_REP_SECTION_PROJECTION": 1,
+    "AECC_DISP_REP_SECTION_PROJECTION_LABEL": 1,
+    "AECC_DISP_REP_SECTION_SEGMENT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SECTION_VIEW": 1,
+    "AECC_DISP_REP_SECTION_VIEW_DEPTH_LABEL": 1,
+    "AECC_DISP_REP_SECTION_VIEW_QUANTITY_TAKEOFF_TABLE": 1,
+    "AECC_DISP_REP_SHEET": 1,
+    "AECC_DISP_REP_SPANNING_PIPE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_LABELING": 1,
+    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_SPEED_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_STATION_ELEV_LABEL": 1,
+    "AECC_DISP_REP_STRUCTURE": 1,
+    "AECC_DISP_REP_STRUCTURE_CSV": 1,
+    "AECC_DISP_REP_STRUCTURE_LABELING": 1,
+    "AECC_DISP_REP_STRUCTURE_PROFILE_LABELING": 1,
+    "AECC_DISP_REP_STRUCTURE_SECTION_LABELING": 1,
+    "AECC_DISP_REP_SUBASSEMBLY": 1,
+    "AECC_DISP_REP_SUPERELEVATION_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SUPERELEVATION_DIAGRAM_VIEW": 1,
+    "AECC_DISP_REP_SURFACE_CONTOUR_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SURFACE_ELEVATION_LABEL": 1,
+    "AECC_DISP_REP_SURFACE_SLOPE_LABEL": 1,
+    "AECC_DISP_REP_SURVEY_FIGURE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_SVFIGURE": 1,
+    "AECC_DISP_REP_SVFIGURE_CSV": 1,
+    "AECC_DISP_REP_SVFIGURE_PROFILE": 1,
+    "AECC_DISP_REP_SVFIGURE_SECTION": 1,
+    "AECC_DISP_REP_SVFIGURE_SEGMENT_LABEL": 1,
+    "AECC_DISP_REP_SVNETWORK": 1,
+    "AECC_DISP_REP_TANGENT_INTERSECTION_TABLE": 1,
+    "AECC_DISP_REP_TIN_SURFACE": 1,
+    "AECC_DISP_REP_TIN_SURFACE_CSV": 1,
+    "AECC_DISP_REP_TURNOUT": 1,
+    "AECC_DISP_REP_TURNOUT_CRITICALPOINTS_LABELING": 1,
+    "AECC_DISP_REP_TURNOUT_CRITICALPOINTS_LABEL_PROFILE": 1,
+    "AECC_DISP_REP_TURNOUT_DIMENSION_LABEL_PLAN": 1,
+    "AECC_DISP_REP_TURNOUT_DIMENSION_LABEL_PROFILE": 1,
+    "AECC_DISP_REP_TURNOUT_LABELING": 1,
+    "AECC_DISP_REP_TURNOUT_LABELING_PROFILE": 1,
+    "AECC_DISP_REP_VALIGNMENT_CRESTCURVE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_CSV": 1,
+    "AECC_DISP_REP_VALIGNMENT_HAGEOMPT_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_LINE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_PVI_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_SAGCURVE_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VALIGNMENT_STATION_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VERTICALGEOMETRY_BAND_LABEL_GROUP": 1,
+    "AECC_DISP_REP_VIEWFRAME_LABELING": 1,
+    "AECC_DISP_REP_VIEW_FRAME": 1,
+    "AECC_ENTITYCIRCLEINFOS": 2,
+    "AECC_ENTITYEXTENDPARAM": 2,
+    "AECC_EXTRAPOLATE_SURFACE_OP_OBJECT": 3,
+    "AECC_FEATURELINE_STYLE": 5,
+    "AECC_FEATURE_STYLE": 4,
+    "AECC_FITTING_STYLE": 2,
+    "AECC_FORMAT_MANAGER_OBJECT": 18,
+    "AECC_GRADEVIEW": 1,
+    "AECC_GRADING_CRITERIA": 2,
+    "AECC_GRADING_CRITERIA_SET": 2,
+    "AECC_GRADING_GROUP": 1,
+    "AECC_GRADING_STYLE": 2,
+    "AECC_IMPORT_STORM_SEWER_DEFAULTS": 2,
+    "AECC_INTERFERENCE_STYLE": 2,
+    "AECC_INTERSECTION_STYLE": 2,
+    "AECC_LABEL_BLOCK_STYLE": 5,
+    "AECC_LABEL_COLLECTOR_STYLE": 397,
+    "AECC_LABEL_NODE": 1,
+    "AECC_LABEL_RADIAL_LINE_STYLE": 38,
+    "AECC_LABEL_TEXT_ITERATOR_CURVE_OR_SPIRAL_STYLE": 3,
+    "AECC_LABEL_TEXT_ITERATOR_STYLE": 1,
+    "AECC_LABEL_TEXT_STYLE": 278,
+    "AECC_LABEL_TICK_STYLE": 4,
+    "AECC_LABEL_VECTOR_ARROW_STYLE": 5,
+    "AECC_LEGEND_TABLE_STYLE": 14,
+    "AECC_MASS_HAUL_LINE_STYLE": 2,
+    "AECC_MASS_HAUL_VIEW_STYLE": 2,
+    "AECC_MATCHLINE_STYLE": 3,
+    "AECC_MATERIAL_STYLE": 3,
+    "AECC_NAME_TEMPLATES_NODE": 6,
+    "AECC_NAME_TEMPLATES_ROOT": 1,
+    "AECC_NETWORK_PART_CATALOG_DEF_NODE": 1,
+    "AECC_NETWORK_PART_DEF": 10,
+    "AECC_NETWORK_PART_FAMILY_ITEM": 19,
+    "AECC_NETWORK_PART_LIST": 1,
+    "AECC_NETWORK_RULE": 12,
+    "AECC_NOTIFICATIONINFOS": 2,
+    "AECC_PARCEL_NODE": 1,
+    "AECC_PARCEL_STYLE": 2,
+    "AECC_PART_PROPERTY_MAPPINGS": 1,
+    "AECC_PART_SIZE_FILTER": 27,
+    "AECC_PIPE_RULES": 2,
+    "AECC_PIPE_STYLE": 3,
+    "AECC_POINTCLOUD_STYLE": 2,
+    "AECC_POINTVIEW": 1,
+    "AECC_POINT_STYLE": 2,
+    "AECC_PRESSURE_PART_LIST": 2,
+    "AECC_PRESSURE_PIPE_STYLE": 2,
+    "AECC_PROFILESECTIONENTITY_STYLE": 2,
+    "AECC_PROFILE_DESIGN_CHECK_SET": 2,
+    "AECC_PROFILE_LABEL_SET": 2,
+    "AECC_PROFILE_STYLE": 3,
+    "AECC_PROFILE_VIEW_BAND_STYLE_SET": 2,
+    "AECC_PROFILE_VIEW_CANT_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_COGO_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_DATA_BAND_STYLE": 3,
+    "AECC_PROFILE_VIEW_DISTANCE_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_HORIZONTAL_GEOMETRY_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_PIPE_NETWORK_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_PRESSURE_NETWORK_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_SECTIONAL_DATA_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_SPEED_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_STYLE": 6,
+    "AECC_PROFILE_VIEW_SUPERELEVATION_DIAGRAM_BAND_STYLE": 2,
+    "AECC_PROFILE_VIEW_VERTICAL_GEOMETRY_BAND_STYLE": 2,
+    "AECC_QUANTITY_TAKEOFF_CRITERIA": 2,
+    "AECC_REFERENCED_ITEM_HOST": 7,
+    "AECC_REFERENCED_STYLE_CACHE": 1,
+    "AECC_REFERENCED_STYLE_INFO_HOST": 1,
+    "AECC_REFERENCED_STYLE_INFO_INDEX": 1,
+    "AECC_REFERENCED_TEMPLATE_HOST": 1,
+    "AECC_REFERENCED_TEMPLATE_RECORD_LIST": 1,
+    "AECC_ROADWAYLINK_STYLE": 16,
+    "AECC_ROADWAYMARKER_STYLE": 34,
+    "AECC_ROADWAYSHAPE_STYLE": 11,
+    "AECC_ROADWAY_STYLE_SET": 2,
+    "AECC_ROOT_SETTINGS_NODE": 1,
+    "AECC_SAMPLE_LINE_GROUP_STYLE": 2,
+    "AECC_SAMPLE_LINE_STYLE": 2,
+    "AECC_SECTION_LABEL_SET": 3,
+    "AECC_SECTION_STYLE": 4,
+    "AECC_SECTION_VIEW_BAND_STYLE_SET": 2,
+    "AECC_SECTION_VIEW_DATA_BAND_STYLE": 2,
+    "AECC_SECTION_VIEW_ROAD_SURFACE_BAND_STYLE": 2,
+    "AECC_SECTION_VIEW_STYLE": 3,
+    "AECC_SETTINGS_NODE": 1519,
+    "AECC_SHEET_STYLE": 2,
+    "AECC_SLOPE_PATTERN_STYLE": 2,
+    "AECC_STRUCTURE_RULES": 2,
+    "AECC_STUCTURE_STYLE": 2,
+    "AECC_SUBASSEMBLY_STYLE": 2,
+    "AECC_SUPERELEVATION_DIAGRAM_VIEW_STYLE": 2,
+    "AECC_SURFACE_STYLE": 4,
+    "AECC_SVFIGURE_STYLE": 2,
+    "AECC_SVNETWORK_STYLE": 2,
+    "AECC_TABLE_STYLE": 36,
+    "AECC_TAG_MANAGER": 1,
+    "AECC_TREE_NODE": 5,
+    "AECC_TURNOUT_LABEL_SET": 2,
+    "AECC_TURNOUT_STYLE": 2,
+    "AECC_USER_DEFINED_ATTRIBUTE_CLASSIFICATION": 231,
+    "AECC_VALIGNMENT_STYLE_EXTENSION": 3,
+    "AECC_VIEW_FRAME_STYLE": 3,
+    "AECS_DISP_PROPS_MEMBER": 2,
+    "AECS_DISP_PROPS_MEMBER_LOGICAL": 1,
+    "AECS_DISP_PROPS_MEMBER_PLAN": 2,
+    "AECS_DISP_PROPS_MEMBER_PLAN_SKETCH": 1,
+    "AECS_DISP_PROPS_MEMBER_PROJECTED": 2,
+    "AECS_DISP_REP_MEMBER_ELEVATION_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_ELEVATION_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_LOGICAL": 1,
+    "AECS_DISP_REP_MEMBER_MODEL_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_MODEL_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_DESIGN": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_DETAIL": 1,
+    "AECS_DISP_REP_MEMBER_PLAN_SKETCH": 1,
+    "AEC_AECDBDISPREPBDGELEVLINEPLAN100": 1,
+    "AEC_AECDBDISPREPBDGELEVLINEPLAN50": 1,
+    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN100": 1,
+    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN50": 1,
+    "AEC_AECDBDISPREPCEILINGGRIDPLAN100": 1,
+    "AEC_AECDBDISPREPCEILINGGRIDPLAN50": 1,
+    "AEC_AECDBDISPREPCOLUMNGRIDPLAN100": 1,
+    "AEC_AECDBDISPREPCOLUMNGRIDPLAN50": 1,
+    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN100": 1,
+    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN50": 1,
+    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN100": 1,
+    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN50": 1,
+    "AEC_AECDBDISPREPMVBLOCKREFPLAN100": 1,
+    "AEC_AECDBDISPREPMVBLOCKREFPLAN50": 1,
+    "AEC_AECDBDISPREPROOFPLAN100": 1,
+    "AEC_AECDBDISPREPROOFPLAN50": 1,
+    "AEC_AECDBDISPREPROOFSLABPLAN100": 1,
+    "AEC_AECDBDISPREPROOFSLABPLAN50": 1,
+    "AEC_AECDBDISPREPSLABPLAN100": 1,
+    "AEC_AECDBDISPREPSLABPLAN50": 1,
+    "AEC_AECDBDISPREPSPACEPLAN100": 1,
+    "AEC_AECDBDISPREPSPACEPLAN50": 1,
+    "AEC_AECDBDISPREPWALLPLAN100": 1,
+    "AEC_AECDBDISPREPWALLPLAN50": 1,
+    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN100": 1,
+    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN50": 1,
+    "AEC_AECDBDISPREPZONE100": 1,
+    "AEC_AECDBDISPREPZONE50": 1,
+    "AEC_CVSECTIONVIEW": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN100": 1,
+    "AEC_DB_DISP_REP_DIM_GROUP_PLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLAN100": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLAN50": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGPLANREFLECTED": 1,
+    "AEC_DISPREPAECDBDISPREPOPENINGSILLPLAN": 1,
+    "AEC_DISPROPSMASSELEMPLANCOMMON": 2,
+    "AEC_DISPROPSMASSGROUPPLANCOMMON": 2,
+    "AEC_DISPROPSOPENINGPLANCOMMON": 1,
+    "AEC_DISPROPSOPENINGPLANCOMMONHATCHED": 2,
+    "AEC_DISPROPSOPENINGSILLPLAN": 1,
+    "AEC_DISP_PROPS_2D_SECTION": 1,
+    "AEC_DISP_PROPS_CLIP_VOLUME": 12,
+    "AEC_DISP_PROPS_CLIP_VOLUME_RESULT": 2,
+    "AEC_DISP_PROPS_DIM": 3,
+    "AEC_DISP_PROPS_DISPLAYTHEME": 1,
+    "AEC_DISP_PROPS_DOOR": 4,
+    "AEC_DISP_PROPS_DOOR_NOMINAL": 1,
+    "AEC_DISP_PROPS_DOOR_PLAN_100": 1,
+    "AEC_DISP_PROPS_DOOR_PLAN_50": 1,
+    "AEC_DISP_PROPS_DOOR_THRESHOLD_PLAN": 1,
+    "AEC_DISP_PROPS_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
+    "AEC_DISP_PROPS_EDITINPLACEPROFILE_MODEL": 1,
+    "AEC_DISP_PROPS_ENT": 7,
+    "AEC_DISP_PROPS_ENT_REF": 1,
+    "AEC_DISP_PROPS_GRID_ASSEMBLY_MODEL": 3,
+    "AEC_DISP_PROPS_GRID_ASSEMBLY_PLAN": 9,
+    "AEC_DISP_PROPS_LAYOUT_CURVE": 1,
+    "AEC_DISP_PROPS_LAYOUT_GRID2D": 11,
+    "AEC_DISP_PROPS_LAYOUT_GRID3D": 1,
+    "AEC_DISP_PROPS_MASKBLOCK": 2,
+    "AEC_DISP_PROPS_MASS_ELEM_MODEL": 3,
+    "AEC_DISP_PROPS_MASS_GROUP": 3,
+    "AEC_DISP_PROPS_MATERIAL": 1,
+    "AEC_DISP_PROPS_OPENING": 2,
+    "AEC_DISP_PROPS_POLYGON_MODEL": 1,
+    "AEC_DISP_PROPS_POLYGON_TRUECOLOUR": 1,
+    "AEC_DISP_PROPS_RAILING_MODEL": 1,
+    "AEC_DISP_PROPS_RAILING_PLAN": 1,
+    "AEC_DISP_PROPS_ROOF": 5,
+    "AEC_DISP_PROPS_ROOFSLAB": 1,
+    "AEC_DISP_PROPS_ROOFSLAB_PLAN": 3,
+    "AEC_DISP_PROPS_SCHEDULE_TABLE": 1,
+    "AEC_DISP_PROPS_SLAB": 1,
+    "AEC_DISP_PROPS_SLAB_PLAN": 3,
+    "AEC_DISP_PROPS_SLICE": 1,
+    "AEC_DISP_PROPS_SPACE_DECOMPOSED": 1,
+    "AEC_DISP_PROPS_SPACE_MODEL": 1,
+    "AEC_DISP_PROPS_SPACE_PLAN": 4,
+    "AEC_DISP_PROPS_STAIR_MODEL": 1,
+    "AEC_DISP_PROPS_STAIR_PLAN": 2,
+    "AEC_DISP_PROPS_STAIR_PLAN_OVERLAPPING": 1,
+    "AEC_DISP_PROPS_WALL_GRAPH": 1,
+    "AEC_DISP_PROPS_WALL_MODEL": 1,
+    "AEC_DISP_PROPS_WALL_PLAN": 4,
+    "AEC_DISP_PROPS_WALL_SCHEM": 1,
+    "AEC_DISP_PROPS_WINDOW": 4,
+    "AEC_DISP_PROPS_WINDOW_ASSEMBLY_SILL_PLAN": 1,
+    "AEC_DISP_PROPS_WINDOW_NOMINAL": 1,
+    "AEC_DISP_PROPS_WINDOW_PLAN_100": 1,
+    "AEC_DISP_PROPS_WINDOW_PLAN_50": 1,
+    "AEC_DISP_PROPS_WINDOW_SILL_PLAN": 1,
+    "AEC_DISP_PROPS_ZONE": 3,
+    "AEC_DISP_REP_2D_SECTION": 1,
+    "AEC_DISP_REP_ANCHOR": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_MODEL": 1,
+    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_RCP": 1,
+    "AEC_DISP_REP_ANCHOR_ENT_TO_NODE": 1,
+    "AEC_DISP_REP_ANCHOR_EXT_TAG_TO_ENT": 1,
+    "AEC_DISP_REP_ANCHOR_TAG_TO_ENT": 1,
+    "AEC_DISP_REP_BDG_ELEVLINE_MODEL": 1,
+    "AEC_DISP_REP_BDG_ELEVLINE_RCP": 1,
+    "AEC_DISP_REP_BDG_SECTIONLINE_MODEL": 1,
+    "AEC_DISP_REP_BDG_SECTIONLINE_PLAN": 2,
+    "AEC_DISP_REP_BDG_SECTIONLINE_RCP": 1,
+    "AEC_DISP_REP_BDG_SECTION_MODEL": 1,
+    "AEC_DISP_REP_BDG_SECTION_SUBDIV": 1,
+    "AEC_DISP_REP_CEILING_GRID": 1,
+    "AEC_DISP_REP_CEILING_GRID_MODEL": 1,
+    "AEC_DISP_REP_CEILING_GRID_RCP": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_MODEL": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_PLAN": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_RESULT": 1,
+    "AEC_DISP_REP_CLIP_VOLUME_RESULT_SUBDIV": 1,
+    "AEC_DISP_REP_COLUMN_GRID": 1,
+    "AEC_DISP_REP_COLUMN_GRID_MODEL": 1,
+    "AEC_DISP_REP_COLUMN_GRID_RCP": 1,
+    "AEC_DISP_REP_COL_BLOCK": 1,
+    "AEC_DISP_REP_COL_CIRCARC2D": 1,
+    "AEC_DISP_REP_COL_CONCOINCIDENT": 1,
+    "AEC_DISP_REP_COL_CONCONCENTRIC": 1,
+    "AEC_DISP_REP_COL_CONEQUALDISTANCE": 1,
+    "AEC_DISP_REP_COL_CONMIDPOINT": 1,
+    "AEC_DISP_REP_COL_CONNECTOR": 1,
+    "AEC_DISP_REP_COL_CONNORMAL": 1,
+    "AEC_DISP_REP_COL_CONPARALLEL": 1,
+    "AEC_DISP_REP_COL_CONPERPENDICULAR": 1,
+    "AEC_DISP_REP_COL_CONSYMMETRIC": 1,
+    "AEC_DISP_REP_COL_CONTANGENT": 1,
+    "AEC_DISP_REP_COL_DIMANGLE": 1,
+    "AEC_DISP_REP_COL_DIMDIAMETER": 1,
+    "AEC_DISP_REP_COL_DIMDISTANCE": 1,
+    "AEC_DISP_REP_COL_DIMLENGTH": 1,
+    "AEC_DISP_REP_COL_DIMMAJORRADIUS": 1,
+    "AEC_DISP_REP_COL_DIMMINORRADIUS": 1,
+    "AEC_DISP_REP_COL_ELLIPARC2D": 1,
+    "AEC_DISP_REP_COL_LAYOUTDATA": 1,
+    "AEC_DISP_REP_COL_LINE2D": 1,
+    "AEC_DISP_REP_COL_MODIFIER_ADD": 1,
+    "AEC_DISP_REP_COL_MODIFIER_CUTPLANE": 1,
+    "AEC_DISP_REP_COL_MODIFIER_EXTRUSION": 1,
+    "AEC_DISP_REP_COL_MODIFIER_GROUP": 1,
+    "AEC_DISP_REP_COL_MODIFIER_PATH": 1,
+    "AEC_DISP_REP_COL_MODIFIER_SUBTRACT": 1,
+    "AEC_DISP_REP_COL_MODIFIER_TRANSITION": 1,
+    "AEC_DISP_REP_COL_POINT2D": 1,
+    "AEC_DISP_REP_COL_PROFILE": 1,
+    "AEC_DISP_REP_COL_WORKPLANE": 1,
+    "AEC_DISP_REP_COL_WORKPLANE_REF": 1,
+    "AEC_DISP_REP_CONFIG": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_MODEL": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_PLAN": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_UNIT_MODEL": 1,
+    "AEC_DISP_REP_CURTAIN_WALL_UNIT_PLAN": 1,
+    "AEC_DISP_REP_DCM_DIMRADIUS": 1,
+    "AEC_DISP_REP_DISPLAYTHEME": 1,
+    "AEC_DISP_REP_DOOR_ELEV": 1,
+    "AEC_DISP_REP_DOOR_MODEL": 1,
+    "AEC_DISP_REP_DOOR_NOMINAL": 1,
+    "AEC_DISP_REP_DOOR_PLAN": 1,
+    "AEC_DISP_REP_DOOR_PLAN_50": 1,
+    "AEC_DISP_REP_DOOR_PLAN_HEKTO": 1,
+    "AEC_DISP_REP_DOOR_RCP": 1,
+    "AEC_DISP_REP_DOOR_THRESHOLD_PLAN": 1,
+    "AEC_DISP_REP_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
+    "AEC_DISP_REP_EDITINPLACEPROFILE": 1,
+    "AEC_DISP_REP_ENT_REF": 1,
+    "AEC_DISP_REP_LAYOUT_CURVE": 1,
+    "AEC_DISP_REP_LAYOUT_GRID2D": 1,
+    "AEC_DISP_REP_LAYOUT_GRID3D": 1,
+    "AEC_DISP_REP_MASKBLOCK_REF": 1,
+    "AEC_DISP_REP_MASKBLOCK_REF_RCP": 1,
+    "AEC_DISP_REP_MASS_ELEM_MODEL": 1,
+    "AEC_DISP_REP_MASS_ELEM_RCP": 1,
+    "AEC_DISP_REP_MASS_ELEM_SCHEM": 1,
+    "AEC_DISP_REP_MASS_GROUP_MODEL": 1,
+    "AEC_DISP_REP_MASS_GROUP_PLAN": 1,
+    "AEC_DISP_REP_MASS_GROUP_RCP": 1,
+    "AEC_DISP_REP_MATERIAL": 1,
+    "AEC_DISP_REP_MVBLOCK_REF": 1,
+    "AEC_DISP_REP_MVBLOCK_REF_MODEL": 1,
+    "AEC_DISP_REP_MVBLOCK_REF_RCP": 1,
+    "AEC_DISP_REP_OPENING": 1,
+    "AEC_DISP_REP_OPENING_MODEL": 1,
+    "AEC_DISP_REP_POLYGON_MODEL": 1,
+    "AEC_DISP_REP_POLYGON_TRUECOLOUR": 1,
+    "AEC_DISP_REP_RAILING_MODEL": 1,
+    "AEC_DISP_REP_RAILING_PLAN": 1,
+    "AEC_DISP_REP_RAILING_PLAN_100": 1,
+    "AEC_DISP_REP_RAILING_PLAN_50": 1,
+    "AEC_DISP_REP_ROOFSLAB_MODEL": 1,
+    "AEC_DISP_REP_ROOFSLAB_PLAN": 1,
+    "AEC_DISP_REP_ROOF_MODEL": 1,
+    "AEC_DISP_REP_ROOF_PLAN": 1,
+    "AEC_DISP_REP_ROOF_RCP": 1,
+    "AEC_DISP_REP_SCHEDULE_TABLE": 1,
+    "AEC_DISP_REP_SET": 8,
+    "AEC_DISP_REP_SLAB_MODEL": 1,
+    "AEC_DISP_REP_SLAB_PLAN": 1,
+    "AEC_DISP_REP_SLICE": 1,
+    "AEC_DISP_REP_SPACE_DECOMPOSED": 1,
+    "AEC_DISP_REP_SPACE_MODEL": 1,
+    "AEC_DISP_REP_SPACE_PLAN": 1,
+    "AEC_DISP_REP_SPACE_RCP": 1,
+    "AEC_DISP_REP_SPACE_VOLUME": 1,
+    "AEC_DISP_REP_STAIR_MODEL": 1,
+    "AEC_DISP_REP_STAIR_PLAN": 1,
+    "AEC_DISP_REP_STAIR_PLAN_100": 1,
+    "AEC_DISP_REP_STAIR_PLAN_50": 1,
+    "AEC_DISP_REP_STAIR_PLAN_OVERLAPPING": 1,
+    "AEC_DISP_REP_STAIR_RCP": 1,
+    "AEC_DISP_REP_WALL_GRAPH": 1,
+    "AEC_DISP_REP_WALL_MODEL": 1,
+    "AEC_DISP_REP_WALL_PLAN": 1,
+    "AEC_DISP_REP_WALL_RCP": 1,
+    "AEC_DISP_REP_WALL_SCHEM": 1,
+    "AEC_DISP_REP_WINDOWASSEMBLY_SILL_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_ASSEMBLY_MODEL": 1,
+    "AEC_DISP_REP_WINDOW_ASSEMBLY_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_ELEV": 1,
+    "AEC_DISP_REP_WINDOW_MODEL": 1,
+    "AEC_DISP_REP_WINDOW_NOMINAL": 1,
+    "AEC_DISP_REP_WINDOW_PLAN": 1,
+    "AEC_DISP_REP_WINDOW_PLAN_100": 1,
+    "AEC_DISP_REP_WINDOW_PLAN_50": 1,
+    "AEC_DISP_REP_WINDOW_RCP": 1,
+    "AEC_DISP_REP_WINDOW_SILL_PLAN": 1,
+    "AEC_DISP_REP_ZONE": 1,
+    "AEC_DISP_ROPS_RAILING_PLAN_100": 1,
+    "AEC_DISP_ROPS_RAILING_PLAN_50": 1,
+    "AEC_DISP_ROPS_STAIR_PLAN_100": 1,
+    "AEC_DISP_ROPS_STAIR_PLAN_50": 1,
+    "AEC_VARS_DWG_SETUP": 1
+  },
   "families": [
     {
-      "count": 12,
       "family": "structure",
+      "count": 12,
       "items": [
         {
           "key": "ST0",
@@ -183,212 +770,212 @@
       ]
     },
     {
-      "count": 11,
       "family": "pipe",
+      "count": 11,
       "items": [
         {
-          "connects": [
-            "ST0",
-            "ST1"
-          ],
-          "end": [
-            4668.765538337933,
-            4042.3645470901806,
-            643.8116513831129
-          ],
           "key": "PP0",
           "name": "Pipe - (1)",
           "start": [
             4570.421249968968,
             4022.3992881298386,
             647.9360544286053
+          ],
+          "end": [
+            4668.765538337933,
+            4042.3645470901806,
+            643.8116513831129
+          ],
+          "connects": [
+            "ST0",
+            "ST1"
           ]
         },
         {
-          "connects": [
-            "ST1",
-            "ST2"
-          ],
-          "end": [
-            4815.818115651355,
-            4071.954063907463,
-            643.7116513831129
-          ],
           "key": "PP1",
           "name": "Pipe - (2)",
           "start": [
             4668.765538337933,
             4042.3645470901806,
             642.2116513831129
+          ],
+          "end": [
+            4815.818115651355,
+            4071.954063907463,
+            643.7116513831129
+          ],
+          "connects": [
+            "ST1",
+            "ST2"
           ]
         },
         {
-          "connects": [
-            "ST2",
-            "ST3"
-          ],
-          "end": [
-            4962.870692964776,
-            4101.543580724746,
-            647.7980318502398
-          ],
           "key": "PP2",
           "name": "Pipe - (3)",
           "start": [
             4815.818115651355,
             4071.954063907463,
             646.2980318502398
+          ],
+          "end": [
+            4962.870692964776,
+            4101.543580724746,
+            647.7980318502398
+          ],
+          "connects": [
+            "ST2",
+            "ST3"
           ]
         },
         {
-          "connects": [
-            "ST3",
-            "ST4"
-          ],
-          "end": [
-            5102.387128771924,
-            4139.52119520819,
-            647.9820961284314
-          ],
           "key": "PP3",
           "name": "Pipe - (4)",
           "start": [
             4962.870692964776,
             4101.543580724746,
             646.5361661487234
+          ],
+          "end": [
+            5102.387128771924,
+            4139.52119520819,
+            647.9820961284314
+          ],
+          "connects": [
+            "ST3",
+            "ST4"
           ]
         },
         {
-          "connects": [
-            "ST4",
-            "ST5"
-          ],
-          "end": [
-            5139.385478072682,
-            4167.07236365764,
-            647.6659605901601
-          ],
           "key": "PP4",
           "name": "Pipe - (5)",
           "start": [
             5102.387128771924,
             4139.52119520819,
             647.1937137800606
+          ],
+          "end": [
+            5139.385478072682,
+            4167.07236365764,
+            647.6659605901601
+          ],
+          "connects": [
+            "ST4",
+            "ST5"
           ]
         },
         {
-          "connects": [
-            "ST6",
-            "ST2"
-          ],
-          "end": [
-            4815.818115651355,
-            4071.954063907463,
-            648.4399905611149
-          ],
           "key": "PP5",
           "name": "Pipe - (6)",
           "start": [
             4831.53952416904,
             4044.516182899264,
             648.7562183271317
+          ],
+          "end": [
+            4815.818115651355,
+            4071.954063907463,
+            648.4399905611149
+          ],
+          "connects": [
+            "ST6",
+            "ST2"
           ]
         },
         {
-          "connects": [
-            "ST7",
-            "ST3"
-          ],
-          "end": [
-            4962.870692964776,
-            4101.543580724746,
-            654.6831320899083
-          ],
           "key": "PP6",
           "name": "Pipe - (7)",
           "start": [
             4978.592101482462,
             4074.1056997165465,
             654.9993598559251
+          ],
+          "end": [
+            4962.870692964776,
+            4101.543580724746,
+            654.6831320899083
+          ],
+          "connects": [
+            "ST7",
+            "ST3"
           ]
         },
         {
-          "connects": [
-            "ST8",
-            "ST4"
-          ],
-          "end": [
-            5102.387128771924,
-            4139.52119520819,
-            663.6821207027916
-          ],
           "key": "PP7",
           "name": "Pipe - (8)",
           "start": [
             5126.3841124033925,
             4118.940583891431,
             663.9982562410629
+          ],
+          "end": [
+            5102.387128771924,
+            4139.52119520819,
+            663.6821207027916
+          ],
+          "connects": [
+            "ST8",
+            "ST4"
           ]
         },
         {
-          "connects": [
-            "ST9",
-            "ST5"
-          ],
-          "end": [
-            5139.385478072682,
-            4167.07236365764,
-            665.9867403828013
-          ],
           "key": "PP8",
           "name": "Pipe - (9)",
           "start": [
             5167.728178320399,
             4153.068502466938,
             666.3028759210724
+          ],
+          "end": [
+            5139.385478072682,
+            4167.07236365764,
+            665.9867403828013
+          ],
+          "connects": [
+            "ST9",
+            "ST5"
           ]
         },
         {
-          "connects": [
-            "ST10",
-            "ST11"
-          ],
-          "end": [
-            4712.097990975151,
-            4244.396462891583,
-            590.402480616892
-          ],
           "key": "PP9",
           "name": "Pipe - (10)",
           "start": [
             4750.796980786534,
             4424.825461836763,
             588.5571558359177
+          ],
+          "end": [
+            4712.097990975151,
+            4244.396462891583,
+            590.402480616892
+          ],
+          "connects": [
+            "ST10",
+            "ST11"
           ]
         },
         {
-          "connects": [
-            "ST11",
-            "ST1"
-          ],
-          "end": [
-            4668.765538337933,
-            4042.3645470901806,
-            604.7441365657818
-          ],
           "key": "PP10",
           "name": "Pipe - (10) (1)",
           "start": [
             4712.097990975151,
             4244.396462891583,
             602.6778694859022
+          ],
+          "end": [
+            4668.765538337933,
+            4042.3645470901806,
+            604.7441365657818
+          ],
+          "connects": [
+            "ST11",
+            "ST1"
           ]
         }
       ]
     },
     {
-      "count": 1,
       "family": "pipe_network",
+      "count": 1,
       "items": [
         {
           "key": "NET0",
@@ -397,139 +984,133 @@
       ]
     },
     {
-      "count": 1,
       "family": "assembly",
-      "handles": [
-        269
-      ],
+      "count": 1,
       "items": [
         {
           "key": "ASM0",
-          "layer": "C-ROAD-ASSM",
           "name": "ROAD1",
-          "origin": null
+          "origin": null,
+          "layer": "C-ROAD-ASSM"
         }
+      ],
+      "handles": [
+        269
       ],
       "write": false
     },
     {
-      "count": 1,
       "family": "corridor",
+      "count": 1,
       "items": [
         {
-          "complete": false,
+          "key": "COR0",
           "definition": {
-            "baselines": [
-              {
-                "alignment": 0,
-                "built": true,
-                "feature_line": 0,
-                "name": "",
-                "profile": 0,
-                "regions": [
-                  {
-                    "assembly": 0,
-                    "end": 1841.7603350166155,
-                    "frequency": {
-                      "adjacent_to_offset_target_start_end": false,
-                      "along_curves": 25.0,
-                      "along_profile_curves": 10.0,
-                      "along_spirals": 25.0,
-                      "along_tangents": 25.0,
-                      "along_target_curves": 25.0,
-                      "at_horizontal_geometry_points": true,
-                      "at_offset_target_geometry_points": false,
-                      "at_profile_geometry_points": true,
-                      "at_profile_high_low_points": false,
-                      "at_superelevation_critical_points": true,
-                      "curve_mid_ordinate": 0.1,
-                      "curves": "AtIncrement",
-                      "target_curve_mid_ordinate": 0.1,
-                      "target_curves": "None"
-                    },
-                    "name": "",
-                    "start": 0.0,
-                    "targets": [
-                      {
-                        "farthest": false,
-                        "kind": "Surface",
-                        "name": "",
-                        "objects": [
-                          0
-                        ],
-                        "subassembly": 0
-                      },
-                      {
-                        "farthest": false,
-                        "kind": "Surface",
-                        "name": "",
-                        "objects": [
-                          0
-                        ],
-                        "subassembly": 0
-                      },
-                      {
-                        "farthest": false,
-                        "kind": "Surface",
-                        "name": "",
-                        "objects": [
-                          0
-                        ],
-                        "subassembly": 0
-                      }
-                    ]
-                  }
-                ],
-                "stations": []
-              }
-            ],
-            "boundaries": [
-              {
-                "components": 2,
-                "corners": [],
-                "description": "",
-                "kind": 2,
-                "name": "",
-                "surface": ""
-              }
-            ],
+            "name": "",
             "description": "",
+            "rebuild_automatic": false,
             "geometry_lock": false,
             "maximum_triangle_side": 0.0,
-            "name": "",
-            "rebuild_automatic": false,
             "surfaces": [
               {
+                "name": "",
                 "build": true,
-                "feature_line_codes": [],
                 "link_codes": [
                   [
                     "",
                     false
                   ]
                 ],
-                "name": "",
+                "feature_line_codes": [],
                 "overhang_correction": 0
+              }
+            ],
+            "boundaries": [
+              {
+                "surface": "",
+                "name": "",
+                "description": "",
+                "kind": 2,
+                "corners": [],
+                "components": 2
+              }
+            ],
+            "baselines": [
+              {
+                "name": "",
+                "feature_line": 0,
+                "alignment": 0,
+                "profile": 0,
+                "regions": [
+                  {
+                    "name": "",
+                    "assembly": 0,
+                    "start": 0.0,
+                    "end": 1841.7603350166155,
+                    "frequency": {
+                      "along_tangents": 25.0,
+                      "along_curves": 25.0,
+                      "along_spirals": 25.0,
+                      "along_profile_curves": 10.0,
+                      "curves": "AtIncrement",
+                      "curve_mid_ordinate": 0.1,
+                      "at_horizontal_geometry_points": true,
+                      "at_superelevation_critical_points": true,
+                      "at_profile_geometry_points": true,
+                      "at_profile_high_low_points": false,
+                      "at_offset_target_geometry_points": false,
+                      "adjacent_to_offset_target_start_end": false,
+                      "along_target_curves": 25.0,
+                      "target_curves": "None",
+                      "target_curve_mid_ordinate": 0.1
+                    },
+                    "targets": [
+                      {
+                        "subassembly": 0,
+                        "name": "",
+                        "kind": "Surface",
+                        "objects": [
+                          0
+                        ],
+                        "farthest": false
+                      },
+                      {
+                        "subassembly": 0,
+                        "name": "",
+                        "kind": "Surface",
+                        "objects": [
+                          0
+                        ],
+                        "farthest": false
+                      },
+                      {
+                        "subassembly": 0,
+                        "name": "",
+                        "kind": "Surface",
+                        "objects": [
+                          0
+                        ],
+                        "farthest": false
+                      }
+                    ]
+                  }
+                ],
+                "stations": [],
+                "built": true
               }
             ]
           },
-          "key": "COR0"
+          "complete": false
         }
       ],
       "write": false
     },
     {
-      "count": 3,
-      "empty": [],
       "family": "tin_surface",
-      "handles": [
-        255,
-        1579,
-        3059
-      ],
+      "count": 3,
       "items": [
         {
-          "name": "yed",
+          "name": "EG",
           "points": [
             [
               3609.1374,
@@ -11386,7 +11967,7 @@
           ]
         },
         {
-          "name": "leightkadmin",
+          "name": "Corridor - (1) Surface",
           "points": [
             [
               3856.6975365881904,
@@ -48668,7 +49249,7 @@
           ]
         },
         {
-          "name": "leightkadmin",
+          "name": "ROAD1_SURF",
           "points": [
             [
               1.7976931348623157e+308,
@@ -48693,50 +49274,32 @@
           ],
           "triangles": []
         }
+      ],
+      "empty": [],
+      "handles": [
+        255,
+        1579,
+        3059
       ]
     },
     {
-      "count": 1,
       "family": "site",
+      "count": 1,
       "items": [
         {
-          "desc": "",
-          "name": "Site"
+          "name": "Site",
+          "desc": ""
         }
       ]
     },
     {
-      "count": 2,
       "family": "alignment",
-      "handles": [
-        205,
-        351
-      ],
+      "count": 2,
       "items": [
         {
-          "curve_radii": [
-            200.0,
-            200.0,
-            0.0
-          ],
-          "curves": [
-            {
-              "kind": "scs",
-              "radius": 200.0,
-              "spiral_in": 50.0,
-              "spiral_out": 50.0
-            },
-            {
-              "kind": "scs",
-              "radius": 200.0,
-              "spiral_in": 50.0,
-              "spiral_out": 50.0
-            },
-            null
-          ],
           "key": "ROAD1",
-          "layer": "C-ROAD",
           "name": "ROAD1",
+          "layer": "C-ROAD",
           "vertices": [
             [
               4012.14,
@@ -48754,18 +49317,32 @@
               5287.68,
               4673.63
             ]
-          ]
-        },
-        {
+          ],
           "curve_radii": [
+            200.0,
+            200.0,
             0.0
           ],
           "curves": [
+            {
+              "kind": "scs",
+              "spiral_in": 50.0,
+              "radius": 200.0,
+              "spiral_out": 50.0
+            },
+            {
+              "kind": "scs",
+              "spiral_in": 50.0,
+              "radius": 200.0,
+              "spiral_out": 50.0
+            },
             null
-          ],
+          ]
+        },
+        {
           "key": "XC_STORM",
-          "layer": "C-ROAD",
           "name": "XC_STORM",
+          "layer": "C-ROAD",
           "vertices": [
             [
               4669.9453522461135,
@@ -48779,47 +49356,50 @@
               4761.312414915001,
               4630.104633896095
             ]
+          ],
+          "curve_radii": [
+            0.0
+          ],
+          "curves": [
+            null
           ]
         }
+      ],
+      "handles": [
+        205,
+        351
       ]
     },
     {
-      "count": 2,
       "family": "profile",
-      "handles": [
-        155,
-        3092
-      ],
+      "count": 2,
       "items": [
         {
-          "alignment": "ROAD1",
           "key": "PF0",
           "name": "Layout (1)",
+          "alignment": "ROAD1",
           "pvis": []
         },
         {
-          "alignment": "ROAD1",
           "key": "PF1",
           "name": "EG - Surface (1)",
+          "alignment": "ROAD1",
           "pvis": []
         }
+      ],
+      "handles": [
+        155,
+        3092
       ]
     },
     {
-      "count": 1,
       "family": "profile_view",
+      "count": 1,
       "items": [
         {
-          "alignment": "ROAD1",
-          "bands": [
-            "ProfileData"
-          ],
-          "elevations": [
-            580.0,
-            700.0
-          ],
           "key": "PV0",
           "name": "Administrator",
+          "alignment": "ROAD1",
           "origin": [
             5905.664741260143,
             4662.804728542807
@@ -48827,628 +49407,1495 @@
           "stations": [
             0.0,
             1841.760335016616
+          ],
+          "elevations": [
+            580.0,
+            700.0
+          ],
+          "bands": [
+            "ProfileData"
           ]
         }
+      ]
+    },
+    {
+      "family": "alignment_label_group",
+      "count": 4,
+      "items": [
+        {
+          "key": "ALG0",
+          "kind": "Station",
+          "alignment": "ROAD1",
+          "layer": "C-ROAD",
+          "group": {
+            "kind": "Station",
+            "labels": [
+              {
+                "keys": [
+                  [
+                    50386466,
+                    {
+                      "Byte": 1
+                    }
+                  ],
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 50.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 100.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 150.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 200.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 250.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 300.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 350.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 400.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 450.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 500.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 550.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 600.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 650.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 700.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 750.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 800.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 850.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 900.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 950.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1000.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1050.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1100.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1150.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1200.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1250.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1300.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1350.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1400.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1450.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1500.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1550.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1600.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1650.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1700.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1750.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 1800.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    50386467,
+                    {
+                      "Byte": 1
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              }
+            ],
+            "words": [
+              69,
+              1
+            ],
+            "doubles": [
+              0.0,
+              0.0,
+              0.0,
+              0.08333333333333333,
+              0.16666666666666666
+            ],
+            "range": [
+              7,
+              0.0,
+              1841.7603350166155
+            ],
+            "increment": 50.0,
+            "point_kinds": [],
+            "guid": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "key": "ALG1",
+          "kind": "Station",
+          "alignment": "XC_STORM",
+          "layer": "C-ROAD",
+          "group": {
+            "kind": "Station",
+            "labels": [
+              {
+                "keys": [
+                  [
+                    50386466,
+                    {
+                      "Byte": 1
+                    }
+                  ],
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 100.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 200.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 300.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 400.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 500.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    50386467,
+                    {
+                      "Byte": 1
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712,
+                  50386466,
+                  50386467
+                ],
+                "overrides": []
+              }
+            ],
+            "words": [
+              69,
+              1
+            ],
+            "doubles": [
+              0.0,
+              0.0,
+              0.0,
+              0.08333333333333333,
+              0.16666666666666666
+            ],
+            "range": [
+              7,
+              0.0,
+              594.26322356226
+            ],
+            "increment": 100.0,
+            "point_kinds": [],
+            "guid": [
+              0,
+              48,
+              129,
+              64,
+              0,
+              0,
+              0,
+              0,
+              0,
+              192,
+              130,
+              64,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "key": "ALG2",
+          "kind": "MinorStation",
+          "alignment": "XC_STORM",
+          "layer": "C-ROAD",
+          "group": {
+            "kind": "MinorStation",
+            "labels": [
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33609248,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 50.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33609248,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 150.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33609248,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 250.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33609248,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 350.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33609248,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 450.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609247,
+                    {
+                      "Double": 100.0
+                    }
+                  ],
+                  [
+                    33609248,
+                    {
+                      "Double": 50.0
+                    }
+                  ],
+                  [
+                    33607712,
+                    {
+                      "Double": 550.0
+                    }
+                  ]
+                ],
+                "ids": [
+                  33607712
+                ],
+                "overrides": []
+              }
+            ],
+            "words": [
+              69,
+              1
+            ],
+            "doubles": [
+              0.0,
+              0.0,
+              0.0,
+              0.08333333333333333,
+              0.16666666666666666
+            ],
+            "range": [
+              7,
+              0.0,
+              0.0
+            ],
+            "increment": 50.0,
+            "point_kinds": [],
+            "guid": [
+              48,
+              0,
+              57,
+              0,
+              124,
+              0,
+              50,
+              0,
+              54,
+              0,
+              53,
+              0,
+              55,
+              0,
+              124,
+              0
+            ]
+          }
+        },
+        {
+          "key": "ALG3",
+          "kind": "GeomPoint",
+          "alignment": "XC_STORM",
+          "layer": "C-ROAD",
+          "group": {
+            "kind": "GeomPoint",
+            "labels": [
+              {
+                "keys": [
+                  [
+                    33609245,
+                    {
+                      "Double": 0.0
+                    }
+                  ],
+                  [
+                    16830568,
+                    {
+                      "Long": 33607684
+                    }
+                  ],
+                  [
+                    16832030,
+                    {
+                      "Long": 1
+                    }
+                  ]
+                ],
+                "ids": [
+                  16830568,
+                  16832030,
+                  16832033,
+                  33609245
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609245,
+                    {
+                      "Double": 1.0
+                    }
+                  ],
+                  [
+                    16832030,
+                    {
+                      "Long": 1
+                    }
+                  ],
+                  [
+                    16830568,
+                    {
+                      "Long": 67162194
+                    }
+                  ]
+                ],
+                "ids": [
+                  16830568,
+                  16832030,
+                  16832033,
+                  33609245
+                ],
+                "overrides": []
+              },
+              {
+                "keys": [
+                  [
+                    33609245,
+                    {
+                      "Double": 1.0
+                    }
+                  ],
+                  [
+                    16830568,
+                    {
+                      "Long": 33607685
+                    }
+                  ],
+                  [
+                    16832030,
+                    {
+                      "Long": 2
+                    }
+                  ]
+                ],
+                "ids": [
+                  16830568,
+                  16832030,
+                  16832033,
+                  33609245
+                ],
+                "overrides": []
+              }
+            ],
+            "words": [
+              69,
+              1
+            ],
+            "doubles": [
+              0.0,
+              0.0,
+              0.0,
+              0.08333333333333333,
+              0.16666666666666666
+            ],
+            "range": [
+              7,
+              0.0,
+              594.26322356226
+            ],
+            "increment": null,
+            "point_kinds": [
+              257,
+              258,
+              259,
+              260,
+              261,
+              262,
+              263,
+              264,
+              265,
+              266,
+              267,
+              268,
+              269
+            ],
+            "guid": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              111,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "handles": [
+        1947,
+        1948,
+        1949,
+        1950
       ]
     }
   ],
   "gaps": [
     {
-      "count": 3,
       "family": "tin_surface.triangulation",
-      "implementable": "uncertain \u2014 check whether TinOperation has a faces op",
-      "missing": "parameter: the stored triangle list (the points writer retriangulates)"
+      "count": 3,
+      "missing": "parameter: the stored triangle list (the points writer retriangulates)",
+      "implementable": "uncertain — check whether TinOperation has a faces op"
     },
     {
-      "count": 1,
       "family": "AeccDbAssembly",
-      "implementable": "uncertain \u2014 PKT package content must ship from the catalog",
-      "missing": "writer: chained (pilot scope)"
-    },
-    {
       "count": 1,
+      "missing": "writer: chained (pilot scope)",
+      "implementable": "uncertain — PKT package content must ship from the catalog"
+    },
+    {
       "family": "AeccDbCorridor",
-      "implementable": "yes \u2014 writers exist, wiring is mechanical",
-      "missing": "writer: chained (pilot scope)"
+      "count": 1,
+      "missing": "writer: chained (pilot scope)",
+      "implementable": "yes — writers exist, wiring is mechanical"
     },
     {
-      "count": 8,
       "family": "AeccDbSubassembly",
-      "implementable": "uncertain \u2014 PKT package content must ship from the catalog",
-      "missing": "writer"
+      "count": 8,
+      "missing": "writer",
+      "implementable": "uncertain — PKT package content must ship from the catalog"
     },
     {
-      "count": 10,
       "family": "AECC_NETWORK_PART_DEF",
-      "implementable": "uncertain \u2014 the object records keep their bodies; a parts-catalog writer is create/network.rs dictionary work",
-      "missing": "writer: no manifest family for a drawing's own part-definition records (10 of 10 decode inline strings; the number-field reader targets the entity record form); the pipe/structure writers rebuild an implicit default catalog"
+      "count": 10,
+      "missing": "writer: no manifest family for a drawing's own part-definition records (10 of 10 decode inline strings; the number-field reader targets the entity record form); the pipe/structure writers rebuild an implicit default catalog",
+      "implementable": "uncertain — the object records keep their bodies; a parts-catalog writer is create/network.rs dictionary work"
     }
-  ],
-  "mcp_census": null,
-  "object_census": {
-    "AECC_ALIGNMENT_DESIGN_CHECK_SET": 2,
-    "AECC_ALIGNMENT_LABEL_SET": 2,
-    "AECC_ALIGNMENT_PARCEL_NODE": 1,
-    "AECC_ALIGNMENT_STYLE": 2,
-    "AECC_APPURTENANCE_STYLE": 2,
-    "AECC_ASSEMBLY_STYLE": 2,
-    "AECC_BRIDGE_PROJECTION_LABEL_SET": 2,
-    "AECC_BRIDGE_PROJECTION_STYLE": 2,
-    "AECC_BUILDING_SITE_STYLE": 2,
-    "AECC_CANT_DIAGRAM_VIEW_STYLE": 2,
-    "AECC_CATCHMENT_STYLE": 2,
-    "AECC_CLASS_FOLDER_NODE": 12,
-    "AECC_CLASS_NODE": 230,
-    "AECC_CONTOURVIEW": 1,
-    "AECC_CORRIDOR_STYLE": 2,
-    "AECC_DB_FIXED_ARC_HLPT": 2,
-    "AECC_DB_FIXED_PARABOLA_HLPT": 2,
-    "AECC_DB_FIXED_PARABOLA_HLPTPATSPEAK": 2,
-    "AECC_DB_FLOAT_TANGENT_GRADELEN": 2,
-    "AECC_DISP_REP_ALIGNMENT": 1,
-    "AECC_DISP_REP_ALIGNMENT_CANT_INFO_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_CANT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_CSV": 1,
-    "AECC_DISP_REP_ALIGNMENT_CURVE_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_DESIGNSPEED_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_GEOMPT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_INDEXED_PI_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_PI_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_PI_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_SPIRAL_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_STAEQU_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_STATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_STATION_OFFSET_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_SUPERELEVATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_ALIGNMENT_TABLE": 1,
-    "AECC_DISP_REP_ALIGNMENT_TANGENT_LABEL": 1,
-    "AECC_DISP_REP_ALIGNMENT_VERTICAL_GEOMPT_LABELING": 1,
-    "AECC_DISP_REP_APPURTENANCE": 1,
-    "AECC_DISP_REP_APPURTENANCE_CSV": 1,
-    "AECC_DISP_REP_APPURTENANCE_LABELING": 1,
-    "AECC_DISP_REP_APPURTENANCE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_APPURTENANCE_SECTION_LABELING": 1,
-    "AECC_DISP_REP_ASSEMBLY": 1,
-    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE": 1,
-    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_PROFILE": 1,
-    "AECC_DISP_REP_AUTO_CORRIDOR_FEATURE_LINE_SECTION": 1,
-    "AECC_DISP_REP_AUTO_FEATURE_LINE": 1,
-    "AECC_DISP_REP_AUTO_FEATURE_LINE_CSV": 1,
-    "AECC_DISP_REP_AUTO_FEATURE_LINE_PROFILE": 1,
-    "AECC_DISP_REP_AUTO_FEATURE_LINE_SECTION": 1,
-    "AECC_DISP_REP_BRIDGE_ABUTMENT": 1,
-    "AECC_DISP_REP_BRIDGE_ABUTMENT_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_ABUTMENT_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_DECK": 1,
-    "AECC_DISP_REP_BRIDGE_DECK_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_DECK_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_FEATURE": 1,
-    "AECC_DISP_REP_BRIDGE_FEATURE_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_FOUNDATION": 1,
-    "AECC_DISP_REP_BRIDGE_FOUNDATION_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_FOUNDATION_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_GENERICOBJ": 1,
-    "AECC_DISP_REP_BRIDGE_GENERICOBJ_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_GENERICOBJ_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_GIRDER": 1,
-    "AECC_DISP_REP_BRIDGE_GIRDER_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_GIRDER_GROUP_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_GRIDER_LABELING": 1,
-    "AECC_DISP_REP_BRIDGE_PIER": 1,
-    "AECC_DISP_REP_BRIDGE_PIER_FROFILE": 1,
-    "AECC_DISP_REP_BRIDGE_PIER_LABELING": 1,
-    "AECC_DISP_REP_BUILDINGSITE": 1,
-    "AECC_DISP_REP_BUILDINGUTIL_CONNECTOR": 1,
-    "AECC_DISP_REP_CANT_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_CANT_DIAGRAM_VIEW": 1,
-    "AECC_DISP_REP_CATCHMENT_AREA": 1,
-    "AECC_DISP_REP_CATCHMENT_AREA_LABEL": 1,
-    "AECC_DISP_REP_COGO_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_CORRIDOR": 1,
-    "AECC_DISP_REP_CROSSING_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_CROSSING_PRESSURE_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_CSVSTATIONSLIDER": 1,
-    "AECC_DISP_REP_CURVE_TABLE": 1,
-    "AECC_DISP_REP_DISTANCE_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_FACE": 1,
-    "AECC_DISP_REP_FEATURE": 1,
-    "AECC_DISP_REP_FEATURE_LABEL": 1,
-    "AECC_DISP_REP_FEATURE_LINE": 1,
-    "AECC_DISP_REP_FEATURE_LINE_CSV": 1,
-    "AECC_DISP_REP_FEATURE_LINE_PROFILE": 1,
-    "AECC_DISP_REP_FEATURE_LINE_SECTION": 1,
-    "AECC_DISP_REP_FITTING": 1,
-    "AECC_DISP_REP_FITTING_CSV": 1,
-    "AECC_DISP_REP_FITTING_LABELING": 1,
-    "AECC_DISP_REP_FITTING_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_FITTING_SECTION_LABELING": 1,
-    "AECC_DISP_REP_FLOW_SEGMENT_LABEL": 1,
-    "AECC_DISP_REP_GENERAL_SEGMENT_LABEL": 1,
-    "AECC_DISP_REP_GRADING": 1,
-    "AECC_DISP_REP_GRAPH": 1,
-    "AECC_DISP_REP_GRAPHPROFILE_NETWORKPART": 1,
-    "AECC_DISP_REP_GRAPHPROFILE_PRESSUREPART": 1,
-    "AECC_DISP_REP_GRAPHPROFILE_TURNOUT": 1,
-    "AECC_DISP_REP_GRID_SURFACE": 1,
-    "AECC_DISP_REP_GRID_SURFACE_CSV": 1,
-    "AECC_DISP_REP_HORGEOMETRY_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_HYDRO_REGION": 1,
-    "AECC_DISP_REP_INTERFERENCE_CHECK": 1,
-    "AECC_DISP_REP_INTERFERENCE_PART": 1,
-    "AECC_DISP_REP_INTERFERENCE_PART_SECTION": 1,
-    "AECC_DISP_REP_INTERSECTION": 1,
-    "AECC_DISP_REP_INTERSECTION_LOCATION_LABELING": 1,
-    "AECC_DISP_REP_LABELING": 1,
-    "AECC_DISP_REP_LEGEND_TABLE": 1,
-    "AECC_DISP_REP_LINE_BETWEEN_POINTS_LABEL": 1,
-    "AECC_DISP_REP_LINE_TABLE": 1,
-    "AECC_DISP_REP_LOTLINE_CSV": 1,
-    "AECC_DISP_REP_MASSHAULLINE": 1,
-    "AECC_DISP_REP_MASS_HAUL_VIEW": 1,
-    "AECC_DISP_REP_MATCHLINE_LABELING": 1,
-    "AECC_DISP_REP_MATCH_LINE": 1,
-    "AECC_DISP_REP_MATERIAL_SECTION": 1,
-    "AECC_DISP_REP_NETWORK": 1,
-    "AECC_DISP_REP_NOTE_LABEL": 1,
-    "AECC_DISP_REP_OFFSET_ELEV_LABEL": 1,
-    "AECC_DISP_REP_PARCEL_BOUNDARY": 1,
-    "AECC_DISP_REP_PARCEL_FACE_LABEL": 1,
-    "AECC_DISP_REP_PARCEL_SEGMENT": 1,
-    "AECC_DISP_REP_PARCEL_SEGMENT_LABEL": 1,
-    "AECC_DISP_REP_PARCEL_SEGMENT_TABLE": 1,
-    "AECC_DISP_REP_PARCEL_TABLE": 1,
-    "AECC_DISP_REP_PIPE": 1,
-    "AECC_DISP_REP_PIPENETWORK_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_PIPE_CSV": 1,
-    "AECC_DISP_REP_PIPE_LABELING": 1,
-    "AECC_DISP_REP_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_PIPE_SECTION_LABELING": 1,
-    "AECC_DISP_REP_PIPE_TABLE": 1,
-    "AECC_DISP_REP_POINT_ENT": 1,
-    "AECC_DISP_REP_POINT_GROUP": 1,
-    "AECC_DISP_REP_POINT_TABLE": 1,
-    "AECC_DISP_REP_PRESSURENETWORK_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_PRESSUREPIPENETWORK": 1,
-    "AECC_DISP_REP_PRESSURE_PART_TABLE": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE_CSV": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE_LABELING": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_PRESSURE_PIPE_SECTION_LABELING": 1,
-    "AECC_DISP_REP_PROFILE": 1,
-    "AECC_DISP_REP_PROFILEDATA_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_PROFILE_CROSSING": 1,
-    "AECC_DISP_REP_PROFILE_CROSSING_LABEL": 1,
-    "AECC_DISP_REP_PROFILE_PROJECTION": 1,
-    "AECC_DISP_REP_PROFILE_PROJECTION_LABEL": 1,
-    "AECC_DISP_REP_PROFILE_VIEW": 1,
-    "AECC_DISP_REP_PROFILE_VIEW_DEPTH_LABEL": 1,
-    "AECC_DISP_REP_QUANTITY_TAKEOFF_AGGREGATE_EARTHWORK_TABLE": 1,
-    "AECC_DISP_REP_REHAB_NOTE_LABEL": 1,
-    "AECC_DISP_REP_REHAB_WARNING_MARKER": 1,
-    "AECC_DISP_REP_RIGHT_OF_WAY": 1,
-    "AECC_DISP_REP_SAMPLELINE_LABELING": 1,
-    "AECC_DISP_REP_SAMPLE_LINE": 1,
-    "AECC_DISP_REP_SAMPLE_LINE_GROUP": 1,
-    "AECC_DISP_REP_SECTION": 1,
-    "AECC_DISP_REP_SECTIONALDATA_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTIONDATA_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTIONSEGMENT_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_CORRIDOR": 1,
-    "AECC_DISP_REP_SECTION_CORRIDOR_POINT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_CROSSING_LABEL": 1,
-    "AECC_DISP_REP_SECTION_GRADEBREAK_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_MINOR_OFFSET_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_OFFSET_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_PIPENETWORK": 1,
-    "AECC_DISP_REP_SECTION_PRESSUREPIPENETWORK": 1,
-    "AECC_DISP_REP_SECTION_PROJECTION": 1,
-    "AECC_DISP_REP_SECTION_PROJECTION_LABEL": 1,
-    "AECC_DISP_REP_SECTION_SEGMENT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SECTION_VIEW": 1,
-    "AECC_DISP_REP_SECTION_VIEW_DEPTH_LABEL": 1,
-    "AECC_DISP_REP_SECTION_VIEW_QUANTITY_TAKEOFF_TABLE": 1,
-    "AECC_DISP_REP_SHEET": 1,
-    "AECC_DISP_REP_SPANNING_PIPE_LABELING": 1,
-    "AECC_DISP_REP_SPANNING_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_LABELING": 1,
-    "AECC_DISP_REP_SPANNING_PRESSURE_PIPE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_SPEED_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_STATION_ELEV_LABEL": 1,
-    "AECC_DISP_REP_STRUCTURE": 1,
-    "AECC_DISP_REP_STRUCTURE_CSV": 1,
-    "AECC_DISP_REP_STRUCTURE_LABELING": 1,
-    "AECC_DISP_REP_STRUCTURE_PROFILE_LABELING": 1,
-    "AECC_DISP_REP_STRUCTURE_SECTION_LABELING": 1,
-    "AECC_DISP_REP_SUBASSEMBLY": 1,
-    "AECC_DISP_REP_SUPERELEVATION_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SUPERELEVATION_DIAGRAM_VIEW": 1,
-    "AECC_DISP_REP_SURFACE_CONTOUR_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SURFACE_ELEVATION_LABEL": 1,
-    "AECC_DISP_REP_SURFACE_SLOPE_LABEL": 1,
-    "AECC_DISP_REP_SURVEY_FIGURE_LABEL_GROUP": 1,
-    "AECC_DISP_REP_SVFIGURE": 1,
-    "AECC_DISP_REP_SVFIGURE_CSV": 1,
-    "AECC_DISP_REP_SVFIGURE_PROFILE": 1,
-    "AECC_DISP_REP_SVFIGURE_SECTION": 1,
-    "AECC_DISP_REP_SVFIGURE_SEGMENT_LABEL": 1,
-    "AECC_DISP_REP_SVNETWORK": 1,
-    "AECC_DISP_REP_TANGENT_INTERSECTION_TABLE": 1,
-    "AECC_DISP_REP_TIN_SURFACE": 1,
-    "AECC_DISP_REP_TIN_SURFACE_CSV": 1,
-    "AECC_DISP_REP_TURNOUT": 1,
-    "AECC_DISP_REP_TURNOUT_CRITICALPOINTS_LABELING": 1,
-    "AECC_DISP_REP_TURNOUT_CRITICALPOINTS_LABEL_PROFILE": 1,
-    "AECC_DISP_REP_TURNOUT_DIMENSION_LABEL_PLAN": 1,
-    "AECC_DISP_REP_TURNOUT_DIMENSION_LABEL_PROFILE": 1,
-    "AECC_DISP_REP_TURNOUT_LABELING": 1,
-    "AECC_DISP_REP_TURNOUT_LABELING_PROFILE": 1,
-    "AECC_DISP_REP_VALIGNMENT_CRESTCURVE_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_CSV": 1,
-    "AECC_DISP_REP_VALIGNMENT_HAGEOMPT_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_LINE_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_MINOR_STATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_PVI_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_SAGCURVE_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VALIGNMENT_STATION_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VERTICALGEOMETRY_BAND_LABEL_GROUP": 1,
-    "AECC_DISP_REP_VIEWFRAME_LABELING": 1,
-    "AECC_DISP_REP_VIEW_FRAME": 1,
-    "AECC_ENTITYCIRCLEINFOS": 2,
-    "AECC_ENTITYEXTENDPARAM": 2,
-    "AECC_EXTRAPOLATE_SURFACE_OP_OBJECT": 3,
-    "AECC_FEATURELINE_STYLE": 5,
-    "AECC_FEATURE_STYLE": 4,
-    "AECC_FITTING_STYLE": 2,
-    "AECC_FORMAT_MANAGER_OBJECT": 18,
-    "AECC_GRADEVIEW": 1,
-    "AECC_GRADING_CRITERIA": 2,
-    "AECC_GRADING_CRITERIA_SET": 2,
-    "AECC_GRADING_GROUP": 1,
-    "AECC_GRADING_STYLE": 2,
-    "AECC_IMPORT_STORM_SEWER_DEFAULTS": 2,
-    "AECC_INTERFERENCE_STYLE": 2,
-    "AECC_INTERSECTION_STYLE": 2,
-    "AECC_LABEL_BLOCK_STYLE": 5,
-    "AECC_LABEL_COLLECTOR_STYLE": 397,
-    "AECC_LABEL_NODE": 1,
-    "AECC_LABEL_RADIAL_LINE_STYLE": 38,
-    "AECC_LABEL_TEXT_ITERATOR_CURVE_OR_SPIRAL_STYLE": 3,
-    "AECC_LABEL_TEXT_ITERATOR_STYLE": 1,
-    "AECC_LABEL_TEXT_STYLE": 278,
-    "AECC_LABEL_TICK_STYLE": 4,
-    "AECC_LABEL_VECTOR_ARROW_STYLE": 5,
-    "AECC_LEGEND_TABLE_STYLE": 14,
-    "AECC_MASS_HAUL_LINE_STYLE": 2,
-    "AECC_MASS_HAUL_VIEW_STYLE": 2,
-    "AECC_MATCHLINE_STYLE": 3,
-    "AECC_MATERIAL_STYLE": 3,
-    "AECC_NAME_TEMPLATES_NODE": 6,
-    "AECC_NAME_TEMPLATES_ROOT": 1,
-    "AECC_NETWORK_PART_CATALOG_DEF_NODE": 1,
-    "AECC_NETWORK_PART_DEF": 10,
-    "AECC_NETWORK_PART_FAMILY_ITEM": 19,
-    "AECC_NETWORK_PART_LIST": 1,
-    "AECC_NETWORK_RULE": 12,
-    "AECC_NOTIFICATIONINFOS": 2,
-    "AECC_PARCEL_NODE": 1,
-    "AECC_PARCEL_STYLE": 2,
-    "AECC_PART_PROPERTY_MAPPINGS": 1,
-    "AECC_PART_SIZE_FILTER": 27,
-    "AECC_PIPE_RULES": 2,
-    "AECC_PIPE_STYLE": 3,
-    "AECC_POINTCLOUD_STYLE": 2,
-    "AECC_POINTVIEW": 1,
-    "AECC_POINT_STYLE": 2,
-    "AECC_PRESSURE_PART_LIST": 2,
-    "AECC_PRESSURE_PIPE_STYLE": 2,
-    "AECC_PROFILESECTIONENTITY_STYLE": 2,
-    "AECC_PROFILE_DESIGN_CHECK_SET": 2,
-    "AECC_PROFILE_LABEL_SET": 2,
-    "AECC_PROFILE_STYLE": 3,
-    "AECC_PROFILE_VIEW_BAND_STYLE_SET": 2,
-    "AECC_PROFILE_VIEW_CANT_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_COGO_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_DATA_BAND_STYLE": 3,
-    "AECC_PROFILE_VIEW_DISTANCE_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_HORIZONTAL_GEOMETRY_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_PIPE_NETWORK_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_PRESSURE_NETWORK_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_SECTIONAL_DATA_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_SPEED_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_STYLE": 6,
-    "AECC_PROFILE_VIEW_SUPERELEVATION_DIAGRAM_BAND_STYLE": 2,
-    "AECC_PROFILE_VIEW_VERTICAL_GEOMETRY_BAND_STYLE": 2,
-    "AECC_QUANTITY_TAKEOFF_CRITERIA": 2,
-    "AECC_REFERENCED_ITEM_HOST": 7,
-    "AECC_REFERENCED_STYLE_CACHE": 1,
-    "AECC_REFERENCED_STYLE_INFO_HOST": 1,
-    "AECC_REFERENCED_STYLE_INFO_INDEX": 1,
-    "AECC_REFERENCED_TEMPLATE_HOST": 1,
-    "AECC_REFERENCED_TEMPLATE_RECORD_LIST": 1,
-    "AECC_ROADWAYLINK_STYLE": 16,
-    "AECC_ROADWAYMARKER_STYLE": 34,
-    "AECC_ROADWAYSHAPE_STYLE": 11,
-    "AECC_ROADWAY_STYLE_SET": 2,
-    "AECC_ROOT_SETTINGS_NODE": 1,
-    "AECC_SAMPLE_LINE_GROUP_STYLE": 2,
-    "AECC_SAMPLE_LINE_STYLE": 2,
-    "AECC_SECTION_LABEL_SET": 3,
-    "AECC_SECTION_STYLE": 4,
-    "AECC_SECTION_VIEW_BAND_STYLE_SET": 2,
-    "AECC_SECTION_VIEW_DATA_BAND_STYLE": 2,
-    "AECC_SECTION_VIEW_ROAD_SURFACE_BAND_STYLE": 2,
-    "AECC_SECTION_VIEW_STYLE": 3,
-    "AECC_SETTINGS_NODE": 1519,
-    "AECC_SHEET_STYLE": 2,
-    "AECC_SLOPE_PATTERN_STYLE": 2,
-    "AECC_STRUCTURE_RULES": 2,
-    "AECC_STUCTURE_STYLE": 2,
-    "AECC_SUBASSEMBLY_STYLE": 2,
-    "AECC_SUPERELEVATION_DIAGRAM_VIEW_STYLE": 2,
-    "AECC_SURFACE_STYLE": 4,
-    "AECC_SVFIGURE_STYLE": 2,
-    "AECC_SVNETWORK_STYLE": 2,
-    "AECC_TABLE_STYLE": 36,
-    "AECC_TAG_MANAGER": 1,
-    "AECC_TREE_NODE": 5,
-    "AECC_TURNOUT_LABEL_SET": 2,
-    "AECC_TURNOUT_STYLE": 2,
-    "AECC_USER_DEFINED_ATTRIBUTE_CLASSIFICATION": 231,
-    "AECC_VALIGNMENT_STYLE_EXTENSION": 3,
-    "AECC_VIEW_FRAME_STYLE": 3,
-    "AECS_DISP_PROPS_MEMBER": 2,
-    "AECS_DISP_PROPS_MEMBER_LOGICAL": 1,
-    "AECS_DISP_PROPS_MEMBER_PLAN": 2,
-    "AECS_DISP_PROPS_MEMBER_PLAN_SKETCH": 1,
-    "AECS_DISP_PROPS_MEMBER_PROJECTED": 2,
-    "AECS_DISP_REP_MEMBER_ELEVATION_DESIGN": 1,
-    "AECS_DISP_REP_MEMBER_ELEVATION_DETAIL": 1,
-    "AECS_DISP_REP_MEMBER_LOGICAL": 1,
-    "AECS_DISP_REP_MEMBER_MODEL_DESIGN": 1,
-    "AECS_DISP_REP_MEMBER_MODEL_DETAIL": 1,
-    "AECS_DISP_REP_MEMBER_PLAN_DESIGN": 1,
-    "AECS_DISP_REP_MEMBER_PLAN_DETAIL": 1,
-    "AECS_DISP_REP_MEMBER_PLAN_SKETCH": 1,
-    "AEC_AECDBDISPREPBDGELEVLINEPLAN100": 1,
-    "AEC_AECDBDISPREPBDGELEVLINEPLAN50": 1,
-    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN100": 1,
-    "AEC_AECDBDISPREPBDGSECTIONLINEPLAN50": 1,
-    "AEC_AECDBDISPREPCEILINGGRIDPLAN100": 1,
-    "AEC_AECDBDISPREPCEILINGGRIDPLAN50": 1,
-    "AEC_AECDBDISPREPCOLUMNGRIDPLAN100": 1,
-    "AEC_AECDBDISPREPCOLUMNGRIDPLAN50": 1,
-    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN100": 1,
-    "AEC_AECDBDISPREPCURTAINWALLLAYOUTPLAN50": 1,
-    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN100": 1,
-    "AEC_AECDBDISPREPCURTAINWALLUNITPLAN50": 1,
-    "AEC_AECDBDISPREPMVBLOCKREFPLAN100": 1,
-    "AEC_AECDBDISPREPMVBLOCKREFPLAN50": 1,
-    "AEC_AECDBDISPREPROOFPLAN100": 1,
-    "AEC_AECDBDISPREPROOFPLAN50": 1,
-    "AEC_AECDBDISPREPROOFSLABPLAN100": 1,
-    "AEC_AECDBDISPREPROOFSLABPLAN50": 1,
-    "AEC_AECDBDISPREPSLABPLAN100": 1,
-    "AEC_AECDBDISPREPSLABPLAN50": 1,
-    "AEC_AECDBDISPREPSPACEPLAN100": 1,
-    "AEC_AECDBDISPREPSPACEPLAN50": 1,
-    "AEC_AECDBDISPREPWALLPLAN100": 1,
-    "AEC_AECDBDISPREPWALLPLAN50": 1,
-    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN100": 1,
-    "AEC_AECDBDISPREPWINDOWASSEMBLYPLAN50": 1,
-    "AEC_AECDBDISPREPZONE100": 1,
-    "AEC_AECDBDISPREPZONE50": 1,
-    "AEC_CVSECTIONVIEW": 1,
-    "AEC_DB_DISP_REP_DIM_GROUP_PLAN": 1,
-    "AEC_DB_DISP_REP_DIM_GROUP_PLAN100": 1,
-    "AEC_DB_DISP_REP_DIM_GROUP_PLAN50": 1,
-    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN100": 1,
-    "AEC_DISPREPAECDBDISPREPMASSELEMPLAN50": 1,
-    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN100": 1,
-    "AEC_DISPREPAECDBDISPREPMASSGROUPPLAN50": 1,
-    "AEC_DISPREPAECDBDISPREPOPENINGPLAN100": 1,
-    "AEC_DISPREPAECDBDISPREPOPENINGPLAN50": 1,
-    "AEC_DISPREPAECDBDISPREPOPENINGPLANREFLECTED": 1,
-    "AEC_DISPREPAECDBDISPREPOPENINGSILLPLAN": 1,
-    "AEC_DISPROPSMASSELEMPLANCOMMON": 2,
-    "AEC_DISPROPSMASSGROUPPLANCOMMON": 2,
-    "AEC_DISPROPSOPENINGPLANCOMMON": 1,
-    "AEC_DISPROPSOPENINGPLANCOMMONHATCHED": 2,
-    "AEC_DISPROPSOPENINGSILLPLAN": 1,
-    "AEC_DISP_PROPS_2D_SECTION": 1,
-    "AEC_DISP_PROPS_CLIP_VOLUME": 12,
-    "AEC_DISP_PROPS_CLIP_VOLUME_RESULT": 2,
-    "AEC_DISP_PROPS_DIM": 3,
-    "AEC_DISP_PROPS_DISPLAYTHEME": 1,
-    "AEC_DISP_PROPS_DOOR": 4,
-    "AEC_DISP_PROPS_DOOR_NOMINAL": 1,
-    "AEC_DISP_PROPS_DOOR_PLAN_100": 1,
-    "AEC_DISP_PROPS_DOOR_PLAN_50": 1,
-    "AEC_DISP_PROPS_DOOR_THRESHOLD_PLAN": 1,
-    "AEC_DISP_PROPS_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
-    "AEC_DISP_PROPS_EDITINPLACEPROFILE_MODEL": 1,
-    "AEC_DISP_PROPS_ENT": 7,
-    "AEC_DISP_PROPS_ENT_REF": 1,
-    "AEC_DISP_PROPS_GRID_ASSEMBLY_MODEL": 3,
-    "AEC_DISP_PROPS_GRID_ASSEMBLY_PLAN": 9,
-    "AEC_DISP_PROPS_LAYOUT_CURVE": 1,
-    "AEC_DISP_PROPS_LAYOUT_GRID2D": 11,
-    "AEC_DISP_PROPS_LAYOUT_GRID3D": 1,
-    "AEC_DISP_PROPS_MASKBLOCK": 2,
-    "AEC_DISP_PROPS_MASS_ELEM_MODEL": 3,
-    "AEC_DISP_PROPS_MASS_GROUP": 3,
-    "AEC_DISP_PROPS_MATERIAL": 1,
-    "AEC_DISP_PROPS_OPENING": 2,
-    "AEC_DISP_PROPS_POLYGON_MODEL": 1,
-    "AEC_DISP_PROPS_POLYGON_TRUECOLOUR": 1,
-    "AEC_DISP_PROPS_RAILING_MODEL": 1,
-    "AEC_DISP_PROPS_RAILING_PLAN": 1,
-    "AEC_DISP_PROPS_ROOF": 5,
-    "AEC_DISP_PROPS_ROOFSLAB": 1,
-    "AEC_DISP_PROPS_ROOFSLAB_PLAN": 3,
-    "AEC_DISP_PROPS_SCHEDULE_TABLE": 1,
-    "AEC_DISP_PROPS_SLAB": 1,
-    "AEC_DISP_PROPS_SLAB_PLAN": 3,
-    "AEC_DISP_PROPS_SLICE": 1,
-    "AEC_DISP_PROPS_SPACE_DECOMPOSED": 1,
-    "AEC_DISP_PROPS_SPACE_MODEL": 1,
-    "AEC_DISP_PROPS_SPACE_PLAN": 4,
-    "AEC_DISP_PROPS_STAIR_MODEL": 1,
-    "AEC_DISP_PROPS_STAIR_PLAN": 2,
-    "AEC_DISP_PROPS_STAIR_PLAN_OVERLAPPING": 1,
-    "AEC_DISP_PROPS_WALL_GRAPH": 1,
-    "AEC_DISP_PROPS_WALL_MODEL": 1,
-    "AEC_DISP_PROPS_WALL_PLAN": 4,
-    "AEC_DISP_PROPS_WALL_SCHEM": 1,
-    "AEC_DISP_PROPS_WINDOW": 4,
-    "AEC_DISP_PROPS_WINDOW_ASSEMBLY_SILL_PLAN": 1,
-    "AEC_DISP_PROPS_WINDOW_NOMINAL": 1,
-    "AEC_DISP_PROPS_WINDOW_PLAN_100": 1,
-    "AEC_DISP_PROPS_WINDOW_PLAN_50": 1,
-    "AEC_DISP_PROPS_WINDOW_SILL_PLAN": 1,
-    "AEC_DISP_PROPS_ZONE": 3,
-    "AEC_DISP_REP_2D_SECTION": 1,
-    "AEC_DISP_REP_ANCHOR": 1,
-    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID": 1,
-    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_MODEL": 1,
-    "AEC_DISP_REP_ANCHOR_BUB_TO_GRID_RCP": 1,
-    "AEC_DISP_REP_ANCHOR_ENT_TO_NODE": 1,
-    "AEC_DISP_REP_ANCHOR_EXT_TAG_TO_ENT": 1,
-    "AEC_DISP_REP_ANCHOR_TAG_TO_ENT": 1,
-    "AEC_DISP_REP_BDG_ELEVLINE_MODEL": 1,
-    "AEC_DISP_REP_BDG_ELEVLINE_RCP": 1,
-    "AEC_DISP_REP_BDG_SECTIONLINE_MODEL": 1,
-    "AEC_DISP_REP_BDG_SECTIONLINE_PLAN": 2,
-    "AEC_DISP_REP_BDG_SECTIONLINE_RCP": 1,
-    "AEC_DISP_REP_BDG_SECTION_MODEL": 1,
-    "AEC_DISP_REP_BDG_SECTION_SUBDIV": 1,
-    "AEC_DISP_REP_CEILING_GRID": 1,
-    "AEC_DISP_REP_CEILING_GRID_MODEL": 1,
-    "AEC_DISP_REP_CEILING_GRID_RCP": 1,
-    "AEC_DISP_REP_CLIP_VOLUME_MODEL": 1,
-    "AEC_DISP_REP_CLIP_VOLUME_PLAN": 1,
-    "AEC_DISP_REP_CLIP_VOLUME_RESULT": 1,
-    "AEC_DISP_REP_CLIP_VOLUME_RESULT_SUBDIV": 1,
-    "AEC_DISP_REP_COLUMN_GRID": 1,
-    "AEC_DISP_REP_COLUMN_GRID_MODEL": 1,
-    "AEC_DISP_REP_COLUMN_GRID_RCP": 1,
-    "AEC_DISP_REP_COL_BLOCK": 1,
-    "AEC_DISP_REP_COL_CIRCARC2D": 1,
-    "AEC_DISP_REP_COL_CONCOINCIDENT": 1,
-    "AEC_DISP_REP_COL_CONCONCENTRIC": 1,
-    "AEC_DISP_REP_COL_CONEQUALDISTANCE": 1,
-    "AEC_DISP_REP_COL_CONMIDPOINT": 1,
-    "AEC_DISP_REP_COL_CONNECTOR": 1,
-    "AEC_DISP_REP_COL_CONNORMAL": 1,
-    "AEC_DISP_REP_COL_CONPARALLEL": 1,
-    "AEC_DISP_REP_COL_CONPERPENDICULAR": 1,
-    "AEC_DISP_REP_COL_CONSYMMETRIC": 1,
-    "AEC_DISP_REP_COL_CONTANGENT": 1,
-    "AEC_DISP_REP_COL_DIMANGLE": 1,
-    "AEC_DISP_REP_COL_DIMDIAMETER": 1,
-    "AEC_DISP_REP_COL_DIMDISTANCE": 1,
-    "AEC_DISP_REP_COL_DIMLENGTH": 1,
-    "AEC_DISP_REP_COL_DIMMAJORRADIUS": 1,
-    "AEC_DISP_REP_COL_DIMMINORRADIUS": 1,
-    "AEC_DISP_REP_COL_ELLIPARC2D": 1,
-    "AEC_DISP_REP_COL_LAYOUTDATA": 1,
-    "AEC_DISP_REP_COL_LINE2D": 1,
-    "AEC_DISP_REP_COL_MODIFIER_ADD": 1,
-    "AEC_DISP_REP_COL_MODIFIER_CUTPLANE": 1,
-    "AEC_DISP_REP_COL_MODIFIER_EXTRUSION": 1,
-    "AEC_DISP_REP_COL_MODIFIER_GROUP": 1,
-    "AEC_DISP_REP_COL_MODIFIER_PATH": 1,
-    "AEC_DISP_REP_COL_MODIFIER_SUBTRACT": 1,
-    "AEC_DISP_REP_COL_MODIFIER_TRANSITION": 1,
-    "AEC_DISP_REP_COL_POINT2D": 1,
-    "AEC_DISP_REP_COL_PROFILE": 1,
-    "AEC_DISP_REP_COL_WORKPLANE": 1,
-    "AEC_DISP_REP_COL_WORKPLANE_REF": 1,
-    "AEC_DISP_REP_CONFIG": 1,
-    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_MODEL": 1,
-    "AEC_DISP_REP_CURTAIN_WALL_LAYOUT_PLAN": 1,
-    "AEC_DISP_REP_CURTAIN_WALL_UNIT_MODEL": 1,
-    "AEC_DISP_REP_CURTAIN_WALL_UNIT_PLAN": 1,
-    "AEC_DISP_REP_DCM_DIMRADIUS": 1,
-    "AEC_DISP_REP_DISPLAYTHEME": 1,
-    "AEC_DISP_REP_DOOR_ELEV": 1,
-    "AEC_DISP_REP_DOOR_MODEL": 1,
-    "AEC_DISP_REP_DOOR_NOMINAL": 1,
-    "AEC_DISP_REP_DOOR_PLAN": 1,
-    "AEC_DISP_REP_DOOR_PLAN_50": 1,
-    "AEC_DISP_REP_DOOR_PLAN_HEKTO": 1,
-    "AEC_DISP_REP_DOOR_RCP": 1,
-    "AEC_DISP_REP_DOOR_THRESHOLD_PLAN": 1,
-    "AEC_DISP_REP_DOOR_THRESHOLD_SYMBOL_PLAN": 1,
-    "AEC_DISP_REP_EDITINPLACEPROFILE": 1,
-    "AEC_DISP_REP_ENT_REF": 1,
-    "AEC_DISP_REP_LAYOUT_CURVE": 1,
-    "AEC_DISP_REP_LAYOUT_GRID2D": 1,
-    "AEC_DISP_REP_LAYOUT_GRID3D": 1,
-    "AEC_DISP_REP_MASKBLOCK_REF": 1,
-    "AEC_DISP_REP_MASKBLOCK_REF_RCP": 1,
-    "AEC_DISP_REP_MASS_ELEM_MODEL": 1,
-    "AEC_DISP_REP_MASS_ELEM_RCP": 1,
-    "AEC_DISP_REP_MASS_ELEM_SCHEM": 1,
-    "AEC_DISP_REP_MASS_GROUP_MODEL": 1,
-    "AEC_DISP_REP_MASS_GROUP_PLAN": 1,
-    "AEC_DISP_REP_MASS_GROUP_RCP": 1,
-    "AEC_DISP_REP_MATERIAL": 1,
-    "AEC_DISP_REP_MVBLOCK_REF": 1,
-    "AEC_DISP_REP_MVBLOCK_REF_MODEL": 1,
-    "AEC_DISP_REP_MVBLOCK_REF_RCP": 1,
-    "AEC_DISP_REP_OPENING": 1,
-    "AEC_DISP_REP_OPENING_MODEL": 1,
-    "AEC_DISP_REP_POLYGON_MODEL": 1,
-    "AEC_DISP_REP_POLYGON_TRUECOLOUR": 1,
-    "AEC_DISP_REP_RAILING_MODEL": 1,
-    "AEC_DISP_REP_RAILING_PLAN": 1,
-    "AEC_DISP_REP_RAILING_PLAN_100": 1,
-    "AEC_DISP_REP_RAILING_PLAN_50": 1,
-    "AEC_DISP_REP_ROOFSLAB_MODEL": 1,
-    "AEC_DISP_REP_ROOFSLAB_PLAN": 1,
-    "AEC_DISP_REP_ROOF_MODEL": 1,
-    "AEC_DISP_REP_ROOF_PLAN": 1,
-    "AEC_DISP_REP_ROOF_RCP": 1,
-    "AEC_DISP_REP_SCHEDULE_TABLE": 1,
-    "AEC_DISP_REP_SET": 8,
-    "AEC_DISP_REP_SLAB_MODEL": 1,
-    "AEC_DISP_REP_SLAB_PLAN": 1,
-    "AEC_DISP_REP_SLICE": 1,
-    "AEC_DISP_REP_SPACE_DECOMPOSED": 1,
-    "AEC_DISP_REP_SPACE_MODEL": 1,
-    "AEC_DISP_REP_SPACE_PLAN": 1,
-    "AEC_DISP_REP_SPACE_RCP": 1,
-    "AEC_DISP_REP_SPACE_VOLUME": 1,
-    "AEC_DISP_REP_STAIR_MODEL": 1,
-    "AEC_DISP_REP_STAIR_PLAN": 1,
-    "AEC_DISP_REP_STAIR_PLAN_100": 1,
-    "AEC_DISP_REP_STAIR_PLAN_50": 1,
-    "AEC_DISP_REP_STAIR_PLAN_OVERLAPPING": 1,
-    "AEC_DISP_REP_STAIR_RCP": 1,
-    "AEC_DISP_REP_WALL_GRAPH": 1,
-    "AEC_DISP_REP_WALL_MODEL": 1,
-    "AEC_DISP_REP_WALL_PLAN": 1,
-    "AEC_DISP_REP_WALL_RCP": 1,
-    "AEC_DISP_REP_WALL_SCHEM": 1,
-    "AEC_DISP_REP_WINDOWASSEMBLY_SILL_PLAN": 1,
-    "AEC_DISP_REP_WINDOW_ASSEMBLY_MODEL": 1,
-    "AEC_DISP_REP_WINDOW_ASSEMBLY_PLAN": 1,
-    "AEC_DISP_REP_WINDOW_ELEV": 1,
-    "AEC_DISP_REP_WINDOW_MODEL": 1,
-    "AEC_DISP_REP_WINDOW_NOMINAL": 1,
-    "AEC_DISP_REP_WINDOW_PLAN": 1,
-    "AEC_DISP_REP_WINDOW_PLAN_100": 1,
-    "AEC_DISP_REP_WINDOW_PLAN_50": 1,
-    "AEC_DISP_REP_WINDOW_RCP": 1,
-    "AEC_DISP_REP_WINDOW_SILL_PLAN": 1,
-    "AEC_DISP_REP_ZONE": 1,
-    "AEC_DISP_ROPS_RAILING_PLAN_100": 1,
-    "AEC_DISP_ROPS_RAILING_PLAN_50": 1,
-    "AEC_DISP_ROPS_STAIR_PLAN_100": 1,
-    "AEC_DISP_ROPS_STAIR_PLAN_50": 1,
-    "AEC_VARS_DWG_SETUP": 1
-  },
-  "source": "/mnt/c/Program Files/Autodesk/AutoCAD 2027/C3D/Help/Civil Tutorials/Drawings/Pipe Networks-3B.dwg"
+  ]
 }

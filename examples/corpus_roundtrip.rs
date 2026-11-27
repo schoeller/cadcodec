@@ -840,7 +840,12 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         let mut empties = Vec::new();
         for h in &surfaces {
             let a = arch_of(doc, *h).unwrap();
-            let name = a.decode().strings.get(2).cloned().unwrap_or_default();
+            // The name sits after the definitions' texts
+            // (`ArchEntityData::surface_name`), not in the created-by slot
+            // the tool used to read here — that read carried the
+            // application's user name ("yed", "leightkadmin") into the
+            // manifests (gap N-1).
+            let name = a.surface_name().unwrap_or_default();
             if let Some(t) = a.tin_surface() {
                 let tris: Vec<Json> = t
                     .triangles

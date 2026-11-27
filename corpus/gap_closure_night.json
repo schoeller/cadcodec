@@ -3,9 +3,9 @@
  "wave": "D010 NIGHT roundtrip packets (2026-11-26/27): 2 packets x 3 files, maximum untested-family coverage; FULL AUTONOMY (testing + gap-logging); ZERO C3D writes",
  "format": "same shape as gap_log_packet4.json: per-file census gates + L1/L2/L3 verdicts; gap entries carry file/family/gap/class/implementability/evidence",
  "suite": "cargo test 3366 passed / 0 failed on d579ecf5 (post-legs, data-only changes; staggered until load < 5)",
- "bridge_protocol": "port 7900 only; flock /tmp/opencode/bridge.lock around every session; attrib -r + verify before EVERY built-file open (all verified 'A', no R); oracle opens readOnly:true (D004); get_civil_context before/mid/after — Drawing1 untouched, all counts 0 before == after; every close discardChanges:true; read-only C# inventory only (D008-logged to /tmp/opencode/writere2/d008_log_night.jsonl); zero dialogs on all 12 opens",
+ "bridge_protocol": "port 7900 only; flock /tmp/opencode/bridge.lock around every session; attrib -r + verify before EVERY built-file open (all verified 'A', no R); oracle opens readOnly:true (D004); get_civil_context before/mid/after \u2014 Drawing1 untouched, all counts 0 before == after; every close discardChanges:true; read-only C# inventory only (D008-logged to /tmp/opencode/writere2/d008_log_night.jsonl); zero dialogs on all 12 opens",
  "anomalies": [
-  "one C# compile error (night_verify.py first census draft, CS8652 params-collections preview) — MY code bug, not a bridge incident: tool responded normally, oracle Grading-1 closed clean (discardChanges:false — read-only open never flagged modified), script hardened (failure cleanup closes open drawings) and the leg re-run clean"
+  "one C# compile error (night_verify.py first census draft, CS8652 params-collections preview) \u2014 MY code bug, not a bridge incident: tool responded normally, oracle Grading-1 closed clean (discardChanges:false \u2014 read-only open never flagged modified), script hardened (failure cleanup closes open drawings) and the leg re-run clean"
  ],
  "census gates (codec analyze == eligibility.json families)": {
   "Grading-1.dwg": "{AcDbCircle:6, AcDbMText:6, AeccDbFace:1, AeccDbSurfaceTin:1} EXACT",
@@ -18,7 +18,7 @@
  "files": [
   {
    "file": "Grading-1.dwg",
-   "pick_reason": "grading-era FACE family in an ELIGIBLE file (Grading-3A was DEFERRED on FL blockers); circles/MText/TIN alongside — never L2-verified family combo",
+   "pick_reason": "grading-era FACE family in an ELIGIBLE file (Grading-3A was DEFERRED on FL blockers); circles/MText/TIN alongside \u2014 never L2-verified family combo",
    "L1": "circle 6/6 BIT-EXACT; mtext 6/6 BIT-EXACT; site 1/1 BIT-EXACT; tin_surface: +4 corner points (782->786) + retriangulated triangles (1388->1482) = the KNOWN-TOLERATED #11 signature",
    "L2": "open NO dialog (attrib -r verified first); AUDIT total=14 null=0 erased=0; app census {AcDbCircle:6, AcDbMText:6, AeccDbFace:1, AeccDbSurfaceTin:1}; closed discardChanges:true",
    "L3": "app census oracle == built (14 == 14, all classes equal); oracle TIN 'EG' vertices=778 triangles=1388; built TIN vertices=782 triangles=1482 (matches codec-side exactly)",
@@ -26,7 +26,7 @@
   },
   {
    "file": "Breaklines.dwg",
-   "pick_reason": "pure 3dPolyline family at volume (33 breaklines feeding the tutorial surfaces) — never roundtripped; larger twin of Berm Breaklines",
+   "pick_reason": "pure 3dPolyline family at volume (33 breaklines feeding the tutorial surfaces) \u2014 never roundtripped; larger twin of Berm Breaklines",
    "L1": "polyline3d 33/33 BIT-EXACT (zero diffs, zero gaps in the manifest)",
    "L2": "open NO dialog; AUDIT total=33 null=0 erased=0; app census {AcDb3dPolyline:33}; closed discardChanges:true",
    "L3": "app census oracle == built (33 == 33) EXACT",
@@ -34,15 +34,15 @@
   },
   {
    "file": "Survey-5C.dwg",
-   "pick_reason": "TIN-ONLY census shape — isolates the tin record questions with nothing else in the file",
+   "pick_reason": "TIN-ONLY census shape \u2014 isolates the tin record questions with nothing else in the file",
    "L1": "tin_surface 1/1 BIT-EXACT (the oracle tin IS the documented empty-shell decode: 4 corners at +/-f64::MAX, 0 triangles; the W4-3 shell path rebuilt it identically)",
    "L2": "open NO dialog; AUDIT total=1 null=0 erased=0; closed discardChanges:true",
-   "L3": "app TIN vertices=0 triangles=0 on BOTH sides — the empty-shell record confirmed live in Civil 3D (W2-2/W4-3 family validated); census 1 == 1",
+   "L3": "app TIN vertices=0 triangles=0 on BOTH sides \u2014 the empty-shell record confirmed live in Civil 3D (W2-2/W4-3 family validated); census 1 == 1",
    "verdict": "PASS-with-notes (N-1 tin name)"
   },
   {
    "file": "Align-7A.dwg",
-   "pick_reason": "alignment-tutorial family pre-alignment state: circles/MText/TIN with ZERO AeccDb classes — distinct census shape",
+   "pick_reason": "alignment-tutorial family pre-alignment state: circles/MText/TIN with ZERO AeccDb classes \u2014 distinct census shape",
    "L1": "circle 5/5 BIT-EXACT; mtext 5/5 BIT-EXACT; tin_surface: +4 corners (10158->10162) + retriangulated (16868->20287) = #11",
    "L2": "open NO dialog; AUDIT total=11 null=0 erased=0; closed discardChanges:true",
    "L3": "app census oracle == built (11 == 11); oracle TIN 'Existing Ground' vertices=8572 triangles=16868; built vertices=10158 triangles=20287",
@@ -50,7 +50,7 @@
   },
   {
    "file": "Labels-Surface.dwg",
-   "pick_reason": "surface-label family: boundary 3dpline + face + tin interplay — not covered by any prior packet",
+   "pick_reason": "surface-label family: boundary 3dpline + face + tin interplay \u2014 not covered by any prior packet",
    "L1": "polyline3d 1/1 BIT-EXACT; site 1/1 BIT-EXACT; tin_surface: +4 corners (35815->35819) + retriangulated (70602->71564) = #11",
    "L2": "open NO dialog; AUDIT total=3 null=0 erased=0; closed discardChanges:true",
    "L3": "app census oracle == built (3 == 3); oracle TIN 'Composite' vertices=35677 triangles=70602; built vertices=35815 triangles=71564",
@@ -59,9 +59,9 @@
   {
    "file": "Surface-3.dwg",
    "pick_reason": "multi-family interplay: 2405 COGO records + 33 breaklines + boundary + tin in ONE build; cross-checks Breaklines.dwg's 33-pline set",
-   "L1": "polyline3d 33/33 BIT-EXACT (matches Breaklines.dwg exactly); lwpolyline 1/1 BIT-EXACT; circle 3/3 BIT-EXACT; cogo_point 2405/2405 BIT-EXACT (number, name, position to the last digit, description — see W1-5 UPDATE below); tin_surface: +4 corners (2410->2414) + retriangulated (4593->4751) = #11",
+   "L1": "polyline3d 33/33 BIT-EXACT (matches Breaklines.dwg exactly); lwpolyline 1/1 BIT-EXACT; circle 3/3 BIT-EXACT; cogo_point 2405/2405 BIT-EXACT (number, name, position to the last digit, description \u2014 see W1-5 UPDATE below); tin_surface: +4 corners (2410->2414) + retriangulated (4593->4751) = #11",
    "L2": "open NO dialog; AUDIT total=2443 null=0 erased=0 both sides; closed discardChanges:true",
-   "L3": "app census oracle == built (2443 == 2443); oracle TIN 'XGND' vertices=2405 triangles=4593; built vertices=2410 triangles=4751; oracle COGO0 num=1 E=19857.2577 N=20260.4556 Z=100.3058 (the packet-4 'same point set' anchor); built enumerates a different first point (num=1840) — enumeration order only, all 2405 records BIT-EXACT codec-side",
+   "L3": "app census oracle == built (2443 == 2443); oracle TIN 'XGND' vertices=2405 triangles=4593; built vertices=2410 triangles=4751; oracle COGO0 num=1 E=19857.2577 N=20260.4556 Z=100.3058 (the packet-4 'same point set' anchor); built enumerates a different first point (num=1840) \u2014 enumeration order only, all 2405 records BIT-EXACT codec-side",
    "verdict": "PASS-with-notes (N-1 tin name; #11; carries the W1-5 closure evidence)"
   }
  ],
@@ -70,16 +70,17 @@
    "id": "N-1",
    "file": "Grading-1, Survey-5C, Align-7A, Labels-Surface, Surface-3 (5/5 files with a real-name tin)",
    "family": "tin_surface name field",
-   "gap": "READ gap: the codec decodes a garbage substring as the tin name ('yed' for 'EG'/'Existing Ground', 'leightkadmin' for 'XGND'/'Figure Surface 1'/'Composite'); the writer then faithfully writes the mis-decoded name, so the BUILT surface's app-read name is wrong. Bit-exact codec<->codec (yed==yed) is why compare_verify passes — the corruption happens at decode time.",
+   "gap": "READ gap: the codec decodes a garbage substring as the tin name ('yed' for 'EG'/'Existing Ground', 'leightkadmin' for 'XGND'/'Figure Surface 1'/'Composite'); the writer then faithfully writes the mis-decoded name, so the BUILT surface's app-read name is wrong. Bit-exact codec<->codec (yed==yed) is why compare_verify passes \u2014 the corruption happens at decode time.",
    "class": "READ",
-   "implementability": "implementable — the true name is provably in the record (Civil 3D reads it live); the name decode picks a wrong offset/length in the TIN record body. One decoder fix closes it for every surface file.",
-   "evidence": "corpus/manifests/{grading_1,survey_5c,align_7a,labels_surface,surface_3}.json (name='yed'/'leightkadmin' ORACLE-side) vs /tmp/opencode/ct/cap.night.*.census.txt (oracle TIN name=[EG]/[Existing Ground]/[Composite]/[XGND]/[Figure Surface 1]; built TIN name=[yed]/[leightkadmin])"
+   "implementability": "implementable \u2014 the true name is provably in the record (Civil 3D reads it live); the name decode picks a wrong offset/length in the TIN record body. One decoder fix closes it for every surface file.",
+   "evidence": "corpus/manifests/{grading_1,survey_5c,align_7a,labels_surface,surface_3}.json (name='yed'/'leightkadmin' ORACLE-side) vs /tmp/opencode/ct/cap.night.*.census.txt (oracle TIN name=[EG]/[Existing Ground]/[Composite]/[XGND]/[Figure Surface 1]; built TIN name=[yed]/[leightkadmin])",
+   "closure (D010 round, 2026-11-27)": "CLOSED. Root cause was TWO bugs compounding: (1) the corpus TOOL read the name from strings.get(2) \u2014 the created-by slot, the pre-#668 pattern \u2014 so every manifest's tin name was the application's user name ('yed'/'leightkadmin'); (2) the reader grammar's TinDefinition::text_count missed TWO definition kinds' text slots (the TinFile path text and the GradingGroup text), so even the correct offset grammar landed one slot early on surfaces built from a .tin file or a grading group. (2) fixed upstream in PR #694 (d010/tin-name @ a9ae51fd, merged into this branch with upstream main 1c6d850a..a9ae51fd); (1) fixed by making examples/corpus_roundtrip.rs call ArchEntityData::surface_name() instead of the hand-rolled slot read (cannot drift again). Evidence: the 10 manifests carrying tin names regenerated at the merged head \u2014 the 5 oracle-named files now decode TRUE names (Grading-1 'EG', Align-7A 'Existing Ground', Labels-Surface 'Composite', Surface-3 'XGND', Survey-5C 'Figure Surface 1'), zero 'yed'/'leightkadmin' anywhere in corpus/manifests. End-to-end Grading-1 rebuilt at the merged head: built surface name decodes 'EG'; compare_verify shows the night baseline (circle/mtext/site BIT-EXACT, #11 tin retriangulation) with the name diff GONE. Artifacts: /tmp/opencode/corpus_toolfix/."
   },
   {
    "id": "N-2",
    "file": "Grading-1, Align-7A, Labels-Surface, Surface-3 (every tin with real triangulation)",
    "family": "tin_surface triangulation",
-   "gap": "KNOWN-TOLERATED (#11/W1-10 family, re-measured at corpus scale): rebuild adds the 4 shell corner points and retriangulates (1388->1482, 16868->20287, 70602->71564, 4593->4751). NEW sub-observation: the codec's oracle-side point decode over-counts vs the app's live vertex read (782/778, 10158/8572, 35815/35677, 2410/2405) while triangle counts agree exactly codec<->app (1388, 16868, 70602, 4593) — i.e. the triangle decode is exact and the extra decoded points are records C3D does not surface as vertices.",
+   "gap": "KNOWN-TOLERATED (#11/W1-10 family, re-measured at corpus scale): rebuild adds the 4 shell corner points and retriangulates (1388->1482, 16868->20287, 70602->71564, 4593->4751). NEW sub-observation: the codec's oracle-side point decode over-counts vs the app's live vertex read (782/778, 10158/8572, 35815/35677, 2410/2405) while triangle counts agree exactly codec<->app (1388, 16868, 70602, 4593) \u2014 i.e. the triangle decode is exact and the extra decoded points are records C3D does not surface as vertices.",
    "class": "TOLERATED",
    "implementability": "uncertain (unchanged #11 verdict); the sub-observation sharpens it: only the POINT-list decode is over-broad, the triangle decode is already app-exact",
    "evidence": "the 6 l1_compare.out files + cap.night.{Grading-1.dwg,Align-7A.dwg,Labels-Surface.dwg,Surface-3.dwg}.census.txt"
@@ -90,7 +91,7 @@
    "family": "cogo_point decode (W1-5/W2-1 record update)",
    "gap": "RECORD CORRECTION / CLOSURE EVIDENCE: the W1-5/W2-1 denominators '2405 total / 0 decoded' (packets 2/4, measured 2026-11-24 @ fdd58068, BEFORE PR #655 merged) are STALE on the current tip. Surface-3.dwg decodes 2405/2405 COGO points BIT-EXACT through build+verify (number, name, position full f64, description), and a Points-4a.dwg re-analyze on d579ecf5 also yields 2405 items (analyze-only re-measure; no rebuild needed for the record). The #655 point-database read now carries corpus-scale proof.",
    "class": "READ-closure (record update; the morning D017 findings report should cite this as W1-5 corpus evidence)",
-   "implementability": "n/a — closed upstream by PR #655; the stale denominators just need the re-measure recorded",
+   "implementability": "n/a \u2014 closed upstream by PR #655; the stale denominators just need the re-measure recorded",
    "evidence": "corpus/manifests/surface_3.json (cogo_point 2405 items) + surface_3.l1_compare.out (BIT-EXACT) + cap.night.Surface-3.dwg.census.txt (app census 2443==2443, COGO readable) + /tmp/opencode/corpus_wave_night/points_4a.reanalyze.json (2405 items @ d579ecf5)"
   }
  ],
