@@ -259,7 +259,8 @@ fn override_property(w: &mut crate::io::dwg::dwg_stream_writers::merged_writer::
 /// (the group's label style), on `layer` (the drawing's default when
 /// `None`). The record is [`AlignmentLabelGroup`]; the references are
 /// the samples': soft 0, soft 0, the alignment (soft), the style (hard),
-/// then one alignment soft pointer per label.
+/// then per label the alignment (hard) — plus a soft-0 / hard-0 pair
+/// after the alignment pointer of every label that carries overrides.
 ///
 /// Refuses an unknown layer, an alignment that is not an `AECC_ALIGNMENT`
 /// and a range or increment outside the form.
@@ -299,8 +300,18 @@ pub fn add_alignment_label_group(
         ..EntityCommon::default()
     };
     let mut refs = vec![soft_pointer(0), soft_pointer(0), soft_pointer(alignment.value()), hard_pointer(style.value())];
-    for _ in &group.labels {
+    for label in &group.labels {
         refs.push(hard_pointer(alignment.value()));
+        // A label with overrides carries a soft-0 / hard-0 pair after its
+        // alignment pointer (Parcel-1A: the group with one overridden label
+        // one pair, the group with two — begin mark and a flipped interior
+        // station — two; the application walks the reference list per label
+        // and erases the record when a pair is missing, which the typed
+        // fields cannot see).
+        if !label.overrides.is_empty() {
+            refs.push(soft_pointer(0));
+            refs.push(hard_pointer(0));
+        }
     }
     let strings = vec![group.kind.class_text().to_string(), String::new(), String::new(), String::new()];
     put_entity(
@@ -569,6 +580,47 @@ mod tests {
         // The dragged offset stays None (the override's value is a byte,
         // not a point).
         assert_eq!(e.label_dragged_offset(), None);
+    }
+
+    #[test]
+    fn overridden_labels_carry_the_soft0_hard0_reference_pair() {
+        // Parcel-1A's C-2: the application walks the reference list per
+        // label and erases a record whose overridden label lacks the
+        // soft-0 / hard-0 pair the oracle stores after the label's
+        // alignment pointer. Two overridden labels — two pairs, at the
+        // overridden labels' positions.
+        let mut doc = drawing();
+        let al = add_alignment(&mut doc, "AL-P", &[Vector2::new(0.0, 0.0), Vector2::new(1400.0, 0.0)], None).unwrap();
+        let style = crate::classes::civil::add_point_label_style(&mut doc, "PAIR LABEL", |_| {}).unwrap();
+        let mut group = align2_station();
+        group.labels[0].overrides = vec![vec![LabelOverrideProperty { id: 12, set: 0x0CC0, value: LabelOverrideValue::Byte(0) }]];
+        group.labels[4].overrides = vec![vec![LabelOverrideProperty { id: 12, set: 0x0CC0, value: LabelOverrideValue::Byte(0) }]];
+        let h = add_alignment_label_group(&mut doc, al, style, None, &group).unwrap();
+        let r = refs(&entity(&doc, h));
+        // soft 0, soft 0, alignment, style, then per label the alignment
+        // hard pointer — plus one soft-0/hard-0 pair (two refs) per
+        // overridden label.
+        assert_eq!(r.len(), 4 + group.labels.len() + 4);
+        assert_eq!(r[0], (0, 4));
+        assert_eq!(r[1], (0, 4));
+        assert_eq!(r[2], (al.value(), 4));
+        assert_eq!(r[3], (style.value(), 5));
+        // label 0's pointer, then the first pair.
+        assert_eq!(r[4], (al.value(), 5));
+        assert_eq!(r[5], (0, 4));
+        assert_eq!(r[6], (0, 5));
+        // labels 1..4 plain, label 4's pointer then the second pair.
+        for (i, r) in r.iter().enumerate().take(10).skip(7) {
+            assert_eq!(*r, (al.value(), 5), "ref {i}");
+        }
+        assert_eq!(r[11], (0, 4));
+        assert_eq!(r[12], (0, 5));
+        // the rest are plain label pointers.
+        assert!(r[13..].iter().all(|r| *r == (al.value(), 5)));
+        // and the pairs survive a roundtrip untouched.
+        let back = roundtrip(&doc, "refpairs");
+        let r2 = refs(&entity(&back, h));
+        assert_eq!(r2, r);
     }
 
     #[test]
