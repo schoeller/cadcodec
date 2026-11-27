@@ -6,6 +6,7 @@
   "bridge_protocol": "port 7900 only; flock /tmp/opencode/bridge.lock around every session; attrib -r + verify before EVERY built-file open (all 'A', no R); oracle opens readOnly:true; get_civil_context before/mid/after — Drawing1 all-0 before == after every leg; every close discardChanges:true; read-only C# inventory only (D008-logged to /tmp/opencode/writere2/d008_log_packetC.jsonl); ZERO dialogs on all 18 opens; the mhv/win32/dismiss.ps1 watcher ran throughout and matched nothing (dismissed=0, no non-matching dialogs)",
   "anomalies": [
     "built-census C# first draft died on ePermanentlyErased (Parcel-1A built) — hardened with per-id exception capture; the exception is REAL FILE CONTENT (gap C-2), not a client bug; leg re-run clean under tag p1b",
+    "the KNOWN proxy/version modal ('created with a newer version of Civil 3D … proxy state', #32770) popped 3× at 16:11–16:13 UTC — AFTER the last built close (16:08:44, queue-idle surfacing); the dismiss.ps1 watcher Win32-dismissed each by exact title/text match (dismissed=1 ×3, the recorded MHV protocol, autonomous-rule compliant); ZERO non-matching dialogs, no wedge, no leg affected (all 18 opens + every census/audit returned ok before the modals surfaced)",
     "ctx_before of the first Parcel-1A leg showed another session's drawing active (C:\\Temp\\mhvadopt\\mhv-flip1.dwg) — another worker's window, untouched; Drawing1 invariants held on every probe"
   ],
   "census gates (codec analyze == eligibility.json families)": {
