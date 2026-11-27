@@ -1,0 +1,97 @@
+{
+  "base": "parity/packetC (origin/parity/wiring@29c5fbfa + merge upstream/main@33d11212, merge commit 20af0c4d)",
+  "wave": "D017 PACKET C corpus roundtrip (2026-11-27): 3 files x full L1/L2/L3 — the wiring round's first packet consumption (section data bands #701/#702, native blocks/inserts #703, alignment label groups #688)",
+  "format": "same shape as gap_closure_night.json: per-file census gates + L1/L2/L3 verdicts; gap entries carry id/file/family/gap/class/implementability/evidence",
+  "suite": "cargo test (sccache, CARGO_PROFILE_TEST_DEBUG=0, CARGO_INCREMENTAL=0) on parity/packetC post-legs (data-only changes): 3429 passed / 0 failed, exit 0 (+ 14 doc-tests passed) — baseline on parity/wiring was 3414; the +15 are the merged upstream #710/#713/#714-era tests",
+  "bridge_protocol": "port 7900 only; flock /tmp/opencode/bridge.lock around every session; attrib -r + verify before EVERY built-file open (all 'A', no R); oracle opens readOnly:true; get_civil_context before/mid/after — Drawing1 all-0 before == after every leg; every close discardChanges:true; read-only C# inventory only (D008-logged to /tmp/opencode/writere2/d008_log_packetC.jsonl); ZERO dialogs on all 18 opens; the mhv/win32/dismiss.ps1 watcher ran throughout and matched nothing (dismissed=0, no non-matching dialogs)",
+  "anomalies": [
+    "built-census C# first draft died on ePermanentlyErased (Parcel-1A built) — hardened with per-id exception capture; the exception is REAL FILE CONTENT (gap C-2), not a client bug; leg re-run clean under tag p1b",
+    "ctx_before of the first Parcel-1A leg showed another session's drawing active (C:\\Temp\\mhvadopt\\mhv-flip1.dwg) — another worker's window, untouched; Drawing1 invariants held on every probe"
+  ],
+  "census gates (codec analyze == eligibility.json families)": {
+    "Parcel-1A.dwg": "{3dPolyline:3, Arc:39, Line:116, LwPolyline:141, Alignment:2, StationLabeling:2, MinorStationLabeling:2, GraphProfile:2, ProfileDataBandLabeling:2, Tin:1, VAlignment:4} EXACT (11/11)",
+    "Align-6C.dwg": "{ParcelSegment:1, Alignment:3, GeomPointLabeling:1, MinorStationLabeling:3, StationLabeling:3, Face:1, Tin:1} EXACT (7/7)",
+    "Points-3.dwg": "{COGO_POINT:2405, BlockReference:1} EXACT (2/2)"
+  },
+  "files": [
+    {
+      "file": "Parcel-1A.dwg",
+      "pick_reason": "arcs at corpus volume (39, never packet-tested) + 2 banded profile views (first packet test of the band wiring) + 4 VAlignments + 4 alignment label groups (#688 first packet test) + 40 block records — broadest interplay",
+      "L1": "arc 39/39 + polyline3d 3/3 + lwpolyline 141/141 + line 116/116 + block_record 40/40 + profile 4/4 + alignment_label_group 4/4 all BIT-EXACT; tin #11 (points 23126->23130, triangles 45934->46233); alignment 6 RAW (2 last-ulp vertex pairs + 2 curve-fit None!=arc — pre-existing notes); profile_view derived-only (elevations/stations recomputed)",
+      "L2": "open NO dialog; AUDIT total=657 null=1 erased=0 — the null=1 is ID-EXCN id=451 class=AcRxObject msg=ePermanentlyErased, an object still chained in the built model space (gap C-2); closed discardChanges:true",
+      "L3": "CENSUS INEQUALITY — civil classes: Alignment 2==2, MinorStation 2==2, GraphProfile 2==2, ProfileDataBand 2==2, Tin 1==1, VAlignment 4==4, GeomPoint 0==0, but AlignmentStationLabeling 2->1 (gap C-2), VAlignment{PVI,Line,Crest,Sag} 0->4 each (gap C-3); native: +343 block members leaked into model space (gap C-1), per-type EXACTLY the record member population {Line +237, Circle +25, LwPolyline +19, Text +16, Insert +2, Arc +7, Wipeout +1, Hatch +20}; TIN name [EG] both sides (N-1 closure confirmed live); oracle TIN 23092/45934 vs built 23126/46233 (#11)",
+      "verdict": "FAIL at L3 (C-1 member leak + C-2 station group + C-3 default labels); L1 PASS-with-notes (all wired families BIT-EXACT codec-side)"
+    },
+    {
+      "file": "Align-6C.dwg",
+      "pick_reason": "7 alignment label groups across 3 alignments — the #688 writer's packet denominators — with parcel/Face/tin interplay",
+      "L1": "block_record 54/54 + site 1/1 + alignment_label_group 7/7 all BIT-EXACT; tin #11 (782->786, 1388->1482); alignment 1 RAW last-ulp (pre-existing)",
+      "L2": "open NO dialog; AUDIT total=383 null=0 erased=0; closed discardChanges:true",
+      "L3": "CENSUS INEQUALITY — civil classes 7/7 EXACT (Alignment 3, GeomPoint 1, MinorStation 3, Station 3, Face 1, Tin 1 all equal; the #688 denominators verified live) but AeccDbLotLine 1->0 (the app form of AECC_PARCEL_SEGMENT — gap C-4) and +371 block members leaked into model space (gap C-1, per-type EXACTLY {Line 249, Circle 27, LwPolyline 41, Leader 1, Text 16, Insert 2, Arc 11, Wipeout 1, Hatch 22, Solid 1}); TIN name [EG] both sides; oracle 778/1388 vs built 782/1482 (#11)",
+      "verdict": "FAIL at L3 (C-1 leak + C-4 lot line); L1 PASS-with-notes; the wired CIVIL families are live-verified exact"
+    },
+    {
+      "file": "Points-3.dwg",
+      "pick_reason": "55 block definitions (largest set) + the 2405-point COGO mass — block wiring x point-database store coexistence at volume; L1 was fully bit-exact on the wiring branch",
+      "L1": "FULLY BIT-EXACT: block_record 55/55 + insert 1/1 + cogo_point 2405/2405, zero RAW diffs, manifest gaps 0 (build 6.4 s — the O(n^2) cogo store far cheaper than the wiring round's ~90 s estimate)",
+      "L2": "open NO dialog; AUDIT total=2777 null=0 erased=0; closed discardChanges:true",
+      "L3": "CENSUS INEQUALITY — AeccDbCogoPoint 2405==2405 but +371 block members leaked into model space (gap C-1, member set per-type IDENTICAL to Align-6C's — the two files share a block library) and AcDbBlockReference 1->3 (the legit insert + the 2 member inserts of C-1); NEW observation: the built point-database enumerates in a different order (first point num=1840 vs oracle num=1; count and the probe point's E/N/Z readable) — gap C-5",
+      "verdict": "FAIL at L3 (C-1 leak; C-5 order note); L1 PASS (fully bit-exact), L2 PASS"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "C-1",
+      "file": "Parcel-1A, Align-6C, Points-3 (3/3 files with block records — every file the #703 block wiring rebuilds at packet scale)",
+      "family": "block_record member ownership on rebuild",
+      "gap": "WRITER gap: the block wiring rebuilds each record and re-homes its members, but every member entity remains (also) reachable from the MODEL-SPACE block-table chain in the built file. Codec-side verification cannot see it (the codec's built-file census walks the record chain and reports no model-space members — block_record BIT-EXACT), while Civil 3D's model-space enumeration walks the BTR chain and sees the full member population as loose model-space entities: +343 (Parcel-1A), +371 (Align-6C), +371 (Points-3) native entities per built file, matching the member population EXACTLY per type (Line/Circle/LwPolyline/Text/Insert/Arc/Wipeout/Hatch/Leader/Solid). Member INSERTS additionally appear as 2 extra model-space AcDbBlockReference per file. The wiring round's probe files could not catch this: Labels-1a/2a's members are annotation-light and their 1-3 inserts were LEGITIMATE model-space inserts, so the L2/L3 legs of the wiring probes (if any) had no contrast. First exposed by packet C's L3 equality gate.",
+      "class": "WRITER (ownership: the writer must link members ONLY under the rebuilt record's entity chain — either it creates them in model space first and never unlinks, or it writes the owner field and the BTR chain inconsistently)",
+      "implementability": "implementable — one ownership fix in the #703 wiring path (the member entities' home BTR must be the rebuilt record, not model space); a regression test should assert the app-visible model-space count (codec census is structurally blind to this class of bug, compare_verify cannot catch it)",
+      "evidence": "/tmp/opencode/ct/cap.pktC.p1b.built.census.txt vs p1b.Parcel-1A.dwg.census.txt (+343 == members exactly per type); cap.pktC.p6c.{Align-6C.dwg,built}.census.txt and cap.pktC.p3.{Points-3.dwg,built}.census.txt (+371 each, identical member sets); codec census of the built files (packetC/packetC/*.built.json codec_census) shows NO model-space members — the two walks disagree, which is the bug's signature"
+    },
+    {
+      "id": "C-2",
+      "file": "Parcel-1A.dwg (only; Align-6C's 3 station groups and Points-3 (none) are clean)",
+      "family": "alignment station label groups on rebuild (the #688 wiring, 2-group interplay case)",
+      "gap": "WRITER gap (needs investigation): the built file carries a dead object — AUDIT null=1, ID-EXCN id=451 class=AcRxObject msg=ePermanentlyErased on GetObject, an object still chained in model space — and the app census shows AeccDbAlignmentStationLabeling 1 where the oracle has 2 and the codec's built-file re-analysis decodes 2 (alignment_label_group 4/4 BIT-EXACT). Correlation (the dead object may be the second station group's record) is NOT proven; codec-side the file is self-consistent.",
+      "class": "WRITER (handle/ownership collision in the label-group rebuild when a family has 2+ groups of the same kind plus nearby block-record rebuilds)",
+      "implementability": "uncertain — needs a targeted probe (dump the built file's object 451 and the two station groups' storage) before a fix; one packet file reproduces it, so a probe is cheap",
+      "evidence": "cap.pktC.p1b.built.census.txt (ID-EXCN line + CENSUS AeccDbAlignmentStationLabeling=1) vs cap.pktC.p1b.Parcel-1A.dwg.census.txt (=2) vs parcel_1a.built.json (alignment_label_group 4 items BIT-EXACT)"
+    },
+    {
+      "id": "C-3",
+      "file": "Parcel-1A.dwg (every file whose profiles are built while the oracle carries none of the sub-label groups)",
+      "family": "profile writer default VAlignment label groups",
+      "gap": "WRITER gap: add_profile (or the profile-view band wiring path) emits 4 default label groups PER PROFILE — AeccDbVAlignmentPVILabeling / LineLabeling / CrestCurveLabeling / SagCurveLabeling x4 — that the oracle does not carry as separate objects: +16 census objects. The oracle's profile annotation is carried differently (no such classes app-side).",
+      "class": "WRITER (parameter: suppress the default label-group emission, or gate it on the manifest carrying them)",
+      "implementability": "implementable — find the default-emission site in the profile create path and make it opt-in",
+      "evidence": "cap.pktC.p1b.built.census.txt (CENSUS AeccDbVAlignment{PVI,Line,Crest,Sag}Labeling=4 each) vs cap.pktC.p1b.Parcel-1A.dwg.census.txt (absent) — first packet test of profiles+bands at interplay exposed it"
+    },
+    {
+      "id": "C-4",
+      "file": "Align-6C.dwg",
+      "family": "AECC_PARCEL_SEGMENT (app class AeccDbLotLine)",
+      "gap": "WRITER/data-model gap: the standalone parcel-segment record (app: AeccDbLotLine) is gracefully skipped by analyze (no family) so the built file lacks it: census 1->0. The parcel writer covers AeccDbFace/site parcels; the lot-line record family has no builder family.",
+      "class": "WRITER (new family: lot-line/parcel-segment record builder); record grammar unmapped today",
+      "implementability": "uncertain — needs the AECC_PARCEL_SEGMENT record grammar mapped first (a new-reader round of the #688 kind), then a small builder family",
+      "evidence": "align_6c.manifest.json (no parcel family; census gate still EXACT because eligibility counts the class the app shows) vs cap.pktC.p6c.{Align-6C.dwg,built}.census.txt (AeccDbLotLine 1 -> absent)"
+    },
+    {
+      "id": "C-5",
+      "file": "Points-3.dwg (2405-point store)",
+      "family": "cogo point-database enumeration order",
+      "gap": "OBSERVATION (count-exact, order-differs): the built point database holds 2405/2405 points and points are individually readable (probe point E/N/Z decoded), but the app's first-enumerated point is num=1840 where the oracle's is num=1 — the built store's iteration order differs from the oracle's number order. Does not affect counts or any compare_verify field (items are compared as a set/sorted by number); visible only in the app enumeration.",
+      "class": "WRITER (point-database store ordering/table order) — low priority",
+      "implementability": "uncertain — whether Civil 3D surfaces the order anywhere user-visible (point group sort orders may mask it) needs one targeted probe before any fix",
+      "evidence": "cap.pktC.p3.{Points-3.dwg,built}.census.txt (COGO0 h=60AD num=1 vs h=283 num=1840; both E/N/Z readable; CENSUS 2405==2405)"
+    }
+  ],
+  "reconfirmed (pre-existing)": [
+    "#11 tin retriangulation + shell-corner points: Parcel-1A (23126->23130 pts, 45934->46233 tris) and Align-6C (782->786, 1388->1482); codec point-count vs app live vertex delta (23126/23092, 782/778) unchanged",
+    "alignment last-ulp vertex drift: 2 vertices in Parcel-1A, 1 in Align-6C (pre-existing writer note)",
+    "alignment curve-fit decode gap: Parcel-1A alignment[1].curves[1..2] None!=arc (pre-existing)",
+    "N-1 tin-name closure confirmed live post-#694: both built files' surfaces read [EG] app-side, matching the oracle"
+  ],
+  "disk": "80 GB free at start; built dwgs staged at C:\\Temp\\corpus_built\\packetC\\ (+r-free); scratch /tmp/opencode/packetC_work/",
+  "artifacts": "manifests corpus/manifests/{parcel_1a,align_6c,points_3}.json; analyses+compares /tmp/opencode/packetC_work/packetC/*; bridge captures /tmp/opencode/ct/cap.pktC.*; d008 log /tmp/opencode/writere2/d008_log_packetC.jsonl; runlog /tmp/opencode/writere2/packetC_runlog.md"
+}
