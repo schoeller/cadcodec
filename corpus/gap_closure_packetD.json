@@ -1,0 +1,68 @@
+{
+  "base": "parity/packetD (origin/parity/packetC-fix2@c68792a1 — carries the C-1 ownership guard + the C-2/C-3/C-4 fixes — merge of upstream/main@4467c2a8 was a NO-OP: #715 a1668de1 + #716 4467c2a8 were already contained)",
+  "wave": "D017 PACKET D corpus roundtrip (2026-11-27): 3 NEW files (not packet C's set) x full L1/L2/L3, run against the NEW baseline: full L3 census equality is the standard (the C-1/C-2/C-3/C-4 fixes all live)",
+  "format": "same shape as gap_closure_packetC.json",
+  "suite": "cargo test (sccache, CARGO_PROFILE_TEST_DEBUG=0, CARGO_INCREMENTAL=0) on parity/packetD post-legs (data-only changes): 3437 passed / 0 failed, exit 0 (+ 14 doc-tests passed) — same count as the packetC-fix2 merged-tip baseline (3437)",
+  "bridge_protocol": "port 7900 only; flock /tmp/opencode/bridge.lock around every session; attrib -r + verify before EVERY built-file open (all 'A', no R); oracle opens readOnly:true; get_civil_context before/mid/after — Drawing1 all-0 before == mid == after every leg; every close discardChanges:true (all returned discardedChanges:false — nothing was ever flagged modified); read-only C# inventory only (D008-logged to /tmp/opencode/writere2/d008_log_packetD.jsonl); 6 opens + 6 read-only census executes across 3 legs; ZERO dialogs of any kind; the mhv/win32/dismiss.ps1 watcher ran throughout (pktD_watcher.log) and matched nothing; no wedge",
+  "census gates (codec analyze == eligibility.json families)": {
+    "Labels-2a.dwg": "{BlockReference:3} EXACT + manifest-invisible block_record 43 / insert 3, gaps 0",
+    "Profile-4A.dwg": "{MText:10, Circle:9, Alignment:1, GeomPoint:1, MinorStation:1, Station:1, GraphProfile:1, ProfileDataBandLabeling:1, Tin:1, VAlignment:1} EXACT (10/10)",
+    "Surface-4A.dwg": "{COGO_POINT:2405, 3dPolyline:33, BlockReference:1, Polyline:1, Tin:1} EXACT (5/5)"
+  },
+  "files": [
+    {
+      "file": "Labels-2a.dwg",
+      "pick_reason": "the wiring round's explicitly kept packet-D candidate: the xref-insert shape with 43 block records and THREE model-space inserts (multi-insert never packet-tested) — exercises the C-1 ownership fix + guard against the full block edge-case list (anonymous records, associative hatches, member layers, regapp EED)",
+      "L1": "FULLY BIT-EXACT: block_record 43/43 + insert 3/3, zero RAW diffs, gaps 0; ownership guard leaked_members=0 leaked_into_layout=0, model_space_inserts 3/3; build zero NOTEs",
+      "L2": "open NO dialog; AUDIT total=3 null=0 erased=0; closed discardChanges:true",
+      "L3": "FULL CENSUS EQUALITY — AcDbBlockReference 3==3, audit 3/0/0 == 3/0/0. The multi-insert + xref block shape verifies app-side with zero leak under the C-1 fix",
+      "verdict": "PASS all layers",
+      "notes": "built open reports units 'Feet' where the oracle reports 'Meters' (observation D-2)"
+    },
+    {
+      "file": "Profile-4A.dwg",
+      "pick_reason": "annotation families at corpus volume (MText 10 / Circle 9 — no packet exceeded 6/6) + the band+profile wiring in the standalone-profile shape + VAlignment outside Parcel-1A + 39 block records alongside civil classes",
+      "L1": "circle 9/9 + mtext 10/10 + block_record 39/39 + profile 1/1 + alignment_label_group 3/3 BIT-EXACT; ownership guard 0/0, inserts 0/0; tin #11 (10158->10162 pts, 16868->20287 tris) and the alignment curve-fit note (curves 4!=6, vertices 6!=8) pre-existing; build NOTE: profile_view PV0 fails (gap D-1) -> profile_view MISSING in built",
+      "L2": "open NO dialog; AUDIT total=25 null=0 erased=0; closed discardChanges:true",
+      "L3": "CENSUS INEQUALITY, delta EXACTLY gap D-1: oracle AeccDbGraphProfile 1 / AeccDbProfileDataBandLabeling 1 vs built 0 / 0 (the view + its band label group the D-1 build failure withholds; 27 vs 25 audit = exactly those 2); every class PRESENT is EXACT: Circle 9==9, MText 10==10, Alignment 1==1, GeomPoint 1==1, MinorStation 1==1, Station 1==1, Tin 1==1, VAlignment 1==1; ZERO leaked members (the C-1 guard + census both clean); TIN name [Existing Ground] BOTH sides (N-1 closure live); oracle tin 8572/16868 vs built 10158/20287 (#11)",
+      "verdict": "FAIL at L3 by exactly the D-1 delta (2 withheld objects); everything that IS built is app-exact; L1 PASS-with-notes"
+    },
+    {
+      "file": "Surface-4A.dwg",
+      "pick_reason": "the cogo+breaklines+blocks TRIPLE coexistence never before in one packet build: 2405-point cogo store + the Breaklines-shape 33 breaklines + a 49-record block set + insert — also the C-1 fix's stress case in a mixed build",
+      "L1": "polyline3d 33/33 + lwpolyline 1/1 + block_record 49/49 + insert 1/1 + cogo_point 2405/2405 BIT-EXACT; ownership guard 0/0, inserts 1/1; tin #11 (2410->2414, 4593->4751) pre-existing; build 39 s, zero NOTEs",
+      "L2": "open NO dialog; AUDIT total=2441 null=0 erased=0; closed discardChanges:true",
+      "L3": "FULL CENSUS EQUALITY — audit 2441/0/0 == 2441/0/0; 3dPolyline 33==33, BlockReference 1==1, Polyline 1==1, CogoPoint 2405==2405, Tin 1==1; TIN name [XGND] BOTH sides; the first-enumerated cogo point is num=1840 vs oracle num=1 (gap C-5, count-exact, unchanged)",
+      "verdict": "PASS all layers (C-5 order note documented, count-exact)"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "D-1",
+      "file": "Profile-4A.dwg",
+      "family": "profile_view",
+      "gap": "the corpus builder's BANDS path drops the manifest's decoded oracle station/elevation range: examples/corpus_roundtrip.rs profile_view build passes the ranges on the no-bands path but (None, None) on the bands path ('the band writer computes the frame automatically'); default_range then derives a window from the curve-fit-SHORTENED rebuilt alignment (4 of 6 curves) inside which the profile's elevations do not fit -> 'the profiles have no elevations within the stations' -> the view (and its ProfileDataBand label group) is not built (census GraphProfile 1->0, ProfileDataBandLabeling 1->0; audit 27 vs 25 = exactly the 2 withheld objects)",
+      "class": "WRITER",
+      "implementability": "implementable — add_profile_view_without_profile_label_groups already accepts stations/elevations; the fix is to pass the manifest ranges on the bands path too (one call site). NOT fixed this round (packet round is data-only; fix rounds dispatched separately)",
+      "pre_existing": true,
+      "evidence": "git show 29c5fbfa:examples/corpus_roundtrip.rs — the wiring tip's bands path called add_profile_view_with_bands (no range params), same automatic frame, same failure; error string introduced b0f86db3 (predates the wiring tip); the wiring round's recorded Profile-4A 'build NOTE' is this note. NEW TO THE CORPUS RECORD (never itemized before this packet)"
+    },
+    {
+      "id": "D-2",
+      "file": "Labels-2a.dwg (built)",
+      "family": "header/units (observation)",
+      "gap": "the BUILT file opens reporting units 'Feet' where the oracle opens 'Meters'; packet C's three built files all reported 'Undefined' (the units header is evidently not written — consistent with this round's other two built files). Census-invisible; user-visibility unprobed",
+      "class": "observation",
+      "implementability": "uncertain — needs a header-units probe (which record carries the app-visible units and what the writer emits for it) before any fix",
+      "pre_existing": false,
+      "evidence": "d008 open records: pktC built opens 'Undefined' x6 (packet C + this round); pktD Labels-2a built 'Feet'; oracles 'Meters'"
+    }
+  ],
+  "reconfirmed": [
+    "#11 tin retriangulation on rebuild (Profile-4A 10158->10162/16868->20287; Surface-4A 2410->2414/4593->4751) — unchanged",
+    "alignment curve-fit gap (Profile-4A rebuild keeps 4 of 6 curves / 6 of 8 vertices) — unchanged; D-1's failure window is downstream of it",
+    "C-5 cogo store enumeration order (Surface-4A built num=1840 first vs oracle num=1, count-exact 2405==2405) — unchanged",
+    "N-1 tin-name closure LIVE: TIN names [Existing Ground] (Profile-4A) and [XGND] (Surface-4A) decode identically both sides",
+    "the C-1 ownership guard (0 double-listed handles) and full L3 leak-freedom hold on all 3 NEW files — the C-1/C-2/C-3/C-4 baseline standard is met everywhere except the D-1 delta"
+  ]
+}
