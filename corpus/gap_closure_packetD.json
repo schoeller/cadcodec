@@ -25,7 +25,12 @@
       "L1": "circle 9/9 + mtext 10/10 + block_record 39/39 + profile 1/1 + alignment_label_group 3/3 BIT-EXACT; ownership guard 0/0, inserts 0/0; tin #11 (10158->10162 pts, 16868->20287 tris) and the alignment curve-fit note (curves 4!=6, vertices 6!=8) pre-existing; build NOTE: profile_view PV0 fails (gap D-1) -> profile_view MISSING in built",
       "L2": "open NO dialog; AUDIT total=25 null=0 erased=0; closed discardChanges:true",
       "L3": "CENSUS INEQUALITY, delta EXACTLY gap D-1: oracle AeccDbGraphProfile 1 / AeccDbProfileDataBandLabeling 1 vs built 0 / 0 (the view + its band label group the D-1 build failure withholds; 27 vs 25 audit = exactly those 2); every class PRESENT is EXACT: Circle 9==9, MText 10==10, Alignment 1==1, GeomPoint 1==1, MinorStation 1==1, Station 1==1, Tin 1==1, VAlignment 1==1; ZERO leaked members (the C-1 guard + census both clean); TIN name [Existing Ground] BOTH sides (N-1 closure live); oracle tin 8572/16868 vs built 10158/20287 (#11)",
-      "verdict": "FAIL at L3 by exactly the D-1 delta (2 withheld objects); everything that IS built is app-exact; L1 PASS-with-notes"
+      "verdict": "FAIL at L3 by exactly the D-1 delta (2 withheld objects); everything that IS built is app-exact; L1 PASS-with-notes",
+      "post_fix_reverify": {
+        "L1": "profile_view 1/1 BIT-EXACT (the D-1 delta GONE); circle 9 + mtext 10 + block_record 39 + profile 1 + alignment_label_group 3 BIT-EXACT; tin #11 + curve-fit 4/6 pre-existing unchanged; ownership guard 0/0; build zero NOTEs (PV0 builds)",
+        "L3": "FULL CENSUS EQUALITY — audit 27/0/0 == 27/0/0; ALL 10 classes exactly equal incl. AeccDbGraphProfile 1==1 and AeccDbProfileDataBandLabeling 1==1 (the 2 previously withheld objects restored); TIN [Existing Ground] both sides; ctx all-0 before==mid==after; ZERO dialogs, watcher silent",
+        "verdict": "PASS all layers (pre-existing tin #11 + curve-fit notes unchanged)"
+      }
     },
     {
       "file": "Surface-4A.dwg",
@@ -45,7 +50,15 @@
       "class": "WRITER",
       "implementability": "implementable — add_profile_view_without_profile_label_groups already accepts stations/elevations; the fix is to pass the manifest ranges on the bands path too (one call site). NOT fixed this round (packet round is data-only; fix rounds dispatched separately)",
       "pre_existing": true,
-      "evidence": "git show 29c5fbfa:examples/corpus_roundtrip.rs — the wiring tip's bands path called add_profile_view_with_bands (no range params), same automatic frame, same failure; error string introduced b0f86db3 (predates the wiring tip); the wiring round's recorded Profile-4A 'build NOTE' is this note. NEW TO THE CORPUS RECORD (never itemized before this packet)"
+      "evidence": "git show 29c5fbfa:examples/corpus_roundtrip.rs — the wiring tip's bands path called add_profile_view_with_bands (no range params), same automatic frame, same failure; error string introduced b0f86db3 (predates the wiring tip); the wiring round's recorded Profile-4A 'build NOTE' is this note. NEW TO THE CORPUS RECORD (never itemized before this packet)",
+      "status": "FIXED (parity/packetD-fix)",
+      "fix": {
+        "branch": "parity/packetD-fix (off origin/parity/packetD @ fb80a148)",
+        "root_cause_note": "TWO defects stacked, not one: (1) the call site — the example bands path passed (None, None) where the no-bands path passed the manifest ranges; (2) the WRITER — add_view calls default_range UNCONDITIONALLY, and default_range clips the profiles' profile_polylines() to derive the elevation window; Profile-4A's profile is a SAMPLED surface profile (add_surface_profile writes a surface reference, no PVIs, zero polylines), so the derived window is impossible regardless of the manifest range — the packet-D \"one call site\" implementability note was incomplete",
+        "writer_fix": "src/classes/civil/create/profile_view.rs add_view: when BOTH stations and elevations are pinned, the frame IS the caller's window (constructed directly); default_range stays the path otherwise (graceful None fallback unchanged)",
+        "example_fix": "examples/corpus_roundtrip.rs: the bands path now rides the manifest's decoded stations/elevations through (same expression as the no-bands path); (None, None) remains the fallback for a manifest item with no range",
+        "regression": "tests/rt_infra_profile_views.rs profile_view_bands_manifest_range_survives — the Profile-4A shape (surface-only profile, no PVIs) + banded view + pinned manifest range stations [-20,1120] / elevations [50,74]: builds and the reopened frame equals the manifest range exactly; (None, None) on a surface-only view errs gracefully"
+      }
     },
     {
       "id": "D-2",
@@ -64,5 +77,6 @@
     "C-5 cogo store enumeration order (Surface-4A built num=1840 first vs oracle num=1, count-exact 2405==2405) — unchanged",
     "N-1 tin-name closure LIVE: TIN names [Existing Ground] (Profile-4A) and [XGND] (Surface-4A) decode identically both sides",
     "the C-1 ownership guard (0 double-listed handles) and full L3 leak-freedom hold on all 3 NEW files — the C-1/C-2/C-3/C-4 baseline standard is met everywhere except the D-1 delta"
-  ]
+  ],
+  "post_fix_suite": "cargo test on parity/packetD-fix: 3438 passed / 0 failed, exit 0 (the 3437 baseline + the new D-1 regression test); Labels-2a and Surface-4A rebuilt+compared under the fix: unchanged (Labels-2a fully bit-exact, guard 3/3; Surface-4A bit-exact bar pre-existing tin #11, guard 1/1)"
 }

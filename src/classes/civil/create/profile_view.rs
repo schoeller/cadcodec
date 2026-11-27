@@ -995,7 +995,16 @@ fn add_view(doc: &mut CadDocument, alignment: Handle, name: &str, origin: Vector
         Some(s) => Some((s.value(), exaggeration_of(doc, s.value()).ok_or_else(|| invalid("not a profile view style"))?)),
         None => None,
     };
-    let mut frame = default_range(a, &shown, origin, stations, style.map_or(VERTICAL_SCALE, |s| s.1)).ok_or_else(|| invalid("the profiles have no elevations within the stations"))?;
+    let mut frame = match (stations, elevations) {
+        // Both ranges pinned: the frame IS the caller's window — the
+        // profiles' elevations are not needed to derive it. A sampled
+        // surface profile carries no polylines to clip (its elevations
+        // live in the surface reference), so the derived-window path
+        // below cannot see them and would fail a fully-pinned build
+        // that needs no derivation (Profile-4A's D-1).
+        (Some((s0, s1)), Some((elo, ehi))) => ProfileViewFrame { origin, station_min: s0, station_max: s1, elevation_min: elo, elevation_max: ehi, vertical_scale: style.map_or(VERTICAL_SCALE, |s| s.1) },
+        _ => default_range(a, &shown, origin, stations, style.map_or(VERTICAL_SCALE, |s| s.1)).ok_or_else(|| invalid("the profiles have no elevations within the stations"))?,
+    };
     if let Some((lo, hi)) = elevations {
         if !(lo.is_finite() && hi.is_finite() && lo < hi) {
             return Err(invalid("an elevation range runs from a lower to a higher finite elevation"));

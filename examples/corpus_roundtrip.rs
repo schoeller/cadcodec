@@ -2091,15 +2091,22 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                 // The oracle view carries band label groups: the #600
                 // writer gives the rebuilt view the same bands (their
                 // label groups come from the default label set). The
-                // band writer computes the frame automatically; the
-                // range word then records the automatic form.
+                // manifest's decoded station/elevation ranges ride
+                // along on the bands path too: the automatic frame the
+                // writer would otherwise derive comes from the REBUILT
+                // alignment, and where the curve-fit rebuild is
+                // shortened (Profile-4A keeps 4 of 6 curves) that
+                // derived window can empty out the profiles and fail
+                // the build (D-1). (None, None) stays the fallback for
+                // a manifest item that carries no range. The range
+                // word then records the oracle's own range.
                 // C-3: the default VAlignment profile label groups are
                 // NOT stamped — the manifest carries no VAlignment
                 // label-group family, i.e. the oracle has none; the
                 // default-stamping was the packet C drift. (A future
                 // oracle that carries them needs a decode+rebuild round
                 // for those groups first.)
-                acadrust::classes::civil::add_profile_view_without_profile_label_groups(&mut doc, alignment, &name, origin, None, None, None, &bands, None)
+                acadrust::classes::civil::add_profile_view_without_profile_label_groups(&mut doc, alignment, &name, origin, None, stations.and_then(|(a, b)| Some((a?, b?))), elevations.and_then(|(a, b)| Some((a?, b?))), &bands, None)
             };
             match built {
                 Ok(_) => {}

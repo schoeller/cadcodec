@@ -268,3 +268,61 @@ fn profile_view_bands_survive() {
     let group_in_view = refs(&entity(&back, view)).iter().any(|r| *r == group.value());
     assert!(group_in_view, "the band's data source is among the view's references");
 }
+
+/// D-1 (Profile-4A): a banded view written with the manifest's decoded
+/// station/elevation ranges keeps exactly that range — the corpus
+/// builder's bands path must ride the decoded oracle range through, not
+/// drop it to the automatic frame. The Profile-4A shape: the shown
+/// profile is a SURFACE profile (no PVIs — its elevations live in the
+/// surface reference, so it has no polylines for the derived-window
+/// path to clip), which is exactly why a fully pinned range must not
+/// depend on the profiles' elevations. Without a manifest range the
+/// automatic form stays the fallback (and a purely derived window is
+/// impossible for a surface-only view — the documented limitation).
+#[test]
+fn profile_view_bands_manifest_range_survives() {
+    let mut doc = doc();
+    ensure_civil(&mut doc).unwrap();
+    let al = add_alignment(&mut doc, "AL-D1", &[v(0.0, 0.0), v(300.0, 0.0)], None).unwrap();
+    let pts = [(0.0, -10.0), (100.0, -10.0), (0.0, 10.0), (100.0, 10.0)].map(|(x, y)| acadrust::types::Vector3::new(x, y, 5.0));
+    let surface = acadrust::classes::civil::add_tin_surface(&mut doc, "S-D1", &pts, None).unwrap();
+    acadrust::classes::civil::add_surface_profile(&mut doc, al, surface, "EG-D1", 0.0, None, None).unwrap();
+    let bands = [ProfileViewBand::new(BandKind::VerticalGeometry), ProfileViewBand::new(BandKind::HorizontalGeometry)];
+    let view = acadrust::classes::civil::add_profile_view_without_profile_label_groups(
+        &mut doc,
+        al,
+        "PV-D1",
+        v(0.0, -300.0),
+        None,
+        Some((-20.0, 1120.0)),
+        Some((50.0, 74.0)),
+        &bands,
+        None,
+    )
+    .unwrap();
+    let fallback = acadrust::classes::civil::add_profile_view_without_profile_label_groups(
+        &mut doc,
+        al,
+        "PV-D1-AUTO",
+        v(400.0, -300.0),
+        None,
+        None,
+        None,
+        &bands,
+        None,
+    );
+
+    let back = roundtrip(&doc, "profile-view-bands-range");
+
+    // The manifest range is kept as written (Profile-4A's decoded
+    // oracle range: stations [-20, 1120], elevations [50, 74]) — the
+    // build itself succeeding is the D-1 assertion.
+    let frame = entity(&back, view).profile_view_frame().unwrap();
+    assert_eq!((frame.station_min, frame.station_max), (-20.0, 1120.0));
+    assert_eq!((frame.elevation_min, frame.elevation_max), (50.0, 74.0));
+    // (None, None) is the documented fallback: the automatic form —
+    // which for a surface-only view cannot be derived (no profile
+    // elevations within any station window), so the build errs
+    // gracefully.
+    assert!(fallback.is_err());
+}
