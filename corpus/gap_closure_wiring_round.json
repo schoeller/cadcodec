@@ -1,44 +1,44 @@
 {
-    "format": "same shape as gap_closure_d010_wiring.json / gap_closure_d010_alignlabels.json",
-    "wave": "W1-4 HARNESS WIRING round (2026-11-27) — native blocks (#703) + section data bands (#701/#702) wired into the corpus builder",
-    "base": "parity/corpus-roundtrip@9756a4f7 + merge upstream/main@3d28b78e (brings #701 a28fab87 reader, #702 8506a8fe writer, #703 da9c4969 native-block pin onto the branch)",
-    "bridge": "NO bridge this round (codec side only, per dispatch); the L2/L3 legs belong to the D017 packets that consume this wiring",
-    "closures": [
-        {
-            "id": "W1-4/e (section-view data band label groups — the #8 reason)",
-            "closed_by": "corpus builder wiring over the #701 reader (ArchEntityData::section_data_band_group) + #702 writer (add_section_data_band_label_group): analyze decodes every AECC_SECTIONDATABAND_LABELGROUP by fields, names its view by the first non-null hard pointer (the profile-view band reference shape) and attaches the group to the view's section_view manifest item; build writes the band on the rebuilt view",
-            "status": "CLOSED codec-side (wired); the 6 files carrying the family stay DEFERRED on the section-view frame gap (pilot #1: section_view_frame() decodes None on these records, so no view can be placed and the band has no view to attach to)",
-            "verification": {
-                "reasons": "OPEN-GAP #8 AeccDbSectionDataBandLabeling cleared for Earthworks-1, Earthworks-2, Plan Production-Section Sheets-Create, Sections-Data-Band, Sections-Grade-Label (53 each) and Sections-Project-Objects (19); the stale AECC_SECTIONALDTABAND_LABELGROUP gap entry (a class name that never matched) removed",
-                "boundary": "bands ride along as decoded manifest data until the frame grammar extends (pilot #1, 'yes — implementable')"
-            }
-        },
-        {
-            "id": "W1-4/f (native block definitions + inserts — the #6 reason)",
-            "closed_by": "corpus builder wiring over the #703-pinned block round-trip: analyze carries every non-layout block record (name, base point, flags, units, explodable, scale-uniformly, description, xref path, member entities serialized by fields) as a block_record family and every model-space insert as an insert family; build rebuilds the records under fresh handles, re-homes the members (entity_handles is the ownership the writer walks), restores associative hatches' boundaries from member ordinals, ensures the members' text styles and EED regapps (AcDbBlockRepETag), and places the inserts into model space",
-            "status": "CLOSED codec-side; L1 BIT-EXACT on the probe files",
-            "verification": {
-                "identity_forms": "entity/owner/layer/linetype/plot-style/reactor/attribute-chain handles are drawing-local and neutralized on BOTH sides; anonymous record names are canonical (*A{ordinal} — the DWG header stores them bare and a reader renumbers on reopen, ACAD's own convention); an associative hatch's boundaries are stored as member ordinals",
-                "L1": "Labels-1a: block_record 41 + insert 1 BIT-EXACT (incl. the Labels-Surface external-reference record carried header-only, its model-space insert exact). Labels-2a: 43 + 3 BIT-EXACT. Points-3: 55 + 1 BIT-EXACT alongside cogo 2405 BIT-EXACT. Labels-Alignments/Parcel-1A/Align-2..7C/Profile-1/4A/4B: block_record BIT-EXACT (40/… items) with each file's own pre-existing notes unchanged (tin #11, parcel label placement, alignment last-ulp drift)",
-                "findings": "Assembly-1a re-analyze: parcel family rebuilds 18 of the oracle's 56 (Face 57 -> 19) — the parcel writer at volume; PRE-EXISTING (nothing in this round touches parcels), recorded for the parcel round; the file's wired families (labels, bands, blocks) are exact"
-            }
-        },
-        {
-            "id": "pilot #4 (standalone VAlignment curve label-group writers) — scope correction",
-            "closed_by": "not fixed — FINDING recorded: the pilot assessed the 8 standalone curve label groups of Sections-Project-Objects as 'mechanical' writers, but the corpus's records are NOT the empty default-label form the #600 writer emits: after the shared 76-bit class header the records carry 769 bits of real per-label data (values where the compiled template stores zeros, a dragged-position tail, settings, close). A bit-exact writer needs a lossless decode (labels.rs Label keeps only point/offset property values) plus the encoder side of the shared label grammar (labels.rs is read-only today) — a new-writer round of the W1-5/#688 kind. The records DO parse under the shared grammar (header, keyed labels, property-set overrides, settings, B+BS 0x04BE).",
-            "status": "STILL OPEN (re-scoped: writer round, not wiring); the 8 groups stay a gap in the manifest (graceful)",
-            "verification": {
-                "evidence": "main-stream bit dump of AECC_VALIGNMENT_SAGCURVE_LABEL_GROUP handle 25525 vs the #600 HEADER/CURVE_END templates (wiring_round_runlog.md section 5); refs match the #600 form (profile soft, style hard, view soft — the view pointer is NOT null)"
-            }
-        },
-        {
-            "id": "eligibility roll-up (the wiring rounds' deferred bookkeeping)",
-            "closed_by": "eligibility.json updated 2026-11-27: the 15 files that blocked only on wired families (alignment labelings #688 + profile-view bands + the assembly/corridor boundary) and the 12 files whose last unwired reason was OPEN-GAP #6 flip DEFERRED -> ELIGIBLE with WIRING-CLOSED citations and fresh analyze censuses; deferred 126 -> 99",
-            "status": "CLOSED (data-only)",
-            "verification": {
-                "unwired_remain": "PKT #3 (assemblies/subassemblies/corridors of the 43 assembly-corridor files), fixed arcs #9, section frames (pilot #1), CSVGRID, AECC_VALIGNMENT_* standalone forms, pipe profile labels, sheets/viewframes/matchlines, AECCU_COL_* constraint sets, grading/mass-haul BLOCKED",
-                "suite": "recorded in wiring_round_runlog.md section 7"
-            }
-        }
-    ]
+ "format": "same shape as gap_closure_d010_wiring.json / gap_closure_d010_alignlabels.json",
+ "wave": "W1-4 HARNESS WIRING round (2026-11-27) \u2014 native blocks (#703) + section data bands (#701/#702) wired into the corpus builder",
+ "base": "parity/corpus-roundtrip@9756a4f7 + merge upstream/main@3d28b78e (brings #701 a28fab87 reader, #702 8506a8fe writer, #703 da9c4969 native-block pin onto the branch)",
+ "bridge": "NO bridge this round (codec side only, per dispatch); the L2/L3 legs belong to the D017 packets that consume this wiring",
+ "closures": [
+  {
+   "id": "W1-4/e (section-view data band label groups \u2014 the #8 reason)",
+   "closed_by": "corpus builder wiring over the #701 reader (ArchEntityData::section_data_band_group) + #702 writer (add_section_data_band_label_group): analyze decodes every AECC_SECTIONDATABAND_LABELGROUP by fields, names its view by the first non-null hard pointer (the profile-view band reference shape) and attaches the group to the view's section_view manifest item; build writes the band on the rebuilt view",
+   "status": "CLOSED codec-side (wired); the 6 files carrying the family stay DEFERRED on the section-view frame gap (pilot #1: section_view_frame() decodes None on these records, so no view can be placed and the band has no view to attach to)",
+   "verification": {
+    "reasons": "OPEN-GAP #8 AeccDbSectionDataBandLabeling cleared for Earthworks-1, Earthworks-2, Plan Production-Section Sheets-Create, Sections-Data-Band, Sections-Grade-Label (53 each) and Sections-Project-Objects (19); the stale AECC_SECTIONALDTABAND_LABELGROUP gap entry (a class name that never matched) removed",
+    "boundary": "bands ride along as decoded manifest data until the frame grammar extends (pilot #1, 'yes \u2014 implementable')"
+   }
+  },
+  {
+   "id": "W1-4/f (native block definitions + inserts \u2014 the #6 reason)",
+   "closed_by": "corpus builder wiring over the #703-pinned block round-trip: analyze carries every non-layout block record (name, base point, flags, units, explodable, scale-uniformly, description, xref path, member entities serialized by fields) as a block_record family and every model-space insert as an insert family; build rebuilds the records under fresh handles, re-homes the members (entity_handles is the ownership the writer walks), restores associative hatches' boundaries from member ordinals, ensures the members' text styles and EED regapps (AcDbBlockRepETag), and places the inserts into model space",
+   "status": "CLOSED codec-side; L1 BIT-EXACT on the probe files",
+   "verification": {
+    "identity_forms": "entity/owner/layer/linetype/plot-style/reactor/attribute-chain handles are drawing-local and neutralized on BOTH sides; anonymous record names are canonical (*A{ordinal} \u2014 the DWG header stores them bare and a reader renumbers on reopen, ACAD's own convention); an associative hatch's boundaries are stored as member ordinals",
+    "L1": "Labels-1a: block_record 41 + insert 1 BIT-EXACT (incl. the Labels-Surface external-reference record carried header-only, its model-space insert exact). Labels-2a: 43 + 3 BIT-EXACT. Points-3: 55 + 1 BIT-EXACT alongside cogo 2405 BIT-EXACT. Labels-Alignments/Parcel-1A/Align-2..7C/Profile-1/4A/4B: block_record BIT-EXACT (40/\u2026 items) with each file's own pre-existing notes unchanged (tin #11, parcel label placement, alignment last-ulp drift). Surface-8: the full mixed build (4.1k entities) hits a super-linear interaction (every family PAIR builds in <=3 s, the triple does not finish in >12 min CPU) \u2014 families verified via subset builds: lwpolyline 763 BIT-EXACT, block_record 11 BIT-EXACT, insert 3301 BIT-EXACT (blocks+inserts). Its 30,684-point tin does not build in feasible time (the #11 retriangulation cost at volume; the tin leg stopped, no invented result) \u2014 recorded in wiring_round_runlog.md section 6.",
+    "findings": "Assembly-1a re-analyze: parcel family rebuilds 18 of the oracle's 56 (Face 57 -> 19) \u2014 the parcel writer at volume; PRE-EXISTING (nothing in this round touches parcels), recorded for the parcel round; the file's wired families (labels, bands, blocks) are exact"
+   }
+  },
+  {
+   "id": "pilot #4 (standalone VAlignment curve label-group writers) \u2014 scope correction",
+   "closed_by": "not fixed \u2014 FINDING recorded: the pilot assessed the 8 standalone curve label groups of Sections-Project-Objects as 'mechanical' writers, but the corpus's records are NOT the empty default-label form the #600 writer emits: after the shared 76-bit class header the records carry 769 bits of real per-label data (values where the compiled template stores zeros, a dragged-position tail, settings, close). A bit-exact writer needs a lossless decode (labels.rs Label keeps only point/offset property values) plus the encoder side of the shared label grammar (labels.rs is read-only today) \u2014 a new-writer round of the W1-5/#688 kind. The records DO parse under the shared grammar (header, keyed labels, property-set overrides, settings, B+BS 0x04BE).",
+   "status": "STILL OPEN (re-scoped: writer round, not wiring); the 8 groups stay a gap in the manifest (graceful)",
+   "verification": {
+    "evidence": "main-stream bit dump of AECC_VALIGNMENT_SAGCURVE_LABEL_GROUP handle 25525 vs the #600 HEADER/CURVE_END templates (wiring_round_runlog.md section 5); refs match the #600 form (profile soft, style hard, view soft \u2014 the view pointer is NOT null)"
+   }
+  },
+  {
+   "id": "eligibility roll-up (the wiring rounds' deferred bookkeeping)",
+   "closed_by": "eligibility.json updated 2026-11-27: the 15 files that blocked only on wired families (alignment labelings #688 + profile-view bands + the assembly/corridor boundary) and the 12 files whose last unwired reason was OPEN-GAP #6 flip DEFERRED -> ELIGIBLE with WIRING-CLOSED citations and fresh analyze censuses; deferred 126 -> 99",
+   "status": "CLOSED (data-only)",
+   "verification": {
+    "unwired_remain": "PKT #3 (assemblies/subassemblies/corridors of the 43 assembly-corridor files), fixed arcs #9, section frames (pilot #1), CSVGRID, AECC_VALIGNMENT_* standalone forms, pipe profile labels, sheets/viewframes/matchlines, AECCU_COL_* constraint sets, grading/mass-haul BLOCKED",
+    "suite": "recorded in wiring_round_runlog.md section 7"
+   }
+  }
+ ]
 }
