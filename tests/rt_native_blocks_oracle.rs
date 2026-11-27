@@ -173,3 +173,5 @@ fn the_aec_mv_block_records_survive_the_same_save() {
     assert_eq!(a.len(), b.len(), "the definition keeps its length");
     assert_eq!(&a[..a.len() - 1], &b[..b.len() - 1], "the definition keeps its body");
 }
+
+// The suite is long; CI caps a job at 30 minutes (the macos runner is the slowest).
