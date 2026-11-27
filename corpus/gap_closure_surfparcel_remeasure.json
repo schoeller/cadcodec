@@ -1,0 +1,43 @@
+{
+ "base": "parity/units-header@a39b3c05 (POST-STACK: packet-C C-2/C-3/C-4 + packet-D D-1/D-2 + upstream/main d7c71f50) — data branch parity/surfparcel-remeasure",
+ "wave": "SURFPARCEL post-stack re-measure (2026-11-28) — the pending W3-1/W4-1 ledger item, D018-2 verdict round",
+ "format": "gap_closure_* convention; re-measure entries, no new code (data-only branch)",
+ "oracles": {
+  "Labels-Parcels.dwg": "md5 6b09621f6847aa434f99d1ba3cc6af6c (Civil Tutorials Drawings, AutoCAD 2027 folder; read-only copy /tmp/opencode/surfparcel_work/, chmod 444)",
+  "Parcel-2C.dwg": "md5 d17f2a95e7dbb8835338784de9803ab5 (same folder; read-only copy)"
+ },
+ "post_stack_numbers": {
+  "Labels-Parcels.dwg": {
+   "oracle": "55 AECC_PARCEL records = 1 site 'Site' + 54 parcels (54/54 outlines decode as closed rings) + 55 AECC_PARCEL_SEGMENT lot lines; AECC_SVFIGURE 0; analyze gaps 0; header INSUNITS=6/MEASUREMENT=1 (carried by the D-2 builder)",
+   "built": "11 parcels + 1 site record; built codec census {AeccDbFace:12, AECC_PARCEL_SEGMENT:66} (11 parcel lot lines + 55 rebuilt segment records)",
+   "refused": "43 of 54 add_parcel attempts, ALL with 'the line crosses or touches a member it may not meet'",
+   "refusal_classification": "42/43 involve PROPER interior crossings against previously-built parcel lot lines in the same build session; 1/43 (Single-Family : 24) is touch-only (shared edges with Property : 1/42). Crossing-figure subclass: 0 (the file carries no survey figures). Unsupported-record-form subclass: 0 (54/54 outlines decode). Other: 0.",
+   "vs_recorded_mark": "W3-1 recorded 54/17/38 — see reconciliation below"
+  },
+  "Parcel-2C.dwg": {
+   "oracle": "12 AECC_PARCEL records = 1 site 'Subdivision A' + 11 parcels (11/11 closed rings) + 30 AECC_PARCEL_SEGMENT lot lines (8 of 30 stored without a graphic-image section); AECC_SVFIGURE 0; analyze gaps 0; header INSUNITS=2/MEASUREMENT=0",
+   "built": "1 parcel + 1 site record; built codec census {AeccDbFace:2, AECC_PARCEL_SEGMENT:31}",
+   "refused": "10 of 11 add_parcel attempts, ALL with 'the line crosses or touches a member it may not meet'; ALL 10 involve PROPER interior crossings against the one built parcel's lot lines",
+   "vs_recorded_mark": "W4-1 recorded 11/1/~10 — STANDS EXACTLY: 11 oracle parcels / 1 built / 10 refused (the old '11 refused of 12 attempts' counted the site-record attempt, which the figsite split now classifies as a site, not a parcel attempt)"
+  }
+ },
+ "reconciliation": {
+  "method": "the packet-3-era builder re-run archaeologically in a scratch worktree at parity/corpus-roundtrip@7f34345b (the recorded W3-1 base) on the same oracle copy: 55 attempts / 38 refused / 17 built — the recorded mark REPRODUCES EXACTLY on its own tree",
+  "finding": "the 17/38 attempt set included the SITE RECORD as add_parcel attempt #0 (pre-figsite analyze); its 'outline' is the site's bounding-box rectangle (298789.8..299563.8 x 54197.9..55045.7), which BUILT as attempt #0 and acted as a mid-sequence blocker: parcels touching it (e.g. 'Open Space : 7') refused early, and their absence as members un-blocked later parcels — a chaotic order-dependent cascade, not a capability difference",
+  "proof": "the POST-STACK writer (a39b3c05) fed the identical 55-attempt sequence (hybrid manifest: site-record junk rectangle re-inserted at position 0) reproduces the packet-3 refusal sequence IDENTICALLY — same 38 parcels refused in the same order (labels_parcels.hybrid.build.log vs the 7f34345b build log)",
+  "conclusion": "ZERO writer behavior change in 7f34345b..a39b3c05 for add_parcel's crossing gate (join_site_as' paths_meet gate is textually unchanged; git diff shows the range's site.rs changes are proxy-graphics/name/segment-record work only). The post-figsite honest numbers are 54/11/43 (Labels-Parcels) and 11/1/10 (Parcel-2C)"
+ },
+ "reader_cross_check": {
+  "question": "is the decoder's parcel-outline reconstruction faithful to the app's stored post-interaction boundary pieces, or is the refusal a decode-fidelity issue?",
+  "site_container_topology": "BOTH files' site containers are AECC_FEATURE_STYLE records (Labels-Parcels 0x4676, Parcel-2C 0xC38) whose topology graph does NOT decode: the walk passes elevation_keys, elements and the 0x80000001 gate, but node_list reads 0 NODES (the moved-members form) and the edges walk then refuses. The app's stored split pieces (lot lines + faces) are therefore NOT readable on parcel sites with the current grammar — a READ gap (topology.rs node_list/edges; the reader was validated on feature-line/grading containers, Grading-3A et al., never on parcel sites)",
+  "what_is_stored": "the per-record proxy-graphics rings decode 54/54 and 11/11 as closed rings; rings share edges/vertices with neighbours (Labels-Parcels 208/1431 parcel pairs, Parcel-2C 19/55), and the app stores the shared pieces ONCE (54 parcels vs 55 lot lines; 11 vs 30) — per-record rings drawn through shared coordinates ARE the post-interaction boundaries",
+  "verdict": "the READER's ring reconstruction is faithful to what each parcel record stores; the residual does NOT live on the ring-decode side. The refusal lives on the WRITER side's REPRESENTATION: it injects each ring as an INDEPENDENT closed lot line, duplicating the shared boundary pieces, which the site's topology correctly refuses to meet. (Reader-side nuisance found en route: Parcel-2C parcel records store EMPTY names — the app reads 'ROAD (LOCAL): 100' et al. via the style's name template; parcel_name() also evaluates to no name in this probe — flagged, not blocking, separately dispatchable)"
+ },
+ "d018_2_verdict": "The WITH-LIMITS marks stand in substance. D018-2 said the refusal may be partially or wholly CORRECT: confirmed WHOLLY CORRECT for this writer form — 52 of 53 refusals involve real geometric interactions with already-placed site members (proper crossings; the 53rd is a shared-edge touch, also correctly refused by a meet=false writer). Parcel outlines here do not cross survey figures (both files carry AECC_SVFIGURE=0 — the Survey-3-style crossing-figure interactions are absent from these two files), and every outline decodes (the W1-6 'unsupported record form' hypothesis is dead for these files: 65/65 rings decode). Numbers: Labels-Parcels 54 oracle parcels / 11 built / 43 refused (post-figsite attempt set; the recorded 17 included the site-record junk rectangle and its cascade); Parcel-2C 11 / 1 / 10 (mark stands exactly)",
+ "implementable_improvement_NOT_implemented": "a meet-aware parcel writer: create/site.rs already carries the split machinery (add_lot_line_on's meet=true path: 'each is split where they meet, the faces they cut are split and the parcels of the parts are written'); an add_parcel form that joins the ring with meet semantics would let independent oracle rings populate one site the way the application's topology engine does. D015-clean (typed record writers, the same C-4 builder family, no scan/fallback parsing). Whether it reproduces the oracle's exact population (54 parcels / 55 lot lines — the app SHARES pieces the rings only touch) needs its own dispatched verification round; NOT implemented here (re-measure round)",
+ "evidence": {
+  "manifests": "remeasure manifests /tmp/opencode/surfparcel_work/remeasure/{labels_parcels,parcel_2c}.manifest.json (post-stack analyze; gaps 0; refreshed into corpus/manifests/ on this branch), built files + build logs alongside; hybrid manifest + log for the reconciliation; 7f34345b scratch worktree /tmp/opencode/surfparcel_work/arch/p3 (analyze+build+log)",
+  "probe": "harness_a reader cross-check + refusal replay (replay reproduces the builder's 11/43 and 1/10 exactly): /tmp/opencode/surfparcel_work/remeasure/reader_crosscheck.txt",
+  "runlog": "/tmp/opencode/surfparcel_remeasure_runlog.md (copied to the branch as surfparcel_remeasure_runlog.md)"
+ }
+}
