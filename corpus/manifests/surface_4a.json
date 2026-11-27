@@ -1,5 +1,9 @@
 {
   "source": "/tmp/opencode/packetD_work/Surface-4A.dwg",
+  "header_units": {
+    "insertion_units": 2,
+    "measurement": 0
+  },
   "codec_census": {
     "AECC_COGO_POINT": 2405,
     "AcDb3dPolyline": 33,

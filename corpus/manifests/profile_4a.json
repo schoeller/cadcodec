@@ -1,5 +1,9 @@
 {
   "source": "/tmp/opencode/packetD_work/Profile-4A.dwg",
+  "header_units": {
+    "insertion_units": 6,
+    "measurement": 1
+  },
   "codec_census": {
     "AcDbCircle": 9,
     "AcDbMText": 10,

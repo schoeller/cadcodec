@@ -1,5 +1,9 @@
 {
   "source": "/tmp/opencode/packetC_work/Align-6C.dwg",
+  "header_units": {
+    "insertion_units": 2,
+    "measurement": 0
+  },
   "codec_census": {
     "AECC_PARCEL_SEGMENT": 1,
     "AeccDbAlignment": 3,

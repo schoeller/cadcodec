@@ -1,5 +1,9 @@
 {
   "source": "/tmp/opencode/packetC_work/Parcel-1A.dwg",
+  "header_units": {
+    "insertion_units": 6,
+    "measurement": 1
+  },
   "codec_census": {
     "AcDb3dPolyline": 3,
     "AcDbArc": 39,

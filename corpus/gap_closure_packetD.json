@@ -55,7 +55,8 @@
       "class": "observation",
       "implementability": "uncertain — needs a header-units probe (which record carries the app-visible units and what the writer emits for it) before any fix",
       "pre_existing": false,
-      "evidence": "d008 open records: pktC built opens 'Undefined' x6 (packet C + this round); pktD Labels-2a built 'Feet'; oracles 'Meters'"
+      "evidence": "d008 open records: pktC built opens 'Undefined' x6 (packet C + this round); pktD Labels-2a built 'Feet'; oracles 'Meters'",
+      "resolution": "CLOSED 2026-11-27 (project branch parity/units-header): the header probe pinned the app-visible units to the header INSUNITS (7/7 oracle open records match INSUNITS exactly: 6=Meters, 2=Feet, 0='Undefined'; built files all decode INSUNITS=0/MEASUREMENT=0). Root cause: the corpus builder never sets header units — CadDocument::new() defaults INSUNITS=0/MEASUREMENT=0 and no manifest carried the oracle's values (acadrust reader/writer handle the field correctly; the defaults are the blank-document convention, so no upstream PR). Fix: manifests record 'header_units' {insertion_units, measurement} decoded from the oracle and build() applies them; all 6 packet-C/D built files rebuilt with INSUNITS/MEASUREMENT == oracle exactly, no new build NOTEs. The single 'Feet' app-read on the OLD labels_2a.built (header INSUNITS=0) is not explained by the header — recorded as an unexplained app-side read on the old artifact."
     }
   ],
   "reconfirmed": [

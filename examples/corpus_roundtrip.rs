@@ -1537,6 +1537,12 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
     let c = census(doc);
     serde_json::json!({
         "source": source,
+        // The app-visible drawing units (gap D-2): the header values the
+        // app reports on open ("Meters"/"Feet"/"Undefined" == INSUNITS).
+        "header_units": {
+            "insertion_units": doc.header.insertion_units,
+            "measurement": doc.header.measurement,
+        },
         "codec_census": c,
         "mcp_census": mcp_census,
         "doc_census": doc_census(doc),
@@ -1559,6 +1565,19 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
     let mut notes = Vec::new();
     let mut doc = acadrust::CadDocument::new();
     doc.version = acadrust::types::DxfVersion::AC1032;
+
+    // The app-visible drawing units (gap D-2): the oracle's decoded header
+    // INSUNITS/MEASUREMENT carried through — the blank-document defaults
+    // (Unitless/English) otherwise surface as "Undefined"/"Feet" when Civil
+    // 3D opens the built file. Absent block = the old behavior (defaults).
+    if let Some(h) = manifest.get("header_units") {
+        if let Some(v) = h["insertion_units"].as_i64() {
+            doc.header.insertion_units = v as i16;
+        }
+        if let Some(v) = h["measurement"].as_i64() {
+            doc.header.measurement = v as i16;
+        }
+    }
 
     // Layers the manifest's entities sit on (a layer the table lacks would
     // normalize every entity back to "0").
