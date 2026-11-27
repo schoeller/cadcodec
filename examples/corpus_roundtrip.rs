@@ -1616,6 +1616,20 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
             record.handle = doc.allocate_handle();
             record.block_entity_handle = doc.allocate_handle();
             record.block_end_handle = doc.allocate_handle();
+            // Register the record BEFORE the members: add_entity routes an
+            // entity into the block record owning it (owner_handle ==
+            // record.handle). With the record absent from the table the
+            // routing fell through to the *Model_Space fallback and every
+            // member ALSO landed in the model-space chain (packet C's C-1
+            // leak: the codec walks the record chain and stays bit-exact
+            // while the app census sees the members twice). Members must
+            // live ONLY in their block-record BTR.
+            if doc.block_records.contains(&name) {
+                notes.push(format!("block {name}: already exists — skipped"));
+                continue;
+            }
+            let record_handle = record.handle;
+            doc.block_records.add(record).map_err(|e| format!("block {name}: {e}"))?;
             let mut members: Vec<Option<Handle>> = Vec::new();
             for m in item["members"].as_array().unwrap_or(&vec![]) {
                 let Ok(mut e) = serde_json::from_value::<EntityType>(m.clone()) else {
@@ -1633,7 +1647,7 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                 {
                     let c = e.common_mut();
                     c.handle = Handle::NULL;
-                    c.owner_handle = record.block_entity_handle;
+                    c.owner_handle = record_handle; // the BTR owns its members; add_entity routes on this
                 }
                 match doc.add_entity(e) {
                     Ok(h) => members.push(Some(h)),
@@ -1643,6 +1657,10 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                     }
                 }
             }
+            // The routing in add_entity already pushed every successfully
+            // added member into the record's entity_handles (the record was
+            // registered first, above).
+            let record = doc.block_records.get_mut(&name).unwrap();
             record.entity_handles = members.iter().filter_map(|m| *m).collect();
             // An associative hatch's boundaries are fellow members (analyze
             // stored them as member ordinals): restore the fresh handles.
@@ -1663,10 +1681,7 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                     path.boundary_handles = ords.iter().map(|o| o.as_u64().and_then(|v| members.get(v as usize).copied().flatten()).unwrap_or(Handle::NULL)).collect();
                 }
             }
-            match doc.block_records.add(record) {
-                Ok(_) => { carried_blocks.insert(name); }
-                Err(e) => notes.push(format!("block {name}: {e}")),
-            }
+            carried_blocks.insert(name);
         }
     }
     // Inserts: one per manifest item, into model space, referencing its
@@ -2341,9 +2356,55 @@ fn main() {
             let built = &args[2];
             let out_path = &args[3];
             let doc = DwgReader::from_file(built).unwrap().read_with_stats().unwrap().document;
-            let analysis = analyze(&doc, built, None);
+            let mut analysis = analyze(&doc, built, None);
+            // Ownership guard (packet C's C-1): every entity must be
+            // listed by exactly ONE BLOCK_HEADER. A member listed by its
+            // home record AND by *Model_Space is invisible to the family
+            // compare (the reader reconciles double-listed handles to a
+            // single owner, so the record chain stays bit-exact) but every
+            // application that walks the headers sees it twice. Also: the
+            // number of inserts reachable from model space must equal the
+            // analysis insert family (one insert per reference — leaked
+            // member inserts inflate the count).
+            let ms_handle = doc.header.model_space_block_handle;
+            let mut chains: std::collections::HashMap<u64, Vec<&str>> = Default::default();
+            for r in doc.block_records.iter() {
+                let Some(raw) = doc.raw_block_header_handles(r.handle) else { continue };
+                for h in raw {
+                    chains.entry(h.value()).or_default().push(r.name.as_str());
+                }
+            }
+            let leaked: Vec<(u64, Vec<String>)> = chains.iter()
+                .filter(|(_, names)| names.len() > 1)
+                .map(|(h, names)| (*h, names.iter().map(|s| s.to_string()).collect()))
+                .collect();
+            let ms_inserts = doc.block_records.iter()
+                .find(|r| r.handle == ms_handle)
+                .map(|r| r.entity_handles.iter()
+                    .filter_map(|h| doc.get_entity(*h))
+                    .filter(|e| matches!(e, EntityType::Insert(_)))
+                    .count())
+                .unwrap_or(0);
+            let analysis_inserts = analysis["families"].as_array().map(|fams| fams.iter()
+                .find(|f| f["family"] == "insert")
+                .and_then(|f| f["count"].as_u64()).unwrap_or(0)).unwrap_or(0) as usize;
+            let leaked_ms: Vec<&(u64, Vec<String>)> = leaked.iter()
+                .filter(|(_, names)| names.iter().any(|n| n == "*Model_Space" || n.starts_with("*Paper_Space")))
+                .collect();
+            analysis["ownership"] = serde_json::json!({
+                "leaked_members": leaked.len(),
+                "leaked_into_layout": leaked_ms.len(),
+                "model_space_inserts": ms_inserts,
+                "analysis_inserts": analysis_inserts,
+            });
             std::fs::write(out_path, serde_json::to_string_pretty(&analysis).unwrap()).unwrap();
             println!("built analysis -> {out_path}");
+            println!("ownership: leaked_members={} leaked_into_layout={} model_space_inserts={ms_inserts} analysis_inserts={analysis_inserts}",
+                leaked.len(), leaked_ms.len());
+            if !leaked.is_empty() || ms_inserts != analysis_inserts {
+                eprintln!("OWNERSHIP LEAK in built file (C-1 class): {} entity handle(s) reachable from more than one block-record chain; model-space inserts {ms_inserts} != analysis inserts {analysis_inserts}", leaked.len());
+                std::process::exit(1);
+            }
         }
         Some("probe3b") => {
             // W1-3 / ROAD1 probe: alignment elements (full kinds), the

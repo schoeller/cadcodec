@@ -4382,6 +4382,22 @@ impl CadDocument {
         self.entities_in_block("*Model_Space")
     }
 
+    /// The entity handles a BLOCK_HEADER lists verbatim, as stored in the DWG
+    /// binary (keyed by the block record's handle).
+    ///
+    /// [`block_records`](Self::block_records) carries the reconciled view —
+    /// the reader resolves conflicting listings to a single owner — so a file
+    /// that lists one entity under two headers reads back with it in only
+    /// one chain. This accessor keeps the raw listing for roundtrip checks:
+    /// a handle present under two headers (e.g. a block member also listed
+    /// by `*Model_Space`) is double-owned on disk and every application that
+    /// walks the headers sees it twice, even though the reconciled chains
+    /// compare clean. `None` when the document was not read from DWG or the
+    /// record has no stored listing.
+    pub fn raw_block_header_handles(&self, record: Handle) -> Option<&[Handle]> {
+        self.block_entity_handles.get(&record).map(|v| v.as_slice())
+    }
+
     /// Owner handle of a database object, for ownership-chain walks.
     ///
     /// Dynamic-block, associative and context records are normally reached
