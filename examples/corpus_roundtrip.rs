@@ -1267,6 +1267,34 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
     // Section views: origin per view, matched to sample lines by order.
     // When no frame decodes, the family cannot be rebuilt — a gap.
     let sviews = all_of(doc, "AECC_GRAPH_SECTION_VIEW");
+    // Section-view data band label groups (the #701 reader / #702 writer
+    // record): decoded by their fields; the group's first non-null hard
+    // pointer names its view (the reference shape the profile-view band
+    // groups use). A group whose record refuses the decoded form stays a
+    // gap — never invented.
+    let mut band_of_sview: BTreeMap<u64, Vec<Json>> = BTreeMap::new();
+    let mut refused_bands = 0usize;
+    for h in all_of(doc, "AECC_SECTIONDATABAND_LABELGROUP") {
+        let a = arch_of(doc, h).unwrap();
+        let Some(group) = a.section_data_band_group() else {
+            refused_bands += 1;
+            continue;
+        };
+        let Ok(gj) = serde_json::to_value(&group) else {
+            refused_bands += 1;
+            continue;
+        };
+        let view = a.typed_handles().iter().find(|(v, k)| *v != 0 && *k == 4).map(|(v, _)| *v);
+        let layer = doc.get_entity(h).map(|e| match e {
+            EntityType::Extended(x) => x.common.layer.clone(),
+            _ => String::new(),
+        }).unwrap_or_default();
+        if let Some(view) = view {
+            band_of_sview.entry(view).or_default().push(serde_json::json!({ "layer": layer, "group": gj }));
+        } else {
+            refused_bands += 1;
+        }
+    }
     if !sviews.is_empty() {
         let items: Vec<Json> = sviews
             .iter()
@@ -1279,7 +1307,8 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
                     .find_map(|(v, _k)| group_keys.iter().find(|(gh, _k)| gh.value() == *v).map(|(_gh, k)| k.clone()))
                     .unwrap_or_default();
                 let origin = a.section_view_frame().map(|f| j2(f.origin)).unwrap_or(Json::Null);
-                serde_json::json!({ "key": format!("SV{i}"), "group": group_key, "origin": origin })
+                let bands = band_of_sview.get(&h.value()).cloned().unwrap_or_default();
+                serde_json::json!({ "key": format!("SV{i}"), "group": group_key, "origin": origin, "bands": bands })
             })
             .collect();
         if items.iter().any(|i| i["origin"].is_array()) {
@@ -1288,6 +1317,9 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
             gaps.push(gap("AeccDbGraphCrossSection", sviews.len(), "parameter: the view frames (section_view_frame() decodes None on these records; the writer add_section_view needs the origin)", "yes — writer exists; extend the frame grammar to this record form"));
         }
     }
+    if refused_bands > 0 {
+        gaps.push(gap("AeccDbSectionDataBandLabeling", refused_bands, "writer: a data band label group's record is not the decoded form (nested labels, unknown overrides)", "no — the record form the reader refuses cannot be carried by the typed fields"));
+    }
 
     // Assemblies, corridors, subassemblies and the labeling records: gaps.
     for (dxf, why) in [
@@ -1295,7 +1327,6 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         ("AECC_CORRIDOR", "writer exists (add_corridor) but needs the assembly; pilot skips with it"),
         ("AECC_SUBASSEMBLY", "needs a PKT package from the tool palette catalog; parameters are decoded but not carried in the manifest yet"),
         ("AECC_SAMPLE_LINE_LABELING", "labeling records are written by the application inside the group's records; no standalone writer"),
-        ("AECC_SECTIONALDTABAND_LABELGROUP", "band labeling group; no standalone writer"),
         ("AECC_VALIGNMENT_SAGCURVE_LABEL_GROUP", "label group; no standalone writer in the pilot bin"),
         ("AECC_VALIGNMENT_CRESTCURVE_LABEL_GROUP", "label group; no standalone writer in the pilot bin"),
     ] {
@@ -1784,8 +1815,23 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
                 let Some(line) = lines.get(j).copied() else { continue };
                 let Some(origin) = item.get("origin").and_then(|v| v.is_array().then(|| v2(v))) else { continue };
                 let sname = format!("SV{}", j + 1);
-                if let Err(e) = add_section_view(&mut doc, line, &sname, origin, None) {
-                    notes.push(format!("section_view {sname}: {e}"));
+                match add_section_view(&mut doc, line, &sname, origin, None) {
+                    Ok(view) => {
+                        // The view's data band label groups (the #702
+                        // writer): the decoded group carries its labels
+                        // by fields; the band lands on the rebuilt view.
+                        for band in item["bands"].as_array().cloned().unwrap_or_default() {
+                            let Ok(group) = serde_json::from_value::<acadrust::classes::civil::SectionDataBandGroup>(band["group"].clone()) else {
+                                notes.push(format!("section_view {sname}: band group fields not read"));
+                                continue;
+                            };
+                            let layer = band["layer"].as_str().filter(|s| !s.is_empty());
+                            if let Err(e) = acadrust::classes::civil::add_section_data_band_label_group(&mut doc, view, layer, &group) {
+                                notes.push(format!("section_view {sname}: band: {e}"));
+                            }
+                        }
+                    }
+                    Err(e) => notes.push(format!("section_view {sname}: {e}")),
                 }
             }
         }
