@@ -1306,7 +1306,9 @@ const PARCEL_AREA_LABELS: [[i32; 3]; 2] = [[2, 0x0F00_C032, DEFAULT_STYLE_ID], [
 /// ```
 // ponytail: the 128 zero bits and the 7-bit run are the same in every
 // sample (WP03 to WP14); name them once a segment varies them.
-fn write_lot_line(doc: &mut CadDocument, common: EntityCommon, edge: i32, container: Handle) -> Result<Handle, DxfError> {
+fn write_lot_line(doc: &mut CadDocument, common: EntityCommon, edge: i32, container: Handle, graphic: Option<Vec<u8>>) -> Result<Handle, DxfError> {
+    let mut common = common;
+    common.graphic_data = graphic;
     let refs = vec![soft_pointer(0), hard_pointer(container.value()), hard_pointer(container.value()), soft_pointer(0), hard_pointer(0)];
     let strings = vec!["AeccImpLotLine".to_string(), String::new(), String::new()];
     put_entity(
@@ -1441,7 +1443,34 @@ fn add_lot_line_on(doc: &mut CadDocument, site: Handle, points: &[(Vector2, f64)
         return Err(invalid("a lot line crosses or touches itself"));
     }
     let elevations = vec![0.0; n];
-    join_site(doc, site, path, &elevations, MemberKind::LotLine { closed }, meet, layer, |doc, common, edge, container| write_lot_line(doc, common, edge, container))
+    join_site(doc, site, path, &elevations, MemberKind::LotLine { closed }, meet, layer, |doc, common, edge, container| write_lot_line(doc, common, edge, container, None))
+}
+
+/// The standalone parcel-segment record (a decoded lot line) on `site`'s
+/// container: [`write_lot_line`]'s record form with the edge id, and —
+/// when the oracle record carries a graphic-image section — that section
+/// rebuilt from `geometry`: the class-name text at the label point and
+/// the extents rectangle walked around its corners (#591/#595's decode;
+/// the #665 outline-ring pattern). A record stored without a base curve
+/// (geometry `None`) is written without one, as stored. The site's
+/// container members are not rebuilt; the record is what the application
+/// censuses as `AeccDbLotLine`.
+pub fn add_parcel_segment_record(doc: &mut CadDocument, site: Handle, edge: i32, geometry: Option<&crate::classes::civil::ParcelSegmentGeometry>, layer: Option<&str>) -> Result<Handle, DxfError> {
+    let (container, _members, _parcels, _line_style, _next) = members_of(doc, site)?;
+    let layer = layer.unwrap_or("0");
+    let layer_handle = doc.layers.get(layer).map(|l| l.handle).ok_or_else(|| invalid("layer does not exist"))?;
+    let common = EntityCommon {
+        handle: doc.allocate_handle(),
+        owner_handle: doc.header.model_space_block_handle,
+        layer: layer.into(),
+        layer_handle: Some(layer_handle),
+        ..EntityCommon::default()
+    };
+    let graphic = geometry.map(|g| {
+        let ring: Vec<Vector3> = g.corners.iter().copied().chain(std::iter::once(g.corners[0])).map(|p| Vector3::new(p.x, p.y, 0.0)).collect();
+        graphic_image(PARCEL_GRAPHIC_KIND, "AeccDbLotLine (AeccLand130)", 1, Vector3::new(g.label_point.x, g.label_point.y, 0.0), &[ring])
+    });
+    write_lot_line(doc, common, edge, container, graphic)
 }
 
 /// Joins a new member through `path` to `site`'s container and writes the

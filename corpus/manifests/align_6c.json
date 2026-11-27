@@ -15329,7 +15329,7 @@
                   {
                     "location": {
                       "x": 0.07425853949295735,
-                      "y": 0.00007603199200545419
+                      "y": 7.603199200545419e-05
                     },
                     "bulge": 0.41361391342203935,
                     "start_width": 0.0,
@@ -37860,6 +37860,21 @@
       ]
     },
     {
+      "family": "parcel_segment",
+      "count": 1,
+      "items": [
+        {
+          "layer": "C-PROP",
+          "site": "Site 1",
+          "edge": 0,
+          "geometry": null
+        }
+      ],
+      "handles": [
+        24627
+      ]
+    },
+    {
       "family": "alignment",
       "count": 3,
       "items": [
@@ -40845,7 +40860,7 @@
       "family": "tin_surface.triangulation",
       "count": 1,
       "missing": "parameter: the stored triangle list (the points writer retriangulates)",
-      "implementable": "uncertain — check whether TinOperation has a faces op"
+      "implementable": "uncertain \u2014 check whether TinOperation has a faces op"
     }
   ]
 }

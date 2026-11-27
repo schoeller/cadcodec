@@ -1067,6 +1067,39 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         }
     }
 
+    // Standalone parcel segments (C-4): the application's lot lines. The
+    // record's class stream gives the edge id; the graphic-image section
+    // gives the label point and the extents rectangle
+    // ([`ArchEntityData::parcel_segment_geometry`]); the container is the
+    // site record's HardOwnership reference (#5).
+    let segments: Vec<Handle> = all_of(doc, "AECC_PARCEL_SEGMENT");
+    if !segments.is_empty() {
+        let site_by_container: BTreeMap<u64, String> = faces.iter().filter(|(_, a)| a.parcel_site().is_none()).filter_map(|(h, a)| {
+            let (name, _) = a.face_name()?;
+            Some((a.typed_handles().get(5).map_or(0, |r| r.0), name))
+        }).collect();
+        let mut items = Vec::new();
+        for h in &segments {
+            let a = arch_of(doc, *h).unwrap();
+            let container = a.typed_handles().get(1).map_or(0, |r| r.0);
+            let site = site_by_container.get(&container).cloned().unwrap_or_default();
+            let layer = doc.get_entity(*h).map(|e| match e {
+                EntityType::Extended(x) => x.common.layer.clone(),
+                _ => String::new(),
+            }).unwrap_or_default();
+            let geometry = a.parcel_segment_geometry();
+            let edge = a.parcel_segment_edge();
+            items.push(serde_json::json!({
+                "layer": layer,
+                "site": site,
+                "edge": edge,
+                "geometry": geometry.map(|g| serde_json::to_value(&g).unwrap_or(Json::Null)).unwrap_or(Json::Null),
+            }));
+        }
+        let handles: Vec<Json> = segments.iter().map(|h| Json::from(h.value())).collect();
+        families.push(serde_json::json!({ "family": "parcel_segment", "count": segments.len(), "items": items, "handles": handles }));
+    }
+
     // Feature lines: name plus the vertices of the line's edge in its site
     // container's topology (reader #666; PARTIAL FILL by design — only the
     // records whose site container, topology and edge id all decode return
@@ -1900,6 +1933,29 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
             match add_parcel(&mut doc, s, &vertices, None) {
                 Ok(_) => {}
                 Err(e) => notes.push(format!("parcel {}: {}", item["name"].as_str().unwrap_or("?"), e)),
+            }
+        }
+    }
+
+    // Standalone parcel segments (C-4): the decoded lot-line record on its
+    // site's container, edge id and graphic-image geometry as decoded (the
+    // site's own container members are not rebuilt).
+    if let Some(f) = find(&fams, "parcel_segment") {
+        for item in f["items"].as_array().unwrap_or(&vec![]) {
+            let Some(site_name) = item["site"].as_str() else { continue };
+            let Some(site) = site_handles.get(site_name).copied() else {
+                notes.push(format!("parcel_segment: site {site_name} missing"));
+                continue;
+            };
+            let edge = item["edge"].as_u64().unwrap_or(0) as i32;
+            let geometry = serde_json::from_value::<acadrust::classes::civil::ParcelSegmentGeometry>(item["geometry"].clone()).ok();
+            if item["geometry"].is_null() {
+                notes.push(format!("parcel_segment {site_name}: stored without a base curve (no graphic-image section) — rebuilt as stored"));
+            }
+            let layer = item["layer"].as_str().filter(|s| !s.is_empty());
+            match acadrust::classes::civil::add_parcel_segment_record(&mut doc, site, edge, geometry.as_ref(), layer) {
+                Ok(_) => {}
+                Err(e) => notes.push(format!("parcel_segment {site_name}: {e}")),
             }
         }
     }

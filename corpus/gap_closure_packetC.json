@@ -67,6 +67,24 @@
       "class": "WRITER (fixed: default-stamping is opt-in \u2014 add_profile_view_without_profile_label_groups)",
       "implementability": "fixed \u2014 corpus build path uses the unlabelled variant; a future oracle carrying VAlignment label groups needs their record decode first (bounded, not attempted this round)",
       "evidence": "cap.pktC2.fix2.p1.built.census.txt (CENSUS ends at AeccDbVAlignment=4, audit 314/0/0) vs cap.pktC.c1fix.p1a.built.census.txt (AeccDbVAlignment{PVI,Line,Crest,Sag}Labeling=4 each, audit 330/1/0) vs cap.pktC.c1fix.p1a.Parcel-1A.dwg.census.txt (the oracle: none)"
+    },
+    {
+      "id": "C-4",
+      "file": "Align-6C.dwg",
+      "family": "AECC_PARCEL_SEGMENT (app class AeccDbLotLine)",
+      "gap": "FIXED (packetC-fix2): the standalone parcel-segment record has a builder family. New writer API add_parcel_segment_record (site.rs): write_lot_line's record form on the site's container with the decoded edge id (new reader ArchEntityData::parcel_segment_edge \u2014 the second BL after the head's tag and 128 residual bits) and, when the oracle record carries a graphic-image section, that section rebuilt from parcel_segment_geometry (the #665 outline-ring pattern); the oracle's Align-6C lot line is the short form (no base curve, no graphic) and is rebuilt as stored. analyze carries the family (layer/site/edge/geometry); the build joins it to the rebuilt site by name. Verified: rebuilt Align-6C census carries AECC_PARCEL_SEGMENT=1, family compare BIT-EXACT; app census AeccDbLotLine 1==1 and AUDIT 13/0/0 == the oracle's audit \u2014 civil classes 7/7 EXACT. (ParcelSegmentGeometry proved the wrong shape for the compare only when a graphic exists; none of the packet files carry one \u2014 the graphic-rebuild path is implemented for the next oracle that has one, verified structurally, not yet app-legged.)",
+      "class": "WRITER (fixed: new builder family add_parcel_segment_record + reader parcel_segment_edge)",
+      "implementability": "fixed \u2014 a regression-worthy note: the record joins the rebuilt container by name; the site's own container members are not rebuilt (pre-existing boundary)",
+      "evidence": "cap.pktC2.fix2.p6c.built.census.txt (AeccDbLotLine=1, AUDIT 13/0/0) vs cap.pktC.c1fix.p6c.built.census.txt (no LotLine, AUDIT 12/0/0) vs cap.pktC.c1fix.p6c.Align-6C.dwg.census.txt (the oracle: LotLine=1, 13/0/0); align_6c manifest now carries parcel_segment (layer C-PROP, site 'Site 1', edge 0, geometry null)"
+    },
+    {
+      "id": "C-5",
+      "file": "Points-3.dwg (2405-point store)",
+      "family": "cogo point-database enumeration order",
+      "gap": "OBSERVATION (count-exact, order-differs) \u2014 DOCUMENTED, no fix this round: the built point database still enumerates its first point num=1840 where the oracle's is num=1 (counts exact 2405/2405, the probe point readable). A cheap deterministic-order fix does not exist in the builder path today: the points are added in manifest order (number order) and the store's table order is the writer's O(1)-hash layout \u2014 re-ordering it means re-keying the store's node graph, not sorting a list. No semantic drift: Points-3 rebuilt this round with the C-2/C-3/C-4 writer changes holds FULL census equality (AUDIT 2406/0/0 == the oracle's, CogoPoint 2405==2405, AcDbBlockReference 1==1).",
+      "class": "WRITER (point-database store ordering/table order) \u2014 bounded observation",
+      "implementability": "uncertain \u2014 needs a store-layout round (node graph order), not a sort; whether Civil 3D surfaces the order anywhere user-visible (point group sort orders may mask it) remains unprobed",
+      "evidence": "cap.pktC2.fix2.p3.built.census.txt (AUDIT 2406/0/0, CogoPoint 2405) vs cap.pktC.p3.Points-3.dwg.census.txt (the oracle: COGO0 h=60AD num=1; the built's first point num=1840, count-exact)"
     }
   ],
   "reconfirmed (pre-existing)": [
