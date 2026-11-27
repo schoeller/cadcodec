@@ -1,6 +1,6 @@
 {
  "base": "parity/corpus-roundtrip@bd2492d5",
- "date": "2026-11-24",
+ "date": "2026-11-27",
  "files": [
   {
    "alignment_element_kinds": {},
@@ -38,11 +38,10 @@
    },
    "file": "Align-2.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+    "WIRING-CLOSED blocked only on alignment labelings \u2014 the #688 writer + corpus wiring (gap_closure_d010_alignlabels W1-5/a) route them; block_record L1 BIT-EXACT this round"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE",
+   "l1_note": "tin #11 (782/786 pts); parcel label placement RAW diffs (pre-existing writer notes)"
   },
   {
    "alignment_element_kinds": {},
@@ -60,11 +59,9 @@
    },
    "file": "Align-3.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -82,11 +79,9 @@
    },
    "file": "Align-4.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {
@@ -135,11 +130,9 @@
    },
    "file": "Align-6A.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -154,11 +147,9 @@
    },
    "file": "Align-6B.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=3"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -173,11 +164,9 @@
    },
    "file": "Align-6C.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=3"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -192,11 +181,9 @@
    },
    "file": "Align-6D.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=3",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=3"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -222,11 +209,9 @@
    },
    "file": "Align-7B.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -241,11 +226,9 @@
    },
    "file": "Align-7C.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {
@@ -390,11 +373,9 @@
    },
    "file": "Assembly-1a.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2"
+    "WIRING-CLOSED blocked only on alignment labelings + the assembly boundary (W1-4/a wired add_assembly)"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -1479,9 +1460,9 @@
    },
    "file": "Labels-1a.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED blocked only on OPEN-GAP #6 (block definitions) \u2014 the #703 round-trip wired into the builder this round; L1: block_record 41 + insert BIT-EXACT"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -1490,9 +1471,9 @@
    },
    "file": "Labels-2a.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=3"
+    "WIRING-CLOSED as Labels-1a; L1: block_record 43 + insert 3 BIT-EXACT"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -1691,10 +1672,9 @@
    },
    "file": "Labels-Alignments.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2"
+    "WIRING-CLOSED as Align-2; L1 note: the two East Street label groups stay unbuilt (the East Street alignment does not rebuild \u2014 pre-existing curve-fit gap, build NOTE)"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -1852,11 +1832,9 @@
    },
    "file": "Parcel-1A.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=2",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=2",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=2"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -2616,9 +2594,9 @@
    },
    "file": "Points-3.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a; L1: block_record 55 + insert + cogo 2405 BIT-EXACT"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -2678,11 +2656,10 @@
    },
    "file": "Profile-1.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE",
+   "l1_note": "tin #11 (23126/23130); alignment vertices last-ulp drift (pre-existing)"
   },
   {
    "alignment_element_kinds": {
@@ -2851,12 +2828,10 @@
    },
    "file": "Profile-4A.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE",
+   "l1_note": "tin #11 (10158/10162); alignment rebuild keeps 4 of 6 curves (pre-existing curve-fit note, build NOTE)"
   },
   {
    "alignment_element_kinds": {
@@ -2878,12 +2853,10 @@
    },
    "file": "Profile-4B.dwg",
    "reasons": [
-    "HARNESS-SCOPE AeccDbAlignmentGeomPointLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentMinorStationLabeling=1",
-    "HARNESS-SCOPE AeccDbAlignmentStationLabeling=1",
-    "HARNESS-SCOPE AeccDbProfileDataBandLabeling=1"
+    "WIRING-CLOSED as Align-2"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE",
+   "l1_note": "as Profile-4A"
   },
   {
    "alignment_element_kinds": {
@@ -3836,9 +3809,9 @@
    },
    "file": "Surface-4A.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a (census {pl3d 33, lwpoly 1} + 49 block records)"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -3851,9 +3824,9 @@
    },
    "file": "Surface-4B.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -3866,9 +3839,9 @@
    },
    "file": "Surface-4C.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -3881,9 +3854,9 @@
    },
    "file": "Surface-4D.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -3896,9 +3869,9 @@
    },
    "file": "Surface-5A.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -3911,9 +3884,9 @@
    },
    "file": "Surface-5B.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -3926,9 +3899,9 @@
    },
    "file": "Surface-5C.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -3952,9 +3925,9 @@
    },
    "file": "Surface-7.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=1"
+    "WIRING-CLOSED as Labels-1a"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -3967,9 +3940,9 @@
    },
    "file": "Surface-8.dwg",
    "reasons": [
-    "OPEN-GAP #6 AcDbBlockReference=3301"
+    "WIRING-CLOSED as Labels-1a at volume (3301 model-space inserts, 4k+ block members)"
    ],
-   "status": "DEFERRED"
+   "status": "ELIGIBLE"
   },
   {
    "alignment_element_kinds": {},
@@ -4113,8 +4086,8 @@
    "status": "ELIGIBLE"
   }
  ],
- "note": "all 161 .dwg (163 dir entries incl. 2 .dwt templates excluded); #11/#12 do NOT defer (pilots passed 3 layers carrying them) but L1 mismatches of those kinds are gap-logged | 2026-11-26 D010: reasons below still name the pre-wiring state; per-family state as of tonight is corpus/gap_closure_d010_wiring.json (AeccDbAssembly wired; AeccDbCorridor decode-only built-shell boundary; profile-view band label groups wired) | 2026-11-26 L1 round: the 43 assembly/corridor-carrier files each carry per-file class 'l1' below and full evidence in corpus/gap_closure_l1_verify.json (census gate 43/43 zero drift; no wiring bug; deferred reasons unchanged \u2014 the wired families verify, the non-wired blockers keep every file deferred)",
- "round": "D010 final codec-only round (2026-11-26) \u2014 the 43 re-scoped files L1-verified + classified (22 L1-WITH-NOTES / 21 NOT-CARRIED / 0 L1-VERIFIED / 0 new L2-PENDING); deferred count 126 honestly unchanged",
+ "note": "2026-11-27: reasons name the pre-wiring state for UNwired families; the flipped files carry WIRING-CLOSED citations. Deferred count after the round: 99 (was 126). Section-view data bands: #8 reason closed by wiring, the 6 section files stay DEFERRED on the undecodable view frames (pilot #1). Standalone VAlignment curve label groups (pilot #4): the corpus's 8 records carry full label data \u2014 a writer round, logged in wiring_round_runlog.md",
+ "round": "W1-4 harness WIRING round (2026-11-27): native blocks (#703) + section data bands (#701/#702) wired into the corpus builder; alignment labelings (#688) + profile-view bands + the assembly/corridor boundary roll-up \u2014 27 deferred files re-analyzed and flipped ELIGIBLE; PKT (#3), fixed arcs (#9), section-view frames (pilot #1) and the unwired misc stay DEFERRED",
  "rule": {
   "DEFERRED-BLOCKED": "no writer + no decode expectation (mass haul; grading entities beyond #642 group tree)",
   "DEFERRED-HARNESS-SCOPE": "family has upstream writers but the corpus bin does not wire it into analyze/build (labels, pipes, feature lines, intersections, survey, stormwater, native text/hatch/2d-polyline...) \u2014 as of 2026-11-26 the bin wires assemblies (add_assembly; empty-layout assemblies are a documented reader boundary, decode-only), corridors (corridor_definition analyze; the corpus corridors are all built-corridor shells, decode-only reader boundary) and profile-view bands (add_profile_view_with_bands, the #600 pattern). Still unwired: alignment labelings (no codec writer \u2014 new record templates needed), AECC_CSVGRID (no writer), subassemblies (the #3 PKT catalog: the record keeps only the package MD5)",
