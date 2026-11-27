@@ -624,6 +624,7 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
     let mut arcs = Vec::new();
     let mut lines = Vec::new();
     let mut mtexts = Vec::new();
+    let mut inserts = Vec::new();
     let mut native_gaps: BTreeMap<String, usize> = BTreeMap::new();
     for e in doc.entities() {
         let owned = match e {
@@ -640,6 +641,7 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
             EntityType::Arc(a) => arcs.push(a),
             EntityType::Line(l) => lines.push(l),
             EntityType::MText(m) => mtexts.push(m),
+            EntityType::Insert(i) => inserts.push(i.clone()),
             EntityType::Extended(_) => {}
             other => {
                 let key = native_key(other).unwrap_or("AcDbUnknown");
@@ -680,6 +682,152 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
         families.push(serde_json::json!({ "family": "mtext", "count": mtexts.len(), "items": mtexts.iter().map(|m| serde_json::json!({
             "layer": m.common.layer, "text": m.value, "location": j3(m.insertion_point), "height": jf(m.height),
         })).collect::<Vec<_>>() }));
+    }
+
+    // Native blocks (#703): definitions with their member entities and
+    // the model-space inserts, serialized by fields. The identity
+    // handles (entity/owner/layer/linetype/plot style/attribute chain)
+    // are drawing-local: neutralized on BOTH sides so the verify compare
+    // judges names, placement, geometry and appearance — the rebuilt
+    // file carries its own handles. A member entity type the crate does
+    // not deserialize stays a native gap (graceful None).
+    //
+    // Two drawing-local forms get canonical, not neutralized:
+    // - an anonymous record's name (the DWG header stores it bare and a
+    //   reader renumbers it on reopen — ACAD's own convention): its
+    //   canonical name is *A{ordinal among the anonymous records};
+    // - an associative hatch's boundary references: the boundaries are
+    //   fellow members, so each boundary handle is stored as the
+    //   member's ordinal within its record (null when it names a
+    //   non-member).
+    fn neutralize_handles(v: &mut Json) {
+        match v {
+            Json::Object(map) => {
+                for (k, val) in map.iter_mut() {
+                    match k.as_str() {
+                        "handle" | "owner_handle" => *val = Json::from(0u64),
+                        "layer_handle" | "linetype_handle" | "plotstyle_handle" | "xdictionary_handle"
+                        | "seqend_handle" | "view_rep_handle" | "color_book_handle" | "material_handle"
+                        | "full_visual_style_handle" | "face_visual_style_handle" | "edge_visual_style_handle"
+                        | "r12_metadata" => *val = Json::Null,
+                        "reactors" => *val = serde_json::json!([]),
+                        _ => neutralize_handles(val),
+                    }
+                }
+            }
+            Json::Array(a) => for x in a { neutralize_handles(x); },
+            _ => {}
+        }
+    }
+    fn canonicalize_block_names(v: &mut Json, canon: &std::collections::HashMap<String, String>) {
+        match v {
+            Json::Object(map) => {
+                if let Some(Json::String(bn)) = map.get_mut("block_name") {
+                    if let Some(c) = canon.get(bn.as_str()) {
+                        *bn = c.clone();
+                    }
+                }
+                for (_k, val) in map.iter_mut() {
+                    canonicalize_block_names(val, canon);
+                }
+            }
+            Json::Array(a) => for x in a { canonicalize_block_names(x, canon); },
+            _ => {}
+        }
+    }
+    fn memberize_boundaries(v: &mut Json, ordinals: &std::collections::HashMap<u64, usize>) {
+        match v {
+            Json::Object(map) => {
+                for (k, val) in map.iter_mut() {
+                    if k == "boundary_handles" {
+                        if let Json::Array(a) = val {
+                            for x in a.iter_mut() {
+                                if let Some(h) = x.as_u64() {
+                                    *x = match ordinals.get(&h) {
+                                        Some(i) => Json::from(*i as u64),
+                                        None => Json::Null,
+                                    };
+                                }
+                            }
+                        }
+                    } else {
+                        memberize_boundaries(val, ordinals);
+                    }
+                }
+            }
+            Json::Array(a) => for x in a { memberize_boundaries(x, ordinals); },
+            _ => {}
+        }
+    }
+    let mut anon_ordinal = 0usize;
+    let mut canon_name: std::collections::HashMap<String, String> = Default::default();
+    for r in doc.block_records.iter() {
+        if r.name == "*Model_Space" || r.name.starts_with("*Paper_Space") {
+            continue;
+        }
+        let name = if r.flags.anonymous {
+            let n = format!("*A{anon_ordinal}");
+            anon_ordinal += 1;
+            n
+        } else {
+            r.name.clone()
+        };
+        canon_name.insert(r.name.clone(), name);
+    }
+    let carried_records: Vec<Json> = doc
+        .block_records
+        .iter()
+        .filter(|r| r.name != "*Model_Space" && !r.name.starts_with("*Paper_Space"))
+        .map(|r| {
+            let mut members: Vec<Json> = Vec::new();
+            let mut member_ordinal: std::collections::HashMap<u64, usize> = Default::default();
+            for h in &r.entity_handles {
+                let Some(e) = doc.get_entity(*h) else { continue };
+                if matches!(e, EntityType::Block(_) | EntityType::BlockEnd(_) | EntityType::Seqend(_)) {
+                    continue;
+                }
+                let Ok(mut v) = serde_json::to_value(e) else { continue };
+                neutralize_handles(&mut v);
+                member_ordinal.insert(h.value(), members.len());
+                members.push(v);
+            }
+            for m in &mut members {
+                memberize_boundaries(m, &member_ordinal);
+                canonicalize_block_names(m, &canon_name);
+            }
+            serde_json::json!({
+                "name": canon_name.get(&r.name).cloned().unwrap_or_else(|| r.name.clone()),
+                "base_point": j3(r.base_point),
+                "flags": r.flags, "units": r.units,
+                "explodable": r.explodable, "scale_uniformly": r.scale_uniformly,
+                "description": r.description, "xref_path": r.xref_path,
+                "members": members,
+            })
+        })
+        .collect();
+    if !carried_records.is_empty() {
+        families.push(serde_json::json!({ "family": "block_record", "count": carried_records.len(), "items": carried_records }));
+    }
+    {
+        let carried: std::collections::HashSet<String> = doc.block_records.iter().filter(|r| r.name != "*Model_Space" && !r.name.starts_with("*Paper_Space")).map(|r| r.name.clone()).collect();
+        let mut built: Vec<Json> = Vec::new();
+        let mut skipped = 0usize;
+        for i in &inserts {
+            if !carried.contains(&i.block_name) {
+                skipped += 1;
+                continue;
+            }
+            let Some(mut v) = serde_json::to_value(i).ok() else { skipped += 1; continue; };
+            neutralize_handles(&mut v);
+            canonicalize_block_names(&mut v, &canon_name);
+            built.push(v);
+        }
+        if !built.is_empty() {
+            families.push(serde_json::json!({ "family": "insert", "count": built.len(), "items": built }));
+        }
+        if skipped > 0 {
+            *native_gaps.entry("AcDbBlockReference".to_string()).or_default() += skipped;
+        }
     }
     for (key, count) in native_gaps {
         gaps.push(gap(&key, count, "no native writer wired into this bin", "uncertain — the crate writes some of these natively; the pilot bin does not"));
@@ -1394,8 +1542,165 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
         }
     }
 
+
     let fams = manifest["families"].as_array().cloned().unwrap_or_default();
     let find = |fams: &[Json], name: &str| fams.iter().find(|f| f["family"] == name).cloned();
+
+    // Native block definitions (#703): the block/insert round-trip the
+    // pin test carries — each definition rebuilt by its stored fields,
+    // its members re-homed under the rebuilt record (the record's
+    // entity_handles list is the ownership the writer walks), inserts
+    // placed as decoded after the records below. Identity handles are
+    // drawing-local (neutralized in analyze): the built file carries its
+    // own. Anonymous records (*X../*U..) carry too — a member insert
+    // names one — only the layout records stay the rebuilt document's.
+    let mut carried_blocks: std::collections::HashSet<String> = Default::default();
+    // Text styles and linetypes the members name (the writer normalizes
+    // a missing one to Standard — carry the oracle's).
+    let mut ensure_text_style = |doc: &mut acadrust::CadDocument, name: &str| {
+        if !name.is_empty() && doc.text_styles.get(name).is_none() {
+            let mut style = acadrust::tables::TextStyle::new(name);
+            style.handle = doc.allocate_handle();
+            let _ = doc.text_styles.add(style);
+        }
+    };
+    // The regapps the members' extended data names (the writer drops an
+    // EED whose application has no APPID in the drawing — AcDbBlockRepETag
+    // among them).
+    let mut ensure_app_id = |doc: &mut acadrust::CadDocument, name: &str| {
+        if !name.is_empty() && !doc.app_ids.iter().any(|a| a.name == name) {
+            let mut app = acadrust::tables::AppId::new(name);
+            app.handle = doc.allocate_handle();
+            let _ = doc.app_ids.add(app);
+        }
+    };
+    fn ensure_xdata_apps(v: &Json, ensure: &mut dyn FnMut(&mut acadrust::CadDocument, &str), doc: &mut acadrust::CadDocument) {
+        match v {
+            Json::Object(map) => {
+                if let Some(Json::String(app)) = map.get("application_name") {
+                    ensure(doc, app);
+                }
+                for (_k, val) in map {
+                    ensure_xdata_apps(val, ensure, doc);
+                }
+            }
+            Json::Array(a) => for x in a { ensure_xdata_apps(x, ensure, doc); },
+            _ => {}
+        }
+    }
+    if let Some(f) = find(&fams, "block_record") {
+        for item in f["items"].as_array().unwrap_or(&vec![]) {
+            let name = item["name"].as_str().unwrap_or_default().to_string();
+            if name.is_empty() || name == "*Model_Space" || name.starts_with("*Paper_Space") {
+                continue;
+            }
+            // The layers the members sit on (a member on a layer the table
+            // lacks would normalize to "0").
+            let member_layers: Vec<String> = item["members"].as_array().cloned().unwrap_or_default().iter().filter_map(|m| {
+                m.as_object().and_then(|o| o.values().filter_map(|v| v.get("common")).next())
+                    .and_then(|c| c.get("layer")).and_then(|l| l.as_str().map(str::to_string))
+            }).collect();
+            for l in &member_layers {
+                ensure_layer(&mut doc, l);
+            }
+            let mut record = acadrust::tables::BlockRecord::new(&name);
+            record.base_point = v3(&item["base_point"]);
+            if let Some(flags) = item.get("flags").and_then(|f| serde_json::from_value::<acadrust::tables::block_record::BlockFlags>(f.clone()).ok()) {
+                record.flags = flags;
+            }
+            record.units = item["units"].as_i64().unwrap_or(0) as i16;
+            record.explodable = item["explodable"].as_bool().unwrap_or(true);
+            record.scale_uniformly = item["scale_uniformly"].as_bool().unwrap_or(false);
+            record.description = item["description"].as_str().unwrap_or_default().to_string();
+            record.xref_path = item["xref_path"].as_str().unwrap_or_default().to_string();
+            record.handle = doc.allocate_handle();
+            record.block_entity_handle = doc.allocate_handle();
+            record.block_end_handle = doc.allocate_handle();
+            let mut members: Vec<Option<Handle>> = Vec::new();
+            for m in item["members"].as_array().unwrap_or(&vec![]) {
+                let Ok(mut e) = serde_json::from_value::<EntityType>(m.clone()) else {
+                    notes.push(format!("block {name}: a member entity's fields not read"));
+                    members.push(None);
+                    continue;
+                };
+                match &mut e {
+                    EntityType::Text(t) => ensure_text_style(&mut doc, &t.style),
+                    EntityType::MText(t) => ensure_text_style(&mut doc, &t.style),
+                    EntityType::AttributeDefinition(a) => ensure_text_style(&mut doc, &a.text_style),
+                    _ => {}
+                }
+                ensure_xdata_apps(m, &mut ensure_app_id, &mut doc);
+                {
+                    let c = e.common_mut();
+                    c.handle = Handle::NULL;
+                    c.owner_handle = record.block_entity_handle;
+                }
+                match doc.add_entity(e) {
+                    Ok(h) => members.push(Some(h)),
+                    Err(err) => {
+                        notes.push(format!("block {name}: member: {err}"));
+                        members.push(None);
+                    }
+                }
+            }
+            record.entity_handles = members.iter().filter_map(|m| *m).collect();
+            // An associative hatch's boundaries are fellow members (analyze
+            // stored them as member ordinals): restore the fresh handles.
+            // The member JSON is the externally tagged entity enum — the
+            // paths live one level down.
+            for (i, m) in item["members"].as_array().unwrap_or(&vec![]).iter().enumerate() {
+                let Some(Some(handle)) = members.get(i).copied() else { continue };
+                let paths = m.as_object().and_then(|o| o.values().filter_map(|v| v.get("paths")).next().and_then(|p| p.as_array().cloned()));
+                let Some(paths) = paths.filter(|p| !p.is_empty()) else { continue };
+                let ordinals: Vec<Vec<Json>> = paths.iter().map(|path| {
+                    path["boundary_handles"].as_array().cloned().unwrap_or_default()
+                }).collect();
+                if ordinals.iter().all(|o| o.is_empty()) {
+                    continue;
+                }
+                let Some(EntityType::Hatch(hatch)) = doc.get_entity_mut(handle) else { continue };
+                for (path, ords) in hatch.paths.iter_mut().zip(&ordinals) {
+                    path.boundary_handles = ords.iter().map(|o| o.as_u64().and_then(|v| members.get(v as usize).copied().flatten()).unwrap_or(Handle::NULL)).collect();
+                }
+            }
+            match doc.block_records.add(record) {
+                Ok(_) => { carried_blocks.insert(name); }
+                Err(e) => notes.push(format!("block {name}: {e}")),
+            }
+        }
+    }
+    // Inserts: one per manifest item, into model space, referencing its
+    // block by name. An insert whose block was not carried is skipped
+    // with a note (analyze only carries inserts whose block it carries).
+    if let Some(f) = find(&fams, "insert") {
+        for item in f["items"].as_array().unwrap_or(&vec![]) {
+            let Ok(mut ins) = serde_json::from_value::<acadrust::entities::Insert>(item.clone()) else {
+                notes.push(format!("insert: fields not read for {}", item.get("block_name").and_then(|b| b.as_str()).unwrap_or("?")));
+                continue;
+            };
+            let bname = ins.block_name.clone();
+            if !carried_blocks.contains(&bname) {
+                notes.push(format!("insert: block {bname} not carried — skipped"));
+                continue;
+            }
+            ensure_layer(&mut doc, &ins.common.layer);
+            for a in &ins.attributes {
+                ensure_text_style(&mut doc, &a.text_style);
+            }
+            {
+                let v = item.clone();
+                ensure_xdata_apps(&v, &mut ensure_app_id, &mut doc);
+            }
+            {
+                let c = acadrust::entities::Entity::common_mut(&mut ins);
+                c.handle = Handle::NULL;
+                c.owner_handle = Handle::NULL; // add_entity defaults the owner to model space
+            }
+            if let Err(err) = doc.add_entity(EntityType::Insert(ins)) {
+                notes.push(format!("insert {bname}: {err}"));
+            }
+        }
+    }
 
     // Native entities first.
     for name in ["polyline3d", "lwpolyline", "circle", "arc", "line", "mtext"] {
