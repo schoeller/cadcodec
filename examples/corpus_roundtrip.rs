@@ -995,15 +995,39 @@ fn analyze(doc: &acadrust::CadDocument, source: &str, mcp_census: Option<Json>) 
             // manifests (gap N-1).
             let name = a.surface_name().unwrap_or_default();
             if let Some(t) = a.tin_surface() {
+                // The four bounding-corner vertices are the stored form's
+                // scaffolding (flag 0x40; the application's own files carry
+                // them and its live collections exclude them — the #543/#559
+                // denominator). Harvested as points they re-enter the
+                // rebuilt surface as REAL drawn geometry: the extents
+                // rectangle appears twice (once as re-injected data, once in
+                // the writer's own corners), the live surface serves the
+                // 100-ft band the oracle throws over (D010 buffer round,
+                // 2026-11-28). Harvest only the real points and the drawn
+                // triangles among them, re-indexed.
+                let remap: std::collections::HashMap<usize, usize> = t
+                    .vertices
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, v)| v.flags & 0x40 == 0)
+                    .enumerate()
+                    .map(|(n, (i, _))| (i, n))
+                    .collect();
                 let tris: Vec<Json> = t
                     .triangles
                     .iter()
-                    .filter(|t| t.is_visible())
-                    .map(|t| serde_json::json!([t.vertices[0], t.vertices[1], t.vertices[2]]))
+                    .filter(|t| t.is_visible() && t.vertices.iter().all(|v| remap.contains_key(&(*v as usize))))
+                    .map(|t| {
+                        serde_json::json!([
+                            remap[&(t.vertices[0] as usize)],
+                            remap[&(t.vertices[1] as usize)],
+                            remap[&(t.vertices[2] as usize)]
+                        ])
+                    })
                     .collect();
                 items.push(serde_json::json!({
                     "name": name,
-                    "points": t.vertices.iter().map(|v| j3(v.position)).collect::<Vec<_>>(),
+                    "points": t.vertices.iter().filter(|v| v.flags & 0x40 == 0).map(|v| j3(v.position)).collect::<Vec<_>>(),
                     "triangles": tris,
                 }));
             } else {
