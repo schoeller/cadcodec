@@ -1923,23 +1923,13 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
             }
         }
     }
-    if let Some(f) = find(&fams, "parcel") {
-        for item in f["items"].as_array().unwrap_or(&vec![]) {
-            let s = item["site"].as_str()
-                .and_then(|n| site_handles.get(n).copied())
-                .or_else(|| { let s = site.get_or_insert_with(|| add_site(&mut doc, "SITE", "").unwrap()); Some(*s) });
-            let Some(s) = s else { continue };
-            let vertices: Vec<Vector2> = item["vertices"].as_array().map(|a| a.iter().map(|v| v2(v)).collect()).unwrap_or_default();
-            match add_parcel(&mut doc, s, &vertices, None) {
-                Ok(_) => {}
-                Err(e) => notes.push(format!("parcel {}: {}", item["name"].as_str().unwrap_or("?"), e)),
-            }
-        }
-    }
-
-    // Standalone parcel segments (C-4): the decoded lot-line record on its
-    // site's container, edge id and graphic-image geometry as decoded (the
-    // site's own container members are not rebuilt).
+    // Standalone parcel segments (C-4; the E-1 fix's composed order): the
+    // decoded lot-line records on their sites' containers, edge id and
+    // graphic-image geometry as decoded (the site's own container members
+    // are not rebuilt). Written BEFORE the parcels when the manifest
+    // carries both families — the file's lot-line records are the set the
+    // parcels' boundaries adopt (56b499ac).
+    let has_parcel_segments = find(&fams, "parcel_segment").is_some();
     if let Some(f) = find(&fams, "parcel_segment") {
         for item in f["items"].as_array().unwrap_or(&vec![]) {
             let Some(site_name) = item["site"].as_str() else { continue };
@@ -1956,6 +1946,30 @@ fn build(manifest: &Json, out: &std::path::Path) -> Result<Vec<String>, String> 
             match acadrust::classes::civil::add_parcel_segment_record(&mut doc, site, edge, geometry.as_ref(), layer) {
                 Ok(_) => {}
                 Err(e) => notes.push(format!("parcel_segment {site_name}: {e}")),
+            }
+        }
+    }
+    if let Some(f) = find(&fams, "parcel") {
+        for item in f["items"].as_array().unwrap_or(&vec![]) {
+            let s = item["site"].as_str()
+                .and_then(|n| site_handles.get(n).copied())
+                .or_else(|| { let s = site.get_or_insert_with(|| add_site(&mut doc, "SITE", "").unwrap()); Some(*s) });
+            let Some(s) = s else { continue };
+            let vertices: Vec<Vector2> = item["vertices"].as_array().map(|a| a.iter().map(|v| v2(v)).collect()).unwrap_or_default();
+            // Composed build (the manifest carries the file's lot-line
+            // records): the parcel joins its site WITHOUT a second record
+            // for a boundary the set already carries — the edge slot adopts
+            // the matching record when the set carries the ring (56b499ac).
+            // Solo shape (no parcel_segment family): add_parcel keeps the
+            // created-from-object record.
+            let res = if has_parcel_segments {
+                acadrust::classes::civil::add_parcel_without_segment(&mut doc, s, &vertices, None)
+            } else {
+                add_parcel(&mut doc, s, &vertices, None)
+            };
+            match res {
+                Ok(_) => {}
+                Err(e) => notes.push(format!("parcel {}: {}", item["name"].as_str().unwrap_or("?"), e)),
             }
         }
     }
