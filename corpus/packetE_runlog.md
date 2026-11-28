@@ -236,3 +236,18 @@ closed; new occurrence on a fresh shape).
   (incl. 14 doc-tests; full log: /tmp/opencode/packetE_work/suite_packetE_full.log) —
   packetD baseline 3437 + the merged upstream wave's tests, as expected for a data-only
   diff on this merge base.
+
+- [SHIP] committed **8033c06b** on parity/packetE (align_2/assembly_1a/profile_4b
+  manifests + gap_closure_packetE.json + the runlog copy as corpus/packetE_runlog.md;
+  data-only, on top of ed2fcdb0) and pushed schoeller/cadcodec:parity/packetE —
+  **origin ref == HEAD verified** (8033c06b). NO PRs, no matrix/PM edits. Disk after:
+  36 GB free (>15 GB floor held). Artifacts: d008 log
+  /tmp/opencode/writere2/d008_log_packetE.jsonl; watcher log /tmp/opencode/ct/
+  pktE_watcher.log (start 23:39:30, end 00:24:58, matched NOTHING); built files +
+  analyses /tmp/opencode/packetE_work/ and C:\Temp\corpus_built\packetE\.
+- [SUCCESSOR HANDOFF NOTES] (1) run packetE_verify.py BARE — it takes
+  /tmp/opencode/bridge.lock itself; a CLI flock wrapper self-deadlocks (two zero-side-effect
+  timeouts recorded above). (2) The user's Acad instance carries another session's leftover
+  open drawing (C:\Temp\mhvadopt\mhv-pad.dwg visible in openDrawings) — untouched, Drawing1
+  invariants held on every probe. (3) E-3's erased id=311 in profile_4b.built.dwg is real
+  file content; an app-side owner-chain probe of that id is the next diagnostic step.
