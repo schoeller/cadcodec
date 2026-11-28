@@ -1,0 +1,54 @@
+{
+ "base": "parity/packetF (origin/parity/packetE@1ef1bfda + MERGE origin/d010/e1-parcel-segment@56b499ac — the E-1 fix, PR #728, merge 0424b3c1, 3 conflicts: re-export lists in create/mod.rs + civil/mod.rs resolved as UNION (HEAD packetE list + the fix's add_parcel_without_segment), site.rs add_lot_line_on body taking the FIX's member_record/record pass-through because HEAD's side WAS the E-1 mechanism (the always-record closure); + MERGE origin/d010/e3-minorstation-erased@328fcde3 — the E-3 fix, PR #730, merge 5dfa3a33, CLEAN auto-merge; upstream/main still @ d7c71f50 = not newer, no upstream merge)",
+ "wave": "D017 PACKET F — the FIX-REGRESSION packet (2026-11-28): 3 fresh files × full L1/L2/L3, measuring the POST-FIX parcel writer (#728) and the POST-FIX MinorStation writer (#730) on the census twins. HEADLINE GATES: (a) the E-1 fix holds on fresh files — LotLine == oracle everywhere, zero double-writes; (b) the E-3 fix holds — MinorStation groups MANAGED app-side, not erased; (c) no regressions in any other family. ALL THREE GATES CLOSED.",
+ "format": "same shape as gap_closure_packetE.json",
+ "suite": "cargo test (sccache, CARGO_PROFILE_TEST_DEBUG=0, CARGO_INCREMENTAL=0) on parity/packetF post-legs: 3452 passed / 0 failed, exit 0 (full log: /tmp/opencode/packetF_work/suite_packetF_full.log) — packetE baseline 3449 + the two fixes' own round-trip tests carried by the merges",
+ "example_wiring": "ONE recorded code commit beyond the merges: eb6326e1 — the composed parcel build in examples/corpus_roundtrip.rs rides the E-1 fix (parcel_segment records written BEFORE the parcels; parcels via add_parcel_without_segment when the manifest carries the parcel_segment family; solo shape keeps add_parcel). The fix branch 56b499ac changed ONLY src/ — without this wiring the example still measured the PRE-fix writer (first Align-3 build showed parcel_segment 2 != 1 and was discarded). Precedent: baaad227 wired the D-1 fix through the example the same way. Clippy: the edit introduces zero new lints; the lib has 2 PRE-EXISTING deny-level lints (approximate FRAC_PI_2, profile_view.rs:623 + object_writer/mod.rs:1795 — deliberate style values, untouched here).",
+ "pick_and_substitution": "Align-3 + Align-4 = Align-2's census twins, ELIGIBLE, families EXACT ({COGO 16, PARCEL_SEGMENT 1, Circle 6, MText 6, Alignment 1, GeomPoint/MinorStation/Station 1+1+1, Face 2 (= site 1 + parcel 1), Tin 1}). SUBSTITUTION RECORDED: the dispatch's Align-7A does NOT carry the alignment/labeling trio its brief describes — its eligibility manifest is {Circle 5, MText 5, Tin 1} ONLY (reasons: []). Per the dispatch's own substitution rule the nearest twin that HAS the trio was picked: Align-7B ({Circle 5, MText 5, Alignment 1, GeomPoint 1, MinorStation 1, Station 1, Tin 1}); Align-7C recorded as the spare (identical census).",
+ "census gates (codec analyze == eligibility.json families)": {
+  "Align-3.dwg": "{COGO_POINT:16, PARCEL_SEGMENT:1, Circle:6, MText:6, Alignment:1, GeomPoint:1, MinorStation:1, Station:1, Face:2 (site 1 + parcel 1), Tin:1} EXACT (10 manifest families + block_record 37)",
+  "Align-4.dwg": "EXACT twin of Align-3 (same 10 families, same counts; + the legacy BestFitArc alignment element — the #683 decoder's fresh L1 leg, probe3b-decoded live: radius 334.3905128049457, 16 BestFitPoints with offsets/projections)",
+  "Align-7B.dwg": "{Circle:5, MText:5, Alignment:1, GeomPoint:1, MinorStation:1, Station:1, Tin:1} EXACT (6 manifest families + block_record 45; label trio confirmed at analyze — the valid E-3 carrier)"
+ },
+ "files": [
+  {
+   "file": "Align-3.dwg",
+   "pick_reason": "Align-2's census twin — the E-1 fix's cleanest fresh carrier (parcel + boundary parcel_segment coexist; packet E measured the PRE-fix writer on the twin: parcel_segment 2 != 1, LotLine 2 vs 1)",
+   "L1": "PASS, ZERO build NOTEs: circle 6/6 + mtext 6/6 + block_record 37/37 + cogo_point 16/16 (SMALL-count store) + site 1/1 + parcel_segment 1/1 BIT-EXACT + alignment_label_group 3/3 BIT-EXACT; ownership guard leaked_members=0 leaked_into_layout=0 inserts 0/0; HEADLINE (a): the E-1 double-write is GONE codec-side (parcel_segment 1==1, census AECC_PARCEL_SEGMENT 1==1 — packet E measured 2!=1 on the twin); pre-existing unchanged: tin #11 (782->786, 1388->1482), parcel name/label (Parent_Tract->'' + label placement), alignment curve-fit (curves 4!=6, vertices 6!=8)",
+   "L2": "open NO dialog; built AUDIT 36/0/0 — ZERO exceptions",
+   "L3": "FULL EQUALITY — ALL 11 CLASSES == : oracle AUDIT 36/0/0 {Circle 6, MText 6, Alignment 1, GeomPoint 1, MinorStation 1, Station 1, CogoPoint 16, Face 2, LotLine 1, Tin 1} vs built AUDIT 36/0/0 {same, ALL ==}; TIN [EG] BOTH sides 782/1482 vs 778/1388 (#11); COGO0 built num=16 first vs oracle num=1 (C-5 order, count-exact); GATES (a) LotLine 1==1 AND (b) MinorStation 1==1 MANAGED; ctx Drawing1 all-0 before==mid==after; close discardChanges:true (discardedChanges:false); units built 'Undefined' vs oracle 'Feet' (D-2 repeats, 4th packet)",
+   "verdict": "PASS at L3 — full census equality"
+  },
+  {
+   "file": "Align-4.dwg",
+   "pick_reason": "the other twin — second E-1 regression carrier + the legacy BestFitArc record (#683's decoder gets a fresh L1 leg)",
+   "L1": "PASS, ZERO build NOTEs: same families BIT-EXACT as Align-3 (incl. parcel_segment 1/1 — gate (a) holds on the second twin) + alignment_label_group 3/3; guard 0/0; BestFitArc DECODES live (probe3b: FixedLine x3 + FreeArc(199.99999999999943) + FreeSCS(in=50,r=200,out=50) + BestFitArc{radius 334.3905128049457, 16 points} + FloatingSpiralSpiralCurve); pre-existing unchanged: tin #11, parcel name/label, alignment curve-fit (curves 4!=6 — the REBUILD path curve-fits the BestFitArc+Spiral elements; the decode leg is clean — the recorded curve-fit gap, now confirmed on the BestFitArc shape)",
+   "L2": "open NO dialog; built AUDIT 36/0/0 — ZERO exceptions",
+   "L3": "FULL EQUALITY — ALL 11 CLASSES == : oracle AUDIT 36/0/0 (11 classes, the app-side twin) vs built AUDIT 36/0/0 {ALL ==}; TIN [EG] BOTH sides 782/1482; COGO0 num=16 first (C-5, count-exact); GATES (a) LotLine 1==1 AND (b) MinorStation 1==1; ctx invariants held; discardedChanges:false; units 'Undefined' (D-2)",
+   "verdict": "PASS at L3 — full census equality"
+  },
+  {
+   "file": "Align-7B.dwg",
+   "pick_reason": "SUBSTITUTED for the dispatch's Align-7A (no alignment/trio in its census — reason above): the E-3 fix's fresh carrier (MinorStation group + sibling station group; the fix adds the trailing sibling reference the app walks per label)",
+   "L1": "PASS, ZERO build NOTEs: circle 5/5 + mtext 5/5 + block_record 45/45 + alignment_label_group 3/3 BIT-EXACT (the MinorStation record present and bit-exact codec-side); guard 0/0; pre-existing unchanged: tin #11 (10158->10162, 16868->20287 — EXACTLY packet E's Profile-4B numbers), alignment curve-fit (curves[1] None != arc)",
+   "L2": "open NO dialog; built AUDIT 15/0/0 — ZERO exceptions (packet E's Profile-4B built had null=1 ePermanentlyErased here — NONE on this fix lineage)",
+   "L3": "FULL EQUALITY — ALL 7 CLASSES == : oracle AUDIT 15/0/0 {Circle 5, MText 5, Alignment 1, GeomPoint 1, MinorStation 1, Station 1, Tin 1} vs built AUDIT 15/0/0 {ALL ==}; TIN [Existing Ground] BOTH sides 10158/20287 (#11); GATE (b) HEADLINE: AeccDbAlignmentMinorStationLabeling 1==1 app-side — the E-3 fix HOLDS on its fresh carrier: the group is MANAGED, not erased; ctx invariants held; discardedChanges:false; units 'Undefined' (D-2)",
+   "verdict": "PASS at L3 — full census equality; the E-3 fix closed with live evidence"
+  }
+ ],
+ "headline_gates": {
+  "a_E1_fix_holds": "CLOSED: parcel_segment BIT-EXACT 1/1 codec-side AND LotLine 1==1 app-side on BOTH twins (packet E measured 2!=1 codec / 2 vs 1 app on Align-2 PRE-fix); zero double-writes anywhere; required the recorded example wiring eb6326e1 (the fix shipped only src/)",
+  "b_E3_fix_holds": "CLOSED: MinorStation groups MANAGED app-side (1==1) on ALL THREE files incl. the fresh carrier Align-7B; the packet-E erase (ePermanentlyErased) does NOT reproduce — zero audit exceptions on any built file",
+  "c_no_regressions": "CLOSED: every other family app-exact on all three files; guard 0/0 x3 (the C-1 leak class stays EXTINCT); the RECORDED CAVEAT (the PARITY-BUILD erase — a MinorStation erased app-side on a parity-branch build, upstream clean; C-3/D-1 lineage) did NOT reproduce on this lineage (C-3/D-1 + both fixes): ZERO app-side erasures observed — the named open item stays open but unobserved here"
+ },
+ "reconfirmed_pre_existing": [
+  "#11 tin triangulation parameter (all 3 files: 782/786+1388/1482 twins, 10158/10162+16868/20287 on 7B — exactly Profile-4B's numbers)",
+  "alignment curve-fit rebuild (curves 4!=6 on the twins incl. the BestFitArc rebuild leg on Align-4 — decode clean, rebuild curve-fits; curves[1] None != arc on 7B)",
+  "parcel writer name/label (Parent_Tract -> '' + label placement) on both twins",
+  "C-5 cogo store order (built num=16 first vs oracle num=1, count-exact, both twins)",
+  "N-1 TIN name closure live: [EG] both sides (twins), [Existing Ground] both sides (7B)",
+  "D-2 built units header 'Undefined' (all 3 built opens; 4th packet running)",
+  "C-1 ownership: guard 0/0 on ALL THREE files, zero app-side leaks — EXTINCT"
+ ],
+ "bridge_summary": "3 legs x 9 calls = 27 calls ALL done/ok=True (d008: /tmp/opencode/writere2/d008_log_packetF.jsonl); 6 opens all NO dialog; 6 read-only censuses; 9 ctx probes Drawing1 all-0; 6 closes discardChanges:true all returned discardedChanges:false; attrib -r verified 'A' on all 3 built files before their opens; port 7900 only; driver run BARE (takes /tmp/opencode/bridge.lock itself); watcher loop (C:\\Temp\\packetF\\dismiss.ps1, 15 s) matched NOTHING; no wedge, ZERO writes, zero dialogs"
+}
