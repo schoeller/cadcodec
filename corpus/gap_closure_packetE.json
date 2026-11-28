@@ -1,0 +1,80 @@
+{
+ "base": "parity/packetE (origin/parity/packetD-fix@baaaad227 — carries packet C's C-1..C-4 fixes AND the D-1 profile-view bands-range fix — merged with upstream/main@d7c71f50: #717 stormwater-context + #719 BLOCKROTATEACTION + #721 visibility-reactor + #723 properties-table typed values; merge commit ed2fcdb0, two re-export-list conflicts resolved as UNION)",
+ "wave": "D017 PACKET E corpus roundtrip (2026-11-27/28): 3 NEW files x full L1/L2/L3. Round resumed by a SUCCESSOR worker after the original packet-E worker died silently ~23:24Z 2026-11-27 (right after writing Align-2's L1 artifacts): Align-2's artifacts were HARVESTED and re-verified from scratch (analyze/verify/compare re-run; byte-identical reproduction), Assembly-1a + Profile-4B run fresh",
+ "format": "same shape as gap_closure_packetD.json",
+ "suite": "cargo test (sccache, CARGO_PROFILE_TEST_DEBUG=0, CARGO_INCREMENTAL=0) on parity/packetE post-legs (data-only changes): 3449 passed / 0 failed, exit 0 (full log: /tmp/opencode/packetE_work/suite_packetE_full.log) — packetD baseline 3437 + the tests carried by the merged upstream wave (#717/#719/#721/#723)",
+ "bridge_protocol": "port 7900 only; flock /tmp/opencode/bridge.lock (driver-internal; NOTE for successors: do NOT additionally wrap the driver in the CLI flock — it self-deadlocks on the same lock, two zero-side-effect timeouts recorded); attrib -r + verify before EVERY built-file open (all 'A', no R); oracle opens readOnly:true; get_civil_context before/mid/after — Drawing1 all-0 before == mid == after every leg; every close discardChanges:true (all returned discardedChanges:false — nothing was ever flagged modified); read-only C# census only (D008-logged to /tmp/opencode/writere2/d008_log_packetE.jsonl); 27 calls ALL done/ok=True; 6 opens ZERO dialogs; dismiss.ps1 watcher loop (15 s) throughout, matched NOTHING; no wedge, zero writes",
+ "census gates (codec analyze == eligibility.json families)": {
+  "Align-2.dwg": "{COGO_POINT:16, PARCEL_SEGMENT:1, Circle:6, MText:6, Alignment:1, GeomPoint:1, MinorStation:1, Station:1, Face:2, Tin:1} EXACT",
+  "Assembly-1a.dwg": "{PARCEL_SEGMENT:102, 3dPolyline:3, Arc:1, Line:1, LwPolyline:136, Alignment:2, MinorStation:2, Station:2, Face:57, GraphProfile:2, ProfileDataBandLabeling:2, Tin:1, VAlignment:4} EXACT (13/13)",
+  "Profile-4B.dwg": "{Circle:9, MText:10, Alignment:1, GeomPoint:1, MinorStation:1, Station:1, GraphProfile:1, ProfileDataBandLabeling:1, Tin:1, VAlignment:2} EXACT (10/10)"
+ },
+ "files": [
+  {
+   "file": "Align-2.dwg",
+   "pick_reason": "three never-packet-tested shapes in one file: cogo at SMALL count (16 — every prior packet hit the 2405 mass), the C-4 parcel-segment builder's first PACKET leg (proven on exactly 1 record codec-side, never through a full packet), and Face 2 alongside the full alignment-labeling trio + circle/mtext 6",
+   "L1": "HARVEST-VERIFIED (successor re-ran analyze/verify/compare; byte-identical reproduction of the dead worker's artifacts): circle 6/6 + mtext 6/6 + block_record 37/37 + cogo_point 16/16 (SMALL-count cogo store, first packet leg) + site 1/1 + alignment 1/1 + alignment_label_group 3/3 BIT-EXACT; ownership guard leaked_members=0 leaked_into_layout=0 inserts 0/0; build zero NOTEs; tin #11 (782->786, 1388->1482) + parcel name/label (Parent_Tract -> '' + label placement — the pre-existing parcel-writer notes) pre-existing; NEW: parcel_segment 2 != 1 (E-1)",
+   "L2": "open NO dialog; built AUDIT 37/0/0",
+   "L3": "INEQUALITY by EXACTLY the E-1 delta: oracle AUDIT 36/0/0 {Circle 6, MText 6, Alignment 1, GeomPoint 1, MinorStation 1, Station 1, CogoPoint 16, Face 2, LotLine 1, Tin 1} vs built AUDIT 37/0/0 {same 9 classes ALL EXACT, LotLine 2} — delta 37-36 = the one E-1 record; TIN [EG] BOTH sides (N-1 closure live) 782/1482 vs 778/1388 (#11); COGO0 num=16 first vs oracle num=1 (C-5 order, count-exact); ctx invariants held; ZERO leaks",
+   "verdict": "FAIL at L3 — E-1 only (all 9 other classes app-exact; small-count cogo store verified live)"
+  },
+  {
+   "file": "Assembly-1a.dwg",
+   "pick_reason": "the broadest remaining census of the eligible set (13 families): the C-4 builder AT VOLUME (102 segments vs the 1 proven), Face 57 at its corpus volume, lwpolyline 136 at volume, and the assembly-round families (GraphProfile 2 + bands 2 + VAlignment 4) in the assembly shape — never packet-tested",
+   "L1": "PASS-with-notes: arc 1/1 + polyline3d 3/3 + lwpolyline 136/136 + line 1/1 + block_record 40/40 + site 1/1 + profile 4/4 + profile_view 2/2 (BOTH banded views BIT-EXACT — the D-1 fix rides codec-side) + alignment_label_group 4/4 BIT-EXACT; guard 0/0; build 1.77 s with 38 identical NOTEs (parcel meet-rejections); tin #11 (23126->23130, 45934->46233) + alignment 6 RAW (2 ulp + curves[1..2] None != arc — the recorded curve-fit gap) pre-existing; parcel 18 != 56 (E-2, fresh data) and parcel_segment 120 != 102 = 102 + 18 (E-1 mechanism at volume)",
+   "L2": "open NO dialog; built AUDIT 295/0/0",
+   "L3": "INEQUALITY by EXACTLY E-2 + E-1: oracle AUDIT 315/0/0 (13 classes) vs built AUDIT 295/0/0; 11 of 13 classes EXACT incl. LwPolyline 136 AT CORPUS VOLUME, VAlignment 4 == 4 (first packet leg at 4), GraphProfile 2 + ProfileDataBand 2 == (the D-1 fix VERIFIED LIVE at the app census); deltas Face 19 != 57 (-38, the E-2 meet-rejected parcels) and LotLine 120 != 102 (+18, E-1's extra record per BUILT parcel); audit 295 vs 315 = -38+18 closes exactly; TIN [EG] BOTH sides; ZERO leaks",
+   "verdict": "FAIL at L3 — E-2 + E-1 only (every class the writers build is app-exact; both banded views live)"
+  },
+  {
+   "file": "Profile-4B.dwg",
+   "pick_reason": "the FIRST L3 packet test of the D-1 FIX: the merge base baaaad227 fixed the profile-view bands path to ride the manifest's decoded oracle range — exactly the defect that failed Profile-4A's L3 in packet D (GraphProfile -1, ProfileDataBand -1); Profile-4B is that file's twin shape with TWO VAlignments (1 more than any packet-tested file)",
+   "L1": "PASS-with-notes, ZERO build NOTEs (0.29 s): circle 9/9 + mtext 10/10 + block_record 39/39 + profile 2/2 + profile_view 1/1 (PV0 BUILT WITH BANDS — pre-fix Profile-4A failed exactly here) + alignment_label_group 3/3 BIT-EXACT; guard 0/0; built codec census carries GraphProfile 1 + ProfileDataBandLabeling 1; tin #11 (10158->10162, 16868->20287 — exactly packet D's Profile-4A numbers) + alignment curve-fit (curves 4 != 6, vertices 6 != 8) pre-existing",
+   "L2": "open NO dialog; built AUDIT 28 total, null=1 (ID-EXCN id=311 AcRxObject ePermanentlyErased — REAL BUILT-FILE CONTENT, the packet-C C-2 lesson), erased=0",
+   "L3": "HEADLINE — the D-1 FIX VERIFIED LIVE AT THE APP CENSUS: GraphProfile 1 == 1 AND ProfileDataBandLabeling 1 == 1 (packet D's Profile-4A failed on exactly these two). 9 of 10 classes EXACT; TIN [Existing Ground] BOTH sides. ONE new delta: AeccDbAlignmentMinorStationLabeling 1 -> 0 app-side while the codec census carries it (alignment_label_group 3/3 BIT-EXACT) — the erased id=311 is the physical evidence (E-3)",
+   "verdict": "FAIL at L3 — E-3 only; the D-1 profile-view bands fix is CLOSED with live packet evidence"
+  }
+ ],
+ "gaps": [
+  {
+   "id": "E-1",
+   "file": "Align-2.dwg (single) + Assembly-1a.dwg (at volume)",
+   "family": "parcel_segment",
+   "gap": "when a file carries a closed parcel AND that parcel's own boundary parcel_segment record, the built file carries the segment TWICE: add_parcel rides add_lot_line_on -> join_site, whose record closure ALWAYS writes an AECC_PARCEL_SEGMENT lot-line record (write_lot_line(..., None) — no graphic, re-analyzes as geometry:null), and the C-4 parcel_segment family then writes the oracle's decoded record again. Align-2: 2 != 1 (one geometry-null + the decoded one); Assembly-1a: 120 != 102 (102 decoded + one extra per BUILT parcel, 18 — the 38 rejected parcels contribute none). In the oracle the single segment IS the parcel boundary (corners == the parcel's vertices)",
+   "class": "WRITER",
+   "implementability": "implementable — the parcel build should reuse/suppress the boundary lot-line record when the manifest's parcel_segment family carries the same closed ring (or add_parcel needs a write-record=false path); NOT fixed this round (packet round is data-only)",
+   "pre_existing": false,
+   "evidence": "code-pinned: src/classes/civil/create/site.rs add_parcel (1790) -> add_lot_line_on (1423, record closure at 1446) -> write_lot_line (1309); examples/corpus_roundtrip.rs parcel (1926) + parcel_segment (1943) build paths; L3 app deltas LotLine 2 vs 1 (Align-2) and 120 vs 102 (Assembly-1a) quoted in the runlog; FIRST LIVE C-4 leg where both families coexist (packet C's Align-6C had no parcel family, so the builder's solo leg there was 1==1)"
+  },
+  {
+   "id": "E-2",
+   "file": "Assembly-1a.dwg",
+   "family": "parcel",
+   "gap": "the wiring round's dominant shortfall CONFIRMED FROM FRESH DATA post-C-4: only 18 of 56 parcels build — 38 identical NOTEs 'the line crosses or touches a member it may not meet' — because add_parcel rides add_lot_line_on with meet=false (join_site_as rejects any member whose outline meets the new line when meet is false), while this file's parcels share boundaries/touch by construction. Built Face 19 (1 site + 18 parcels) vs oracle 57 (1 + 56)",
+   "class": "WRITER",
+   "implementability": "uncertain — needs the parcel-round topology work (meet-aware parcel building or per-parcel face carry), NOT this round; the packet records the post-C-4 behavior as the dispatch required (the 56->18 note predates the C-4 builder and is judged from fresh data: UNCHANGED at 18/56)",
+   "pre_existing": true,
+   "evidence": "packet D's not-picked note ('pre-existing parcel 56->18 volume shortfall dominates — needs the parcel round'); this packet's build log: 38 x NOTE parcel meet-rejection; compare_verify parcel count 18 != 56; L3 app delta Face 19 vs 57"
+  },
+  {
+   "id": "E-3",
+   "file": "Profile-4B.dwg",
+   "family": "alignment_label_group (MinorStation)",
+   "gap": "the built file's AeccDbAlignmentMinorStationLabeling record is invisible to the APPLICATION: codec-side the record is present and BIT-EXACT (alignment_label_group 3/3, codec census MinorStation 1), but the app census lacks the class entirely and the audit reports null=1 — ID-EXCN id=311 AcRxObject ePermanentlyErased, i.e. the app cannot open the object where the group should be (REAL FILE CONTENT, same class as packet C's C-2: Parcel-1A's erased id=451 + StationLabeling 2->1; Profile-4A in packet D had NO such delta — MinorStation 1==1 clean there)",
+   "class": "WRITER",
+   "implementability": "uncertain — the record's owner/erase-state flags as the application reads them differ from the codec's view; needs an app-side probe of id=311's owner chain (what the application considers erased about the MinorStation group record); NOT fixed this round",
+   "pre_existing": false,
+   "first_live": "new occurrence of the C-2 class on a fresh file shape; the C-2 mechanism (station-group records the app treats as erased) is therefore NOT fully closed by the earlier fixes",
+   "evidence": "cap.pktE.pktE.p4b.built.census.txt: ID-EXCN id=311 + no MinorStation CENSUS line vs oracle MinorStation=1; codec compare alignment_label_group 3/3 BIT-EXACT; audit 28/1/0 vs oracle 28/0/0"
+  }
+ ],
+ "reconfirmed_pre_existing": [
+  "#11 tin triangulation parameter (all 3 files, exact packet-D/wiring numbers)",
+  "alignment curve-fit rebuild (Assembly-1a curves[1..2] None != arc; Profile-4B curves 4 != 6 — the recorded gap)",
+  "parcel writer name/label (Parent_Tract -> '' + label placement — packet D's pre-existing note, live on Align-2)",
+  "C-5 cogo store order (built num=16 first vs oracle num=1, count-exact, Align-2)",
+  "N-1 TIN name closure live: [EG] both sides Align-2 + Assembly-1a, [Existing Ground] both sides Profile-4B",
+  "D-2 built units header 'Undefined' (all 3 built opens; 3rd packet running)",
+  "C-1 ownership: guard 0/0 on ALL THREE files and ZERO app-side leaked members — the leak class stays EXTINCT on 3 more files"
+ ]
+}
