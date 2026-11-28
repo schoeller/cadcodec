@@ -184,6 +184,31 @@
     reproduce: this lineage carries C-3/D-1 + BOTH fixes and shows ZERO app-side
     erasures on all three files. The open item stays open but unobserved here.
 
+## STATE SNAPSHOT (2026-11-28 ~01:5x UTC — post-suite, pre-ship)
+
+- Branch parity/packetF: merges 0424b3c1 (E-1) + 5dfa3a33 (E-3) + wiring eb6326e1;
+  suite 3452/0; disk 56 GB free (>15 floor); watcher running (zero matches); all legs
+  green; no blocker of any kind.
+
+- [SHIP] committed **6ad4f26e** on parity/packetF (align_3/align_4/align_7b manifests +
+  gap_closure_packetF.json + the runlog copy; data-only, on top of eb6326e1) and pushed
+  schoeller/cadcodec:parity/packetF — **origin ref == HEAD verified (6ad4f26e)**. NO PRs,
+  no matrix/PM edits. THIS completed runlog copy (SHIP section + handoff notes) pushed as
+  the follow-up data-only commit (the packetE 1ef1bfda precedent). Artifacts: d008 log /tmp/opencode/writere2/d008_log_packetF.jsonl;
+  watcher log /tmp/opencode/ct/pktF_watcher.log (start 01:32:07, matched NOTHING);
+  built files + analyses /tmp/opencode/packetF_work/ and C:\Temp\corpus_built\packetF\
+  (attrib -r carried); oracle copies 444 in /tmp/opencode/packetF_work/.
+- [SUCCESSOR HANDOFF NOTES] (1) The E-1 fix (56b499ac) ships ONLY src/ — any composed
+  corpus build needs the example wiring (eb6326e1, in this branch) or it re-measures the
+  PRE-fix writer; already merged here, nothing to do. (2) The recorded PARITY-BUILD
+  erase caveat (packet E's E-3 profile-view occurrence) did NOT reproduce on this
+  lineage — if a successor sees an anomalous app-side erasure, record it precisely; the
+  item stays open. (3) packetF_verify.py takes /tmp/opencode/bridge.lock itself — run
+  BARE (packetE's self-deadlock lesson stands). (4) The user's leftover open drawing
+  (C:\Temp\mhvadopt\mhv-pad.dwg) was visible in openDrawings on every open — untouched,
+  Drawing1 invariants held on every probe.
+
+
 ## Verdicts (summary)
 
 | file | L1 (codec compare) | L2 (audit) | L3 (app census equality) | verdict |
